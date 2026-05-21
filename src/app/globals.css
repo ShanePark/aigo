@@ -265,6 +265,39 @@ h3 {
   gap: 6px;
 }
 
+.facility-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.facility-chip {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 5px 7px;
+}
+
+.facility-chip.positive {
+  background: var(--soft-green);
+  border-color: #c7e5d2;
+  color: var(--green);
+}
+
+.facility-chip.partial {
+  background: #fff7e8;
+  border-color: #ecd3a4;
+  color: var(--amber);
+}
+
+.facility-chip.negative,
+.facility-chip.unknown,
+.facility-chip.neutral {
+  background: #f3f2ec;
+  color: #4f5a54;
+}
+
 .reason-grid span {
   background: #f3f2ec;
   border: 1px solid var(--line);

@@ -79,6 +79,14 @@ export default async function Home({ searchParams }: HomeProps) {
               <input name="stroller" type="checkbox" defaultChecked={params.stroller === "on"} />
               <span>유모차 선호</span>
             </label>
+            <label className="check">
+              <input name="nursing" type="checkbox" defaultChecked={params.nursing === "on"} />
+              <span>수유실 선호</span>
+            </label>
+            <label className="check">
+              <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
+              <span>기저귀 선호</span>
+            </label>
           </div>
           <button type="submit" className="primary-button">
             <Search size={16} aria-hidden="true" />
@@ -123,6 +131,13 @@ export default async function Home({ searchParams }: HomeProps) {
                   {place.tags.slice(0, 4).join(", ") || "태그 없음"}
                 </span>
               </div>
+              <div className="facility-grid">
+                {facilitySignals(place).map((signal) => (
+                  <span className={`facility-chip ${signal.tone}`} key={signal.label}>
+                    {signal.label}: {signal.value}
+                  </span>
+                ))}
+              </div>
               <div className="reason-grid">
                 {place.reasonCodes.slice(0, 8).map((code) => (
                   <span key={code}>{code}</span>
@@ -156,7 +171,9 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
       parkingAvailable: params.parking === "on" ? true : undefined,
-      strollerFriendly: params.stroller === "on" ? true : undefined
+      strollerFriendly: params.stroller === "on" ? true : undefined,
+      nursingRoom: params.nursing === "on" ? true : undefined,
+      diaperChangingTable: params.diaper === "on" ? true : undefined
     },
     limit: 30
   };
@@ -176,4 +193,50 @@ async function safeSearch(input: SearchPlacesInput) {
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
+
+function facilitySignals(place: SearchItem) {
+  return [
+    { label: "실내외", value: indoorLabel(place.facilities.indoorType), tone: toneForIndoor(place.facilities.indoorType) },
+    { label: "주차", value: triStateLabel(place.facilities.parkingAvailable), tone: toneForTriState(place.facilities.parkingAvailable) },
+    { label: "유모차", value: triStateLabel(place.facilities.strollerFriendly), tone: toneForTriState(place.facilities.strollerFriendly) },
+    { label: "수유실", value: triStateLabel(place.facilities.nursingRoom), tone: toneForTriState(place.facilities.nursingRoom) },
+    { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) }
+  ];
+}
+
+function indoorLabel(value: string) {
+  const labels: Record<string, string> = {
+    indoor: "실내",
+    outdoor: "실외",
+    mixed: "혼합",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function triStateLabel(value: string) {
+  const labels: Record<string, string> = {
+    yes: "있음",
+    partial: "일부",
+    no: "없음",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function toneForIndoor(value: string) {
+  if (value === "indoor") return "positive";
+  if (value === "mixed") return "partial";
+  if (value === "outdoor") return "neutral";
+  return "unknown";
+}
+
+function toneForTriState(value: string) {
+  if (value === "yes") return "positive";
+  if (value === "partial") return "partial";
+  if (value === "no") return "negative";
+  return "unknown";
 }
