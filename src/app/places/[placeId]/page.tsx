@@ -24,7 +24,9 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
 
       <section className="detail-head">
         <div>
-          <p className="category">{place.primaryCategory}</p>
+          <p className="category" title={place.primaryCategory}>
+            {categoryLabel(place.primaryCategory)}
+          </p>
           <h1>{place.name}</h1>
           <p className="lede">{place.description ?? "설명이 아직 등록되지 않았습니다."}</p>
         </div>
@@ -45,7 +47,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
               {place.lat}, {place.lng}
             </dd>
             <dt>신뢰도</dt>
-            <dd>{place.dataConfidence}</dd>
+            <dd>{confidenceLabel(place.dataConfidence)}</dd>
             <dt>태그</dt>
             <dd>{place.tags.join(", ") || "없음"}</dd>
           </dl>
@@ -224,4 +226,36 @@ function minutesLabel(value: number | null) {
 
 function scoreLabel(value: number | null) {
   return value === null ? "미확인" : `${value}/5`;
+}
+
+function categoryLabel(value: string) {
+  const labels: Record<string, string> = {
+    kids_cafe: "키즈카페",
+    indoor_playground: "실내놀이터",
+    toy_library: "장난감도서관",
+    library: "도서관",
+    museum: "박물관/미술관",
+    science_museum: "과학관",
+    experience_center: "체험관",
+    aquarium_zoo: "동물/아쿠아리움",
+    park: "공원/놀이터",
+    family_cafe: "가족 카페",
+    family_restaurant: "놀이방/가족 식당",
+    sports_venue: "스포츠/야구장",
+    shopping_mall: "쇼핑/몰",
+    rest_area: "휴게소/쉼터"
+  };
+  return labels[value] ?? value;
+}
+
+function confidenceLabel(value: string) {
+  const labels: Record<string, string> = {
+    official_verified: "공식 확인",
+    operator_curated: "운영자 확인",
+    agent_collected: "에이전트 수집",
+    user_reported: "사용자 제보",
+    needs_check: "확인 필요",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
 }

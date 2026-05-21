@@ -148,7 +148,9 @@ export default async function Home({ searchParams }: HomeProps) {
               <article className="result-card" key={place.placeId}>
                 <div className="result-main">
                   <div>
-                    <p className="category">{place.primaryCategory}</p>
+                    <p className="category" title={place.primaryCategory}>
+                      {categoryLabel(place.primaryCategory)}
+                    </p>
                     <h3>
                       <Link href={`/places/${place.placeId}`}>{place.name}</Link>
                     </h3>
@@ -174,6 +176,8 @@ export default async function Home({ searchParams }: HomeProps) {
                   ))}
                 </div>
                 <div className="visit-row">
+                  <span>v{place.version}</span>
+                  <span>신뢰도 {confidenceLabel(place.dataConfidence)}</span>
                   {place.visit.averageStayMinutes ? <span>체류 {place.visit.averageStayMinutes}분</span> : null}
                   {place.visit.parentEffortLevel ? <span>부모 난이도 {place.visit.parentEffortLevel}/5</span> : null}
                   {place.notes.safety ? <span className="caution">안전 메모 있음</span> : null}
@@ -309,6 +313,38 @@ function visitContextLabel(value: NonNullable<SearchPlacesInput["visitContext"]>
     rainyDay: "비 오는 날",
     weekendHalfDay: "주말 반나절",
     dayTrip: "당일치기"
+  };
+  return labels[value] ?? value;
+}
+
+function categoryLabel(value: string) {
+  const labels: Record<string, string> = {
+    kids_cafe: "키즈카페",
+    indoor_playground: "실내놀이터",
+    toy_library: "장난감도서관",
+    library: "도서관",
+    museum: "박물관/미술관",
+    science_museum: "과학관",
+    experience_center: "체험관",
+    aquarium_zoo: "동물/아쿠아리움",
+    park: "공원/놀이터",
+    family_cafe: "가족 카페",
+    family_restaurant: "놀이방/가족 식당",
+    sports_venue: "스포츠/야구장",
+    shopping_mall: "쇼핑/몰",
+    rest_area: "휴게소/쉼터"
+  };
+  return labels[value] ?? value;
+}
+
+function confidenceLabel(value: string) {
+  const labels: Record<string, string> = {
+    official_verified: "공식 확인",
+    operator_curated: "운영자 확인",
+    agent_collected: "에이전트 수집",
+    user_reported: "사용자 제보",
+    needs_check: "확인 필요",
+    unknown: "미확인"
   };
   return labels[value] ?? value;
 }
