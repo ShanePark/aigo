@@ -97,6 +97,13 @@ describe("place search helpers", () => {
         nursingRoom: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "홈경기 없는 날 키벤저스 주차 실내놀이" })).toMatchObject({
+      query: "키벤저스",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        parkingAvailable: true
+      }
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "물놀이 물놀이터 수경 여름 운영 주차 유모차" })).toMatchObject({
       query: "물놀이 물놀이터 수경",
       preferences: {
@@ -148,6 +155,16 @@ describe("place search helpers", () => {
         elevator: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "비오는날 아이랑 실내 가볼만한곳 유모차 수유실 기저귀" })).toMatchObject({
+      visitContext: "rainyDay",
+      query: undefined,
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "밥 먹으면서 애 놀릴 수 있는 곳" })).toMatchObject({
       query: "놀이방식당"
     });
@@ -158,12 +175,25 @@ describe("place search helpers", () => {
       visitContext: "weekendHalfDay",
       query: "주말 반나절 공공시설 과학 도서관 어린이"
     });
-    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 기준 1시간권 자연 실내대피 비오면 피할 곳" })).toMatchObject({
-      visitContext: "dayTrip",
-      query: "자연",
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "주말 반나절 공공시설 과학관 도서관 어린이 무료 저렴 실내" })).toMatchObject({
+      visitContext: "weekendHalfDay",
+      query: "주말 반나절 공공시설 과학관 도서관 어린이 무료 저렴 실내",
       preferences: {
         indoorTypes: ["indoor", "mixed"]
       }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "쇼핑몰 베이비라운지 수유실 기저귀 유모차 대여 푸드코트 주차" })).toMatchObject({
+      query: "쇼핑몰 베이비라운지 수유실 기저귀 유모차 대여 푸드코트 주차",
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 기준 1시간권 자연 실내대피 비오면 피할 곳" })).toMatchObject({
+      visitContext: "dayTrip",
+      query: "자연"
     });
   });
 

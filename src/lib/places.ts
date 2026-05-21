@@ -621,7 +621,40 @@ const broadParentIntentTerms = new Set([
   "비오는날",
   "비",
   "수유실",
-  "기저귀"
+  "기저귀",
+  "화장실",
+  "무료",
+  "저렴",
+  "저렴한",
+  "쇼핑몰",
+  "백화점",
+  "아울렛",
+  "베이비라운지",
+  "유아휴게실",
+  "푸드코트",
+  "식당가",
+  "유모차대여",
+  "대여"
+]);
+
+const broadParentCoreTerms = new Set([
+  ...broadNatureIntentTerms,
+  "당일치기",
+  "근교",
+  "1시간권",
+  "공공시설",
+  "공공",
+  "국립",
+  "시립",
+  "과학",
+  "과학관",
+  "박물관",
+  "도서관",
+  "체험관",
+  "어린이",
+  "쇼핑몰",
+  "백화점",
+  "아울렛"
 ]);
 
 const queryPreferenceTerms = {
@@ -661,7 +694,9 @@ const indoorPreferenceTerms = new Set([
   "대안",
   "비상",
   "피할",
-  "피하기"
+  "피하기",
+  "실내놀이",
+  "실내놀이터"
 ]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
@@ -673,6 +708,8 @@ const queryStopTerms = new Set([
   "편하고",
   "좋은",
   "곳",
+  "가볼만한곳",
+  "가볼만한",
   "장소",
   "추천",
   "짧은",
@@ -684,6 +721,7 @@ const queryStopTerms = new Set([
   "가벼운",
   "갈만한",
   "갈",
+  "가볼",
   "올",
   "있다",
   "수",
@@ -695,6 +733,7 @@ const queryStopTerms = new Set([
   "대전역",
   "원도심",
   "기준",
+  "아이",
   "근처",
   "주변",
   "인근",
@@ -716,6 +755,15 @@ const queryStopTerms = new Set([
   "먹고",
   "먹으면서",
   "외식",
+  "무료",
+  "저렴",
+  "저렴한",
+  "화장실",
+  "대여",
+  "유모차대여",
+  "유모차대여소",
+  "푸드코트",
+  "식당가",
   "놀릴",
   "한시간",
   "한두시간",
@@ -733,6 +781,9 @@ const queryStopTerms = new Set([
   "최신",
   "현재",
   "지금",
+  "없는",
+  "날",
+  "홈경기",
   "대피",
   "피난처",
   "실내대피",
@@ -789,6 +840,13 @@ const broadPublicExpansionTerms = [
   "꿈아띠"
 ];
 
+const broadShoppingExpansionTerms = [
+  "쇼핑몰",
+  "백화점",
+  "아울렛",
+  "복합쇼핑몰"
+];
+
 const mealPlayMealTerms = new Set(["밥", "식사", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
 const mealPlayActivityTerms = new Set(["놀릴", "놀이방", "키즈룸", "키즈존", "애"]);
 
@@ -813,8 +871,11 @@ export function isRouteBreakIntentQuery(query: string) {
 }
 
 export function isBroadParentIntentQuery(query: string) {
-  const terms = query.trim().split(/\s+/).filter(Boolean);
-  return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term));
+  const terms = query
+    .trim()
+    .split(/\s+/)
+    .filter((term) => Boolean(term) && !isQueryStopTerm(term));
+  return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term)) && terms.some((term) => broadParentCoreTerms.has(term));
 }
 
 function shouldKeepLiteralQuery(query: string) {
@@ -828,8 +889,13 @@ function shouldKeepLiteralQuery(query: string) {
 
 function inferPreferencesFromQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
+  const termSet = new Set(terms);
   const preferences: Partial<NonNullable<SearchPlacesInput["preferences"]>> = {};
   const indoorTypes = new Set<"indoor" | "outdoor" | "mixed">();
+  const hasDayTripNatureFallbackIntent =
+    (termSet.has("1시간권") || termSet.has("당일치기") || termSet.has("근교")) &&
+    terms.some((term) => broadNatureIntentTerms.has(term)) &&
+    terms.some((term) => ["실내대피", "실내대안", "대피", "대안", "피할", "비오면"].includes(term));
 
   for (const term of terms) {
     if (twinLogisticsTerms.has(term)) {
@@ -844,7 +910,7 @@ function inferPreferencesFromQuery(query: string) {
         preferences[key as keyof typeof queryPreferenceTerms] = true as never;
       }
     }
-    if (indoorPreferenceTerms.has(term)) {
+    if (indoorPreferenceTerms.has(term) && !(hasDayTripNatureFallbackIntent && term !== "실내")) {
       indoorTypes.add("indoor");
       indoorTypes.add("mixed");
     }
@@ -951,21 +1017,9 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
     addTextExpansionClauses(clauses, broadPublicExpansionTerms, add);
   }
 
-  if (termSet.has("실내") || termSet.has("비오는날") || termSet.has("비")) {
-    clauses.push("indoor_type = any(array['indoor','mixed']::text[])");
-  }
-
-  if (termSet.has("유모차")) {
-    clauses.push("stroller_friendly in ('yes','partial')");
-  }
-  if (termSet.has("주차")) {
-    clauses.push("parking_available in ('yes','partial')");
-  }
-  if (termSet.has("수유실")) {
-    clauses.push("nursing_room in ('yes','partial')");
-  }
-  if (termSet.has("기저귀")) {
-    clauses.push("diaper_changing_table in ('yes','partial')");
+  if (termSet.has("쇼핑몰") || termSet.has("백화점") || termSet.has("아울렛")) {
+    clauses.push("primary_category = 'shopping_mall'");
+    addTextExpansionClauses(clauses, broadShoppingExpansionTerms, add);
   }
 
   if (clauses.length === 0) {
