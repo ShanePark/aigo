@@ -255,7 +255,25 @@ h3 {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
+  display: grid;
+  gap: 14px;
   padding: 16px;
+}
+
+.result-image {
+  aspect-ratio: 16 / 7;
+  background: #eef3ef;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.result-image img,
+.detail-hero-image img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .result-main {
@@ -435,6 +453,15 @@ h3 {
   margin-bottom: 26px;
 }
 
+.detail-hero-image {
+  aspect-ratio: 16 / 6;
+  background: #eef3ef;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0 0 18px;
+  overflow: hidden;
+}
+
 .version-box {
   min-width: 64px;
 }
@@ -568,6 +595,11 @@ dd {
   .search-form,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .result-image,
+  .detail-hero-image {
+    aspect-ratio: 16 / 9;
   }
 
   h1 {

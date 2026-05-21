@@ -236,6 +236,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       tags: place.tags,
       address: place.address,
       description: place.description,
+      imageUrls: place.imageUrls,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,

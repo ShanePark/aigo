@@ -486,6 +486,7 @@ components:
         - primaryCategory
         - tags
         - description
+        - imageUrls
         - score
         - reasonCodes
         - reasons
@@ -514,6 +515,11 @@ components:
         description:
           type: string
           nullable: true
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
         lat:
           type: number
         lng:

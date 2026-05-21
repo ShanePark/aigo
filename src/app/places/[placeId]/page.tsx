@@ -14,6 +14,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
   const { placeId } = await params;
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
+  const heroImageUrl = place.imageUrls[0];
 
   return (
     <div className="page detail-page">
@@ -34,6 +35,13 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
           v{place.version}
         </div>
       </section>
+
+      {heroImageUrl ? (
+        <div className="detail-hero-image">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={heroImageUrl} alt={`${place.name} 대표 이미지`} referrerPolicy="no-referrer" />
+        </div>
+      ) : null}
 
       <section className="detail-grid">
         <div className="info-block">
