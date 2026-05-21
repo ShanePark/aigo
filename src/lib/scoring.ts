@@ -140,7 +140,7 @@ function applyVisitContextSignal(
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "library", "family_cafe"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "library", "family_cafe", "shopping_mall"].includes(category)) {
       addScore(5);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -170,7 +170,7 @@ function applyVisitContextSignal(
   }
 
   if (input.visitContext === "weekendHalfDay") {
-    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park"].includes(category)) {
+    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "shopping_mall"].includes(category)) {
       addScore(7);
       reasonCodes.add("CONTEXT_HALFDAY_DESTINATION");
     }

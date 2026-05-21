@@ -48,6 +48,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <option value="aquarium_zoo">동물/아쿠아리움</option>
               <option value="park">공원/놀이터</option>
               <option value="family_cafe">가족 카페</option>
+              <option value="shopping_mall">쇼핑/몰</option>
             </select>
           </label>
           <label>
