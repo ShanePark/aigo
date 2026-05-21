@@ -140,7 +140,7 @@ function applyVisitContextSignal(
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "library", "family_cafe", "shopping_mall"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
       addScore(5);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -173,6 +173,10 @@ function applyVisitContextSignal(
     if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "shopping_mall"].includes(category)) {
       addScore(7);
       reasonCodes.add("CONTEXT_HALFDAY_DESTINATION");
+    }
+    if (category === "family_restaurant" && tags.has("놀이방식당")) {
+      addScore(4);
+      reasonCodes.add("CONTEXT_HALFDAY_MEAL_SUPPORT");
     }
     if (distance >= 5 && distance <= 45) {
       addScore(4);

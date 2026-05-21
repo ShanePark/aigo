@@ -122,4 +122,31 @@ describe("scorePlace", () => {
     expect(destination.reasonCodes).toContain("CONTEXT_DAY_TRIP_DISTANCE");
     expect(nearby.reasonCodes).toContain("CONTEXT_DAY_TRIP_TOO_CLOSE");
   });
+
+  it("treats playroom restaurants as useful after-daycare and half-day meal support", () => {
+    const place = {
+      primaryCategory: "family_restaurant",
+      tags: ["놀이방식당"],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 24,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 4
+    };
+
+    const afterDaycare = scorePlace(place, { ...baseInput, visitContext: "afterDaycare", preferences: { babyChair: true } });
+    const halfDay = scorePlace(place, { ...baseInput, visitContext: "weekendHalfDay", preferences: { babyChair: true } });
+
+    expect(afterDaycare.reasonCodes).toContain("CONTEXT_AFTER_DAYCARE_CATEGORY");
+    expect(afterDaycare.reasonCodes).toContain("BABY_CHAIR_YES");
+    expect(halfDay.reasonCodes).toContain("CONTEXT_HALFDAY_MEAL_SUPPORT");
+  });
 });

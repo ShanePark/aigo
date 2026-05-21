@@ -370,11 +370,6 @@ components:
               minItems: 1
               items:
                 $ref: "#/components/schemas/SourceInput"
-            sourceMode:
-              type: string
-              enum: [append, replace]
-              default: append
-              description: Append new provenance by default. Use replace only to correct a bad import or source contamination.
             actor:
               type: string
               default: agent
@@ -391,6 +386,11 @@ components:
               minItems: 1
               items:
                 $ref: "#/components/schemas/SourceInput"
+            sourceMode:
+              type: string
+              enum: [append, replace]
+              default: append
+              description: Append new provenance by default. Use replace only to correct a bad import or source contamination.
             actor:
               type: string
               default: agent

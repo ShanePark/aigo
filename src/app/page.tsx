@@ -48,6 +48,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <option value="aquarium_zoo">동물/아쿠아리움</option>
               <option value="park">공원/놀이터</option>
               <option value="family_cafe">가족 카페</option>
+              <option value="family_restaurant">놀이방/가족 식당</option>
               <option value="shopping_mall">쇼핑/몰</option>
             </select>
           </label>
@@ -102,6 +103,10 @@ export default async function Home({ searchParams }: HomeProps) {
             <label className="check">
               <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
               <span>간식 공간 선호</span>
+            </label>
+            <label className="check">
+              <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
+              <span>아기의자 선호</span>
             </label>
           </div>
           <button type="submit" className="primary-button">
@@ -190,7 +195,8 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       strollerFriendly: params.stroller === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
       diaperChangingTable: params.diaper === "on" ? true : undefined,
-      foodAllowed: params.food === "on" ? true : undefined
+      foodAllowed: params.food === "on" ? true : undefined,
+      babyChair: params.babyChair === "on" ? true : undefined
     },
     limit: 30
   };
@@ -221,6 +227,8 @@ function facilitySignals(place: SearchItem) {
     { label: "유모차", value: triStateLabel(place.facilities.strollerFriendly), tone: toneForTriState(place.facilities.strollerFriendly) },
     { label: "수유실", value: triStateLabel(place.facilities.nursingRoom), tone: toneForTriState(place.facilities.nursingRoom) },
     { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) },
+    { label: "유아화장실", value: triStateLabel(place.facilities.kidsToilet), tone: toneForTriState(place.facilities.kidsToilet) },
+    { label: "아기의자", value: triStateLabel(place.facilities.babyChair), tone: toneForTriState(place.facilities.babyChair) },
     { label: "간식", value: triStateLabel(place.facilities.foodAllowed), tone: toneForTriState(place.facilities.foodAllowed) }
   ];
 }
