@@ -590,7 +590,7 @@ components:
                 - type: "null"
             search:
               type: object
-              required: [originalQuery, normalizedQuery, appliedPreferences, normalized]
+              required: [originalQuery, normalizedQuery, appliedPreferences, visitContext, normalized]
               description: Query normalization details for agent debugging and zero-result recovery.
               properties:
                 originalQuery:
@@ -606,6 +606,11 @@ components:
                     - type: object
                       additionalProperties: true
                     - type: "null"
+                visitContext:
+                  type:
+                    - string
+                    - "null"
+                  enum: [afterDaycare, nearbyNow, rainyDay, weekendHalfDay, dayTrip, null]
                 normalized:
                   type: boolean
     DuplicatePlaceRequest:

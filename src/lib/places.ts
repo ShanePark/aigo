@@ -279,7 +279,11 @@ export async function searchPlaces(input: SearchPlacesInput) {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
         appliedPreferences: normalizedInput.preferences ?? null,
-        normalized: input.query !== normalizedInput.query || JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null)
+        visitContext: normalizedInput.visitContext ?? null,
+        normalized:
+          input.query !== normalizedInput.query ||
+          input.visitContext !== normalizedInput.visitContext ||
+          JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null)
       }
     }
   };
@@ -485,6 +489,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
   if (!input.query) return input;
 
   const preferences = { ...(input.preferences ?? {}) };
+  const visitContext = input.visitContext ?? inferVisitContextFromQuery(input.query);
   const inferred = inferPreferencesFromQuery(input.query);
   for (const [key, value] of Object.entries(inferred.preferences)) {
     const preferenceKey = key as keyof NonNullable<SearchPlacesInput["preferences"]>;
@@ -499,6 +504,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
   if (shouldKeepLiteralQuery(input.query)) {
     return {
       ...input,
+      visitContext,
       preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
     };
   }
@@ -506,6 +512,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
   const query = stripPreferenceTerms(input.query);
   return {
     ...input,
+    visitContext,
     query,
     preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
   };
@@ -561,21 +568,29 @@ const routeBreakContextTerms = new Set([
   "길",
   "경로",
   "이동",
+  "도중",
+  "중간",
   "수유실",
   "기저귀",
   "화장실",
   "청남대",
   "대청호",
+  "대청댐",
   "문의",
   "옥천",
   "청주",
   "공주"
 ]);
 
+const routeBreakRouteTerms = new Set(["가는", "길", "경로", "이동", "도중", "중간"]);
+const routeBreakDestinationTerms = new Set(["청남대", "대청호", "대청댐", "문의", "옥천", "청주", "공주"]);
+const routeBreakLogisticsTerms = new Set(["수유실", "기저귀", "화장실", "유모차", "휴식", "쉼터", "쉬는"]);
+
 const broadParentIntentTerms = new Set([
   ...broadNatureIntentTerms,
   "당일치기",
   "근교",
+  "주말",
   "유모차",
   "주차",
   "공공시설",
@@ -609,6 +624,7 @@ const queryPreferenceTerms = {
 
 const indoorPreferenceTerms = new Set(["실내", "비", "비오는날", "비오는", "우천", "장마"]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
+const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
 const queryStopTerms = new Set([
   "있는",
   "가능",
@@ -632,6 +648,15 @@ const queryStopTerms = new Set([
   "아이랑",
   "아기랑",
   "데리고",
+  "대전역",
+  "원도심",
+  "근처",
+  "주변",
+  "인근",
+  "가까운",
+  "쌍둥이",
+  "쌍둥이랑",
+  "twins",
   "하원",
   "하원후",
   "방과후",
@@ -715,7 +740,12 @@ export function isBroadWaterPlayIntentQuery(query: string) {
 
 export function isRouteBreakIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
-  return terms.some((term) => routeBreakCoreTerms.has(term)) && terms.some((term) => routeBreakContextTerms.has(term));
+  const hasExplicitStop = terms.some((term) => routeBreakCoreTerms.has(term)) && terms.some((term) => routeBreakContextTerms.has(term));
+  const hasRouteLogistics =
+    terms.some((term) => routeBreakRouteTerms.has(term)) &&
+    terms.some((term) => routeBreakDestinationTerms.has(term)) &&
+    terms.some((term) => routeBreakLogisticsTerms.has(term));
+  return hasExplicitStop || hasRouteLogistics;
 }
 
 export function isBroadParentIntentQuery(query: string) {
@@ -738,6 +768,13 @@ function inferPreferencesFromQuery(query: string) {
   const indoorTypes = new Set<"indoor" | "outdoor" | "mixed">();
 
   for (const term of terms) {
+    if (twinLogisticsTerms.has(term)) {
+      preferences.parkingAvailable = true;
+      preferences.strollerFriendly = true;
+      preferences.nursingRoom = true;
+      preferences.diaperChangingTable = true;
+      preferences.elevator = true;
+    }
     for (const [key, values] of Object.entries(queryPreferenceTerms)) {
       if (values.has(term)) {
         preferences[key as keyof typeof queryPreferenceTerms] = true as never;
@@ -759,6 +796,15 @@ function inferPreferencesFromQuery(query: string) {
   };
 }
 
+function inferVisitContextFromQuery(query: string): SearchPlacesInput["visitContext"] | undefined {
+  const terms = new Set(query.trim().split(/\s+/).filter(Boolean));
+  if (terms.has("하원") || terms.has("하원후") || terms.has("방과후")) return "afterDaycare";
+  if (["비", "비오는날", "비오는", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
+  if (terms.has("주말") || terms.has("반나절")) return "weekendHalfDay";
+  if (terms.has("당일치기") || terms.has("근교")) return "dayTrip";
+  return undefined;
+}
+
 function stripPreferenceTerms(query: string) {
   const stripped = query
     .trim()
@@ -772,7 +818,7 @@ function stripPreferenceTerms(query: string) {
 
 function isQueryStopTerm(term: string) {
   if (queryStopTerms.has(term)) return true;
-  return /^[0-9]+(?:[-~][0-9]+)?시간$/.test(term);
+  return /^[0-9]+(?:[-~][0-9]+)?(?:시간|분)$/.test(term);
 }
 
 function isQueryPreferenceTerm(term: string) {

@@ -36,6 +36,7 @@ describe("place search helpers", () => {
 
   it("recognizes route-break searches for rest areas and nursing stops", () => {
     expect(isRouteBreakIntentQuery("청남대 가는 길 수유실 휴게소")).toBe(true);
+    expect(isRouteBreakIntentQuery("청남대 가는 길 수유실")).toBe(true);
     expect(isRouteBreakIntentQuery("대청호 휴게소")).toBe(true);
     expect(isRouteBreakIntentQuery("청남대 수유실")).toBe(false);
   });
@@ -68,6 +69,7 @@ describe("place search helpers", () => {
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "하원 후 1-2시간 키즈카페 실내 주차 유모차 수유실 기저귀" })).toMatchObject({
+      visitContext: "afterDaycare",
       query: "키즈카페",
       preferences: {
         indoorTypes: ["indoor", "mixed"],
@@ -75,6 +77,24 @@ describe("place search helpers", () => {
         strollerFriendly: true,
         nursingRoom: true,
         diaperChangingTable: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "비오는날 쌍둥이 유모차" })).toMatchObject({
+      visitContext: "rainyDay",
+      query: undefined,
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true,
+        elevator: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 30분 키즈카페 수유실" })).toMatchObject({
+      query: "키즈카페",
+      preferences: {
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "물놀이 물놀이터 수경 여름 운영 주차 유모차" })).toMatchObject({

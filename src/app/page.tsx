@@ -111,6 +111,10 @@ export default async function Home({ searchParams }: HomeProps) {
               <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
               <span>아기의자 선호</span>
             </label>
+            <label className="check">
+              <input name="elevator" type="checkbox" defaultChecked={params.elevator === "on"} />
+              <span>엘리베이터 선호</span>
+            </label>
           </div>
           <button type="submit" className="primary-button">
             <Search size={16} aria-hidden="true" />
@@ -129,6 +133,8 @@ export default async function Home({ searchParams }: HomeProps) {
           <span>soft matching</span>
         </div>
       </section>
+
+      {!result.error ? <SearchInterpretation search={result.meta.search} /> : null}
 
       {result.error ? (
         <div className="notice">{result.error}</div>
@@ -215,7 +221,8 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       nursingRoom: params.nursing === "on" ? true : undefined,
       diaperChangingTable: params.diaper === "on" ? true : undefined,
       foodAllowed: params.food === "on" ? true : undefined,
-      babyChair: params.babyChair === "on" ? true : undefined
+      babyChair: params.babyChair === "on" ? true : undefined,
+      elevator: params.elevator === "on" ? true : undefined
     },
     limit: 30
   };
@@ -227,7 +234,20 @@ async function safeSearch(input: SearchPlacesInput) {
   } catch (error) {
     return {
       items: [],
-      meta: { count: 0, total: 0, limit: input.limit, offset: input.offset, origin: input.origin ?? null },
+      meta: {
+        count: 0,
+        total: 0,
+        limit: input.limit,
+        offset: input.offset,
+        origin: input.origin ?? null,
+        search: {
+          originalQuery: input.query ?? null,
+          normalizedQuery: input.query ?? null,
+          appliedPreferences: input.preferences ?? null,
+          visitContext: input.visitContext ?? null,
+          normalized: false
+        }
+      },
       error: error instanceof Error ? error.message : "검색 중 오류가 발생했습니다."
     };
   }
@@ -238,6 +258,60 @@ function textParam(value: string | string[] | undefined) {
 }
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
+type SearchMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"]["search"];
+
+function SearchInterpretation({ search }: { search: SearchMeta }) {
+  const preferenceLabels = preferenceChips(search.appliedPreferences);
+
+  if (!search.originalQuery && !search.normalizedQuery && !search.visitContext && preferenceLabels.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="search-interpretation" aria-label="검색 해석">
+      <div>
+        <strong>검색 해석</strong>
+        <span>{search.normalized ? "자동 정규화" : "입력 조건 그대로"}</span>
+      </div>
+      <div className="interpretation-tags">
+        {search.originalQuery ? <span>입력: {search.originalQuery}</span> : null}
+        {search.normalizedQuery ? <span>키워드: {search.normalizedQuery}</span> : null}
+        {search.visitContext ? <span>상황: {visitContextLabel(search.visitContext)}</span> : null}
+        {preferenceLabels.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function preferenceChips(preferences: SearchMeta["appliedPreferences"]) {
+  if (!preferences || typeof preferences !== "object") return [];
+  const chips: string[] = [];
+  const typed = preferences as NonNullable<SearchPlacesInput["preferences"]>;
+
+  if (typed.indoorTypes?.includes("indoor")) chips.push("실내 우선");
+  if (typed.parkingAvailable) chips.push("주차");
+  if (typed.strollerFriendly) chips.push("유모차");
+  if (typed.nursingRoom) chips.push("수유실");
+  if (typed.diaperChangingTable) chips.push("기저귀");
+  if (typed.elevator) chips.push("엘리베이터");
+  if (typed.babyChair) chips.push("아기의자");
+  if (typed.foodAllowed) chips.push("간식 공간");
+
+  return chips;
+}
+
+function visitContextLabel(value: NonNullable<SearchPlacesInput["visitContext"]>) {
+  const labels: Record<NonNullable<SearchPlacesInput["visitContext"]>, string> = {
+    afterDaycare: "하원 후",
+    nearbyNow: "당장 근처",
+    rainyDay: "비 오는 날",
+    weekendHalfDay: "주말 반나절",
+    dayTrip: "당일치기"
+  };
+  return labels[value] ?? value;
+}
 
 function facilitySignals(place: SearchItem) {
   return [
@@ -247,6 +321,7 @@ function facilitySignals(place: SearchItem) {
     { label: "수유실", value: triStateLabel(place.facilities.nursingRoom), tone: toneForTriState(place.facilities.nursingRoom) },
     { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) },
     { label: "유아화장실", value: triStateLabel(place.facilities.kidsToilet), tone: toneForTriState(place.facilities.kidsToilet) },
+    { label: "엘리베이터", value: triStateLabel(place.facilities.elevator), tone: toneForTriState(place.facilities.elevator) },
     { label: "아기의자", value: triStateLabel(place.facilities.babyChair), tone: toneForTriState(place.facilities.babyChair) },
     { label: "간식", value: triStateLabel(place.facilities.foodAllowed), tone: toneForTriState(place.facilities.foodAllowed) }
   ];
