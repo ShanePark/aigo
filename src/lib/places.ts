@@ -704,7 +704,10 @@ const indoorPreferenceTerms = new Set([
   "피할",
   "피하기",
   "실내놀이",
-  "실내놀이터"
+  "실내놀이터",
+  "놀기",
+  "놀수있는",
+  "먹고놀기"
 ]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
@@ -759,6 +762,13 @@ const queryStopTerms = new Set([
   "후",
   "밥",
   "식사",
+  "밥먹고",
+  "밥먹기",
+  "먹고놀기",
+  "놀기",
+  "놀수있는",
+  "쉴곳",
+  "쉬기",
   "먹기",
   "먹을",
   "먹고",
@@ -841,7 +851,6 @@ const broadPublicExpansionTerms = [
   "과학관",
   "박물관",
   "도서관",
-  "어린이",
   "체험관",
   "장난감도서관",
   "육아종합지원센터",
@@ -856,8 +865,8 @@ const broadShoppingExpansionTerms = [
   "복합쇼핑몰"
 ];
 
-const mealPlayMealTerms = new Set(["밥", "식사", "식당", "뷔페", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
-const mealPlayActivityTerms = new Set(["놀릴", "놀이방", "키즈룸", "키즈존", "애"]);
+const mealPlayMealTerms = new Set(["밥", "밥먹고", "밥먹기", "먹고놀기", "식사", "식당", "뷔페", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
+const mealPlayActivityTerms = new Set(["놀릴", "놀기", "놀수있는", "먹고놀기", "놀이방", "키즈룸", "키즈존", "애"]);
 const mealPlayContextTerms = new Set(["판암", "가오동", "은행동", "중촌동", "효동", "가양동", "만년동", "관저동", "도안", "둔산", "한밭수목원"]);
 
 export function isBroadNatureIntentQuery(query: string) {

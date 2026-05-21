@@ -199,6 +199,14 @@ describe("place search helpers", () => {
         indoorTypes: ["indoor", "mixed"]
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "무료 실내 공공 아이랑 밥먹고 놀기 수유실 주차" })).toMatchObject({
+      query: "무료 실내 공공 아이랑 밥먹고 놀기 수유실 주차",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        nursingRoom: true,
+        parkingAvailable: true
+      }
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "쇼핑몰 베이비라운지 수유실 기저귀 유모차 대여 푸드코트 주차" })).toMatchObject({
       query: "쇼핑몰 베이비라운지 수유실 기저귀 유모차 대여 푸드코트 주차",
       preferences: {
