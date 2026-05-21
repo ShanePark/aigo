@@ -847,8 +847,9 @@ const broadShoppingExpansionTerms = [
   "복합쇼핑몰"
 ];
 
-const mealPlayMealTerms = new Set(["밥", "식사", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
+const mealPlayMealTerms = new Set(["밥", "식사", "식당", "뷔페", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
 const mealPlayActivityTerms = new Set(["놀릴", "놀이방", "키즈룸", "키즈존", "애"]);
+const mealPlayContextTerms = new Set(["판암", "가오동", "은행동", "중촌동", "효동", "가양동", "만년동", "관저동", "도안", "둔산", "한밭수목원"]);
 
 export function isBroadNatureIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
@@ -964,7 +965,10 @@ function inferLiteralQueryAlias(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
   const hasMealTerm = terms.some((term) => mealPlayMealTerms.has(term));
   const hasPlayTerm = terms.some((term) => mealPlayActivityTerms.has(term));
-  if (hasMealTerm && hasPlayTerm) return "놀이방식당";
+  if (hasMealTerm && hasPlayTerm) {
+    const contextTerms = terms.filter((term) => mealPlayContextTerms.has(term));
+    return [...contextTerms, "놀이방식당"].join(" ");
+  }
   return undefined;
 }
 

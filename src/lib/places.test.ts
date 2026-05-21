@@ -119,6 +119,19 @@ describe("place search helpers", () => {
         strollerFriendly: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 장난감도서관 근처 놀이방 식당 아기의자 주차" })).toMatchObject({
+      query: "판암 놀이방식당",
+      preferences: {
+        babyChair: true,
+        parkingAvailable: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "한밭수목원 근처 키즈룸 식당 엘리베이터" })).toMatchObject({
+      query: "한밭수목원 놀이방식당",
+      preferences: {
+        elevator: true
+      }
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "자연 실내 대피" })).toMatchObject({
       query: "자연",
       preferences: {
