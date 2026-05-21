@@ -149,4 +149,117 @@ describe("scorePlace", () => {
     expect(afterDaycare.reasonCodes).toContain("BABY_CHAIR_YES");
     expect(halfDay.reasonCodes).toContain("CONTEXT_HALFDAY_MEAL_SUPPORT");
   });
+
+  it("prefers child-primary short outings over generic family indoor spaces after daycare", () => {
+    const input = {
+      ...baseInput,
+      visitContext: "afterDaycare" as const,
+      preferences: {
+        indoorTypes: ["indoor" as const],
+        strollerFriendly: true,
+        nursingRoom: true
+      }
+    };
+    const toyLibrary = scorePlace(
+      {
+        primaryCategory: "library",
+        tags: ["toy_library"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 60,
+        indoorType: "indoor",
+        parkingAvailable: "unknown",
+        strollerFriendly: "partial",
+        nursingRoom: "yes",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        foodAllowed: "no",
+        distanceKm: 4
+      },
+      input
+    );
+    const genericFamilyCafe = scorePlace(
+      {
+        primaryCategory: "family_cafe",
+        tags: ["family_cafe"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "unknown",
+        strollerFriendly: "partial",
+        nursingRoom: "yes",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        foodAllowed: "unknown",
+        distanceKm: 4
+      },
+      input
+    );
+
+    expect(toyLibrary.score).toBeGreaterThan(genericFamilyCafe.score);
+    expect(toyLibrary.reasonCodes).toContain("CONTEXT_AFTER_DAYCARE_KID_PRIMARY");
+    expect(genericFamilyCafe.reasonCodes).toContain("CONTEXT_AFTER_DAYCARE_GENERIC_FAMILY_SPACE");
+  });
+
+  it("penalizes outdoor half-day parks when infant amenities are unknown", () => {
+    const input = {
+      ...baseInput,
+      visitContext: "weekendHalfDay" as const,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    };
+    const outdoorPark = scorePlace(
+      {
+        primaryCategory: "park",
+        tags: ["outdoor"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "outdoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "no",
+        babyChair: "no",
+        foodAllowed: "partial",
+        distanceKm: 8
+      },
+      input
+    );
+    const publicChildFacility = scorePlace(
+      {
+        primaryCategory: "experience_center",
+        tags: ["children_experience"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 84,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "yes",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 10
+      },
+      input
+    );
+
+    expect(publicChildFacility.score).toBeGreaterThan(outdoorPark.score);
+    expect(outdoorPark.reasonCodes).toContain("CONTEXT_HALFDAY_INFANT_AMENITY_GAP");
+    expect(publicChildFacility.reasonCodes).toContain("CONTEXT_HALFDAY_KID_PRIMARY");
+  });
 });

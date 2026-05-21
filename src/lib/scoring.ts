@@ -144,6 +144,13 @@ function applyVisitContextSignal(
       addScore(5);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
+    if (isKidPrimaryPlace(category, tags)) {
+      addScore(4);
+      reasonCodes.add("CONTEXT_AFTER_DAYCARE_KID_PRIMARY");
+    } else if (category === "family_cafe") {
+      addScore(-3);
+      reasonCodes.add("CONTEXT_AFTER_DAYCARE_GENERIC_FAMILY_SPACE");
+    }
   }
 
   if (input.visitContext === "nearbyNow") {
@@ -167,6 +174,14 @@ function applyVisitContextSignal(
       addScore(-9);
       reasonCodes.add("CONTEXT_RAINY_DAY_OUTDOOR");
     }
+    if (distance > 20) {
+      addScore(-4);
+      reasonCodes.add("CONTEXT_RAINY_DAY_FAR");
+    }
+    if (isKidPrimaryPlace(category, tags) && (indoor === "indoor" || indoor === "mixed")) {
+      addScore(3);
+      reasonCodes.add("CONTEXT_RAINY_DAY_KID_PRIMARY");
+    }
   }
 
   if (input.visitContext === "weekendHalfDay") {
@@ -177,6 +192,14 @@ function applyVisitContextSignal(
     if (category === "family_restaurant" && tags.has("놀이방식당")) {
       addScore(4);
       reasonCodes.add("CONTEXT_HALFDAY_MEAL_SUPPORT");
+    }
+    if (isKidPrimaryPlace(category, tags)) {
+      addScore(4);
+      reasonCodes.add("CONTEXT_HALFDAY_KID_PRIMARY");
+    }
+    if (category === "park" && indoor === "outdoor" && (place.nursingRoom === "unknown" || place.diaperChangingTable === "unknown")) {
+      addScore(-3);
+      reasonCodes.add("CONTEXT_HALFDAY_INFANT_AMENITY_GAP");
     }
     if (distance >= 5 && distance <= 45) {
       addScore(4);
@@ -201,6 +224,18 @@ function applyVisitContextSignal(
       reasonCodes.add("CONTEXT_DAY_TRIP_TAG");
     }
   }
+}
+
+function isKidPrimaryPlace(category: string, tags: Set<string>) {
+  return (
+    ["kids_cafe", "indoor_playground", "experience_center", "science_museum", "aquarium_zoo"].includes(category) ||
+    tags.has("children_museum") ||
+    tags.has("children_experience") ||
+    tags.has("children_playground") ||
+    tags.has("toy_library") ||
+    tags.has("어린이") ||
+    tags.has("kids")
+  );
 }
 
 function applyAgeSignal(
