@@ -603,7 +603,30 @@ const queryPreferenceTerms = {
 
 const indoorPreferenceTerms = new Set(["실내", "비", "비오는날", "비오는", "우천", "장마"]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
-const queryStopTerms = new Set(["있는", "가능", "가능한", "편한", "편하고", "좋은", "곳", "장소", "추천"]);
+const queryStopTerms = new Set([
+  "있는",
+  "가능",
+  "가능한",
+  "편한",
+  "편하고",
+  "좋은",
+  "곳",
+  "장소",
+  "추천",
+  "짧은",
+  "짧게",
+  "간단히",
+  "간단하게",
+  "잠깐",
+  "가볍게",
+  "가벼운",
+  "갈만한",
+  "갈",
+  "만한",
+  "아이랑",
+  "아기랑",
+  "데리고"
+]);
 
 const broadNatureExpansionTerms = [
   "공원",

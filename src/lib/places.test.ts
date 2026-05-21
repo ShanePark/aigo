@@ -61,6 +61,12 @@ describe("place search helpers", () => {
         parkingAvailable: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 짧은 야외 놀이터" })).toMatchObject({
+      query: "판암 놀이터",
+      preferences: {
+        indoorTypes: ["outdoor", "mixed"]
+      }
+    });
   });
 
   it("keeps special intent queries literal while still inferring preferences", () => {
