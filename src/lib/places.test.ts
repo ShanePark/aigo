@@ -185,6 +185,9 @@ describe("place search helpers", () => {
     expect(normalizeSearchInput({ ...baseSearchInput, query: "밥 먹으면서 애 놀릴 수 있는 곳" })).toMatchObject({
       query: "놀이방식당"
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "서구 어린이도서관 간식 음식불가 그림책방" })).toMatchObject({
+      query: "서구 어린이도서관 음식불가 그림책방"
+    });
   });
 
   it("recognizes broad public and day-trip fallback parent queries", () => {
