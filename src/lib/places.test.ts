@@ -112,6 +112,19 @@ describe("place search helpers", () => {
         strollerFriendly: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "자연 실내 대피" })).toMatchObject({
+      query: "자연",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "비오면 자연 실내대안" })).toMatchObject({
+      visitContext: "rainyDay",
+      query: "자연",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
   });
 
   it("keeps special intent queries literal while still inferring preferences", () => {

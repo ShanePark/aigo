@@ -622,7 +622,22 @@ const queryPreferenceTerms = {
   babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"])
 } satisfies Record<keyof Omit<NonNullable<SearchPlacesInput["preferences"]>, "indoorTypes" | "foodAllowed">, Set<string>>;
 
-const indoorPreferenceTerms = new Set(["실내", "비", "비오는날", "비오는", "우천", "장마"]);
+const indoorPreferenceTerms = new Set([
+  "실내",
+  "비",
+  "비오는날",
+  "비오는",
+  "비오면",
+  "비올때",
+  "우천",
+  "장마",
+  "대피",
+  "피난처",
+  "실내대피",
+  "실내대안",
+  "대안",
+  "비상"
+]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
 const queryStopTerms = new Set([
@@ -679,7 +694,13 @@ const queryStopTerms = new Set([
   "올해",
   "최신",
   "현재",
-  "지금"
+  "지금",
+  "대피",
+  "피난처",
+  "실내대피",
+  "실내대안",
+  "대안",
+  "비상"
 ]);
 
 const broadNatureExpansionTerms = [
@@ -799,7 +820,7 @@ function inferPreferencesFromQuery(query: string) {
 function inferVisitContextFromQuery(query: string): SearchPlacesInput["visitContext"] | undefined {
   const terms = new Set(query.trim().split(/\s+/).filter(Boolean));
   if (terms.has("하원") || terms.has("하원후") || terms.has("방과후")) return "afterDaycare";
-  if (["비", "비오는날", "비오는", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
+  if (["비", "비오는날", "비오는", "비오면", "비올때", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
   if (terms.has("주말") || terms.has("반나절")) return "weekendHalfDay";
   if (terms.has("당일치기") || terms.has("근교")) return "dayTrip";
   return undefined;
