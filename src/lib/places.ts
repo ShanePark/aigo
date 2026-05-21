@@ -448,13 +448,22 @@ function buildSearchQuery(input: SearchPlacesInput) {
   }
 
   if (input.query) {
-    where.push(`search_text ilike ${add(`%${input.query}%`)}`);
+    const termPatterns = searchTermPatterns(input.query);
+    where.push(`(${termPatterns.map((pattern) => `search_text ilike ${add(pattern)}`).join(" and ")})`);
   }
 
   return {
     sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by updated_at desc limit 500`,
     params
   };
+}
+
+export function searchTermPatterns(query: string) {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => `%${term}%`);
 }
 
 function quoteIdentifier(identifier: string) {
