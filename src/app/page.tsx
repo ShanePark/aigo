@@ -37,7 +37,18 @@ export default async function Home({ searchParams }: HomeProps) {
           </label>
           <label>
             <span>주카테고리</span>
-            <input name="category" defaultValue={textParam(params.category)} placeholder="kids_cafe, museum..." />
+            <select name="category" defaultValue={textParam(params.category) || ""}>
+              <option value="">전체</option>
+              <option value="kids_cafe">키즈카페</option>
+              <option value="indoor_playground">실내놀이터</option>
+              <option value="library">도서관</option>
+              <option value="museum">박물관/미술관</option>
+              <option value="science_museum">과학관</option>
+              <option value="experience_center">체험관</option>
+              <option value="aquarium_zoo">동물/아쿠아리움</option>
+              <option value="park">공원/놀이터</option>
+              <option value="family_cafe">가족 카페</option>
+            </select>
           </label>
           <label>
             <span>상황</span>
