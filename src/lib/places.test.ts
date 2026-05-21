@@ -4,6 +4,7 @@ import {
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
+  isRouteBreakIntentQuery,
   queryMatchSignal,
   searchTermPatterns,
   shouldSearchAddressForTerm
@@ -28,6 +29,12 @@ describe("place search helpers", () => {
     expect(isBroadWaterPlayIntentQuery("물놀이 물놀이터 수경")).toBe(true);
     expect(isBroadWaterPlayIntentQuery("물놀이 바닥분수")).toBe(true);
     expect(isBroadWaterPlayIntentQuery("물놀이 유모차")).toBe(false);
+  });
+
+  it("recognizes route-break searches for rest areas and nursing stops", () => {
+    expect(isRouteBreakIntentQuery("청남대 가는 길 수유실 휴게소")).toBe(true);
+    expect(isRouteBreakIntentQuery("대청호 휴게소")).toBe(true);
+    expect(isRouteBreakIntentQuery("청남대 수유실")).toBe(false);
   });
 
   it("recognizes broad parent intent queries that should not require every token", () => {

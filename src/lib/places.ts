@@ -485,6 +485,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
     return [broadWaterPlayIntentClause(add)];
   }
 
+  if (isRouteBreakIntentQuery(query)) {
+    return [routeBreakIntentClause()];
+  }
+
   if (isBroadParentIntentQuery(query)) {
     return [broadParentIntentClause(terms, add)];
   }
@@ -512,6 +516,24 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이"]);
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
+
+const routeBreakCoreTerms = new Set(["휴게소", "쉼터", "휴식", "정차"]);
+
+const routeBreakContextTerms = new Set([
+  "가는",
+  "길",
+  "경로",
+  "이동",
+  "수유실",
+  "기저귀",
+  "화장실",
+  "청남대",
+  "대청호",
+  "문의",
+  "옥천",
+  "청주",
+  "공주"
+]);
 
 const broadParentIntentTerms = new Set([
   ...broadNatureIntentTerms,
@@ -594,6 +616,11 @@ export function isBroadWaterPlayIntentQuery(query: string) {
   return terms.length > 0 && terms.every((term) => broadWaterPlayIntentTerms.has(term));
 }
 
+export function isRouteBreakIntentQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  return terms.some((term) => routeBreakCoreTerms.has(term)) && terms.some((term) => routeBreakContextTerms.has(term));
+}
+
 export function isBroadParentIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
   return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term));
@@ -618,6 +645,10 @@ function broadWaterPlayIntentClause(add: (value: unknown) => string) {
   const clauses: string[] = [];
   addTextExpansionClauses(clauses, broadWaterPlayExpansionTerms, add);
   return `(${clauses.join(" or ")})`;
+}
+
+function routeBreakIntentClause() {
+  return "(primary_category = 'rest_area')";
 }
 
 function broadParentIntentClause(terms: string[], add: (value: unknown) => string) {
