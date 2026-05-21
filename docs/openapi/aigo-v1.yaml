@@ -294,6 +294,7 @@ components:
           type: string
         externalRefs:
           type: object
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`.
           additionalProperties: true
         imageUrls:
           type: array
@@ -631,6 +632,7 @@ components:
           type: string
         externalRefs:
           type: object
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`.
           additionalProperties: true
         limit:
           type: integer

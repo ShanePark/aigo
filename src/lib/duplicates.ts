@@ -1,4 +1,5 @@
 export type DuplicateCandidateSignals = {
+  externalRefsMatch: boolean;
   kakaoPlaceIdMatch: boolean;
   distanceMeters: number | null;
   nameSimilarity: number | null;
@@ -9,6 +10,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
 
   if (signals.kakaoPlaceIdMatch) {
     reasonCodes.push("KAKAO_PLACE_ID_MATCH");
+  }
+
+  if (signals.externalRefsMatch) {
+    reasonCodes.push("EXTERNAL_REF_MATCH");
   }
 
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
@@ -23,6 +28,7 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
 }
 
 export function duplicateConfidence(signals: DuplicateCandidateSignals) {
+  if (signals.externalRefsMatch) return "high";
   if (signals.kakaoPlaceIdMatch) return "high";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.85) return "high";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 && (signals.nameSimilarity ?? 0) >= 0.35) return "medium";

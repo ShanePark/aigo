@@ -291,10 +291,13 @@ export async function searchPlaces(input: SearchPlacesInput) {
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const containsName = `%${input.name}%`;
+  const externalRefsJson =
+    input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
   const rows = await pg<
     (PlaceRow & {
       distance_meters: number | null;
       name_similarity: number | null;
+      external_refs_match: boolean;
       kakao_place_id_match: boolean;
     })[]
   >`
@@ -306,10 +309,12 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         case when name = ${input.name} then 1 else 0 end,
         case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end
       ) as name_similarity,
+      (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
       (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
     from places
     where
       (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null})
+      or (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb)
       or (
         ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography, ${input.radiusMeters})
         and (
@@ -319,26 +324,31 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           or similarity(name, ${input.name}) >= 0.25
         )
       )
-    order by kakao_place_id_match desc, name_similarity desc, distance_meters asc
+    order by kakao_place_id_match desc, external_refs_match desc, name_similarity desc, distance_meters asc
     limit ${input.limit}
   `;
 
-  return {
-    items: rows.map((row) => {
+  const items = await Promise.all(
+    rows.map(async (row) => {
       const signals = {
+        externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };
 
       return {
-        place: mapPlace(row),
+        place: await getPlaceDetail(row.id),
         confidence: duplicateConfidence(signals),
         reasonCodes: duplicateReasonCodes(signals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };
     })
+  );
+
+  return {
+    items
   };
 }
 
