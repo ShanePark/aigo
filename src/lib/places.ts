@@ -567,7 +567,7 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
   });
 }
 
-const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이"]);
+const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이", "놀이터", "동네놀이터", "어린이공원"]);
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
 
@@ -613,6 +613,7 @@ const broadParentIntentTerms = new Set([
   "과학관",
   "박물관",
   "도서관",
+  "장난감도서관",
   "체험관",
   "어린이",
   "아이",
@@ -634,7 +635,10 @@ const broadParentIntentTerms = new Set([
   "푸드코트",
   "식당가",
   "유모차대여",
-  "대여"
+  "대여",
+  "놀이터",
+  "동네놀이터",
+  "어린이공원"
 ]);
 
 const broadParentCoreTerms = new Set([
@@ -650,8 +654,12 @@ const broadParentCoreTerms = new Set([
   "과학관",
   "박물관",
   "도서관",
+  "장난감도서관",
   "체험관",
   "어린이",
+  "놀이터",
+  "동네놀이터",
+  "어린이공원",
   "쇼핑몰",
   "백화점",
   "아울렛"
@@ -737,6 +745,7 @@ const queryStopTerms = new Set([
   "근처",
   "주변",
   "인근",
+  "장난감도서관",
   "가까운",
   "쌍둥이",
   "쌍둥이랑",

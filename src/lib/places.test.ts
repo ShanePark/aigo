@@ -25,6 +25,7 @@ describe("place search helpers", () => {
   it("recognizes broad nature intent queries", () => {
     expect(isBroadNatureIntentQuery("공원 자연")).toBe(true);
     expect(isBroadNatureIntentQuery("숲 산책")).toBe(true);
+    expect(isBroadNatureIntentQuery("동네놀이터 어린이공원")).toBe(true);
     expect(isBroadNatureIntentQuery("대청호 자연")).toBe(false);
   });
 
@@ -67,6 +68,9 @@ describe("place search helpers", () => {
       preferences: {
         indoorTypes: ["outdoor", "mixed"]
       }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 장난감도서관 근처" })).toMatchObject({
+      query: "판암 동네놀이터"
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "하원 후 1-2시간 키즈카페 실내 주차 유모차 수유실 기저귀" })).toMatchObject({
       visitContext: "afterDaycare",
