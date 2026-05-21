@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Database, MapPin, Search, Tag } from "lucide-react";
 
+import { PlaceImage } from "@/app/place-image";
 import { searchPlaces } from "@/lib/places";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
@@ -147,12 +148,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
             return (
               <article className="result-card" key={place.placeId}>
-                {imageUrl ? (
-                  <div className="result-image">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt={`${place.name} 대표 이미지`} loading="lazy" referrerPolicy="no-referrer" />
-                  </div>
-                ) : null}
+                <PlaceImage src={imageUrl} alt={`${place.name} 대표 이미지`} variant="result" />
                 <div className="result-main">
                   <div>
                     <p className="category" title={place.primaryCategory}>

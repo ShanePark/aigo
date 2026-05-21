@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Clock, ExternalLink, History, MapPin, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { PlaceImage } from "@/app/place-image";
 import { getPlaceDetail } from "@/lib/places";
 
 type PlaceDetailProps = {
@@ -36,12 +37,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
         </div>
       </section>
 
-      {heroImageUrl ? (
-        <div className="detail-hero-image">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImageUrl} alt={`${place.name} 대표 이미지`} referrerPolicy="no-referrer" />
-        </div>
-      ) : null}
+      <PlaceImage src={heroImageUrl} alt={`${place.name} 대표 이미지`} variant="detail" />
 
       <section className="detail-grid">
         <div className="info-block">

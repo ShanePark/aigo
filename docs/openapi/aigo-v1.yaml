@@ -298,6 +298,7 @@ components:
           additionalProperties: true
         imageUrls:
           type: array
+          description: Direct remote image asset URLs for display. Source pages and provenance are stored separately in place sources.
           items:
             type: string
             format: uri
@@ -517,6 +518,7 @@ components:
           nullable: true
         imageUrls:
           type: array
+          description: Direct remote image asset URLs for display. Source pages and provenance are stored separately in place sources.
           items:
             type: string
             format: uri
@@ -895,8 +897,10 @@ components:
           additionalProperties: true
         imageUrls:
           type: array
+          description: Direct remote image asset URLs for display. Source pages and provenance are stored separately in place sources.
           items:
             type: string
+            format: uri
         status:
           type: string
         dataConfidence:
