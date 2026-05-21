@@ -360,7 +360,7 @@ async function insertSources(executor: SqlExecutor, placeId: string, sources: So
         ${source.url ?? null},
         ${source.externalId ?? null},
         ${source.summary ?? null},
-        ${source.checkedAt ? new Date(source.checkedAt) : null}
+        ${source.checkedAt ?? null}
       )
     `;
   }
