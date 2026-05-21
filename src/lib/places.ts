@@ -478,6 +478,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
     return [broadNatureIntentClause(add)];
   }
 
+  if (isBroadParentIntentQuery(query)) {
+    return [broadParentIntentClause(terms, add)];
+  }
+
   return terms.map((term) => {
     const pattern = `%${term}%`;
     const patternParam = add(pattern);
@@ -500,6 +504,31 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 
 const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이"]);
 
+const broadParentIntentTerms = new Set([
+  ...broadNatureIntentTerms,
+  "당일치기",
+  "근교",
+  "유모차",
+  "주차",
+  "공공시설",
+  "공공",
+  "국립",
+  "시립",
+  "반나절",
+  "과학관",
+  "박물관",
+  "도서관",
+  "체험관",
+  "어린이",
+  "아이",
+  "영유아",
+  "실내",
+  "비오는날",
+  "비",
+  "수유실",
+  "기저귀"
+]);
+
 const broadNatureExpansionTerms = [
   "공원",
   "자연",
@@ -519,9 +548,29 @@ const broadNatureExpansionTerms = [
   "황톳길"
 ];
 
+const broadPublicExpansionTerms = [
+  "공공시설",
+  "국립",
+  "시립",
+  "과학관",
+  "박물관",
+  "도서관",
+  "어린이",
+  "체험관",
+  "장난감도서관",
+  "육아종합지원센터",
+  "어린이회관",
+  "꿈아띠"
+];
+
 export function isBroadNatureIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
   return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term));
+}
+
+export function isBroadParentIntentQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term));
 }
 
 function broadNatureIntentClause(add: (value: unknown) => string) {
@@ -537,6 +586,65 @@ function broadNatureIntentClause(add: (value: unknown) => string) {
   }
 
   return `(${clauses.join(" or ")})`;
+}
+
+function broadParentIntentClause(terms: string[], add: (value: unknown) => string) {
+  const termSet = new Set(terms);
+  const clauses: string[] = [];
+
+  if (terms.some((term) => broadNatureIntentTerms.has(term)) || termSet.has("당일치기") || termSet.has("근교")) {
+    clauses.push("primary_category = 'park'");
+    addTextExpansionClauses(clauses, broadNatureExpansionTerms, add);
+  }
+
+  if (
+    termSet.has("공공시설") ||
+    termSet.has("공공") ||
+    termSet.has("국립") ||
+    termSet.has("시립") ||
+    termSet.has("과학관") ||
+    termSet.has("박물관") ||
+    termSet.has("도서관") ||
+    termSet.has("체험관") ||
+    termSet.has("어린이")
+  ) {
+    clauses.push("primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground']::text[])");
+    addTextExpansionClauses(clauses, broadPublicExpansionTerms, add);
+  }
+
+  if (termSet.has("실내") || termSet.has("비오는날") || termSet.has("비")) {
+    clauses.push("indoor_type = any(array['indoor','mixed']::text[])");
+  }
+
+  if (termSet.has("유모차")) {
+    clauses.push("stroller_friendly in ('yes','partial')");
+  }
+  if (termSet.has("주차")) {
+    clauses.push("parking_available in ('yes','partial')");
+  }
+  if (termSet.has("수유실")) {
+    clauses.push("nursing_room in ('yes','partial')");
+  }
+  if (termSet.has("기저귀")) {
+    clauses.push("diaper_changing_table in ('yes','partial')");
+  }
+
+  if (clauses.length === 0) {
+    addTextExpansionClauses(clauses, terms, add);
+  }
+
+  return `(${clauses.join(" or ")})`;
+}
+
+function addTextExpansionClauses(clauses: string[], terms: string[], add: (value: unknown) => string) {
+  for (const term of terms) {
+    const patternParam = add(`%${term}%`);
+    clauses.push(
+      `name ilike ${patternParam}`,
+      `description ilike ${patternParam}`,
+      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+    );
+  }
 }
 
 export function shouldSearchAddressForTerm(query: string, term: string) {

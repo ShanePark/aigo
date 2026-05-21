@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isBroadNatureIntentQuery, queryMatchSignal, searchTermPatterns, shouldSearchAddressForTerm } from "@/lib/places";
+import {
+  isBroadNatureIntentQuery,
+  isBroadParentIntentQuery,
+  queryMatchSignal,
+  searchTermPatterns,
+  shouldSearchAddressForTerm
+} from "@/lib/places";
 
 describe("place search helpers", () => {
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
@@ -15,6 +21,12 @@ describe("place search helpers", () => {
     expect(isBroadNatureIntentQuery("공원 자연")).toBe(true);
     expect(isBroadNatureIntentQuery("숲 산책")).toBe(true);
     expect(isBroadNatureIntentQuery("대청호 자연")).toBe(false);
+  });
+
+  it("recognizes broad parent intent queries that should not require every token", () => {
+    expect(isBroadParentIntentQuery("공원 자연 당일치기 유모차 주차")).toBe(true);
+    expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
+    expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
   });
 
   it("does not use short region-like terms against address text", () => {

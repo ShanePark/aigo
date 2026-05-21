@@ -42,6 +42,16 @@ describe("place schemas", () => {
     expect(result.preferences?.foodAllowed).toBe(true);
   });
 
+  it("accepts common agent aliases for search location and child ages", () => {
+    const result = searchPlacesSchema.parse({
+      location: { lat: 36.35, lng: 127.38, label: "대전역" },
+      childAgesMonths: [32, 7, 7]
+    });
+
+    expect(result.origin).toEqual({ lat: 36.35, lng: 127.38, label: "대전역" });
+    expect(result.childAgeMonths).toEqual([32, 7, 7]);
+  });
+
   it("defaults update source mode to append and accepts replace", () => {
     const append = updatePlaceSchema.parse({
       sources: [{ sourceType: "official_site", url: "https://example.com" }]

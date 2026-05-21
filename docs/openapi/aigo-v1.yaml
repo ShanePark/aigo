@@ -405,6 +405,10 @@ components:
           description: Soft ranking context for common parent outing scenarios.
         origin:
           $ref: "#/components/schemas/Origin"
+        location:
+          $ref: "#/components/schemas/Origin"
+          deprecated: true
+          description: Backward-compatible alias for `origin`; prefer `origin` in new agent calls.
         radiusKm:
           type: number
           default: 80
@@ -423,6 +427,14 @@ components:
         childAgeMonths:
           type: array
           description: Soft matching signal. Age mismatch does not exclude candidates.
+          items:
+            type: integer
+            minimum: 0
+            maximum: 240
+        childAgesMonths:
+          type: array
+          deprecated: true
+          description: Backward-compatible alias for `childAgeMonths`; prefer `childAgeMonths`.
           items:
             type: integer
             minimum: 0

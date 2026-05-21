@@ -116,7 +116,7 @@ export const updatePlaceSchema = z
     }
   );
 
-export const searchPlacesSchema = z.object({
+const searchPlacesBaseSchema = z.object({
   visitContext: z.enum(["afterDaycare", "nearbyNow", "rainyDay", "weekendHalfDay", "dayTrip"]).optional(),
   origin: z
     .object({
@@ -148,6 +148,8 @@ export const searchPlacesSchema = z.object({
   offset: z.number().int().min(0).max(1000).default(0)
 });
 
+export const searchPlacesSchema = z.preprocess(normalizeSearchAliases, searchPlacesBaseSchema);
+
 export const duplicatePlaceSchema = z.object({
   name: nonEmptyString,
   lat: z.number().min(-90).max(90),
@@ -163,3 +165,19 @@ export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type SearchPlacesInput = z.infer<typeof searchPlacesSchema>;
 export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
+
+function normalizeSearchAliases(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const input = { ...(value as Record<string, unknown>) };
+  if (input.origin === undefined && input.location !== undefined) {
+    input.origin = input.location;
+  }
+  if (input.childAgeMonths === undefined && input.childAgesMonths !== undefined) {
+    input.childAgeMonths = input.childAgesMonths;
+  }
+
+  return input;
+}
