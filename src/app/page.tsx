@@ -162,7 +162,9 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
               <div className="reason-grid">
                 {place.reasonCodes.slice(0, 8).map((code) => (
-                  <span key={code}>{code}</span>
+                  <span key={code} title={code}>
+                    {reasonLabel(code)}
+                  </span>
                 ))}
               </div>
             </article>
@@ -266,4 +268,77 @@ function toneForTriState(value: string) {
   if (value === "partial") return "partial";
   if (value === "no") return "negative";
   return "unknown";
+}
+
+function reasonLabel(code: string) {
+  const labels: Record<string, string> = {
+    AGE_HINT_MATCH: "아이 월령 적합",
+    AGE_HINT_MISMATCH: "월령은 보조 후보",
+    AGE_HINT_UNKNOWN: "권장 월령 미확인",
+    CATEGORY_MATCH: "카테고리 일치",
+    TAG_MATCH: "태그 일치",
+    DATA_CONFIDENCE_POSITIVE: "출처 신뢰도 높음",
+    DATA_CONFIDENCE_LOW: "출처 확인 필요",
+    DISTANCE_NEAR: "가까움",
+    DISTANCE_REASONABLE: "적당한 거리",
+    DISTANCE_DAY_TRIP: "당일치기 거리",
+    DISTANCE_FAR: "먼 거리",
+    INDOOR_TYPE_MATCH: "실내 조건 적합",
+    INDOOR_TYPE_MISMATCH: "실내 조건 불일치",
+    INDOOR_TYPE_UNKNOWN: "실내 여부 미확인",
+    PARKING_YES: "주차 있음",
+    PARKING_PARTIAL: "주차 일부",
+    PARKING_NO: "주차 없음",
+    PARKING_UNKNOWN: "주차 미확인",
+    STROLLER_YES: "유모차 좋음",
+    STROLLER_PARTIAL: "유모차 일부",
+    STROLLER_NO: "유모차 어려움",
+    STROLLER_UNKNOWN: "유모차 미확인",
+    NURSING_ROOM_YES: "수유실 있음",
+    NURSING_ROOM_PARTIAL: "수유실 일부",
+    NURSING_ROOM_NO: "수유실 없음",
+    NURSING_ROOM_UNKNOWN: "수유실 미확인",
+    DIAPER_TABLE_YES: "기저귀 교환 가능",
+    DIAPER_TABLE_PARTIAL: "기저귀 일부 가능",
+    DIAPER_TABLE_NO: "기저귀 교환 없음",
+    DIAPER_TABLE_UNKNOWN: "기저귀 미확인",
+    KIDS_TOILET_YES: "유아화장실 있음",
+    KIDS_TOILET_PARTIAL: "유아화장실 일부",
+    KIDS_TOILET_NO: "유아화장실 없음",
+    KIDS_TOILET_UNKNOWN: "유아화장실 미확인",
+    ELEVATOR_YES: "엘리베이터 있음",
+    ELEVATOR_PARTIAL: "엘리베이터 일부",
+    ELEVATOR_NO: "엘리베이터 없음",
+    ELEVATOR_UNKNOWN: "엘리베이터 미확인",
+    BABY_CHAIR_YES: "아기의자 있음",
+    BABY_CHAIR_PARTIAL: "아기의자 일부",
+    BABY_CHAIR_NO: "아기의자 없음",
+    BABY_CHAIR_UNKNOWN: "아기의자 미확인",
+    FOOD_ALLOWED_YES: "식사/간식 가능",
+    FOOD_ALLOWED_PARTIAL: "식사/간식 일부",
+    FOOD_ALLOWED_NO: "식사/간식 어려움",
+    FOOD_ALLOWED_UNKNOWN: "식사/간식 미확인",
+    CONTEXT_AFTER_DAYCARE_NEAR: "하원 후 가까움",
+    CONTEXT_AFTER_DAYCARE_WEATHER_SAFE: "날씨 영향 적음",
+    CONTEXT_AFTER_DAYCARE_CATEGORY: "하원 후 가기 좋음",
+    CONTEXT_AFTER_DAYCARE_KID_PRIMARY: "아이 활동 중심",
+    CONTEXT_AFTER_DAYCARE_GENERIC_FAMILY_SPACE: "아이 활동은 약함",
+    CONTEXT_NEARBY_NOW_CLOSE: "지금 가까움",
+    CONTEXT_NEARBY_NOW_FAR: "지금 가기엔 멂",
+    CONTEXT_RAINY_DAY_INDOOR: "비 오는 날 실내",
+    CONTEXT_RAINY_DAY_MIXED: "실내외 혼합",
+    CONTEXT_RAINY_DAY_OUTDOOR: "비에는 불리",
+    CONTEXT_RAINY_DAY_FAR: "비 오는 날엔 멂",
+    CONTEXT_RAINY_DAY_KID_PRIMARY: "비 오는 날 아이 활동",
+    CONTEXT_HALFDAY_DESTINATION: "반나절 목적지",
+    CONTEXT_HALFDAY_DISTANCE: "반나절 거리 적합",
+    CONTEXT_HALFDAY_MEAL_SUPPORT: "식사까지 해결",
+    CONTEXT_HALFDAY_KID_PRIMARY: "반나절 아이 중심",
+    CONTEXT_HALFDAY_INFANT_AMENITY_GAP: "영아 편의 미확인",
+    CONTEXT_DAY_TRIP_DISTANCE: "당일치기 거리 적합",
+    CONTEXT_DAY_TRIP_TOO_CLOSE: "당일치기엔 가까움",
+    CONTEXT_DAY_TRIP_DESTINATION: "당일치기 목적지",
+    CONTEXT_DAY_TRIP_TAG: "근교 나들이 태그"
+  };
+  return labels[code] ?? code;
 }
