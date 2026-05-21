@@ -274,7 +274,13 @@ export async function searchPlaces(input: SearchPlacesInput) {
       total: scored.length,
       limit: input.limit,
       offset: input.offset,
-      origin: input.origin ?? null
+      origin: input.origin ?? null,
+      search: {
+        originalQuery: input.query ?? null,
+        normalizedQuery: normalizedInput.query ?? null,
+        appliedPreferences: normalizedInput.preferences ?? null,
+        normalized: input.query !== normalizedInput.query || JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null)
+      }
     }
   };
 }
@@ -625,7 +631,24 @@ const queryStopTerms = new Set([
   "만한",
   "아이랑",
   "아기랑",
-  "데리고"
+  "데리고",
+  "하원",
+  "하원후",
+  "방과후",
+  "후",
+  "한시간",
+  "두시간",
+  "세시간",
+  "여름",
+  "시즌",
+  "운영",
+  "개장",
+  "운영시간",
+  "휴장",
+  "올해",
+  "최신",
+  "현재",
+  "지금"
 ]);
 
 const broadNatureExpansionTerms = [
@@ -734,11 +757,16 @@ function stripPreferenceTerms(query: string) {
   const stripped = query
     .trim()
     .split(/\s+/)
-    .filter((term) => !isQueryPreferenceTerm(term) && !queryStopTerms.has(term))
+    .filter((term) => !isQueryPreferenceTerm(term) && !isQueryStopTerm(term))
     .join(" ")
     .trim();
 
   return stripped.length > 0 ? stripped : undefined;
+}
+
+function isQueryStopTerm(term: string) {
+  if (queryStopTerms.has(term)) return true;
+  return /^[0-9]+(?:[-~][0-9]+)?시간$/.test(term);
 }
 
 function isQueryPreferenceTerm(term: string) {

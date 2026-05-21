@@ -574,7 +574,7 @@ components:
             $ref: "#/components/schemas/SearchPlaceItem"
         meta:
           type: object
-          required: [count, total, limit, offset, origin]
+          required: [count, total, limit, offset, origin, search]
           properties:
             count:
               type: integer
@@ -588,6 +588,26 @@ components:
               anyOf:
                 - $ref: "#/components/schemas/Origin"
                 - type: "null"
+            search:
+              type: object
+              required: [originalQuery, normalizedQuery, appliedPreferences, normalized]
+              description: Query normalization details for agent debugging and zero-result recovery.
+              properties:
+                originalQuery:
+                  type:
+                    - string
+                    - "null"
+                normalizedQuery:
+                  type:
+                    - string
+                    - "null"
+                appliedPreferences:
+                  anyOf:
+                    - type: object
+                      additionalProperties: true
+                    - type: "null"
+                normalized:
+                  type: boolean
     DuplicatePlaceRequest:
       type: object
       required: [name, lat, lng]

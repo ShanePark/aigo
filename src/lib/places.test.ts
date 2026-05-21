@@ -67,6 +67,23 @@ describe("place search helpers", () => {
         indoorTypes: ["outdoor", "mixed"]
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "하원 후 1-2시간 키즈카페 실내 주차 유모차 수유실 기저귀" })).toMatchObject({
+      query: "키즈카페",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "물놀이 물놀이터 수경 여름 운영 주차 유모차" })).toMatchObject({
+      query: "물놀이 물놀이터 수경",
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true
+      }
+    });
   });
 
   it("keeps special intent queries literal while still inferring preferences", () => {
