@@ -8,6 +8,7 @@ import {
   type UpdatePlaceInput
 } from "@/lib/schemas";
 import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
+import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
 import type postgres from "postgres";
 
@@ -237,6 +238,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       distanceKm: place.distanceKm,
       score: scoredPlace.score,
       reasonCodes: scoredPlace.reasonCodes,
+      reasons: describeReasonCodes(scoredPlace.reasonCodes, input),
       dataConfidence: place.dataConfidence,
       recommendedAgeMonths: place.recommendedAgeMonths,
       facilities: place.facilities,

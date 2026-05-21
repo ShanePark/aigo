@@ -13,6 +13,7 @@ type PlaceDetailProps = {
 export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
   const { placeId } = await params;
   const place = await loadPlace(placeId);
+  const displaySources = uniqueDisplaySources(place.sources);
 
   return (
     <div className="page detail-page">
@@ -120,16 +121,22 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
       <section className="info-block full">
         <h2>출처</h2>
         <div className="source-list">
-          {place.sources.map((source) =>
+          {displaySources.map((source) =>
             source.url ? (
-              <a key={source.id} className="source-row" href={source.url} target="_blank" rel="noreferrer">
-                <span>{source.title ?? source.sourceType}</span>
+              <a key={source.key} className="source-row" href={source.url} target="_blank" rel="noreferrer">
+                <span>
+                  {source.title ?? source.sourceType}
+                  {source.count > 1 ? <em> {source.count}회</em> : null}
+                </span>
                 <small>{source.summary ?? source.externalId ?? "요약 없음"}</small>
                 <ExternalLink size={14} aria-hidden="true" />
               </a>
             ) : (
-              <div key={source.id} className="source-row source-row-static">
-                <span>{source.title ?? source.sourceType}</span>
+              <div key={source.key} className="source-row source-row-static">
+                <span>
+                  {source.title ?? source.sourceType}
+                  {source.count > 1 ? <em> {source.count}회</em> : null}
+                </span>
                 <small>{source.summary ?? "요약 없음"}</small>
                 <small>{source.externalId ?? "외부 ID 없음"}</small>
               </div>
@@ -146,12 +153,12 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
         </h2>
         <div className="version-list">
           {place.versions.map((version) => (
-            <a className="version-row" href={`/v1/places/${place.id}/versions/${version.id}`} key={version.id}>
+            <div className="version-row" key={version.id}>
               <span>v{version.versionNumber}</span>
               <strong>{version.action}</strong>
               <small>{version.changeSummary ?? "변경 요약 없음"}</small>
               <time>{new Date(version.createdAt).toLocaleString("ko-KR")}</time>
-            </a>
+            </div>
           ))}
         </div>
       </section>
@@ -165,6 +172,30 @@ async function loadPlace(placeId: string) {
   } catch {
     notFound();
   }
+}
+
+type PlaceDetail = Awaited<ReturnType<typeof getPlaceDetail>>;
+type Source = PlaceDetail["sources"][number];
+
+function uniqueDisplaySources(sources: Source[]) {
+  const grouped = new Map<string, Source & { key: string; count: number }>();
+
+  for (const source of sources) {
+    const key = [normalizeSourceValue(source.url), normalizeSourceValue(source.externalId), normalizeSourceValue(source.title)].join("|");
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.count += 1;
+      if (!existing.summary && source.summary) existing.summary = source.summary;
+      continue;
+    }
+    grouped.set(key, { ...source, key, count: 1 });
+  }
+
+  return Array.from(grouped.values());
+}
+
+function normalizeSourceValue(value: string | null | undefined) {
+  return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
 }
 
 function indoorLabel(value: string) {

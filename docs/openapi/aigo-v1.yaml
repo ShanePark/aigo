@@ -474,6 +474,7 @@ components:
         - tags
         - score
         - reasonCodes
+        - reasons
         - dataConfidence
         - recommendedAgeMonths
         - facilities
@@ -509,6 +510,11 @@ components:
           type: array
           items:
             type: string
+        reasons:
+          type: array
+          description: Structured reason metadata sorted by display priority. `reasonCodes` is kept for machine compatibility.
+          items:
+            $ref: "#/components/schemas/SearchReason"
         dataConfidence:
           type: string
         recommendedAgeMonths:
@@ -520,6 +526,22 @@ components:
         updatedAt:
           type: string
           format: date-time
+    SearchReason:
+      type: object
+      required: [code, labelKo, group, tone, priority]
+      properties:
+        code:
+          type: string
+        labelKo:
+          type: string
+        group:
+          type: string
+          enum: [preference, age, distance, context, match, confidence, other]
+        tone:
+          type: string
+          enum: [positive, partial, negative, unknown, neutral]
+        priority:
+          type: integer
     SearchPlacesResponse:
       type: object
       required: [items, meta]
