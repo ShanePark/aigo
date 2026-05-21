@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+
+import { createPlaceSchema, searchPlacesSchema } from "@/lib/schemas";
+
+describe("place schemas", () => {
+  it("requires coordinates and at least one source when creating a place", () => {
+    const result = createPlaceSchema.safeParse({
+      name: "테스트 장소",
+      primaryCategory: "indoor_playground",
+      address: "대전",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects accommodation in MVP", () => {
+    const result = createPlaceSchema.safeParse({
+      name: "테스트 숙소",
+      primaryCategory: "accommodation",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("defaults search pagination and keeps facility preferences soft", () => {
+    const result = searchPlacesSchema.parse({
+      origin: { lat: 36.35, lng: 127.38 },
+      preferences: {
+        strollerFriendly: true
+      }
+    });
+
+    expect(result.limit).toBe(20);
+    expect(result.radiusKm).toBe(80);
+    expect(result.preferences?.strollerFriendly).toBe(true);
+  });
+});
+

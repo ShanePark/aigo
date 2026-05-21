@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgis/postgis:17-3.5-alpine
+    platform: linux/amd64
+    container_name: aigo-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aigo}
+      POSTGRES_USER: ${POSTGRES_USER:-aigo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aigo}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aigo} -d ${POSTGRES_DB:-aigo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aigo-app
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aigo}:${POSTGRES_PASSWORD:-aigo}@postgres:5432/${POSTGRES_DB:-aigo}
+      AIGO_API_KEY: ${AIGO_API_KEY:-change-me}
+      TZ: ${TZ:-Asia/Seoul}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped

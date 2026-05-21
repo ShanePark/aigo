@@ -1,0 +1,798 @@
+openapi: 3.1.0
+info:
+  title: AiGo Agent-Friendly Places API
+  version: 0.1.0
+  description: |
+    AiGo MVP API for external agents that collect, compare, create, update,
+    search, and inspect kid-friendly place data. Natural-language parsing is
+    intentionally outside this API; agents should send structured JSON.
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerApiKey: []
+paths:
+  /v1/places/search:
+    post:
+      summary: Search places with soft matching
+      operationId: searchPlaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchPlacesRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchPlacesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/places/duplicates:
+    post:
+      summary: Find possible duplicate places before create or update
+      operationId: findDuplicatePlaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DuplicatePlaceRequest"
+      responses:
+        "200":
+          description: Duplicate candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicatePlaceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/places:
+    post:
+      summary: Create a place and publish it immediately
+      operationId: createPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlaceRequest"
+      responses:
+        "201":
+          description: Created place detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/places/{placeId}:
+    get:
+      summary: Get place detail
+      operationId: getPlace
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+      responses:
+        "200":
+          description: Place detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update a place and append a wiki-style version
+      operationId: updatePlace
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlaceRequest"
+      responses:
+        "200":
+          description: Updated place detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/places/{placeId}/versions:
+    get:
+      summary: List place versions
+      operationId: listPlaceVersions
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+      responses:
+        "200":
+          description: Version list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlaceVersionSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/places/{placeId}/versions/{versionId}:
+    get:
+      summary: Get a specific place version
+      operationId: getPlaceVersion
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Version UUID or version number.
+      responses:
+        "200":
+          description: Version detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceVersion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearerApiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: AIGO_API_KEY
+  parameters:
+    PlaceId:
+      name: placeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        details: {}
+    Origin:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+        label:
+          type: string
+    TriState:
+      type: string
+      enum: [yes, no, partial, unknown]
+    IndoorType:
+      type: string
+      enum: [indoor, outdoor, mixed, unknown]
+    SourceInput:
+      type: object
+      required: [sourceType]
+      properties:
+        sourceType:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        externalId:
+          type: string
+        summary:
+          type: string
+          maxLength: 2000
+        checkedAt:
+          type: string
+          format: date-time
+      anyOf:
+        - required: [url]
+        - required: [externalId]
+    PlaceWritableFields:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        primaryCategory:
+          type: string
+          description: accommodation is excluded from MVP.
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 50
+        description:
+          type: string
+        address:
+          type: string
+        roadAddress:
+          type: string
+        regionSido:
+          type: string
+        regionSigungu:
+          type: string
+        regionDong:
+          type: string
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+        phone:
+          type: string
+        officialUrl:
+          type: string
+          format: uri
+        reservationUrl:
+          type: string
+          format: uri
+        kakaoPlaceUrl:
+          type: string
+          format: uri
+        kakaoPlaceId:
+          type: string
+        externalRefs:
+          type: object
+          additionalProperties: true
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        status:
+          type: string
+          enum: [active, temporarily_closed, closed, draft, needs_review]
+        dataConfidence:
+          type: string
+          enum: [official_verified, operator_curated, agent_collected, user_reported, needs_check, unknown]
+        minRecommendedAgeMonths:
+          type: integer
+          minimum: 0
+          maximum: 240
+        maxRecommendedAgeMonths:
+          type: integer
+          minimum: 0
+          maximum: 240
+        indoorType:
+          $ref: "#/components/schemas/IndoorType"
+        strollerFriendly:
+          $ref: "#/components/schemas/TriState"
+        parkingAvailable:
+          $ref: "#/components/schemas/TriState"
+        nursingRoom:
+          $ref: "#/components/schemas/TriState"
+        diaperChangingTable:
+          $ref: "#/components/schemas/TriState"
+        kidsToilet:
+          $ref: "#/components/schemas/TriState"
+        elevator:
+          $ref: "#/components/schemas/TriState"
+        babyChair:
+          $ref: "#/components/schemas/TriState"
+        foodAllowed:
+          $ref: "#/components/schemas/TriState"
+        averageStayMinutes:
+          type: integer
+        parentEffortLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+        childEngagementLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+        rainyDayScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        hotDayScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        coldDayScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        safetyNotes:
+          type: string
+        parentNotes:
+          type: string
+        openingHours: {}
+    CreatePlaceRequest:
+      allOf:
+        - $ref: "#/components/schemas/PlaceWritableFields"
+        - type: object
+          required: [name, primaryCategory, lat, lng, sources]
+          properties:
+            sources:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/SourceInput"
+            actor:
+              type: string
+              default: agent
+            changeSummary:
+              type: string
+    UpdatePlaceRequest:
+      allOf:
+        - $ref: "#/components/schemas/PlaceWritableFields"
+        - type: object
+          required: [sources]
+          properties:
+            sources:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/SourceInput"
+            actor:
+              type: string
+              default: agent
+            changeSummary:
+              type: string
+    SearchPlacesRequest:
+      type: object
+      properties:
+        origin:
+          $ref: "#/components/schemas/Origin"
+        radiusKm:
+          type: number
+          default: 80
+          maximum: 200
+        query:
+          type: string
+        primaryCategories:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          description: Soft matching signal. Tags do not exclude candidates.
+          items:
+            type: string
+        childAgeMonths:
+          type: array
+          description: Soft matching signal. Age mismatch does not exclude candidates.
+          items:
+            type: integer
+            minimum: 0
+            maximum: 240
+        preferences:
+          type: object
+          description: Soft matching signals. Facility mismatch does not exclude candidates.
+          properties:
+            indoorTypes:
+              type: array
+              items:
+                $ref: "#/components/schemas/IndoorType"
+            parkingAvailable:
+              type: boolean
+            strollerFriendly:
+              type: boolean
+            nursingRoom:
+              type: boolean
+            diaperChangingTable:
+              type: boolean
+            kidsToilet:
+              type: boolean
+            elevator:
+              type: boolean
+            babyChair:
+              type: boolean
+        sort:
+          type: string
+          enum: [recommended, distance, updatedAt]
+          default: recommended
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        offset:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 0
+    SearchPlaceItem:
+      type: object
+      required:
+        - placeId
+        - name
+        - primaryCategory
+        - tags
+        - score
+        - reasonCodes
+        - dataConfidence
+        - recommendedAgeMonths
+        - facilities
+        - version
+        - updatedAt
+      properties:
+        placeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        primaryCategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        address:
+          type: string
+          nullable: true
+        lat:
+          type: number
+        lng:
+          type: number
+        distanceKm:
+          type: number
+          nullable: true
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        reasonCodes:
+          type: array
+          items:
+            type: string
+        dataConfidence:
+          type: string
+        recommendedAgeMonths:
+          $ref: "#/components/schemas/RecommendedAgeMonths"
+        facilities:
+          $ref: "#/components/schemas/Facilities"
+        version:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+    SearchPlacesResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchPlaceItem"
+        meta:
+          type: object
+          required: [count, total, limit, offset, origin]
+          properties:
+            count:
+              type: integer
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+            origin:
+              anyOf:
+                - $ref: "#/components/schemas/Origin"
+                - type: "null"
+    DuplicatePlaceRequest:
+      type: object
+      required: [name, lat, lng]
+      properties:
+        name:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        radiusMeters:
+          type: number
+          default: 500
+          maximum: 5000
+        kakaoPlaceId:
+          type: string
+        externalRefs:
+          type: object
+          additionalProperties: true
+        limit:
+          type: integer
+          default: 10
+          maximum: 20
+    DuplicatePlaceResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [place, confidence, reasonCodes, distanceMeters, nameSimilarity]
+            properties:
+              place:
+                $ref: "#/components/schemas/PlaceDetail"
+              confidence:
+                type: string
+                enum: [high, medium, low]
+              reasonCodes:
+                type: array
+                items:
+                  type: string
+              distanceMeters:
+                type: number
+                nullable: true
+              nameSimilarity:
+                type: number
+                nullable: true
+    RecommendedAgeMonths:
+      type: object
+      required: [min, max]
+      properties:
+        min:
+          type: integer
+          nullable: true
+        max:
+          type: integer
+          nullable: true
+    Facilities:
+      type: object
+      required:
+        - indoorType
+        - strollerFriendly
+        - parkingAvailable
+        - nursingRoom
+        - diaperChangingTable
+        - kidsToilet
+        - elevator
+        - babyChair
+        - foodAllowed
+      properties:
+        indoorType:
+          $ref: "#/components/schemas/IndoorType"
+        strollerFriendly:
+          $ref: "#/components/schemas/TriState"
+        parkingAvailable:
+          $ref: "#/components/schemas/TriState"
+        nursingRoom:
+          $ref: "#/components/schemas/TriState"
+        diaperChangingTable:
+          $ref: "#/components/schemas/TriState"
+        kidsToilet:
+          $ref: "#/components/schemas/TriState"
+        elevator:
+          $ref: "#/components/schemas/TriState"
+        babyChair:
+          $ref: "#/components/schemas/TriState"
+        foodAllowed:
+          $ref: "#/components/schemas/TriState"
+    Source:
+      allOf:
+        - $ref: "#/components/schemas/SourceInput"
+        - type: object
+          required: [id, sourceType, checkedAt, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            checkedAt:
+              type: string
+              format: date-time
+              nullable: true
+            createdAt:
+              type: string
+              format: date-time
+    PlaceVersionSummary:
+      type: object
+      required: [id, versionNumber, action, actor, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+        action:
+          type: string
+          enum: [create, update]
+        actor:
+          type: string
+        changeSummary:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    PlaceVersion:
+      allOf:
+        - $ref: "#/components/schemas/PlaceVersionSummary"
+        - type: object
+          required: [snapshot, sources]
+          properties:
+            snapshot:
+              type: object
+              additionalProperties: true
+            sources:
+              type: array
+              items:
+                $ref: "#/components/schemas/SourceInput"
+    PlaceDetail:
+      type: object
+      required:
+        - id
+        - name
+        - primaryCategory
+        - tags
+        - region
+        - lat
+        - lng
+        - contact
+        - externalRefs
+        - imageUrls
+        - status
+        - dataConfidence
+        - recommendedAgeMonths
+        - facilities
+        - visit
+        - notes
+        - version
+        - createdAt
+        - updatedAt
+        - sources
+        - versions
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+          nullable: true
+        primaryCategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        roadAddress:
+          type: string
+          nullable: true
+        region:
+          type: object
+          required: [sido, sigungu, dong]
+          properties:
+            sido:
+              type: string
+              nullable: true
+            sigungu:
+              type: string
+              nullable: true
+            dong:
+              type: string
+              nullable: true
+        lat:
+          type: number
+        lng:
+          type: number
+        contact:
+          type: object
+          properties:
+            phone:
+              type: string
+              nullable: true
+            officialUrl:
+              type: string
+              nullable: true
+            reservationUrl:
+              type: string
+              nullable: true
+            kakaoPlaceUrl:
+              type: string
+              nullable: true
+            kakaoPlaceId:
+              type: string
+              nullable: true
+        externalRefs:
+          type: object
+          additionalProperties: true
+        imageUrls:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        dataConfidence:
+          type: string
+        recommendedAgeMonths:
+          $ref: "#/components/schemas/RecommendedAgeMonths"
+        facilities:
+          $ref: "#/components/schemas/Facilities"
+        visit:
+          type: object
+          additionalProperties: true
+        notes:
+          type: object
+          additionalProperties: true
+        openingHours: {}
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaceVersionSummary"

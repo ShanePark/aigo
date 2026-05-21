@@ -1,0 +1,31 @@
+export type DuplicateCandidateSignals = {
+  kakaoPlaceIdMatch: boolean;
+  distanceMeters: number | null;
+  nameSimilarity: number | null;
+};
+
+export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
+  const reasonCodes: string[] = [];
+
+  if (signals.kakaoPlaceIdMatch) {
+    reasonCodes.push("KAKAO_PLACE_ID_MATCH");
+  }
+
+  if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
+    reasonCodes.push("GEO_NEAR");
+  }
+
+  if (signals.nameSimilarity !== null && signals.nameSimilarity >= 0.45) {
+    reasonCodes.push("NAME_SIMILAR");
+  }
+
+  return reasonCodes;
+}
+
+export function duplicateConfidence(signals: DuplicateCandidateSignals) {
+  if (signals.kakaoPlaceIdMatch) return "high";
+  if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.55) return "high";
+  if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 && (signals.nameSimilarity ?? 0) >= 0.35) return "medium";
+  return "low";
+}
+

@@ -1,0 +1,75 @@
+import { describe, expect, it } from "vitest";
+
+import { scorePlace } from "@/lib/scoring";
+import type { SearchPlacesInput } from "@/lib/schemas";
+
+const baseInput: SearchPlacesInput = {
+  origin: { lat: 36.3504, lng: 127.3845, label: "대전" },
+  radiusKm: 80,
+  childAgeMonths: [32, 7, 7],
+  preferences: {
+    indoorTypes: ["indoor", "mixed"],
+    parkingAvailable: true,
+    strollerFriendly: true,
+    nursingRoom: true,
+    diaperChangingTable: true
+  },
+  sort: "recommended",
+  limit: 20,
+  offset: 0
+};
+
+describe("scorePlace", () => {
+  it("uses age as a soft positive signal", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "indoor_playground",
+        tags: [],
+        dataConfidence: "operator_curated",
+        minRecommendedAgeMonths: 24,
+        maxRecommendedAgeMonths: 71,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "yes",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        distanceKm: 3
+      },
+      baseInput
+    );
+
+    expect(result.reasonCodes).toContain("AGE_HINT_MATCH");
+    expect(result.reasonCodes).toContain("STROLLER_PARTIAL");
+    expect(result.score).toBeGreaterThan(70);
+  });
+
+  it("does not zero out places when age mismatches and facilities are unknown", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "museum",
+        tags: [],
+        dataConfidence: "unknown",
+        minRecommendedAgeMonths: 72,
+        maxRecommendedAgeMonths: 120,
+        indoorType: "unknown",
+        parkingAvailable: "unknown",
+        strollerFriendly: "unknown",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        distanceKm: 12
+      },
+      baseInput
+    );
+
+    expect(result.reasonCodes).toContain("AGE_HINT_MISMATCH");
+    expect(result.reasonCodes).toContain("PARKING_UNKNOWN");
+    expect(result.score).toBeGreaterThan(0);
+  });
+});
+
