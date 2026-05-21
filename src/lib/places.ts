@@ -471,28 +471,71 @@ export function searchTermPatterns(query: string) {
 }
 
 function keywordSearchClauses(query: string, add: (value: unknown) => string) {
-  return query
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((term) => {
-      const pattern = `%${term}%`;
-      const patternParam = add(pattern);
-      const columns = [
-        `name ilike ${patternParam}`,
-        `description ilike ${patternParam}`,
-        `region_sido ilike ${patternParam}`,
-        `region_sigungu ilike ${patternParam}`,
-        `region_dong ilike ${patternParam}`,
-        `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
-      ];
+  const terms = query.trim().split(/\s+/).filter(Boolean);
 
-      if (shouldSearchAddressForTerm(query, term)) {
-        columns.push(`address ilike ${patternParam}`, `road_address ilike ${patternParam}`);
-      }
+  if (isBroadNatureIntentQuery(query)) {
+    return [broadNatureIntentClause(add)];
+  }
 
-      return `(${columns.join(" or ")})`;
-    });
+  return terms.map((term) => {
+    const pattern = `%${term}%`;
+    const patternParam = add(pattern);
+    const columns = [
+      `name ilike ${patternParam}`,
+      `description ilike ${patternParam}`,
+      `region_sido ilike ${patternParam}`,
+      `region_sigungu ilike ${patternParam}`,
+      `region_dong ilike ${patternParam}`,
+      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+    ];
+
+    if (shouldSearchAddressForTerm(query, term)) {
+      columns.push(`address ilike ${patternParam}`, `road_address ilike ${patternParam}`);
+    }
+
+    return `(${columns.join(" or ")})`;
+  });
+}
+
+const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이"]);
+
+const broadNatureExpansionTerms = [
+  "공원",
+  "자연",
+  "숲",
+  "산책",
+  "수목원",
+  "산림욕장",
+  "자연휴양림",
+  "대청호",
+  "호수",
+  "데크",
+  "생태",
+  "수변",
+  "물놀이",
+  "잔디",
+  "피크닉",
+  "황톳길"
+];
+
+export function isBroadNatureIntentQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term));
+}
+
+function broadNatureIntentClause(add: (value: unknown) => string) {
+  const clauses = ["primary_category = 'park'"];
+
+  for (const term of broadNatureExpansionTerms) {
+    const patternParam = add(`%${term}%`);
+    clauses.push(
+      `name ilike ${patternParam}`,
+      `description ilike ${patternParam}`,
+      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+    );
+  }
+
+  return `(${clauses.join(" or ")})`;
 }
 
 export function shouldSearchAddressForTerm(query: string, term: string) {
