@@ -394,14 +394,14 @@ type SqlParam = postgres.ParameterOrJSON<never>;
 
 async function insertPlace(executor: SqlExecutor, record: Record<string, unknown>, columns: string[]) {
   const columnSql = columns.map(quoteIdentifier).join(", ");
-  const placeholders = columns.map((_, index) => `$${index + 1}`).join(", ");
-  const params = columns.map((column) => record[column] as SqlParam);
+  const placeholders = columns.map((column, index) => placeholderFor(column, index + 1)).join(", ");
+  const params = columns.map((column) => toSqlParam(column, record[column]));
   return executor.unsafe<PlaceRow[]>(`insert into places (${columnSql}) values (${placeholders}) returning *`, params);
 }
 
 async function updatePlaceRow(executor: SqlExecutor, placeId: string, record: Record<string, unknown>, columns: string[]) {
-  const assignments = columns.map((column, index) => `${quoteIdentifier(column)} = $${index + 1}`).join(", ");
-  const params = columns.map((column) => record[column] as SqlParam);
+  const assignments = columns.map((column, index) => `${quoteIdentifier(column)} = ${placeholderFor(column, index + 1)}`).join(", ");
+  const params = columns.map((column) => toSqlParam(column, record[column]));
   params.push(placeId as SqlParam);
   return executor.unsafe<PlaceRow[]>(
     `update places set ${assignments}, updated_at = now(), version = version + 1 where id = $${params.length} returning *`,
@@ -448,6 +448,20 @@ function quoteIdentifier(identifier: string) {
     throw new ApiError(500, `Unsafe SQL identifier: ${identifier}`);
   }
   return `"${identifier}"`;
+}
+
+function placeholderFor(column: string, index: number) {
+  if (column === "external_refs" || column === "opening_hours") {
+    return `$${index}::jsonb`;
+  }
+  return `$${index}`;
+}
+
+function toSqlParam(column: string, value: unknown): SqlParam {
+  if (column === "external_refs" || column === "opening_hours") {
+    return JSON.stringify(value ?? {}) as SqlParam;
+  }
+  return value as SqlParam;
 }
 
 function mapPlace(row: PlaceRow) {
