@@ -165,6 +165,9 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
       `;
     }
 
+    if (input.sourceMode === "replace") {
+      await tx`delete from place_sources where place_id = ${updated.id}`;
+    }
     await insertSources(tx, updated.id, input.sources);
     await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
 

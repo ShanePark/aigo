@@ -96,6 +96,7 @@ export const updatePlaceSchema = z
   .object({
     ...writablePlaceFields,
     sources: z.array(sourceSchema).min(1),
+    sourceMode: z.enum(["append", "replace"]).default("append"),
     actor: z.string().trim().default("agent"),
     changeSummary: z.string().trim().max(2000).optional()
   })

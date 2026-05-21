@@ -24,8 +24,7 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
 
 export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.kakaoPlaceIdMatch) return "high";
-  if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.55) return "high";
+  if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.85) return "high";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 && (signals.nameSimilarity ?? 0) >= 0.35) return "medium";
   return "low";
 }
-

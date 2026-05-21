@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceSchema, searchPlacesSchema } from "@/lib/schemas";
+import { createPlaceSchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
 
 describe("place schemas", () => {
   it("requires coordinates and at least one source when creating a place", () => {
@@ -40,5 +40,18 @@ describe("place schemas", () => {
     expect(result.radiusKm).toBe(80);
     expect(result.preferences?.strollerFriendly).toBe(true);
     expect(result.preferences?.foodAllowed).toBe(true);
+  });
+
+  it("defaults update source mode to append and accepts replace", () => {
+    const append = updatePlaceSchema.parse({
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const replace = updatePlaceSchema.parse({
+      sources: [{ sourceType: "official_site", url: "https://example.com" }],
+      sourceMode: "replace"
+    });
+
+    expect(append.sourceMode).toBe("append");
+    expect(replace.sourceMode).toBe("replace");
   });
 });

@@ -25,5 +25,15 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toContain("NAME_SIMILAR");
     expect(duplicateReasonCodes(signals)).not.toContain("GEO_NEAR");
   });
-});
 
+  it("keeps same-building substring matches below high confidence", () => {
+    const signals = {
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.65
+    };
+
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateReasonCodes(signals)).toEqual(["GEO_NEAR", "NAME_SIMILAR"]);
+  });
+});
