@@ -32,7 +32,8 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -135,7 +136,8 @@ h3 {
   font-size: 13px;
 }
 
-.search-form input {
+.search-form input,
+.search-form select {
   border: 1px solid var(--line);
   border-radius: 6px;
   min-height: 40px;

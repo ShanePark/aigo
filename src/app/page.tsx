@@ -34,6 +34,17 @@ export default async function Home({ searchParams }: HomeProps) {
             <input name="category" defaultValue={textParam(params.category)} placeholder="kids_cafe, museum..." />
           </label>
           <label>
+            <span>상황</span>
+            <select name="visitContext" defaultValue={textParam(params.visitContext) || ""}>
+              <option value="">기본 추천</option>
+              <option value="afterDaycare">하원 후</option>
+              <option value="nearbyNow">당장 근처</option>
+              <option value="rainyDay">비 오는 날</option>
+              <option value="weekendHalfDay">주말 반나절</option>
+              <option value="dayTrip">주말 당일치기</option>
+            </select>
+          </label>
+          <label>
             <span>아이 월령</span>
             <input name="ages" defaultValue={textParam(params.ages) || "32,7,7"} placeholder="32,7,7" />
           </label>
@@ -131,6 +142,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
 
   return {
     origin: { lat, lng, label: "대전" },
+    visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
     radiusKm: Number(textParam(params.radiusKm) || 80),
     query: textParam(params.query) || undefined,
     primaryCategories: category ? [category] : undefined,

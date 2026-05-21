@@ -116,6 +116,7 @@ export const updatePlaceSchema = z
   );
 
 export const searchPlacesSchema = z.object({
+  visitContext: z.enum(["afterDaycare", "nearbyNow", "rainyDay", "weekendHalfDay", "dayTrip"]).optional(),
   origin: z
     .object({
       lat: z.number().min(-90).max(90),
@@ -160,4 +161,3 @@ export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type SearchPlacesInput = z.infer<typeof searchPlacesSchema>;
 export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
-

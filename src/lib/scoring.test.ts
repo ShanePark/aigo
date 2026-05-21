@@ -71,5 +71,49 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).toContain("PARKING_UNKNOWN");
     expect(result.score).toBeGreaterThan(0);
   });
-});
 
+  it("boosts farther destination-style places for day trips", () => {
+    const nearby = scorePlace(
+      {
+        primaryCategory: "library",
+        tags: [],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        distanceKm: 2
+      },
+      { ...baseInput, visitContext: "dayTrip" }
+    );
+    const destination = scorePlace(
+      {
+        primaryCategory: "museum",
+        tags: ["세종", "주말당일"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 24,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        distanceKm: 25
+      },
+      { ...baseInput, visitContext: "dayTrip" }
+    );
+
+    expect(destination.score).toBeGreaterThan(nearby.score);
+    expect(destination.reasonCodes).toContain("CONTEXT_DAY_TRIP_DISTANCE");
+    expect(nearby.reasonCodes).toContain("CONTEXT_DAY_TRIP_TOO_CLOSE");
+  });
+});

@@ -21,8 +21,8 @@ type ScoreablePlace = Pick<
 };
 
 const confidenceScore: Record<string, number> = {
-  official_verified: 5,
-  operator_curated: 4,
+  official_verified: 4,
+  operator_curated: 3,
   agent_collected: 2,
   user_reported: 1,
   unknown: 0,
@@ -31,32 +31,36 @@ const confidenceScore: Record<string, number> = {
 
 export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput) {
   const reasonCodes = new Set<string>();
-  let score = 40;
+  let score = 25;
 
   if (input.origin && typeof place.distanceKm === "number") {
     if (place.distanceKm <= 5) {
-      score += 16;
+      score += 12;
       reasonCodes.add("DISTANCE_NEAR");
     } else if (place.distanceKm <= 15) {
-      score += 11;
+      score += 8;
       reasonCodes.add("DISTANCE_REASONABLE");
     } else if (place.distanceKm <= 50) {
-      score += 6;
+      score += 5;
       reasonCodes.add("DISTANCE_DAY_TRIP");
     } else {
       reasonCodes.add("DISTANCE_FAR");
     }
   }
 
+  applyVisitContextSignal(place, input, reasonCodes, (delta) => {
+    score += delta;
+  });
+
   if (input.primaryCategories?.includes(place.primaryCategory)) {
-    score += 10;
+    score += 8;
     reasonCodes.add("CATEGORY_MATCH");
   }
 
   const requestedTags = new Set(input.tags ?? []);
   const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
   if (matchedTags.length > 0) {
-    score += Math.min(10, matchedTags.length * 3);
+    score += Math.min(6, matchedTags.length * 2);
     reasonCodes.add("TAG_MATCH");
   }
 
@@ -110,6 +114,87 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput) {
   };
 }
 
+function applyVisitContextSignal(
+  place: ScoreablePlace,
+  input: SearchPlacesInput,
+  reasonCodes: Set<string>,
+  addScore: (delta: number) => void
+) {
+  if (!input.visitContext) return;
+
+  const category = place.primaryCategory;
+  const distance = place.distanceKm ?? Number.POSITIVE_INFINITY;
+  const indoor = place.indoorType;
+  const tags = new Set(place.tags);
+
+  if (input.visitContext === "afterDaycare") {
+    if (distance <= 8) {
+      addScore(8);
+      reasonCodes.add("CONTEXT_AFTER_DAYCARE_NEAR");
+    }
+    if (indoor === "indoor" || indoor === "mixed") {
+      addScore(4);
+      reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
+    }
+    if (["kids_cafe", "indoor_playground", "library", "family_cafe"].includes(category)) {
+      addScore(5);
+      reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
+    }
+  }
+
+  if (input.visitContext === "nearbyNow") {
+    if (distance <= 5) {
+      addScore(10);
+      reasonCodes.add("CONTEXT_NEARBY_NOW_CLOSE");
+    } else if (distance > 15) {
+      addScore(-8);
+      reasonCodes.add("CONTEXT_NEARBY_NOW_FAR");
+    }
+  }
+
+  if (input.visitContext === "rainyDay") {
+    if (indoor === "indoor") {
+      addScore(10);
+      reasonCodes.add("CONTEXT_RAINY_DAY_INDOOR");
+    } else if (indoor === "mixed") {
+      addScore(5);
+      reasonCodes.add("CONTEXT_RAINY_DAY_MIXED");
+    } else if (indoor === "outdoor") {
+      addScore(-9);
+      reasonCodes.add("CONTEXT_RAINY_DAY_OUTDOOR");
+    }
+  }
+
+  if (input.visitContext === "weekendHalfDay") {
+    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park"].includes(category)) {
+      addScore(7);
+      reasonCodes.add("CONTEXT_HALFDAY_DESTINATION");
+    }
+    if (distance >= 5 && distance <= 45) {
+      addScore(4);
+      reasonCodes.add("CONTEXT_HALFDAY_DISTANCE");
+    }
+  }
+
+  if (input.visitContext === "dayTrip") {
+    if (distance >= 15 && distance <= 80) {
+      addScore(12);
+      reasonCodes.add("CONTEXT_DAY_TRIP_DISTANCE");
+    } else if (distance < 8) {
+      addScore(-9);
+      reasonCodes.add("CONTEXT_DAY_TRIP_TOO_CLOSE");
+    }
+    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park"].includes(category)) {
+      addScore(7);
+      reasonCodes.add("CONTEXT_DAY_TRIP_DESTINATION");
+    }
+    if (tags.has("주말당일") || tags.has("세종") || tags.has("청주") || tags.has("공주")) {
+      addScore(6);
+      reasonCodes.add("CONTEXT_DAY_TRIP_TAG");
+    }
+  }
+}
+
 function applyAgeSignal(
   place: ScoreablePlace,
   childAgeMonths: number[] | undefined,
@@ -128,7 +213,7 @@ function applyAgeSignal(
 
   const hasMatch = childAgeMonths.some((age) => age >= min && age <= max);
   if (hasMatch) {
-    addScore(14);
+    addScore(10);
     reasonCodes.add("AGE_HINT_MATCH");
   } else {
     addScore(1);
@@ -147,10 +232,10 @@ function applyTriStatePreference(
   if (!input.preferences?.[key]) return;
 
   if (value === "yes") {
-    addScore(7);
+    addScore(5);
     reasonCodes.add(`${codePrefix}_YES`);
   } else if (value === "partial") {
-    addScore(4);
+    addScore(3);
     reasonCodes.add(`${codePrefix}_PARTIAL`);
   } else if (value === "no") {
     addScore(-2);
@@ -159,4 +244,3 @@ function applyTriStatePreference(
     reasonCodes.add(`${codePrefix}_UNKNOWN`);
   }
 }
-

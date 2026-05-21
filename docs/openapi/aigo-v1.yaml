@@ -394,6 +394,10 @@ components:
     SearchPlacesRequest:
       type: object
       properties:
+        visitContext:
+          type: string
+          enum: [afterDaycare, nearbyNow, rainyDay, weekendHalfDay, dayTrip]
+          description: Soft ranking context for common parent outing scenarios.
         origin:
           $ref: "#/components/schemas/Origin"
         radiusKm:
