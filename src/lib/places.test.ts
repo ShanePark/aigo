@@ -136,6 +136,12 @@ describe("place search helpers", () => {
         elevator: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "수통골 놀이방 식당 아기의자 주차" })).toMatchObject({
+      query: "수통골 놀이방식당"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "반석 캠핑식당 놀이방 아기의자 주차" })).toMatchObject({
+      query: "반석 놀이방식당"
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "자연 실내 대피" })).toMatchObject({
       query: "자연",
       preferences: {
