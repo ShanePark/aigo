@@ -16,6 +16,7 @@ type ScoreablePlace = Pick<
   | "kidsToilet"
   | "elevator"
   | "babyChair"
+  | "foodAllowed"
 > & {
   distanceKm?: number | null;
 };
@@ -100,6 +101,9 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput) {
     score += delta;
   });
   applyTriStatePreference("babyChair", "BABY_CHAIR", place.babyChair, input, reasonCodes, (delta) => {
+    score += delta;
+  });
+  applyTriStatePreference("foodAllowed", "FOOD_ALLOWED", place.foodAllowed, input, reasonCodes, (delta) => {
     score += delta;
   });
 

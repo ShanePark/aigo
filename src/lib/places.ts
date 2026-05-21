@@ -218,6 +218,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       kidsToilet: place.facilities.kidsToilet,
       elevator: place.facilities.elevator,
       babyChair: place.facilities.babyChair,
+      foodAllowed: place.facilities.foodAllowed,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, input);

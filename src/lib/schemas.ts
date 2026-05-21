@@ -138,7 +138,8 @@ export const searchPlacesSchema = z.object({
       diaperChangingTable: z.boolean().optional(),
       kidsToilet: z.boolean().optional(),
       elevator: z.boolean().optional(),
-      babyChair: z.boolean().optional()
+      babyChair: z.boolean().optional(),
+      foodAllowed: z.boolean().optional()
     })
     .optional(),
   sort: z.enum(["recommended", "distance", "updatedAt"]).default("recommended"),

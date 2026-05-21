@@ -12,7 +12,8 @@ const baseInput: SearchPlacesInput = {
     parkingAvailable: true,
     strollerFriendly: true,
     nursingRoom: true,
-    diaperChangingTable: true
+    diaperChangingTable: true,
+    foodAllowed: true
   },
   sort: "recommended",
   limit: 20,
@@ -36,6 +37,7 @@ describe("scorePlace", () => {
         kidsToilet: "unknown",
         elevator: "unknown",
         babyChair: "unknown",
+        foodAllowed: "unknown",
         distanceKm: 3
       },
       baseInput
@@ -62,6 +64,7 @@ describe("scorePlace", () => {
         kidsToilet: "unknown",
         elevator: "unknown",
         babyChair: "unknown",
+        foodAllowed: "unknown",
         distanceKm: 12
       },
       baseInput
@@ -69,6 +72,7 @@ describe("scorePlace", () => {
 
     expect(result.reasonCodes).toContain("AGE_HINT_MISMATCH");
     expect(result.reasonCodes).toContain("PARKING_UNKNOWN");
+    expect(result.reasonCodes).toContain("FOOD_ALLOWED_UNKNOWN");
     expect(result.score).toBeGreaterThan(0);
   });
 
@@ -88,6 +92,7 @@ describe("scorePlace", () => {
         kidsToilet: "unknown",
         elevator: "unknown",
         babyChair: "unknown",
+        foodAllowed: "unknown",
         distanceKm: 2
       },
       { ...baseInput, visitContext: "dayTrip" }
@@ -107,6 +112,7 @@ describe("scorePlace", () => {
         kidsToilet: "unknown",
         elevator: "unknown",
         babyChair: "unknown",
+        foodAllowed: "unknown",
         distanceKm: 25
       },
       { ...baseInput, visitContext: "dayTrip" }

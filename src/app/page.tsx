@@ -87,6 +87,10 @@ export default async function Home({ searchParams }: HomeProps) {
               <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
               <span>기저귀 선호</span>
             </label>
+            <label className="check">
+              <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
+              <span>간식 공간 선호</span>
+            </label>
           </div>
           <button type="submit" className="primary-button">
             <Search size={16} aria-hidden="true" />
@@ -173,7 +177,8 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       parkingAvailable: params.parking === "on" ? true : undefined,
       strollerFriendly: params.stroller === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
-      diaperChangingTable: params.diaper === "on" ? true : undefined
+      diaperChangingTable: params.diaper === "on" ? true : undefined,
+      foodAllowed: params.food === "on" ? true : undefined
     },
     limit: 30
   };
@@ -203,7 +208,8 @@ function facilitySignals(place: SearchItem) {
     { label: "주차", value: triStateLabel(place.facilities.parkingAvailable), tone: toneForTriState(place.facilities.parkingAvailable) },
     { label: "유모차", value: triStateLabel(place.facilities.strollerFriendly), tone: toneForTriState(place.facilities.strollerFriendly) },
     { label: "수유실", value: triStateLabel(place.facilities.nursingRoom), tone: toneForTriState(place.facilities.nursingRoom) },
-    { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) }
+    { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) },
+    { label: "간식", value: triStateLabel(place.facilities.foodAllowed), tone: toneForTriState(place.facilities.foodAllowed) }
   ];
 }
 

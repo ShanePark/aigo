@@ -31,13 +31,14 @@ describe("place schemas", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },
       preferences: {
-        strollerFriendly: true
+        strollerFriendly: true,
+        foodAllowed: true
       }
     });
 
     expect(result.limit).toBe(20);
     expect(result.radiusKm).toBe(80);
     expect(result.preferences?.strollerFriendly).toBe(true);
+    expect(result.preferences?.foodAllowed).toBe(true);
   });
 });
-
