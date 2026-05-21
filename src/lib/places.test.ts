@@ -84,6 +84,14 @@ describe("place search helpers", () => {
         strollerFriendly: true
       }
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "아이랑 밥 놀이방 식당 아기의자 주차 유모차" })).toMatchObject({
+      query: "놀이방 식당",
+      preferences: {
+        babyChair: true,
+        parkingAvailable: true,
+        strollerFriendly: true
+      }
+    });
   });
 
   it("keeps special intent queries literal while still inferring preferences", () => {
