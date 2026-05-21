@@ -100,12 +100,12 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
         </h2>
         <div className="version-list">
           {place.versions.map((version) => (
-            <div className="version-row" key={version.id}>
+            <a className="version-row" href={`/v1/places/${place.id}/versions/${version.id}`} key={version.id}>
               <span>v{version.versionNumber}</span>
               <strong>{version.action}</strong>
               <small>{version.changeSummary ?? "변경 요약 없음"}</small>
               <time>{new Date(version.createdAt).toLocaleString("ko-KR")}</time>
-            </div>
+            </a>
           ))}
         </div>
       </section>
