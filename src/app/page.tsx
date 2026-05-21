@@ -157,6 +157,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     {place.tags.slice(0, 4).join(", ") || "태그 없음"}
                   </span>
                 </div>
+                {place.description ? <p className="result-description">{place.description}</p> : null}
                 <div className="facility-grid">
                   {facilitySignals(place).map((signal) => (
                     <span className={`facility-chip ${signal.tone}`} key={signal.label}>
@@ -164,6 +165,13 @@ export default async function Home({ searchParams }: HomeProps) {
                     </span>
                   ))}
                 </div>
+                <div className="visit-row">
+                  {place.visit.averageStayMinutes ? <span>체류 {place.visit.averageStayMinutes}분</span> : null}
+                  {place.visit.parentEffortLevel ? <span>부모 난이도 {place.visit.parentEffortLevel}/5</span> : null}
+                  {place.notes.safety ? <span className="caution">안전 메모 있음</span> : null}
+                </div>
+                {place.notes.parent ? <p className="result-note">{place.notes.parent}</p> : null}
+                {place.notes.safety ? <p className="result-note caution">{place.notes.safety}</p> : null}
                 <div className="reason-grid">
                   {visibleReasons.map((reason) => (
                     <span className={reason.tone} key={reason.code} title={reason.code}>

@@ -259,6 +259,48 @@ h3 {
   gap: 6px;
 }
 
+.result-description,
+.result-note {
+  color: #3f4b45;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 10px 0 0;
+}
+
+.result-note {
+  color: var(--muted);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.result-note.caution {
+  color: #8a3b2f;
+}
+
+.visit-row {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.visit-row span {
+  background: #eef3ef;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.visit-row .caution {
+  background: #fff1ee;
+  border-color: #e9beb6;
+  color: #9a3f2f;
+}
+
 .reason-grid {
   display: flex;
   flex-wrap: wrap;

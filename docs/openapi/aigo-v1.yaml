@@ -484,12 +484,15 @@ components:
         - name
         - primaryCategory
         - tags
+        - description
         - score
         - reasonCodes
         - reasons
         - dataConfidence
         - recommendedAgeMonths
         - facilities
+        - visit
+        - notes
         - version
         - updatedAt
       properties:
@@ -505,6 +508,9 @@ components:
           items:
             type: string
         address:
+          type: string
+          nullable: true
+        description:
           type: string
           nullable: true
         lat:
@@ -533,6 +539,10 @@ components:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         facilities:
           $ref: "#/components/schemas/Facilities"
+        visit:
+          $ref: "#/components/schemas/VisitSignals"
+        notes:
+          $ref: "#/components/schemas/PlaceNotes"
         version:
           type: integer
         updatedAt:
@@ -667,6 +677,54 @@ components:
           $ref: "#/components/schemas/TriState"
         foodAllowed:
           $ref: "#/components/schemas/TriState"
+    VisitSignals:
+      type: object
+      required:
+        - averageStayMinutes
+        - parentEffortLevel
+        - childEngagementLevel
+        - rainyDayScore
+        - hotDayScore
+        - coldDayScore
+      properties:
+        averageStayMinutes:
+          type: integer
+          nullable: true
+        parentEffortLevel:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+        childEngagementLevel:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+        rainyDayScore:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+        hotDayScore:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+        coldDayScore:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+    PlaceNotes:
+      type: object
+      required: [safety, parent]
+      properties:
+        safety:
+          type: string
+          nullable: true
+        parent:
+          type: string
+          nullable: true
     Source:
       allOf:
         - $ref: "#/components/schemas/SourceInput"
@@ -815,11 +873,9 @@ components:
         facilities:
           $ref: "#/components/schemas/Facilities"
         visit:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/VisitSignals"
         notes:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/PlaceNotes"
         openingHours: {}
         version:
           type: integer

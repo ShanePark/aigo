@@ -234,6 +234,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       primaryCategory: place.primaryCategory,
       tags: place.tags,
       address: place.address,
+      description: place.description,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
@@ -243,6 +244,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
       dataConfidence: place.dataConfidence,
       recommendedAgeMonths: place.recommendedAgeMonths,
       facilities: place.facilities,
+      visit: place.visit,
+      notes: place.notes,
       version: place.version,
       updatedAt: place.updatedAt
     };
