@@ -105,7 +105,7 @@ describe("place search helpers", () => {
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "아이랑 밥 놀이방 식당 아기의자 주차 유모차" })).toMatchObject({
-      query: "놀이방 식당",
+      query: "놀이방식당",
       preferences: {
         babyChair: true,
         parkingAvailable: true,
@@ -120,6 +120,46 @@ describe("place search helpers", () => {
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "비오면 자연 실내대안" })).toMatchObject({
       visitContext: "rainyDay",
+      query: "자연",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "하원하고 한두시간만 있다 올 곳" })).toMatchObject({
+      visitContext: "afterDaycare",
+      query: undefined
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "아기랑 비올때 베이비라운지 있는 곳" })).toMatchObject({
+      visitContext: "rainyDay",
+      query: undefined,
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "쌍둥이 유모차 수유실 기저귀 갈기 편한 곳" })).toMatchObject({
+      query: undefined,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true,
+        elevator: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "밥 먹으면서 애 놀릴 수 있는 곳" })).toMatchObject({
+      query: "놀이방식당"
+    });
+  });
+
+  it("recognizes broad public and day-trip fallback parent queries", () => {
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "주말 반나절 공공시설 과학 도서관 어린이" })).toMatchObject({
+      visitContext: "weekendHalfDay",
+      query: "주말 반나절 공공시설 과학 도서관 어린이"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 기준 1시간권 자연 실내대피 비오면 피할 곳" })).toMatchObject({
+      visitContext: "dayTrip",
       query: "자연",
       preferences: {
         indoorTypes: ["indoor", "mixed"]

@@ -590,6 +590,7 @@ const broadParentIntentTerms = new Set([
   ...broadNatureIntentTerms,
   "당일치기",
   "근교",
+  "1시간권",
   "주말",
   "유모차",
   "주차",
@@ -598,6 +599,7 @@ const broadParentIntentTerms = new Set([
   "국립",
   "시립",
   "반나절",
+  "과학",
   "과학관",
   "박물관",
   "도서관",
@@ -615,8 +617,19 @@ const broadParentIntentTerms = new Set([
 const queryPreferenceTerms = {
   parkingAvailable: new Set(["주차", "주차장", "parking"]),
   strollerFriendly: new Set(["유모차", "쌍둥이유모차", "stroller"]),
-  nursingRoom: new Set(["수유실", "수유", "nursing"]),
-  diaperChangingTable: new Set(["기저귀", "기저귀교환", "기저귀교환대", "diaper"]),
+  nursingRoom: new Set(["수유실", "수유", "수유공간", "베이비라운지", "베이비룸", "유아휴게실", "아기휴게실", "분유", "nursing"]),
+  diaperChangingTable: new Set([
+    "기저귀",
+    "기저귀교환",
+    "기저귀교환대",
+    "기저귀갈이",
+    "기저귀갈기",
+    "베이비라운지",
+    "베이비룸",
+    "유아휴게실",
+    "아기휴게실",
+    "diaper"
+  ]),
   kidsToilet: new Set(["어린이화장실", "유아화장실", "아이화장실"]),
   elevator: new Set(["엘리베이터", "승강기", "elevator"]),
   babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"])
@@ -636,7 +649,9 @@ const indoorPreferenceTerms = new Set([
   "실내대피",
   "실내대안",
   "대안",
-  "비상"
+  "비상",
+  "피할",
+  "피하기"
 ]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
@@ -659,12 +674,17 @@ const queryStopTerms = new Set([
   "가벼운",
   "갈만한",
   "갈",
+  "올",
+  "있다",
+  "수",
   "만한",
   "아이랑",
   "아기랑",
+  "애",
   "데리고",
   "대전역",
   "원도심",
+  "기준",
   "근처",
   "주변",
   "인근",
@@ -673,18 +693,26 @@ const queryStopTerms = new Set([
   "쌍둥이랑",
   "twins",
   "하원",
+  "하원하고",
   "하원후",
   "방과후",
+  "어린이집",
+  "끝나고",
   "후",
   "밥",
   "식사",
   "먹기",
   "먹을",
   "먹고",
+  "먹으면서",
   "외식",
+  "놀릴",
   "한시간",
+  "한두시간",
+  "한두시간만",
   "두시간",
   "세시간",
+  "1시간권",
   "여름",
   "시즌",
   "운영",
@@ -700,7 +728,8 @@ const queryStopTerms = new Set([
   "실내대피",
   "실내대안",
   "대안",
-  "비상"
+  "비상",
+  "갈기"
 ]);
 
 const broadNatureExpansionTerms = [
@@ -738,6 +767,7 @@ const broadPublicExpansionTerms = [
   "공공시설",
   "국립",
   "시립",
+  "과학",
   "과학관",
   "박물관",
   "도서관",
@@ -748,6 +778,9 @@ const broadPublicExpansionTerms = [
   "어린이회관",
   "꿈아띠"
 ];
+
+const mealPlayMealTerms = new Set(["밥", "식사", "먹기", "먹을", "먹고", "먹으면서", "외식"]);
+const mealPlayActivityTerms = new Set(["놀릴", "놀이방", "키즈룸", "키즈존", "애"]);
 
 export function isBroadNatureIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
@@ -820,13 +853,17 @@ function inferPreferencesFromQuery(query: string) {
 function inferVisitContextFromQuery(query: string): SearchPlacesInput["visitContext"] | undefined {
   const terms = new Set(query.trim().split(/\s+/).filter(Boolean));
   if (terms.has("하원") || terms.has("하원후") || terms.has("방과후")) return "afterDaycare";
+  if (terms.has("하원하고") || (terms.has("어린이집") && terms.has("끝나고"))) return "afterDaycare";
+  if (terms.has("당일치기") || terms.has("근교") || terms.has("1시간권")) return "dayTrip";
   if (["비", "비오는날", "비오는", "비오면", "비올때", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
   if (terms.has("주말") || terms.has("반나절")) return "weekendHalfDay";
-  if (terms.has("당일치기") || terms.has("근교")) return "dayTrip";
   return undefined;
 }
 
 function stripPreferenceTerms(query: string) {
+  const alias = inferLiteralQueryAlias(query);
+  if (alias) return alias;
+
   const stripped = query
     .trim()
     .split(/\s+/)
@@ -839,12 +876,20 @@ function stripPreferenceTerms(query: string) {
 
 function isQueryStopTerm(term: string) {
   if (queryStopTerms.has(term)) return true;
-  return /^[0-9]+(?:[-~][0-9]+)?(?:시간|분)$/.test(term);
+  return /^[0-9]+(?:[-~][0-9]+)?(?:시간|분)(?:권|만)?$/.test(term);
 }
 
 function isQueryPreferenceTerm(term: string) {
   if (indoorPreferenceTerms.has(term) || outdoorPreferenceTerms.has(term)) return true;
   return Object.values(queryPreferenceTerms).some((terms) => terms.has(term));
+}
+
+function inferLiteralQueryAlias(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  const hasMealTerm = terms.some((term) => mealPlayMealTerms.has(term));
+  const hasPlayTerm = terms.some((term) => mealPlayActivityTerms.has(term));
+  if (hasMealTerm && hasPlayTerm) return "놀이방식당";
+  return undefined;
 }
 
 function broadNatureIntentClause(add: (value: unknown) => string) {
