@@ -448,8 +448,10 @@ function buildSearchQuery(input: SearchPlacesInput) {
   }
 
   if (input.query) {
-    const termPatterns = searchTermPatterns(input.query);
-    where.push(`(${termPatterns.map((pattern) => `search_text ilike ${add(pattern)}`).join(" and ")})`);
+    const clauses = keywordSearchClauses(input.query, add);
+    if (clauses.length > 0) {
+      where.push(`(${clauses.join(" and ")})`);
+    }
   }
 
   return {
@@ -464,6 +466,38 @@ export function searchTermPatterns(query: string) {
     .split(/\s+/)
     .filter(Boolean)
     .map((term) => `%${term}%`);
+}
+
+function keywordSearchClauses(query: string, add: (value: unknown) => string) {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => {
+      const pattern = `%${term}%`;
+      const patternParam = add(pattern);
+      const columns = [
+        `name ilike ${patternParam}`,
+        `description ilike ${patternParam}`,
+        `region_sido ilike ${patternParam}`,
+        `region_sigungu ilike ${patternParam}`,
+        `region_dong ilike ${patternParam}`,
+        `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+      ];
+
+      if (shouldSearchAddressForTerm(query, term)) {
+        columns.push(`address ilike ${patternParam}`, `road_address ilike ${patternParam}`);
+      }
+
+      return `(${columns.join(" or ")})`;
+    });
+}
+
+export function shouldSearchAddressForTerm(query: string, term: string) {
+  const normalizedQuery = query.trim();
+  if (/[0-9]/.test(normalizedQuery)) return true;
+  if (/로|길|번길/.test(term) && term.length >= 4) return true;
+  return term.length >= 4;
 }
 
 function quoteIdentifier(identifier: string) {
