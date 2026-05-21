@@ -361,6 +361,14 @@ dd {
   color: var(--muted);
 }
 
+.source-row-static {
+  background: #fafafa;
+}
+
+.source-row-static > span {
+  color: var(--muted);
+}
+
 .version-row {
   grid-template-columns: 48px 90px minmax(180px, 1fr) auto;
 }

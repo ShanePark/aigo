@@ -4,6 +4,12 @@ import { Database, MapPin, Search, Tag } from "lucide-react";
 import { searchPlaces } from "@/lib/places";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
+const DEFAULT_ORIGIN = {
+  lat: 36.3322,
+  lng: 127.4341,
+  label: "대전역/원도심"
+};
+
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -54,11 +60,11 @@ export default async function Home({ searchParams }: HomeProps) {
           </label>
           <label>
             <span>위도</span>
-            <input name="lat" type="number" step="0.000001" defaultValue={textParam(params.lat) || "36.3504"} />
+            <input name="lat" type="number" step="0.000001" defaultValue={textParam(params.lat) || String(DEFAULT_ORIGIN.lat)} />
           </label>
           <label>
             <span>경도</span>
-            <input name="lng" type="number" step="0.000001" defaultValue={textParam(params.lng) || "127.3845"} />
+            <input name="lng" type="number" step="0.000001" defaultValue={textParam(params.lng) || String(DEFAULT_ORIGIN.lng)} />
           </label>
           <div className="checks">
             <label className="check">
@@ -132,8 +138,8 @@ export default async function Home({ searchParams }: HomeProps) {
 }
 
 function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
-  const lat = Number(textParam(params.lat) || 36.3504);
-  const lng = Number(textParam(params.lng) || 127.3845);
+  const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
+  const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
   const category = textParam(params.category);
   const ages = (textParam(params.ages) || "32,7,7")
     .split(",")
@@ -141,7 +147,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
     .filter((age) => Number.isFinite(age));
 
   return {
-    origin: { lat, lng, label: "대전" },
+    origin: { lat, lng, label: DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
     radiusKm: Number(textParam(params.radiusKm) || 80),
     query: textParam(params.query) || undefined,

@@ -74,13 +74,21 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
       <section className="info-block full">
         <h2>출처</h2>
         <div className="source-list">
-          {place.sources.map((source) => (
-            <a key={source.id} className="source-row" href={source.url ?? "#"} target="_blank" rel="noreferrer">
-              <span>{source.title ?? source.sourceType}</span>
-              <small>{source.summary ?? source.externalId ?? "요약 없음"}</small>
-              {source.url ? <ExternalLink size={14} aria-hidden="true" /> : null}
-            </a>
-          ))}
+          {place.sources.map((source) =>
+            source.url ? (
+              <a key={source.id} className="source-row" href={source.url} target="_blank" rel="noreferrer">
+                <span>{source.title ?? source.sourceType}</span>
+                <small>{source.summary ?? source.externalId ?? "요약 없음"}</small>
+                <ExternalLink size={14} aria-hidden="true" />
+              </a>
+            ) : (
+              <div key={source.id} className="source-row source-row-static">
+                <span>{source.title ?? source.sourceType}</span>
+                <small>{source.summary ?? "요약 없음"}</small>
+                <small>{source.externalId ?? "외부 ID 없음"}</small>
+              </div>
+            )
+          )}
           {place.sources.length === 0 ? <p>등록된 출처가 없습니다.</p> : null}
         </div>
       </section>
@@ -112,4 +120,3 @@ async function loadPlace(placeId: string) {
     notFound();
   }
 }
-
