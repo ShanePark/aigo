@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, History, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, ExternalLink, History, MapPin, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { getPlaceDetail } from "@/lib/places";
@@ -58,18 +58,64 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
               {place.recommendedAgeMonths.min ?? "?"} - {place.recommendedAgeMonths.max ?? "?"}
             </dd>
             <dt>실내외</dt>
-            <dd>{place.facilities.indoorType}</dd>
+            <dd>{indoorLabel(place.facilities.indoorType)}</dd>
             <dt>유모차</dt>
-            <dd>{place.facilities.strollerFriendly}</dd>
+            <dd>{triStateLabel(place.facilities.strollerFriendly)}</dd>
             <dt>주차</dt>
-            <dd>{place.facilities.parkingAvailable}</dd>
+            <dd>{triStateLabel(place.facilities.parkingAvailable)}</dd>
             <dt>수유실</dt>
-            <dd>{place.facilities.nursingRoom}</dd>
+            <dd>{triStateLabel(place.facilities.nursingRoom)}</dd>
             <dt>기저귀 교환대</dt>
-            <dd>{place.facilities.diaperChangingTable}</dd>
+            <dd>{triStateLabel(place.facilities.diaperChangingTable)}</dd>
+            <dt>어린이 화장실</dt>
+            <dd>{triStateLabel(place.facilities.kidsToilet)}</dd>
+            <dt>엘리베이터</dt>
+            <dd>{triStateLabel(place.facilities.elevator)}</dd>
+            <dt>아기의자</dt>
+            <dd>{triStateLabel(place.facilities.babyChair)}</dd>
+            <dt>간식/음식</dt>
+            <dd>{triStateLabel(place.facilities.foodAllowed)}</dd>
           </dl>
         </div>
       </section>
+
+      <section className="info-block full">
+        <h2>
+          <Clock size={18} aria-hidden="true" />
+          방문 판단
+        </h2>
+        <div className="detail-signal-grid">
+          <span>체류 {minutesLabel(place.visit.averageStayMinutes)}</span>
+          <span>부모 피로도 {scoreLabel(place.visit.parentEffortLevel)}</span>
+          <span>아이 몰입도 {scoreLabel(place.visit.childEngagementLevel)}</span>
+          <span>비 오는 날 {scoreLabel(place.visit.rainyDayScore)}</span>
+          <span>더운 날 {scoreLabel(place.visit.hotDayScore)}</span>
+          <span>추운 날 {scoreLabel(place.visit.coldDayScore)}</span>
+        </div>
+      </section>
+
+      {place.notes.safety || place.notes.parent ? (
+        <section className="info-block full">
+          <h2>
+            <ShieldCheck size={18} aria-hidden="true" />
+            메모
+          </h2>
+          <div className="note-list">
+            {place.notes.safety ? (
+              <div>
+                <strong>안전</strong>
+                <p>{place.notes.safety}</p>
+              </div>
+            ) : null}
+            {place.notes.parent ? (
+              <div>
+                <strong>부모 관점</strong>
+                <p>{place.notes.parent}</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="info-block full">
         <h2>출처</h2>
@@ -119,4 +165,32 @@ async function loadPlace(placeId: string) {
   } catch {
     notFound();
   }
+}
+
+function indoorLabel(value: string) {
+  const labels: Record<string, string> = {
+    indoor: "실내",
+    outdoor: "실외",
+    mixed: "혼합",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function triStateLabel(value: string) {
+  const labels: Record<string, string> = {
+    yes: "있음",
+    partial: "일부",
+    no: "없음",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function minutesLabel(value: number | null) {
+  return value === null ? "미확인" : `${value}분`;
+}
+
+function scoreLabel(value: number | null) {
+  return value === null ? "미확인" : `${value}/5`;
 }

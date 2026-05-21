@@ -406,6 +406,42 @@ dd {
   grid-template-columns: 48px 90px minmax(180px, 1fr) auto;
 }
 
+.detail-signal-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-signal-grid span {
+  background: #f3f2ec;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: #4f5a54;
+  font-size: 13px;
+  padding: 9px 10px;
+}
+
+.note-list {
+  display: grid;
+  gap: 12px;
+}
+
+.note-list div {
+  border-left: 3px solid var(--green);
+  padding-left: 12px;
+}
+
+.note-list strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.note-list p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
 @media (max-width: 760px) {
   .topbar {
     padding: 0 16px;
@@ -437,6 +473,7 @@ dd {
 
   .source-row,
   .version-row,
+  .detail-signal-grid,
   dl {
     grid-template-columns: 1fr;
   }
