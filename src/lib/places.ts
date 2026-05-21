@@ -226,6 +226,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, input);
+    const querySignal = queryMatchSignal(place, input.query);
 
     return {
       placeId: place.id,
@@ -236,9 +237,9 @@ export async function searchPlaces(input: SearchPlacesInput) {
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
-      score: scoredPlace.score,
-      reasonCodes: scoredPlace.reasonCodes,
-      reasons: describeReasonCodes(scoredPlace.reasonCodes, input),
+      score: clampScore(scoredPlace.score + querySignal.delta),
+      reasonCodes: mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes),
+      reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), input),
       dataConfidence: place.dataConfidence,
       recommendedAgeMonths: place.recommendedAgeMonths,
       facilities: place.facilities,
@@ -543,6 +544,76 @@ export function shouldSearchAddressForTerm(query: string, term: string) {
   if (/[0-9]/.test(normalizedQuery)) return true;
   if (/로|길|번길/.test(term) && term.length >= 4) return true;
   return term.length >= 4;
+}
+
+export function queryMatchSignal(
+  place: Pick<ReturnType<typeof mapPlace>, "name" | "tags" | "description" | "address" | "roadAddress">,
+  query?: string
+) {
+  if (!query || isBroadNatureIntentQuery(query)) {
+    return { delta: 0, reasonCodes: [] };
+  }
+
+  const normalizedQuery = normalizeSearchText(query);
+  const terms = query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(normalizeSearchText);
+  if (!normalizedQuery || terms.length === 0) {
+    return { delta: 0, reasonCodes: [] };
+  }
+
+  const normalizedName = normalizeSearchText(place.name);
+  const compactName = compactSearchText(place.name);
+  const compactQuery = compactSearchText(query);
+  const reasonCodes = new Set<string>();
+  let delta = 0;
+
+  if (normalizedName === normalizedQuery || compactName === compactQuery) {
+    delta += 14;
+    reasonCodes.add("QUERY_NAME_EXACT");
+  } else if (normalizedName.includes(normalizedQuery) || compactName.includes(compactQuery) || terms.every((term) => normalizedName.includes(term))) {
+    delta += 10;
+    reasonCodes.add("QUERY_NAME_MATCH");
+  }
+
+  const tagMatched = place.tags.some((tag) => {
+    const normalizedTag = normalizeSearchText(tag);
+    const compactTag = compactSearchText(tag);
+    return normalizedTag.includes(normalizedQuery) || compactTag.includes(compactQuery) || terms.some((term) => normalizedTag.includes(term));
+  });
+  if (tagMatched) {
+    delta += reasonCodes.size > 0 ? 2 : 6;
+    reasonCodes.add("QUERY_TAG_MATCH");
+  }
+
+  const searchableText = [place.description, place.address, place.roadAddress].filter(Boolean).map((value) => normalizeSearchText(String(value)));
+  if (searchableText.some((value) => value.includes(normalizedQuery))) {
+    delta += reasonCodes.size > 0 ? 1 : 3;
+    reasonCodes.add("QUERY_TEXT_MATCH");
+  }
+
+  return {
+    delta: Math.min(delta, 16),
+    reasonCodes: Array.from(reasonCodes)
+  };
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLocaleLowerCase("ko-KR");
+}
+
+function compactSearchText(value: string) {
+  return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+function mergeReasonCodes(first: string[], second: string[]) {
+  return Array.from(new Set([...first, ...second])).sort();
+}
+
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function quoteIdentifier(identifier: string) {
