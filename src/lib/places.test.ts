@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
+  isBroadWaterPlayIntentQuery,
   queryMatchSignal,
   searchTermPatterns,
   shouldSearchAddressForTerm
@@ -21,6 +22,12 @@ describe("place search helpers", () => {
     expect(isBroadNatureIntentQuery("공원 자연")).toBe(true);
     expect(isBroadNatureIntentQuery("숲 산책")).toBe(true);
     expect(isBroadNatureIntentQuery("대청호 자연")).toBe(false);
+  });
+
+  it("recognizes water-play synonym queries that should not require every token", () => {
+    expect(isBroadWaterPlayIntentQuery("물놀이 물놀이터 수경")).toBe(true);
+    expect(isBroadWaterPlayIntentQuery("물놀이 바닥분수")).toBe(true);
+    expect(isBroadWaterPlayIntentQuery("물놀이 유모차")).toBe(false);
   });
 
   it("recognizes broad parent intent queries that should not require every token", () => {
