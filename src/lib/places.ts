@@ -203,7 +203,8 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
 }
 
 export async function searchPlaces(input: SearchPlacesInput) {
-  const queryParts = buildSearchQuery(input);
+  const normalizedInput = normalizeSearchInput(input);
+  const queryParts = buildSearchQuery(normalizedInput);
   const rows = await pg.unsafe<PlaceRow[]>(queryParts.sql, queryParts.params);
 
   const scored = rows.map((row) => {
@@ -225,8 +226,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
       foodAllowed: place.facilities.foodAllowed,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
-    const scoredPlace = scorePlace(scoringPlace, input);
-    const querySignal = queryMatchSignal(place, input.query);
+    const scoredPlace = scorePlace(scoringPlace, normalizedInput);
+    const querySignal = queryMatchSignal(place, normalizedInput.query);
 
     return {
       placeId: place.id,
@@ -240,7 +241,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       distanceKm: place.distanceKm,
       score: clampScore(scoredPlace.score + querySignal.delta),
       reasonCodes: mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes),
-      reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), input),
+      reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), normalizedInput),
       dataConfidence: place.dataConfidence,
       recommendedAgeMonths: place.recommendedAgeMonths,
       facilities: place.facilities,
@@ -474,6 +475,36 @@ export function searchTermPatterns(query: string) {
     .map((term) => `%${term}%`);
 }
 
+export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInput {
+  if (!input.query) return input;
+
+  const preferences = { ...(input.preferences ?? {}) };
+  const inferred = inferPreferencesFromQuery(input.query);
+  for (const [key, value] of Object.entries(inferred.preferences)) {
+    const preferenceKey = key as keyof NonNullable<SearchPlacesInput["preferences"]>;
+    if (preferences[preferenceKey] === undefined) {
+      preferences[preferenceKey] = value as never;
+    }
+  }
+  if (!preferences.indoorTypes && inferred.indoorTypes.length > 0) {
+    preferences.indoorTypes = inferred.indoorTypes;
+  }
+
+  if (shouldKeepLiteralQuery(input.query)) {
+    return {
+      ...input,
+      preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
+    };
+  }
+
+  const query = stripPreferenceTerms(input.query);
+  return {
+    ...input,
+    query,
+    preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
+  };
+}
+
 function keywordSearchClauses(query: string, add: (value: unknown) => string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
 
@@ -560,6 +591,20 @@ const broadParentIntentTerms = new Set([
   "기저귀"
 ]);
 
+const queryPreferenceTerms = {
+  parkingAvailable: new Set(["주차", "주차장", "parking"]),
+  strollerFriendly: new Set(["유모차", "쌍둥이유모차", "stroller"]),
+  nursingRoom: new Set(["수유실", "수유", "nursing"]),
+  diaperChangingTable: new Set(["기저귀", "기저귀교환", "기저귀교환대", "diaper"]),
+  kidsToilet: new Set(["어린이화장실", "유아화장실", "아이화장실"]),
+  elevator: new Set(["엘리베이터", "승강기", "elevator"]),
+  babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"])
+} satisfies Record<keyof Omit<NonNullable<SearchPlacesInput["preferences"]>, "indoorTypes" | "foodAllowed">, Set<string>>;
+
+const indoorPreferenceTerms = new Set(["실내", "비", "비오는날", "비오는", "우천", "장마"]);
+const outdoorPreferenceTerms = new Set(["실외", "야외"]);
+const queryStopTerms = new Set(["있는", "가능", "가능한", "편한", "편하고", "좋은", "곳", "장소", "추천"]);
+
 const broadNatureExpansionTerms = [
   "공원",
   "자연",
@@ -626,6 +671,58 @@ export function isBroadParentIntentQuery(query: string) {
   return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term));
 }
 
+function shouldKeepLiteralQuery(query: string) {
+  return (
+    isBroadNatureIntentQuery(query) ||
+    isBroadWaterPlayIntentQuery(query) ||
+    isRouteBreakIntentQuery(query) ||
+    isBroadParentIntentQuery(query)
+  );
+}
+
+function inferPreferencesFromQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  const preferences: Partial<NonNullable<SearchPlacesInput["preferences"]>> = {};
+  const indoorTypes = new Set<"indoor" | "outdoor" | "mixed">();
+
+  for (const term of terms) {
+    for (const [key, values] of Object.entries(queryPreferenceTerms)) {
+      if (values.has(term)) {
+        preferences[key as keyof typeof queryPreferenceTerms] = true as never;
+      }
+    }
+    if (indoorPreferenceTerms.has(term)) {
+      indoorTypes.add("indoor");
+      indoorTypes.add("mixed");
+    }
+    if (outdoorPreferenceTerms.has(term)) {
+      indoorTypes.add("outdoor");
+      indoorTypes.add("mixed");
+    }
+  }
+
+  return {
+    preferences,
+    indoorTypes: Array.from(indoorTypes)
+  };
+}
+
+function stripPreferenceTerms(query: string) {
+  const stripped = query
+    .trim()
+    .split(/\s+/)
+    .filter((term) => !isQueryPreferenceTerm(term) && !queryStopTerms.has(term))
+    .join(" ")
+    .trim();
+
+  return stripped.length > 0 ? stripped : undefined;
+}
+
+function isQueryPreferenceTerm(term: string) {
+  if (indoorPreferenceTerms.has(term) || outdoorPreferenceTerms.has(term)) return true;
+  return Object.values(queryPreferenceTerms).some((terms) => terms.has(term));
+}
+
 function broadNatureIntentClause(add: (value: unknown) => string) {
   const clauses = ["primary_category = 'park'"];
 
@@ -671,7 +768,7 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
     termSet.has("체험관") ||
     termSet.has("어린이")
   ) {
-    clauses.push("primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground']::text[])");
+    clauses.push("primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground','toy_library']::text[])");
     addTextExpansionClauses(clauses, broadPublicExpansionTerms, add);
   }
 

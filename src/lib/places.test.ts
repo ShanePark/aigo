@@ -5,12 +5,15 @@ import {
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
   isRouteBreakIntentQuery,
+  normalizeSearchInput,
   queryMatchSignal,
   searchTermPatterns,
   shouldSearchAddressForTerm
 } from "@/lib/places";
 
 describe("place search helpers", () => {
+  const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
+
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);
   });
@@ -41,6 +44,32 @@ describe("place search helpers", () => {
     expect(isBroadParentIntentQuery("공원 자연 당일치기 유모차 주차")).toBe(true);
     expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
     expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
+  });
+
+  it("turns facility words in ordinary keyword queries into soft preferences", () => {
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "키즈카페 수유실 기저귀 유모차" })).toMatchObject({
+      query: "키즈카페",
+      preferences: {
+        nursingRoom: true,
+        diaperChangingTable: true,
+        strollerFriendly: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 키즈카페 주차" })).toMatchObject({
+      query: "판암 키즈카페",
+      preferences: {
+        parkingAvailable: true
+      }
+    });
+  });
+
+  it("keeps special intent queries literal while still inferring preferences", () => {
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "청남대 가는 길 수유실 휴게소" })).toMatchObject({
+      query: "청남대 가는 길 수유실 휴게소",
+      preferences: {
+        nursingRoom: true
+      }
+    });
   });
 
   it("does not use short region-like terms against address text", () => {

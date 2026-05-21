@@ -41,6 +41,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <option value="">전체</option>
               <option value="kids_cafe">키즈카페</option>
               <option value="indoor_playground">실내놀이터</option>
+              <option value="toy_library">장난감도서관</option>
               <option value="library">도서관</option>
               <option value="museum">박물관/미술관</option>
               <option value="science_museum">과학관</option>

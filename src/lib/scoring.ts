@@ -140,7 +140,7 @@ function applyVisitContextSignal(
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "toy_library", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
       addScore(5);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -228,7 +228,7 @@ function applyVisitContextSignal(
 
 function isKidPrimaryPlace(category: string, tags: Set<string>) {
   return (
-    ["kids_cafe", "indoor_playground", "experience_center", "science_museum", "aquarium_zoo"].includes(category) ||
+    ["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium_zoo"].includes(category) ||
     tags.has("children_museum") ||
     tags.has("children_experience") ||
     tags.has("children_playground") ||
