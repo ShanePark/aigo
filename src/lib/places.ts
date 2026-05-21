@@ -269,6 +269,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
 }
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
+  const containsName = `%${input.name}%`;
   const rows = await pg<
     (PlaceRow & {
       distance_meters: number | null;
@@ -279,14 +280,23 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
     select
       *,
       ST_Distance(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography) as distance_meters,
-      similarity(name, ${input.name}) as name_similarity,
+      greatest(
+        similarity(name, ${input.name}),
+        case when name = ${input.name} then 1 else 0 end,
+        case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end
+      ) as name_similarity,
       (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
     from places
     where
       (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null})
       or (
         ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography, ${input.radiusMeters})
-        and similarity(name, ${input.name}) >= 0.25
+        and (
+          name = ${input.name}
+          or name ilike ${containsName}
+          or ${input.name} ilike ('%' || name || '%')
+          or similarity(name, ${input.name}) >= 0.25
+        )
       )
     order by kakao_place_id_match desc, name_similarity desc, distance_meters asc
     limit ${input.limit}
