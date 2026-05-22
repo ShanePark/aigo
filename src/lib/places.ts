@@ -1728,10 +1728,10 @@ function imageDisplayTier(source: ImageMetadataSource) {
 
   if (/official|공식/.test(searchable)) return "official";
   if (/news|article|보도|기사/.test(searchable)) return "rights_unclear";
+  if (/operator|booking|tabling|ban-life|peton|diningcode|listing|profile|udanax|mommom|운영/.test(searchable)) return "public_listing";
   if (/public_agency|public_tourism|public_open|gu_|city_|tourism|kto|visitkorea|daejeon|donggu|daedeok|seogu|yuseong|science\.go\.kr|공공|관광|구청|시청/.test(searchable)) {
     return "public_agency";
   }
-  if (/operator|booking|tabling|ban-life|peton|diningcode|listing|profile|운영/.test(searchable)) return "public_listing";
 
   return "unknown";
 }

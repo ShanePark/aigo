@@ -73,8 +73,8 @@ describe("place search helpers", () => {
       {
         id: "source-2",
         sourceType: "public_listing_image_source",
-        title: "DiningCode - 지점 사진",
-        url: "https://listing.example.com/place",
+        title: "DiningCode - 대전 지점 사진",
+        url: "https://place.udanax.org/p/1173497/%EB%8C%80%EC%A0%84",
         summary: "Public listing image candidate.",
         checkedAt: "2026-05-22T00:00:00.000Z"
       }
@@ -101,7 +101,7 @@ describe("place search helpers", () => {
     expect(listing.primaryImage).toMatchObject({
       sourceId: "source-2",
       displayTier: "public_listing",
-      creditText: "DiningCode - 지점 사진"
+      creditText: "DiningCode - 대전 지점 사진"
     });
     expect(news.primaryImage).toMatchObject({
       sourceId: "source-3",

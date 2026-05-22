@@ -62,8 +62,8 @@ select
   case
     when concat_ws(' ', s.source_type, s.title, s.url, s.summary) ~* '(official|공식)' then 'official'
     when concat_ws(' ', s.source_type, s.title, s.url, s.summary) ~* '(news|article|보도|기사)' then 'rights_unclear'
+    when concat_ws(' ', s.source_type, s.title, s.url, s.summary) ~* '(operator|booking|tabling|ban-life|peton|diningcode|listing|profile|udanax|mommom|운영)' then 'public_listing'
     when concat_ws(' ', s.source_type, s.title, s.url, s.summary) ~* '(public_agency|public_tourism|public_open|gu_|city_|tourism|kto|visitkorea|daejeon|donggu|daedeok|seogu|yuseong|science\\.go\\.kr|공공|관광|구청|시청)' then 'public_agency'
-    when concat_ws(' ', s.source_type, s.title, s.url, s.summary) ~* '(operator|booking|tabling|ban-life|peton|diningcode|listing|profile|운영)' then 'public_listing'
     else 'unknown'
   end,
   'active',
