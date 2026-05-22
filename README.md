@@ -1,4 +1,8 @@
-# AiGo
+<p align="center">
+  <img src="public/icons/icon-192.png" alt="AiGo app icon" width="96" height="96">
+</p>
+
+<h1 align="center">AiGo</h1>
 
 AiGo is an agent-friendly place database and search UI for kid-friendly family outings around Daejeon, South Korea. It is built for the practical questions parents ask before leaving the house: Is this place indoors? Can a stroller move through it? Is there parking, a nursing room, a diaper changing table, an elevator, a baby chair, or a reliable snack/meal fallback?
 
