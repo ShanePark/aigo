@@ -144,6 +144,7 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
 
   applyOpeningHoursSignal(place.openingHours, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
   applyVisitFitSignal(place.visit, input, reasonCodes, (delta) => addScore("visitFit", delta));
+  applyLodgingEvidenceGate(place, reasonCodes, (delta) => addScore("confidence", delta));
 
   const confidenceDelta = confidenceScore[place.dataConfidence] ?? 0;
   addScore("confidence", confidenceDelta);
@@ -347,7 +348,36 @@ function applyEvidenceCaps(value: number, place: ScoreablePlace, input: SearchPl
     cap = Math.min(cap, 69);
   }
 
+  if (place.primaryCategory === "accommodation" && lodgingInfantLogisticsKnownCount(place) <= 2) {
+    cap = Math.min(cap, 78);
+  }
+
   return Number.isFinite(cap) ? Math.min(value, cap) : value;
+}
+
+function applyLodgingEvidenceGate(place: ScoreablePlace, reasonCodes: Set<string>, addScore: (delta: number) => void) {
+  if (place.primaryCategory !== "accommodation") return;
+
+  const knownCount = lodgingInfantLogisticsKnownCount(place);
+  if (knownCount <= 2) {
+    addScore(-6);
+    reasonCodes.add("LODGING_INFANT_LOGISTICS_GAP");
+  } else if (knownCount >= 5) {
+    addScore(2);
+    reasonCodes.add("LODGING_INFANT_LOGISTICS_EVIDENCE");
+  }
+}
+
+function lodgingInfantLogisticsKnownCount(place: ScoreablePlace) {
+  return [
+    place.parkingAvailable,
+    place.strollerFriendly,
+    place.nursingRoom,
+    place.diaperChangingTable,
+    place.elevator,
+    place.babyChair,
+    place.foodAllowed
+  ].filter((value) => value !== "unknown").length;
 }
 
 function applyVisitContextSignal(

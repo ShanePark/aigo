@@ -685,6 +685,99 @@ describe("scorePlace", () => {
     expect(destinationLodging.reasonCodes).toContain("DISTANCE_DAY_TRIP");
   });
 
+  it("caps lodging scores when infant logistics evidence is sparse", () => {
+    const input = {
+      ...baseInput,
+      primaryCategories: ["accommodation"],
+      visitContext: "dayTrip" as const,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true
+      }
+    };
+    const weakLogistics = scorePlace(
+      {
+        primaryCategory: "accommodation",
+        tags: ["kids"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "mixed",
+        parkingAvailable: "unknown",
+        strollerFriendly: "unknown",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 95,
+        visit: {
+          averageStayMinutes: 360,
+          parentEffortLevel: 2,
+          childEngagementLevel: 5,
+          rainyDayScore: 4,
+          hotDayScore: 4,
+          coldDayScore: 4
+        },
+        scoring: {
+          placeScore: 9.4,
+          placeScoreRationale: "키즈 콘텐츠는 강하지만 영아 물류 근거가 희박함.",
+          externalRatingScore: 9,
+          externalReviewCount: 500,
+          searchEvidenceScore: 9,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+    const supportedLogistics = scorePlace(
+      {
+        primaryCategory: "accommodation",
+        tags: ["kids"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "mixed",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "partial",
+        diaperChangingTable: "yes",
+        kidsToilet: "unknown",
+        elevator: "yes",
+        babyChair: "partial",
+        foodAllowed: "partial",
+        distanceKm: 95,
+        visit: {
+          averageStayMinutes: 360,
+          parentEffortLevel: 2,
+          childEngagementLevel: 5,
+          rainyDayScore: 4,
+          hotDayScore: 4,
+          coldDayScore: 4
+        },
+        scoring: {
+          placeScore: 9.4,
+          placeScoreRationale: "키즈 콘텐츠와 영아 물류 근거가 함께 강함.",
+          externalRatingScore: 9,
+          externalReviewCount: 500,
+          searchEvidenceScore: 9,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+
+    expect(weakLogistics.score).toBeLessThanOrEqual(78);
+    expect(weakLogistics.reasonCodes).toContain("LODGING_INFANT_LOGISTICS_GAP");
+    expect(supportedLogistics.score).toBeGreaterThan(weakLogistics.score);
+    expect(supportedLogistics.reasonCodes).toContain("LODGING_INFANT_LOGISTICS_EVIDENCE");
+  });
+
   it("keeps kids cafe distance moderate so quality can overcome a short drive", () => {
     const input = {
       ...baseInput,
