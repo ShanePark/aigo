@@ -26,6 +26,7 @@ describe("place search helpers", () => {
     expect(isBroadNatureIntentQuery("공원 자연")).toBe(true);
     expect(isBroadNatureIntentQuery("숲 산책")).toBe(true);
     expect(isBroadNatureIntentQuery("동네놀이터 어린이공원")).toBe(true);
+    expect(isBroadNatureIntentQuery("동네놀이터 어린이공원 모래놀이터")).toBe(true);
     expect(isBroadNatureIntentQuery("대청호 자연")).toBe(false);
   });
 
@@ -71,6 +72,15 @@ describe("place search helpers", () => {
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 장난감도서관 근처" })).toMatchObject({
       query: "판암 동네놀이터"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 모래놀이" })).toMatchObject({
+      query: "판암"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "범골 어린이공원 모래놀이터" })).toMatchObject({
+      query: "범골"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "오월드 장태산 한밭수목원 대청호 사진 있는 가족 나들이" })).toMatchObject({
+      query: "오월드 장태산 한밭수목원 대청호"
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "하원 후 1-2시간 키즈카페 실내 주차 유모차 수유실 기저귀" })).toMatchObject({
       visitContext: "afterDaycare",
@@ -270,6 +280,33 @@ describe("place search helpers", () => {
         roadAddress: null
       },
       "목재문화체험장"
+    );
+
+    expect(nameMatch.delta).toBeGreaterThan(tagMatch.delta);
+    expect(nameMatch.reasonCodes).toContain("QUERY_NAME_MATCH");
+    expect(tagMatch.reasonCodes).toContain("QUERY_TAG_MATCH");
+  });
+
+  it("boosts name matches in listed-place queries over tag-only matches", () => {
+    const nameMatch = queryMatchSignal(
+      {
+        name: "대전오월드",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "오월드 장태산 한밭수목원 대청호"
+    );
+    const tagMatch = queryMatchSignal(
+      {
+        name: "근처 가족 쉼터",
+        tags: ["오월드"],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "오월드 장태산 한밭수목원 대청호"
     );
 
     expect(nameMatch.delta).toBeGreaterThan(tagMatch.delta);

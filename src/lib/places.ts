@@ -478,7 +478,8 @@ function buildSearchQuery(input: SearchPlacesInput) {
   if (input.query) {
     const clauses = keywordSearchClauses(input.query, add);
     if (clauses.length > 0) {
-      where.push(`(${clauses.join(" and ")})`);
+      const joiner = shouldUseAnyKeywordMatch(input.query) ? " or " : " and ";
+      where.push(`(${clauses.join(joiner)})`);
     }
   }
 
@@ -520,7 +521,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     };
   }
 
-  const query = stripPreferenceTerms(input.query);
+  const query = stripLocalPlaygroundIntentTerms(stripPreferenceTerms(input.query));
   return {
     ...input,
     visitContext,
@@ -568,7 +569,43 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
   });
 }
 
+function shouldUseAnyKeywordMatch(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.length < 3) return false;
+  const placeLikeTerms = terms.filter((term) => isLikelyPlaceNameTerm(term));
+  return placeLikeTerms.length >= 3 && placeLikeTerms.length === terms.length;
+}
+
+function isLikelyPlaceNameTerm(term: string) {
+  return (
+    term.length >= 3 &&
+    !isQueryStopTerm(term) &&
+    !isQueryPreferenceTerm(term) &&
+    !broadParentIntentTerms.has(term) &&
+    !broadPlaygroundIntentTerms.has(term)
+  );
+}
+
+function stripLocalPlaygroundIntentTerms(query: string | undefined) {
+  if (!query) return query;
+
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.length < 2 || !terms.some((term) => localPlaygroundSandTerms.has(term))) {
+    return query;
+  }
+
+  const specificTerms = terms.filter((term) => !removableLocalPlaygroundIntentTerms.has(term));
+  if (specificTerms.length === 0) {
+    return query;
+  }
+
+  return specificTerms.join(" ");
+}
+
 const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이", "놀이터", "동네놀이터", "어린이공원"]);
+const broadPlaygroundIntentTerms = new Set(["놀이터", "동네놀이터", "어린이공원", "모래놀이터", "모래놀이", "모래놀이장", "모래"]);
+const removableLocalPlaygroundIntentTerms = new Set(["동네놀이터", "어린이공원", "모래놀이터", "모래놀이", "모래놀이장", "모래"]);
+const localPlaygroundSandTerms = new Set(["모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
 
@@ -639,7 +676,11 @@ const broadParentIntentTerms = new Set([
   "대여",
   "놀이터",
   "동네놀이터",
-  "어린이공원"
+  "어린이공원",
+  "모래놀이터",
+  "모래놀이",
+  "모래놀이장",
+  "모래"
 ]);
 
 const broadParentCoreTerms = new Set([
@@ -661,6 +702,10 @@ const broadParentCoreTerms = new Set([
   "놀이터",
   "동네놀이터",
   "어린이공원",
+  "모래놀이터",
+  "모래놀이",
+  "모래놀이장",
+  "모래",
   "쇼핑몰",
   "백화점",
   "아울렛"
@@ -724,6 +769,10 @@ const queryStopTerms = new Set([
   "가볼만한",
   "장소",
   "추천",
+  "사진",
+  "가족",
+  "가족나들이",
+  "나들이",
   "짧은",
   "짧게",
   "간단히",
@@ -831,7 +880,10 @@ const broadNatureExpansionTerms = [
   "물놀이",
   "잔디",
   "피크닉",
-  "황톳길"
+  "황톳길",
+  "모래놀이",
+  "모래놀이터",
+  "sandPlay"
 ];
 
 const broadWaterPlayExpansionTerms = [
@@ -906,7 +958,7 @@ const mealPlayContextTerms = new Set([
 
 export function isBroadNatureIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
-  return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term));
+  return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term) || broadPlaygroundIntentTerms.has(term));
 }
 
 export function isBroadWaterPlayIntentQuery(query: string) {
@@ -1125,6 +1177,7 @@ export function queryMatchSignal(
   const normalizedName = normalizeSearchText(place.name);
   const compactName = compactSearchText(place.name);
   const compactQuery = compactSearchText(query);
+  const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
   let delta = 0;
 
@@ -1134,6 +1187,12 @@ export function queryMatchSignal(
   } else if (normalizedName.includes(normalizedQuery) || compactName.includes(compactQuery) || terms.every((term) => normalizedName.includes(term))) {
     delta += 10;
     reasonCodes.add("QUERY_NAME_MATCH");
+  } else if (shouldUseAnyKeywordMatch(query)) {
+    const matchedNameTerms = terms.filter((term, index) => normalizedName.includes(term) || compactName.includes(compactTerms[index]));
+    if (matchedNameTerms.length > 0) {
+      delta += Math.min(14, 10 + matchedNameTerms.length * 2);
+      reasonCodes.add("QUERY_NAME_MATCH");
+    }
   }
 
   const tagMatched = place.tags.some((tag) => {
