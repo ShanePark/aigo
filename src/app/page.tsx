@@ -127,7 +127,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="result-header">
         <div>
           <h2>검색 결과</h2>
-          <p>{result.error ? "DB 연결 또는 마이그레이션 상태를 확인하세요." : `${result.meta.total}개 후보`}</p>
+          <p>{result.error ? "DB 연결 또는 마이그레이션 상태를 확인하세요." : resultCountLabel(result.meta)}</p>
         </div>
         <div className="code-pill">
           <Database size={14} aria-hidden="true" />
@@ -277,6 +277,14 @@ function textParam(value: string | string[] | undefined) {
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
 type SearchMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"]["search"];
+type SearchResultMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"];
+
+function resultCountLabel(meta: SearchResultMeta) {
+  if (meta.total <= meta.count) {
+    return `${meta.total}개 후보`;
+  }
+  return `${meta.total}개 후보 중 상위 ${meta.count}개 표시`;
+}
 
 function SearchInterpretation({ search }: { search: SearchMeta }) {
   const preferenceLabels = preferenceChips(search.appliedPreferences);
