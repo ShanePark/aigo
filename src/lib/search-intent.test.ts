@@ -13,10 +13,12 @@ describe("search intent helpers", () => {
     expect(shouldFallbackToAllCategoriesForQuery("키즈카페", "kidsCafe")).toBe(false);
     expect(shouldFallbackToAllCategoriesForQuery("대전역 장난감 가게", "visit")).toBe(false);
     expect(shouldFallbackToAllCategoriesForQuery("레고 스토어 주차", "visit")).toBe(false);
+    expect(shouldFallbackToAllCategoriesForQuery("미끄럼틀 있는 놀이터", "playground")).toBe(false);
   });
 
   it("falls back when the typed category contradicts the active tab", () => {
     expect(shouldFallbackToAllCategoriesForQuery("공원", "kidsCafe")).toBe(true);
+    expect(shouldFallbackToAllCategoriesForQuery("공원 산책", "playground")).toBe(true);
   });
 
   it("does not fall back for all-category searches", () => {

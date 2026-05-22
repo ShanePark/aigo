@@ -30,6 +30,7 @@ describe("place schemas", () => {
   it("defaults search pagination and keeps facility preferences soft", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },
+      playgroundOnly: true,
       preferences: {
         strollerFriendly: true,
         babyChair: true
@@ -38,6 +39,7 @@ describe("place schemas", () => {
 
     expect(result.limit).toBe(20);
     expect(result.radiusKm).toBe(80);
+    expect(result.playgroundOnly).toBe(true);
     expect(result.preferences?.strollerFriendly).toBe(true);
     expect(result.preferences?.babyChair).toBe(true);
   });

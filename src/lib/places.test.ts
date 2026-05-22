@@ -18,6 +18,7 @@ import {
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
+  isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
   normalizeSearchInput,
   queryMatchSignal,
@@ -103,6 +104,33 @@ describe("place search helpers", () => {
     const query = buildSearchQuery(baseSearchInput);
 
     expect(query.sql).toContain("where status = 'active'");
+  });
+
+  it("can restrict playground searches to actual playground evidence", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      primaryCategories: ["park", "indoor_playground"],
+      playgroundOnly: true
+    });
+
+    expect(query.sql).toContain("primary_category = any($1::text[])");
+    expect(query.sql).toContain("primary_category = 'indoor_playground'");
+    expect(query.sql).toContain("primary_category = 'park'");
+    expect(query.sql).toContain("play_features->>'slide' in ('yes', 'partial')");
+    expect(query.sql).toContain("playground_tag");
+    expect(query.sql).not.toContain("kids_cafe");
+    expect(query.params).toEqual([["park", "indoor_playground"]]);
+  });
+
+  it("keeps indoor playground keyword searches separate from outdoor parks", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "실내놀이터"
+    });
+
+    expect(query.sql).toContain("primary_category = 'indoor_playground'");
+    expect(query.sql).not.toContain("playground_tag");
+    expect(query.sql).not.toContain("kids_cafe");
   });
 
   it("applies hard distance bands for outside-city day-trip searches", () => {
@@ -202,9 +230,15 @@ describe("place search helpers", () => {
   it("recognizes broad nature intent queries", () => {
     expect(isBroadNatureIntentQuery("공원 자연")).toBe(true);
     expect(isBroadNatureIntentQuery("숲 산책")).toBe(true);
-    expect(isBroadNatureIntentQuery("동네놀이터 어린이공원")).toBe(true);
-    expect(isBroadNatureIntentQuery("동네놀이터 어린이공원 모래놀이터")).toBe(true);
+    expect(isBroadNatureIntentQuery("동네놀이터 어린이공원")).toBe(false);
     expect(isBroadNatureIntentQuery("대청호 자연")).toBe(false);
+  });
+
+  it("recognizes playground intent separately from broad park searches", () => {
+    expect(isPlaygroundIntentQuery("동네놀이터 어린이공원")).toBe(true);
+    expect(isPlaygroundIntentQuery("동네놀이터 어린이공원 모래놀이터")).toBe(true);
+    expect(isPlaygroundIntentQuery("실내놀이터")).toBe(true);
+    expect(isPlaygroundIntentQuery("공원 자연")).toBe(false);
   });
 
   it("recognizes water-play synonym queries that should not require every token", () => {
@@ -243,7 +277,10 @@ describe("place search helpers", () => {
 
   it("maps common Korean category terms to primary category clauses", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
-    expect(categoryClauseForKeywordTerm("놀이터")).toBe("primary_category = any(array['park','indoor_playground','kids_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'indoor_playground'");
+    expect(categoryClauseForKeywordTerm("놀이터")).toContain("play_features->>'slide' in ('yes', 'partial')");
+    expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("kids_cafe");
+    expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
     expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");
@@ -782,12 +819,18 @@ describe("place search helpers", () => {
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 짧은 야외 놀이터" })).toMatchObject({
       query: "판암 놀이터",
+      playgroundOnly: true,
       preferences: {
         indoorTypes: ["outdoor", "mixed"]
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 장난감도서관 근처" })).toMatchObject({
-      query: "판암 동네놀이터"
+      query: "판암 동네놀이터",
+      playgroundOnly: true
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "실내놀이터" })).toMatchObject({
+      query: "실내놀이터",
+      playgroundOnly: true
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "장난감도서관" })).toMatchObject({
       query: "장난감도서관"
@@ -805,10 +848,12 @@ describe("place search helpers", () => {
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 모래놀이" })).toMatchObject({
-      query: "판암"
+      query: "판암",
+      playgroundOnly: true
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "범골 어린이공원 모래놀이터" })).toMatchObject({
-      query: "범골"
+      query: "범골",
+      playgroundOnly: true
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "오월드 장태산 한밭수목원 대청호 사진 있는 가족 나들이" })).toMatchObject({
       query: "오월드 장태산 한밭수목원 대청호"

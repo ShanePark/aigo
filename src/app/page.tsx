@@ -42,7 +42,7 @@ const CATEGORY_GROUPS = {
     categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "shopping_mall", "sports_venue", "rest_area"]
   },
   toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: ["toy_store"] },
-  playground: { label: "놀이터", hint: "공원/실내", icon: TreePine, categories: ["park", "indoor_playground"] },
+  playground: { label: "놀이터", hint: "놀이시설", icon: TreePine, categories: ["park", "indoor_playground"] },
   kidsCafe: { label: "키즈카페", hint: "놀이 카페", icon: Baby, categories: ["kids_cafe", "family_cafe"] },
   playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: ["family_restaurant"] }
 } as const satisfies Record<
@@ -326,6 +326,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
     filterByRadius: shouldFilterByRadius,
     query: textParam(params.query) || undefined,
     primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
+    playgroundOnly: categoryGroup === "playground" ? true : undefined,
     childAgeMonths: ages,
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,

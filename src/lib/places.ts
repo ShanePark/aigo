@@ -1626,6 +1626,10 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     where.push(`primary_category = any(${add(input.primaryCategories)}::text[])`);
   }
 
+  if (input.playgroundOnly) {
+    where.push(playgroundEvidenceClause());
+  }
+
   if (input.query) {
     if (input.matchMode === "exactName") {
       where.push(exactNameSearchClause(input.query, add));
@@ -1661,6 +1665,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
 
   const preferences = { ...(input.preferences ?? {}) };
   const visitContext = input.visitContext ?? inferVisitContextFromQuery(input.query);
+  const playgroundOnly = input.matchMode === "exactName" ? input.playgroundOnly : input.playgroundOnly || hasPlaygroundIntentTerm(input.query) || undefined;
   const inferred = inferPreferencesFromQuery(input.query);
   for (const [key, value] of Object.entries(inferred.preferences)) {
     const preferenceKey = key as keyof NonNullable<SearchPlacesInput["preferences"]>;
@@ -1676,6 +1681,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     return {
       ...input,
       visitContext,
+      playgroundOnly,
       preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
     };
   }
@@ -1685,6 +1691,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     ...input,
     visitContext,
     query,
+    playgroundOnly,
     preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
   };
 }
@@ -1697,6 +1704,10 @@ export function searchEvaluationDate(input: Pick<SearchPlacesInput, "visitDate" 
 
 function keywordSearchClauses(query: string, add: (value: unknown) => string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
+
+  if (isGeneralPlaygroundIntentQuery(query)) {
+    return [playgroundEvidenceClause()];
+  }
 
   if (isBroadNatureIntentQuery(query)) {
     return [broadNatureIntentClause(add)];
@@ -1839,10 +1850,31 @@ function stripLocalPlaygroundIntentTerms(query: string | undefined) {
   return specificTerms.join(" ");
 }
 
-const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이", "놀이터", "동네놀이터", "어린이공원"]);
+const broadNatureIntentTerms = new Set(["공원", "자연", "숲", "산책", "야외", "나들이"]);
 const broadPlaygroundIntentTerms = new Set(["놀이터", "동네놀이터", "어린이공원", "모래놀이터", "모래놀이", "모래놀이장", "모래"]);
+const playgroundIntentTerms = new Set([...broadPlaygroundIntentTerms, "실내놀이터"]);
 const removableLocalPlaygroundIntentTerms = new Set(["동네놀이터", "어린이공원", "모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 const localPlaygroundSandTerms = new Set(["모래놀이터", "모래놀이", "모래놀이장", "모래"]);
+const playgroundEquipmentFeatureKeys = ["slide", "swing", "babySwing", "waterPlayground", "sandPlay", "climbing", "seesaw", "trampoline", "rideOnToys", "playHouse"];
+const playgroundEvidenceTags = [
+  "children_playground",
+  "small_playground",
+  "play_equipment",
+  "playground",
+  "놀이터",
+  "어린이놀이터",
+  "유아놀이터",
+  "동네놀이터",
+  "어린이공원",
+  "모래놀이터",
+  "숲놀이터",
+  "물놀이터",
+  "놀이기구",
+  "미끄럼틀",
+  "그네",
+  "시소"
+];
+const playgroundEvidenceNamePatterns = ["%놀이터%", "%어린이공원%", "%물놀이터%", "%숲놀이터%"];
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
 const specificPlayFeatureQueryTerms = new Set([
@@ -2274,7 +2306,17 @@ const mealPlayContextTerms = new Set([
 
 export function isBroadNatureIntentQuery(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
-  return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term) || broadPlaygroundIntentTerms.has(term));
+  return terms.length > 0 && terms.every((term) => broadNatureIntentTerms.has(term));
+}
+
+export function isPlaygroundIntentQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  return terms.length > 0 && terms.every((term) => playgroundIntentTerms.has(term));
+}
+
+function isGeneralPlaygroundIntentQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  return terms.length > 0 && terms.every((term) => broadPlaygroundIntentTerms.has(term));
 }
 
 export function isBroadWaterPlayIntentQuery(query: string) {
@@ -2302,11 +2344,20 @@ export function isBroadParentIntentQuery(query: string) {
 
 function shouldKeepLiteralQuery(query: string) {
   return (
+    isPlaygroundIntentQuery(query) ||
     isBroadNatureIntentQuery(query) ||
     isBroadWaterPlayIntentQuery(query) ||
     isRouteBreakIntentQuery(query) ||
     isBroadParentIntentQuery(query)
   );
+}
+
+function hasPlaygroundIntentTerm(query: string) {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .some((term) => playgroundIntentTerms.has(term));
 }
 
 function inferPreferencesFromQuery(query: string) {
@@ -2381,16 +2432,18 @@ function stripPreferenceTerms(query: string) {
 
 export function categoryClauseForKeywordTerm(term: string) {
   const categories = categoryKeywordMap[term];
-  if (!categories) return null;
-  if (categories.length === 1) return `primary_category = '${categories[0]}'`;
-  return `primary_category = any(array[${categories.map((category) => `'${category}'`).join(",")}]::text[])`;
+  if (categories) {
+    if (categories.length === 1) return `primary_category = '${categories[0]}'`;
+    return `primary_category = any(array[${categories.map((category) => `'${category}'`).join(",")}]::text[])`;
+  }
+  if (broadPlaygroundIntentTerms.has(term)) return playgroundEvidenceClause();
+  return null;
 }
 
 const categoryKeywordMap: Record<string, string[]> = {
   공원: ["park"],
-  놀이터: ["park", "indoor_playground", "kids_cafe"],
   키즈카페: ["kids_cafe"],
-  실내놀이터: ["indoor_playground", "kids_cafe"],
+  실내놀이터: ["indoor_playground"],
   도서관: ["library", "toy_library"],
   장난감: ["toy_store", "toy_library"],
   장난감가게: ["toy_store"],
@@ -2443,6 +2496,28 @@ function inferLiteralQueryAlias(query: string) {
   return undefined;
 }
 
+function playgroundEvidenceClause() {
+  const tagArray = sqlTextArray(playgroundEvidenceTags);
+  const namePatternArray = sqlTextArray(playgroundEvidenceNamePatterns);
+  const featureClauses = playgroundEquipmentFeatureKeys.map((key) => `play_features->>'${key}' in ('yes', 'partial')`).join(" or ");
+
+  return `(
+    primary_category = 'indoor_playground'
+    or (
+      primary_category = 'park'
+      and (
+        exists (select 1 from unnest(tags) as playground_tag where playground_tag = any(${tagArray}) or playground_tag ilike any(${namePatternArray}))
+        or name ilike any(${namePatternArray})
+        or ${featureClauses}
+      )
+    )
+  )`;
+}
+
+function sqlTextArray(values: string[]) {
+  return `array[${values.map((value) => `'${value.replace(/'/g, "''")}'`).join(",")}]::text[]`;
+}
+
 function broadNatureIntentClause(add: (value: unknown) => string) {
   const clauses = ["primary_category = 'park'"];
 
@@ -2480,6 +2555,10 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
   if (terms.some((term) => broadNatureIntentTerms.has(term)) || termSet.has("당일치기") || termSet.has("근교")) {
     clauses.push("primary_category = 'park'");
     addTextExpansionClauses(clauses, broadNatureExpansionTerms, add);
+  }
+
+  if (terms.some((term) => playgroundIntentTerms.has(term))) {
+    clauses.push(playgroundEvidenceClause());
   }
 
   if (

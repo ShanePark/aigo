@@ -199,6 +199,12 @@ Common `primaryCategory` values used by the UI/search:
 - `rest_area`
 - `accommodation`
 
+Playground search semantics:
+
+- Treat `park` and `playground` as different intents. A general park can be useful without being a real playground, but `놀이터` searches and the playground UI group should mean an indoor playground or a park record with playground evidence.
+- For outdoor playground candidates, record source-backed `playFeatures` such as `slide`, `swing`, `seesaw`, `sandPlay`, `climbing`, `waterPlayground`, `rubberSurface`, `fenced`, and `toiletNearby` whenever evidence exists. Use `unknown` rather than guessing.
+- Use tags such as `children_playground`, `small_playground`, `play_equipment`, `놀이터`, `어린이놀이터`, `동네놀이터`, `물놀이터`, `미끄럼틀`, `그네`, or `시소` only when the place-specific evidence supports actual play equipment or a named playground.
+
 Use `accommodation` for kid-primary lodging such as hotels, resorts, pensions, pool villas, or family suites where children's rooms, play rooms, water play, kids programs, or child-centered facilities are a core reason to visit. Do not register ordinary kid-friendly lodging unless the user explicitly asks or the child-primary evidence is strong.
 
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `toy_store`, `kids`, `어린이`, `장난감가게`, `완구점`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
