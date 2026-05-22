@@ -20,6 +20,7 @@ Do not use direct database writes for real place data. Real mutations go through
 - Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
 - Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
 - Subagents may research and write `agent-research/*.md`; the main agent consolidates and calls the API.
+- For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and avoid `dataConfidence: "needs_check"`; capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
 
 ## Workflow
 
@@ -39,7 +40,7 @@ Do not use direct database writes for real place data. Real mutations go through
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
-   - If evidence is weak or identity is uncertain, prefer `needs_review`, `dataConfidence: "needs_check"`, and clear `parentNotes` over a confident mutation.
+   - If evidence is weak or identity is uncertain for a user-requested registration, still keep the place searchable with `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; make the uncertainty explicit in `parentNotes`, `safetyNotes`, tags, or structured `unknown` fields.
 
 5. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
@@ -129,7 +130,7 @@ Common `primaryCategory` values used by the UI/search:
 
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `kids`, `어린이`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
 
-Do not put `needs_check` into tri-state fields. Use `unknown` for missing evidence, `partial` for limited or conditional availability, and reserve `needs_check` for `status`, `dataConfidence`, image review, or play-feature evidence confidence when freshness/provenance is suspect.
+Do not put `needs_check` into tri-state fields. Use `unknown` for missing evidence and `partial` for limited or conditional availability. For user-requested registrations, do not use `needs_check` in `dataConfidence`; use `agent_collected` or `user_reported` and describe weak freshness/provenance in notes.
 
 ## Family Data Checklist
 
@@ -143,7 +144,7 @@ Capture the practical parent tradeoffs in structured fields and notes:
 - Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.
 - Day-trip fallback: toilets, shade, feeding/change fallback, route/time burden, rest areas.
 
-Use `parentNotes` for practical advice and uncertainty. Use `safetyNotes` for hazards. Use `dataConfidence: "needs_check"` when important operation or amenity evidence is weak.
+Use `parentNotes` for practical advice and uncertainty. Use `safetyNotes` for hazards. Do not hide user-requested registrations behind `needs_check`; when important operation or amenity evidence is weak, keep structured fields `unknown` and write the caution in notes.
 
 ## Play Features
 
@@ -203,7 +204,7 @@ Image display tiers: `official`, `public_agency`, `public_listing`, `rights_uncl
 
 Image review statuses: `pending_review`, `approved`, `needs_review`, `rejected`.
 
-Do not create a place until at least one branch/place-specific image candidate is available. If only logos, favicons, generic thumbnails, unrelated branch images, or rights-unclear personal photos are available, stage the place as `needs_review` instead of creating it.
+Do not create a place until at least one branch/place-specific image candidate is available. If only logos, favicons, generic thumbnails, unrelated branch images, or rights-unclear personal photos are available, do not set user-requested registrations to `needs_review` solely because image evidence is incomplete; capture uncertainty in notes instead.
 
 ## Curl Patterns
 
@@ -312,6 +313,6 @@ curl -sS http://localhost:3000/v1/places/<placeId>/versions \
 - Confirm staged research files under `agent-research/` are not committed.
 - Confirm every created/updated place has source-backed summaries.
 - Confirm every created place has at least one structured `images` entry with `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus`, and useful `altText` or `description`.
-- Confirm unknown or weak evidence stays `unknown`, `needs_check`, or in notes.
+- Confirm unknown or weak evidence stays `unknown`, `partial`, or in notes, not in `needs_check` for user-requested registrations.
 - Confirm duplicate handling decision is documented in the work summary.
 - If API schemas, OpenAPI, source/image rules, categories, or AGENTS data policy changed during the task, update this skill in the same commit.
