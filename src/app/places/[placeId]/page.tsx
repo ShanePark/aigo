@@ -1,29 +1,29 @@
-import Link from "next/link";
-import { ArrowLeft, Clock, ExternalLink, History, MapPin, ShieldCheck } from "lucide-react";
+import { Clock, ExternalLink, History, MapPin, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { PlaceImage } from "@/app/place-image";
+import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { getPlaceDetail } from "@/lib/places";
 
 type PlaceDetailProps = {
   params: Promise<{
     placeId: string;
   }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
+export default async function PlaceDetailPage({ params, searchParams }: PlaceDetailProps) {
   const { placeId } = await params;
+  const query = await searchParams;
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
+  const backHref = searchBackHref(query.returnTo);
 
   return (
     <div className="page detail-page">
-      <Link className="back-link" href="/">
-        <ArrowLeft size={16} aria-hidden="true" />
-        검색으로 돌아가기
-      </Link>
+      <BackToSearchLink href={backHref} />
 
       <section className="detail-head">
         <div>
@@ -260,6 +260,23 @@ function uniqueDisplaySources(sources: Source[]) {
 
 function normalizeSourceValue(value: string | null | undefined) {
   return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
+}
+
+function searchBackHref(value: string | string[] | undefined) {
+  const candidate = textParam(value);
+  if (!candidate || candidate.startsWith("//") || !candidate.startsWith("/")) return "/";
+
+  try {
+    const url = new URL(candidate, "https://aigo.local");
+    if (url.origin !== "https://aigo.local" || url.pathname !== "/") return "/";
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return "/";
+  }
+}
+
+function textParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function indoorLabel(value: string) {

@@ -87,7 +87,8 @@ export default async function Home({ searchParams }: HomeProps) {
   const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, params);
   const activeSort = sortParam(params);
   const mapOrigin = mapOriginFromMeta(result.meta);
-  const mapPlaces = result.items.map(mapPlaceForMap);
+  const searchReturnHref = currentSearchHref(params);
+  const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
 
   return (
     <div className="page">
@@ -241,7 +242,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
             <div className="results">
               {result.items.map((place, index) => (
-                <ResultCard index={result.meta.offset + index + 1} place={place} key={place.placeId} />
+                <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
               ))}
               {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
             </div>
@@ -253,12 +254,12 @@ export default async function Home({ searchParams }: HomeProps) {
   );
 }
 
-function ResultCard({ index, place }: { index: number; place: SearchItem }) {
+function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
 
   return (
-    <Link className="result-card" href={`/places/${place.placeId}`}>
+    <Link className="result-card" href={placeDetailHref(place.placeId, returnHref)}>
       <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
       <div className="result-card-body">
         <div className="result-card-topline">
@@ -561,6 +562,34 @@ function sortHref(params: Record<string, string | string[] | undefined>, sort: E
   return { pathname: "/", query };
 }
 
+function currentSearchHref(params: Record<string, string | string[] | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "offset" || key === "returnTo") continue;
+    if (Array.isArray(value)) {
+      value.filter(Boolean).forEach((item) => query.append(key, item));
+      continue;
+    }
+    if (value) query.set(key, value);
+  }
+
+  const search = query.toString();
+  return search ? `/?${search}` : "/";
+}
+
+function placeDetailHref(placeId: string, returnHref: string): UrlObject {
+  return {
+    pathname: `/places/${placeId}`,
+    query: { returnTo: returnHref }
+  };
+}
+
+function placeDetailPath(placeId: string, returnHref: string) {
+  const query = new URLSearchParams({ returnTo: returnHref });
+  return `/places/${placeId}?${query.toString()}`;
+}
+
 function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
   if (!meta.origin) return null;
   return {
@@ -570,11 +599,11 @@ function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
   };
 }
 
-function mapPlaceForMap(place: SearchItem): MapPlace {
+function mapPlaceForMap(place: SearchItem, returnHref: string): MapPlace {
   return {
     category: place.primaryCategory,
     distance: distanceLabel(place.distanceKm),
-    href: `/places/${place.placeId}`,
+    href: placeDetailPath(place.placeId, returnHref),
     lat: place.lat,
     lng: place.lng,
     name: place.name,
