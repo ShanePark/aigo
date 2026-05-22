@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
+import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { getPlaceDetail } from "@/lib/places";
 
 type PlaceDetailProps = {
@@ -47,6 +48,8 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           </a>
         </p>
       ) : null}
+
+      <PlaceDetailMap address={place.address ?? place.roadAddress ?? undefined} category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
 
       {galleryImages.length > 0 ? (
         <section className="image-audit-section">
