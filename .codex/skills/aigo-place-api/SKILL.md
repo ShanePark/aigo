@@ -236,6 +236,19 @@ After changing scoring logic or scoring data, run `pnpm tsx scripts/audit-scorin
 
 ## Review Link Enrichment
 
+For every active place, make sure parents have at least one reliable page they can open for more details. Prefer `officialUrl`, `reservationUrl`, or `kakaoPlaceUrl` when they are source-backed. When the best parent-facing page does not fit those first-class fields, store it in `externalRefs.infoLinks` as an array of public link objects:
+
+```json
+{
+  "provider": "Official site",
+  "label": "Facility information page",
+  "url": "https://example.go.kr/place",
+  "note": "Public page parents can open for address, hours, fees, or reservation details."
+}
+```
+
+Fallback links can point to public agency, tourism, mall/library/operator pages, or public listings/search pages. Do not use private/login-only pages. The detail UI also derives a user-facing information link from source URLs and, if none are linkable, a public search fallback.
+
 For lodging and other review-sensitive categories, collect public review entry points that parents can click from the detail page. Store them in `externalRefs.reviewLinks` as an array of objects:
 
 ```json

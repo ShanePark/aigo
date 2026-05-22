@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
+import { buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 
 type PlaceDetailProps = {
@@ -37,6 +38,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const query = await searchParams;
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
+  const infoLinks = buildPlaceInfoLinks(place);
   const reviewLinks = buildReviewLinks(place);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
@@ -222,6 +224,27 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
                 <p>{place.notes.parent}</p>
               </div>
             ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {infoLinks.length > 0 ? (
+        <section className="info-block full">
+          <h2>
+            <ExternalLink size={18} aria-hidden="true" />
+            정보 확인하기
+          </h2>
+          <div className="source-list">
+            {infoLinks.map((infoLink) => (
+              <a className="source-row" href={infoLink.url} target="_blank" rel="noreferrer" key={infoLink.key}>
+                <span>{infoLink.provider}</span>
+                <small>
+                  <strong>{infoLink.label}</strong>
+                  {infoLink.note ? ` - ${infoLink.note}` : null}
+                </small>
+                <ExternalLink size={14} aria-hidden="true" />
+              </a>
+            ))}
           </div>
         </section>
       ) : null}

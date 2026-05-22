@@ -12,5 +12,3 @@ Completed improvements should be removed from this file after verification inste
 Only mark unrelated items as `[개선 중]` at the same time when they are intentionally part of the same active change.
 
 ## Backlog
-
-- [대기] Add a user-facing info link for every place, preferring an official site or public-agency/operator page and falling back to Naver Place, Kakao/Google Maps, tourism pages, mall/library listings, or other public listings when no official site exists. Run a full audit of already-registered places and backfill address-matched `officialUrl` or `externalRefs.infoLinks` entries so parents can open a reliable page for more details.

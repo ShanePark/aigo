@@ -382,7 +382,7 @@ components:
           type: string
         externalRefs:
           type: object
-          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `reviewLinks` here.
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
           additionalProperties: true
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
@@ -1564,7 +1564,7 @@ components:
           type: string
         externalRefs:
           type: object
-          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `reviewLinks` here.
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
           additionalProperties: true
         limit:
           type: integer
@@ -2001,7 +2001,7 @@ components:
               nullable: true
         externalRefs:
           type: object
-          description: External references and agent-maintained link collections, including optional `reviewLinks` for public review/listing/search pages.
+          description: External references and agent-maintained link collections, including optional `infoLinks` for parent-facing official/listing/detail pages and `reviewLinks` for public review/listing/search pages.
           additionalProperties: true
         imageUrls:
           type: array
