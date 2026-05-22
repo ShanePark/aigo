@@ -231,6 +231,44 @@ describe("place schemas", () => {
     expect(result.filterByRadius).toBe(false);
   });
 
+  it("accepts visible map viewport bounds for search", () => {
+    const result = searchPlacesSchema.parse({
+      origin: { lat: 36.35, lng: 127.38 },
+      filterByRadius: false,
+      viewportBounds: {
+        minLat: 36.3,
+        minLng: 127.3,
+        maxLat: 36.4,
+        maxLng: 127.5
+      }
+    });
+    const invertedLat = searchPlacesSchema.safeParse({
+      viewportBounds: {
+        minLat: 36.4,
+        minLng: 127.3,
+        maxLat: 36.3,
+        maxLng: 127.5
+      }
+    });
+    const invertedLng = searchPlacesSchema.safeParse({
+      viewportBounds: {
+        minLat: 36.3,
+        minLng: 127.5,
+        maxLat: 36.4,
+        maxLng: 127.3
+      }
+    });
+
+    expect(result.viewportBounds).toEqual({
+      minLat: 36.3,
+      minLng: 127.3,
+      maxLat: 36.4,
+      maxLng: 127.5
+    });
+    expect(invertedLat.success).toBe(false);
+    expect(invertedLng.success).toBe(false);
+  });
+
   it("accepts hard distance bands when an origin is provided", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

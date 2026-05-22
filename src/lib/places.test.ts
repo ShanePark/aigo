@@ -104,6 +104,25 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
+  it("filters search candidates by visible map viewport bounds", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      origin: { lat: 36.35, lng: 127.38 },
+      filterByRadius: false,
+      viewportBounds: {
+        minLat: 36.3,
+        minLng: 127.3,
+        maxLat: 36.4,
+        maxLng: 127.5
+      }
+    });
+
+    expect(query.sql).not.toContain("ST_DWithin");
+    expect(query.sql).toContain("lat between $3 and $4");
+    expect(query.sql).toContain("lng between $5 and $6");
+    expect(query.params).toEqual([127.38, 36.35, 36.3, 36.4, 127.3, 127.5]);
+  });
+
   it("search candidates exclude soft-deleted closed places", () => {
     const query = buildSearchQuery(baseSearchInput);
 

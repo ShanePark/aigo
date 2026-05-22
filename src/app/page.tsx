@@ -17,7 +17,6 @@ import {
   type LucideIcon
 } from "lucide-react";
 
-import { NearbySearchButton } from "@/app/nearby-search-button";
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
 import { SearchResultTrustBadges } from "@/app/search-result-badges";
@@ -132,7 +131,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
           <input name="sort" type="hidden" value={activeSort} />
           <input name="limit" type="hidden" value={resultLimitParam(effectiveParams)} />
-          {textParam(effectiveParams.nearby) === "1" ? <input name="nearby" type="hidden" value="1" /> : null}
+          <ViewportBoundsInputs params={effectiveParams} />
           <div className="search-bar">
             <label className="query-field">
               <span>검색어</span>
@@ -142,10 +141,6 @@ export default async function Home({ searchParams }: HomeProps) {
               <Search size={17} aria-hidden="true" />
               검색
             </button>
-          </div>
-
-          <div className="location-row">
-            <NearbySearchButton />
           </div>
 
           <div className="category-tabs" aria-label="큰 분류">
@@ -218,7 +213,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="notice">{result.error}</div>
       ) : (
         <section className="explore-layout">
-          <PlacesMap origin={mapOrigin} places={mapPlaces} />
+          <PlacesMap origin={mapOrigin} places={mapPlaces} searchHref={searchReturnHref} />
           <div className="results-panel">
             <section className="result-header">
               <div>
@@ -326,6 +321,20 @@ function LimitControls({ activeLimit, params }: { activeLimit: (typeof RESULT_LI
   );
 }
 
+function ViewportBoundsInputs({ params }: { params: Record<string, string | string[] | undefined> }) {
+  const viewportBounds = viewportBoundsFromParams(params);
+  if (!viewportBounds) return null;
+
+  return (
+    <>
+      <input name="minLat" type="hidden" value={viewportBounds.minLat} />
+      <input name="minLng" type="hidden" value={viewportBounds.minLng} />
+      <input name="maxLat" type="hidden" value={viewportBounds.maxLat} />
+      <input name="maxLng" type="hidden" value={viewportBounds.maxLng} />
+    </>
+  );
+}
+
 function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
   const category = textParam(params.category);
   const categoryGroup = categoryGroupParam(params);
@@ -333,6 +342,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
   const nearby = textParam(params.nearby) === "1";
+  const viewportBounds = viewportBoundsFromParams(params);
   const shouldFilterByRadius = categoryGroup !== "stay" || hasExplicitLocationParams(params);
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
@@ -342,10 +352,11 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
     .filter((age) => Number.isFinite(age));
 
   return {
-    origin: { lat, lng, label: nearby ? "현재 위치" : DEFAULT_ORIGIN.label },
+    origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
     radiusKm: shouldFilterByRadius ? Number(textParam(params.radiusKm) || 80) : undefined,
-    filterByRadius: shouldFilterByRadius,
+    filterByRadius: viewportBounds ? false : shouldFilterByRadius,
+    viewportBounds,
     query: textParam(params.query) || undefined,
     primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
     playgroundOnly: categoryGroup === "playground" ? true : undefined,
@@ -365,7 +376,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
 }
 
 function hasExplicitLocationParams(params: Record<string, string | string[] | undefined>) {
-  return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm));
+  return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm) || viewportBoundsFromParams(params));
 }
 
 function isNationwideStaySearch(categoryGroup: CategoryGroupId, params: Record<string, string | string[] | undefined>) {
@@ -402,6 +413,22 @@ async function safeSearch(input: SearchPlacesInput) {
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function numberParam(value: string | string[] | undefined) {
+  const text = textParam(value);
+  if (!text || text.trim() === "") return undefined;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function viewportBoundsFromParams(params: Record<string, string | string[] | undefined>): SearchPlacesInput["viewportBounds"] | undefined {
+  const minLat = numberParam(params.minLat);
+  const minLng = numberParam(params.minLng);
+  const maxLat = numberParam(params.maxLat);
+  const maxLng = numberParam(params.maxLng);
+  if (minLat === undefined || minLng === undefined || maxLat === undefined || maxLng === undefined) return undefined;
+  return { minLat, minLng, maxLat, maxLng };
 }
 
 function withoutCategoryParams(params: Record<string, string | string[] | undefined>) {

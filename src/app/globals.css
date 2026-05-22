@@ -712,6 +712,29 @@ h3 {
   z-index: 450;
 }
 
+.map-search-button {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  left: 58px;
+  min-height: 34px;
+  padding: 0 12px;
+  position: absolute;
+  top: 14px;
+  z-index: 460;
+}
+
+.map-search-button:hover {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+
 .leaflet-map,
 .map-canvas .leaflet-container {
   height: 100%;

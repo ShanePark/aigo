@@ -328,6 +328,22 @@ export const updatePlaceSchema = z
     }
   );
 
+const viewportBoundsSchema = z
+  .object({
+    minLat: z.number().min(-90).max(90),
+    minLng: z.number().min(-180).max(180),
+    maxLat: z.number().min(-90).max(90),
+    maxLng: z.number().min(-180).max(180)
+  })
+  .refine((bounds) => bounds.minLat <= bounds.maxLat, {
+    message: "minLat must be less than or equal to maxLat",
+    path: ["minLat"]
+  })
+  .refine((bounds) => bounds.minLng <= bounds.maxLng, {
+    message: "minLng must be less than or equal to maxLng",
+    path: ["minLng"]
+  });
+
 const searchPlacesBaseSchema = z.object({
   visitContext: z.enum(["afterDaycare", "nearbyNow", "rainyDay", "weekendHalfDay", "dayTrip"]).optional(),
   visitDate: z
@@ -348,6 +364,7 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   radiusKm: z.number().positive().max(200).default(80),
   filterByRadius: z.boolean().optional(),
+  viewportBounds: viewportBoundsSchema.optional(),
   minDistanceKm: z.number().min(0).max(500).optional(),
   maxDistanceKm: z.number().positive().max(500).optional(),
   diversity: z

@@ -411,6 +411,27 @@ components:
           maximum: 180
         label:
           type: string
+    ViewportBounds:
+      type: object
+      required: [minLat, minLng, maxLat, maxLng]
+      description: Visible map bounds used to restrict search candidates to the area currently shown to the user.
+      properties:
+        minLat:
+          type: number
+          minimum: -90
+          maximum: 90
+        minLng:
+          type: number
+          minimum: -180
+          maximum: 180
+        maxLat:
+          type: number
+          minimum: -90
+          maximum: 90
+        maxLng:
+          type: number
+          minimum: -180
+          maximum: 180
     TriState:
       type: string
       enum: [yes, no, partial, unknown]
@@ -963,6 +984,8 @@ components:
           type: boolean
           default: true
           description: When false, keep `origin` for distance calculation and scoring but do not restrict results to `radiusKm`. Useful for lodging/destination searches.
+        viewportBounds:
+          $ref: "#/components/schemas/ViewportBounds"
         minDistanceKm:
           type: number
           minimum: 0

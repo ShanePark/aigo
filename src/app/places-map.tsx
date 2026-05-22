@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 export type MapPlace = {
@@ -22,6 +22,7 @@ export type MapOrigin = {
 type PlacesMapProps = {
   origin: MapOrigin;
   places: MapPlace[];
+  searchHref: string;
 };
 
 type MapBounds = {
@@ -44,14 +45,16 @@ const DEFAULT_MAP_ZOOM = 13;
 const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
 let highlightedResultTimer: number | undefined;
 
-export function PlacesMap({ origin, places }: PlacesMapProps) {
+export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
   const placeMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
   const initializedViewKeyRef = useRef<string | null>(null);
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
+  const searchHrefRef = useRef(searchHref);
   const viewKeyRef = useRef(mapViewKey(origin));
+  const [viewportSearchHref, setViewportSearchHref] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -60,6 +63,11 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       markersRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    searchHrefRef.current = searchHref;
+    setViewportSearchHref(null);
+  }, [searchHref]);
 
   useEffect(() => {
     let disposed = false;
@@ -71,7 +79,9 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       const viewKey = mapViewKey(origin);
       const shouldApplyMapView = initializedViewKeyRef.current !== viewKey;
       viewKeyRef.current = viewKey;
-      const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef);
+      const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef, (changedMap) => {
+        setViewportSearchHref(buildViewportSearchHref(searchHrefRef.current, changedMap));
+      });
       const markers = getOrCreateMarkerLayer(L, map, markersRef);
       markers.clearLayers();
       placeMarkersRef.current.clear();
@@ -122,6 +132,7 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       }
 
       map.invalidateSize();
+      setViewportSearchHref(null);
     }
 
     void renderMap();
@@ -175,6 +186,11 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
       <div className="map-canvas">
+        {viewportSearchHref ? (
+          <a className="map-search-button" href={viewportSearchHref}>
+            현 지도에서 검색
+          </a>
+        ) : null}
         <span className="map-count-badge">{places.length}곳</span>
         <div className="leaflet-map" ref={mapElementRef} />
       </div>
@@ -186,7 +202,8 @@ function getOrCreateMap(
   L: LeafletModule,
   element: HTMLDivElement,
   mapRef: MutableRefObject<LeafletMap | null>,
-  viewKeyRef: MutableRefObject<string>
+  viewKeyRef: MutableRefObject<string>,
+  onViewportChanged: (map: LeafletMap) => void
 ) {
   if (mapRef.current) return mapRef.current;
 
@@ -204,9 +221,35 @@ function getOrCreateMap(
   map.on("moveend zoomend", () => {
     saveMapView(viewKeyRef.current, map);
   });
+  map.on("dragend zoomend", () => {
+    onViewportChanged(map);
+  });
 
   mapRef.current = map;
   return map;
+}
+
+function buildViewportSearchHref(searchHref: string, map: LeafletMap) {
+  const bounds = map.getBounds();
+  const center = map.getCenter();
+  const url = new URL(searchHref, window.location.origin);
+
+  url.searchParams.set("minLat", formatCoordinate(bounds.getSouth()));
+  url.searchParams.set("minLng", formatCoordinate(bounds.getWest()));
+  url.searchParams.set("maxLat", formatCoordinate(bounds.getNorth()));
+  url.searchParams.set("maxLng", formatCoordinate(bounds.getEast()));
+  url.searchParams.set("lat", formatCoordinate(center.lat));
+  url.searchParams.set("lng", formatCoordinate(center.lng));
+  url.searchParams.delete("page");
+  url.searchParams.delete("offset");
+  url.searchParams.delete("radiusKm");
+  url.searchParams.delete("nearby");
+
+  return `${url.pathname}${url.search}`;
+}
+
+function formatCoordinate(value: number) {
+  return value.toFixed(6);
 }
 
 function getOrCreateMarkerLayer(L: LeafletModule, map: LeafletMap, markersRef: MutableRefObject<LayerGroup | null>) {

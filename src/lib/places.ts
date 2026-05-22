@@ -1823,6 +1823,11 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     );
   }
 
+  if (input.viewportBounds) {
+    where.push(`lat between ${add(input.viewportBounds.minLat)} and ${add(input.viewportBounds.maxLat)}`);
+    where.push(`lng between ${add(input.viewportBounds.minLng)} and ${add(input.viewportBounds.maxLng)}`);
+  }
+
   if (input.origin && input.minDistanceKm !== undefined) {
     where.push(
       `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000 >= ${add(
