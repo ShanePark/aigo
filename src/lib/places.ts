@@ -1211,7 +1211,25 @@ async function insertSources(executor: SqlExecutor, placeId: string, sources: So
 }
 
 type NormalizedImageInput = Required<Pick<PlaceImageInput, "url" | "status" | "reviewStatus" | "displayTier" | "isPrimary" | "sortOrder">> &
-  Omit<PlaceImageInput, "url" | "status" | "reviewStatus" | "displayTier" | "isPrimary" | "sortOrder">;
+  Omit<PlaceImageInput, "url" | "status" | "reviewStatus" | "displayTier" | "isPrimary" | "sortOrder"> & {
+    allowConflictMetadataOverwrite: boolean;
+    allowConflictPrimaryOverwrite: boolean;
+    allowConflictReviewStatusOverwrite: boolean;
+  };
+
+type ImageConflictPolicy = Pick<
+  NormalizedImageInput,
+  "allowConflictMetadataOverwrite" | "allowConflictPrimaryOverwrite" | "allowConflictReviewStatusOverwrite"
+>;
+
+export function imageConflictPolicyForTest(images: PlaceImageInput[] | undefined, imageUrls: string[] | undefined, sources: SourceInput[]) {
+  return normalizeImageInputs(images, imageUrls, sources).map((image) => ({
+    url: image.url,
+    metadata: image.allowConflictMetadataOverwrite,
+    primary: image.allowConflictPrimaryOverwrite,
+    reviewStatus: image.allowConflictReviewStatusOverwrite
+  }));
+}
 
 function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: string[] | undefined, sources: SourceInput[]) {
   const fallbackSource = sources.find(isImageLikeSource) ?? sources[0] ?? null;
@@ -1219,7 +1237,14 @@ function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: 
   let index = 0;
 
   for (const image of images ?? []) {
-    byUrl.set(image.url, normalizeImageInput(image, index, fallbackSource));
+    byUrl.set(
+      image.url,
+      normalizeImageInput(image, index, fallbackSource, {
+        allowConflictMetadataOverwrite: true,
+        allowConflictPrimaryOverwrite: true,
+        allowConflictReviewStatusOverwrite: true
+      })
+    );
     index += 1;
   }
 
@@ -1237,7 +1262,12 @@ function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: 
           checkedAt: fallbackSource?.checkedAt
         },
         index,
-        fallbackSource
+        fallbackSource,
+        {
+          allowConflictMetadataOverwrite: false,
+          allowConflictPrimaryOverwrite: false,
+          allowConflictReviewStatusOverwrite: false
+        }
       )
     );
     index += 1;
@@ -1261,7 +1291,12 @@ function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: 
   return normalized;
 }
 
-function normalizeImageInput(image: PlaceImageInput, index: number, fallbackSource: SourceInput | null): NormalizedImageInput {
+function normalizeImageInput(
+  image: PlaceImageInput,
+  index: number,
+  fallbackSource: SourceInput | null,
+  conflictPolicy: ImageConflictPolicy
+): NormalizedImageInput {
   const sourceLike = {
     sourceType: image.sourceType ?? fallbackSource?.sourceType ?? "unknown",
     title: image.sourceTitle ?? fallbackSource?.title,
@@ -1285,18 +1320,28 @@ function normalizeImageInput(image: PlaceImageInput, index: number, fallbackSour
     status: image.status ?? "active",
     reviewStatus: image.reviewStatus ?? "pending_review",
     isPrimary: image.isPrimary ?? false,
-    sortOrder: image.sortOrder ?? index
+    sortOrder: image.sortOrder ?? index,
+    ...conflictPolicy
   };
 }
 
 async function insertImages(executor: SqlExecutor, placeId: string, images: NormalizedImageInput[]) {
   if (images.length === 0) return;
 
-  if (images.some((image) => image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected")) {
+  if (
+    images.some(
+      (image) =>
+        image.allowConflictPrimaryOverwrite && image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected"
+    )
+  ) {
     await executor`update place_images set is_primary = false, updated_at = now() where place_id = ${placeId}`;
   }
 
   for (const image of images) {
+    const allowMetadataOverwrite = image.allowConflictMetadataOverwrite;
+    const allowPrimaryOverwrite = image.allowConflictPrimaryOverwrite;
+    const allowReviewStatusOverwrite = image.allowConflictReviewStatusOverwrite;
+
     await executor`
       insert into place_images (
         place_id,
@@ -1341,23 +1386,33 @@ async function insertImages(executor: SqlExecutor, placeId: string, images: Norm
         ${image.checkedAt ?? null}
       )
       on conflict (place_id, url) do update set
-        source_id = excluded.source_id,
-        source_type = excluded.source_type,
-        source_title = excluded.source_title,
-        source_url = excluded.source_url,
-        credit_text = excluded.credit_text,
-        alt_text = excluded.alt_text,
-        description = excluded.description,
-        visual_features = excluded.visual_features,
-        child_signals = excluded.child_signals,
-        display_tier = excluded.display_tier,
-        status = excluded.status,
-        review_status = excluded.review_status,
-        is_primary = excluded.is_primary,
-        sort_order = excluded.sort_order,
-        width = excluded.width,
-        height = excluded.height,
-        checked_at = excluded.checked_at,
+        source_id = case when ${allowMetadataOverwrite} then coalesce(excluded.source_id, place_images.source_id) else place_images.source_id end,
+        source_type = case when ${allowMetadataOverwrite} then coalesce(nullif(excluded.source_type, 'unknown'), place_images.source_type) else place_images.source_type end,
+        source_title = case when ${allowMetadataOverwrite} then coalesce(excluded.source_title, place_images.source_title) else place_images.source_title end,
+        source_url = case when ${allowMetadataOverwrite} then coalesce(excluded.source_url, place_images.source_url) else place_images.source_url end,
+        credit_text = case when ${allowMetadataOverwrite} then coalesce(excluded.credit_text, place_images.credit_text) else place_images.credit_text end,
+        alt_text = case when ${allowMetadataOverwrite} then coalesce(excluded.alt_text, place_images.alt_text) else place_images.alt_text end,
+        description = case when ${allowMetadataOverwrite} then coalesce(excluded.description, place_images.description) else place_images.description end,
+        visual_features = case
+          when ${allowMetadataOverwrite} and cardinality(excluded.visual_features) > 0 then excluded.visual_features
+          else place_images.visual_features
+        end,
+        child_signals = case
+          when ${allowMetadataOverwrite} and excluded.child_signals <> '{}'::jsonb then excluded.child_signals
+          else place_images.child_signals
+        end,
+        display_tier = case when ${allowMetadataOverwrite} then coalesce(nullif(excluded.display_tier, 'unknown'), place_images.display_tier) else place_images.display_tier end,
+        status = case when ${allowMetadataOverwrite} then excluded.status else place_images.status end,
+        review_status = case
+          when ${allowReviewStatusOverwrite} then excluded.review_status
+          when excluded.review_status in ('approved', 'needs_review') then excluded.review_status
+          else place_images.review_status
+        end,
+        is_primary = case when ${allowPrimaryOverwrite} then excluded.is_primary else place_images.is_primary end,
+        sort_order = case when ${allowMetadataOverwrite} then excluded.sort_order else place_images.sort_order end,
+        width = case when ${allowMetadataOverwrite} then coalesce(excluded.width, place_images.width) else place_images.width end,
+        height = case when ${allowMetadataOverwrite} then coalesce(excluded.height, place_images.height) else place_images.height end,
+        checked_at = case when ${allowMetadataOverwrite} then coalesce(excluded.checked_at, place_images.checked_at) else place_images.checked_at end,
         updated_at = now()
     `;
   }

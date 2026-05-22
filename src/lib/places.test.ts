@@ -13,6 +13,7 @@ import {
   buildSearchSourceSummary,
   categoryClauseForKeywordTerm,
   compactSearchPlaceItem,
+  imageConflictPolicyForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -287,6 +288,47 @@ describe("place search helpers", () => {
       displayTier: "rights_unclear",
       creditText: "지역 기사 사진"
     });
+  });
+
+  it("does not let imageUrls shorthand downgrade existing image provenance on conflict", () => {
+    const sources = [
+      {
+        sourceType: "official_image_source",
+        title: "공식 이미지 출처",
+        url: "https://example.go.kr/place",
+        checkedAt: "2026-05-22T00:00:00.000Z"
+      }
+    ];
+    const shorthand = imageConflictPolicyForTest(undefined, ["https://example.go.kr/place.jpg"], sources);
+    const structured = imageConflictPolicyForTest(
+      [
+        {
+          url: "https://example.go.kr/place.jpg",
+          sourceUrl: "https://example.go.kr/place",
+          reviewStatus: "pending_review",
+          isPrimary: true
+        }
+      ],
+      undefined,
+      sources
+    );
+
+    expect(shorthand).toEqual([
+      {
+        url: "https://example.go.kr/place.jpg",
+        metadata: false,
+        primary: false,
+        reviewStatus: false
+      }
+    ]);
+    expect(structured).toEqual([
+      {
+        url: "https://example.go.kr/place.jpg",
+        metadata: true,
+        primary: true,
+        reviewStatus: true
+      }
+    ]);
   });
 
   it("summarizes search image health from active image rows", () => {
