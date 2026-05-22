@@ -430,6 +430,47 @@ describe("place schemas", () => {
     });
   });
 
+  it("accepts lodging parent-child related-place metadata", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "official_site", url: "https://example.com/resort/kids-club" }],
+      relatedPlaceMode: "append",
+      relatedPlaces: [
+        {
+          placeId: "0de41daa-38bc-48d4-973c-57ab418fa6ef",
+          relationType: "parent_child",
+          note: "비발디파크 숙박 베이스와 보노 키즈클럽을 상위/부속 관계로 연결.",
+          evidence: {
+            parentPlaceRole: "lodging_base",
+            childVenueRole: "child_primary_indoor_play",
+            sameSiteName: "Vivaldi Park",
+            sourceUrls: ["https://example.com/resort/kids-club"],
+            displayNote: "숙박은 부모 물류 베이스, 키즈클럽은 별도 놀이 목적지로 노출한다."
+          }
+        },
+        {
+          placeId: "28a51709-3c3c-4f98-b303-82457256ed3d",
+          relationType: "same_site",
+          note: "같은 리조트 안에 있지만 명확한 상하위보다는 같은 사이트 관계.",
+          evidence: {
+            sameSiteName: "Example Resort",
+            sourceUrls: ["https://example.com/resort/family"]
+          }
+        }
+      ]
+    });
+
+    expect(result.relatedPlaceMode).toBe("append");
+    expect(result.relatedPlaces?.[0]).toMatchObject({
+      relationType: "parent_child",
+      evidence: {
+        parentPlaceRole: "lodging_base",
+        childVenueRole: "child_primary_indoor_play",
+        sameSiteName: "Vivaldi Park"
+      }
+    });
+    expect(result.relatedPlaces?.[1]?.relationType).toBe("same_site");
+  });
+
   it("accepts structured image entities for visual audit metadata", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "official_site", url: "https://example.com/place" }],

@@ -208,6 +208,18 @@ Mutation rules:
 - For `itinerary_cluster` relations, include structured `evidence` such as `clusterName`, `sharedDriveBurden`, `mealRestFallback`, `parentEffortNotes`, and source URLs so agents can explain why the places should be planned together.
 - Do not use related places to hide likely duplicates. Stage likely duplicates separately for duplicate review instead of linking them as recommendations.
 
+## Accommodation Parent/Child Modeling
+
+For resorts, hotels, pensions, and pool villas with named child-primary venues, choose the smallest model that keeps search honest:
+
+- Create or keep the parent as `accommodation` when the lodging itself is a family destination: family rooms, pool/water play, kids programs, baby logistics, food/rest base, or stay-specific planning value.
+- Create or keep the child venue separately as `kids_cafe`, `indoor_playground`, `experience_center`, or another child-primary category when it has a distinct name, source page/listing, hours/fees/reservation details, or enough independent visit value that a parent may search for it directly.
+- Create both only when both are independently useful. Link them with `parent_child` when evidence clearly says the child venue is inside or operated as part of the lodging; use `same_site` when they share a resort/campus/site but the hierarchy is less explicit.
+- Do not create a weak parent accommodation only to host a strong child venue. If lodging evidence is thin, keep the parent context in the child venue's `parentNotes`, `externalRefs.infoLinks`, sources, and related-place evidence.
+- Avoid duplicate search meaning by separating score intent: parent `accommodation` records should carry lodging logistics, overnight fit, and family-stay tradeoffs; child venue records should carry play value, session/fee details, and child engagement. Use related-place cards to expose the relationship rather than stuffing both roles into one category.
+
+For resort parent/child `relatedPlaces`, include relation evidence such as `parentPlaceRole`, `childVenueRole`, `sameSiteName`, `sourceUrls`, and a short `displayNote` when available.
+
 Common `primaryCategory` values used by the UI/search:
 
 - `kids_cafe`

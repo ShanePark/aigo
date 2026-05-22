@@ -531,7 +531,7 @@ function relationTypeLabel(value: string) {
     nearby: "가까운 곳",
     same_building: "같은 건물",
     same_site: "같은 시설",
-    parent_child: "부속 시설",
+    parent_child: "상위/부속",
     route_pair: "함께 보기",
     itinerary_cluster: "일정 묶음"
   };

@@ -578,7 +578,7 @@ components:
     RelatedPlaceRelationType:
       type: string
       enum: [nearby, same_building, same_site, parent_child, route_pair, itinerary_cluster]
-      description: Agent-maintained relationship between two registered places. Use itinerary_cluster for day-trip clusters with shared drive burden, meal/rest fallback, and parent-effort evidence. Relations are stored once and returned bidirectionally.
+      description: Agent-maintained relationship between two registered places. Use same_site for shared campuses/resorts/facility grounds when hierarchy is loose, parent_child for explicit lodging/facility subvenues, and itinerary_cluster for day-trip clusters with shared drive burden, meal/rest fallback, and parent-effort evidence. Relations are stored once and returned bidirectionally.
     SourceInput:
       type: object
       required: [sourceType]
@@ -616,7 +616,7 @@ components:
           maxLength: 1000
         evidence:
           type: object
-          description: Agent-maintained relation evidence such as distance meters, address match, source URLs, or audit batch id. For itinerary_cluster relations, include fields such as clusterName, sharedDriveBurden, mealRestFallback, parentEffortNotes, and sourceUrls when available.
+          description: Agent-maintained relation evidence such as distance meters, address match, source URLs, or audit batch id. For lodging/resort parent-child relations, include fields such as parentPlaceRole, childVenueRole, sameSiteName, sourceUrls, and displayNote when available. For itinerary_cluster relations, include fields such as clusterName, sharedDriveBurden, mealRestFallback, parentEffortNotes, and sourceUrls when available.
           additionalProperties: true
     PricingItem:
       type: object
@@ -1283,7 +1283,7 @@ components:
           nullable: true
         evidence:
           type: object
-          description: Relation evidence; itinerary_cluster relations may include clusterName, sharedDriveBurden, mealRestFallback, parentEffortNotes, and sourceUrls.
+          description: Relation evidence; lodging/resort parent-child relations may include parentPlaceRole, childVenueRole, sameSiteName, sourceUrls, and displayNote, while itinerary_cluster relations may include clusterName, sharedDriveBurden, mealRestFallback, parentEffortNotes, and sourceUrls.
           additionalProperties: true
         distanceMeters:
           type: integer
