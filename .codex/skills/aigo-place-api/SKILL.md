@@ -364,6 +364,8 @@ Prefer official/operator/public-agency images. Public listing images are accepta
 
 Images are a hard prerequisite for user-requested place registration in this workflow. Make a serious attempt to find place-specific official, public-agency, operator, tourism, or public-listing images; if none is citeable, hold the candidate in `agent-research/` for a later image pass instead of creating or updating it.
 
+Before using a questionable image URL, run `pnpm tsx scripts/check-image-candidate.ts --url=<imageUrl> --source-url=<sourcePageUrl> --title="<source title>"`. The helper is read-only and reports status, content type, content length, whether a referer retry was needed, hotlink risk, and logo/generic-image risk. Treat `data:` image URLs, unreachable candidates, referer-required candidates, and logo/icon/placeholder-like images as `hold_for_later` or low confidence unless the user explicitly accepts the caveat.
+
 Use `images`, not deprecated `imageUrls`, for new work:
 
 ```json
