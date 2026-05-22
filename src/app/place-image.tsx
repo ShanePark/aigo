@@ -12,18 +12,18 @@ type PlaceImageProps = {
 
 const FALLBACK_PLACE_IMAGES: Record<string, string> = {
   accommodation: "/placeholders/default-accommodation.png",
-  aquarium_zoo: "/placeholders/default-visit.png",
+  aquarium_zoo: "/placeholders/default-aquarium-zoo.png",
   experience_center: "/placeholders/default-visit.png",
   family_cafe: "/placeholders/default-kids-cafe.png",
   family_restaurant: "/placeholders/default-family-restaurant.png",
   indoor_playground: "/placeholders/default-playground.png",
   kids_cafe: "/placeholders/default-kids-cafe.png",
-  library: "/placeholders/default-visit.png",
-  museum: "/placeholders/default-visit.png",
+  library: "/placeholders/default-library.png",
+  museum: "/placeholders/default-museum.png",
   park: "/placeholders/default-playground.png",
   rest_area: "/placeholders/default-visit.png",
   science_museum: "/placeholders/default-visit.png",
-  shopping_mall: "/placeholders/default-visit.png",
+  shopping_mall: "/placeholders/default-shopping-mall.png",
   sports_venue: "/placeholders/default-visit.png",
   toy_library: "/placeholders/default-toy-store.png",
   toy_store: "/placeholders/default-toy-store.png"
