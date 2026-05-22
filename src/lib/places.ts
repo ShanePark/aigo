@@ -1174,11 +1174,14 @@ export function shouldUseAnyKeywordMatch(query: string) {
   if (alternativeTerms.length === terms.length && terms.some((term) => isAlternativeKeywordTerm(term))) {
     return true;
   }
+  if (placeLikeTerms.length >= 2 && placeLikeTerms.length === terms.length) {
+    return true;
+  }
   if (terms.length < 3) return false;
   if (shortListedPlaceTerms.length >= 3 && shortListedPlaceTerms.length === terms.length) {
     return true;
   }
-  return placeLikeTerms.length >= 3 && placeLikeTerms.length === terms.length;
+  return false;
 }
 
 function isLikelyPlaceNameTerm(term: string) {
