@@ -74,6 +74,24 @@ describe("place schemas", () => {
     expect(invertedBand.success).toBe(false);
   });
 
+  it("accepts optional search diversity caps", () => {
+    const result = searchPlacesSchema.parse({
+      diversity: {
+        maxPerRegion: 2,
+        maxPerCategory: 3
+      }
+    });
+    const empty = searchPlacesSchema.safeParse({ diversity: {} });
+    const invalid = searchPlacesSchema.safeParse({ diversity: { maxPerRegion: 0 } });
+
+    expect(result.diversity).toEqual({
+      maxPerRegion: 2,
+      maxPerCategory: 3
+    });
+    expect(empty.success).toBe(false);
+    expect(invalid.success).toBe(false);
+  });
+
   it("accepts compact search projection for agent planning calls", () => {
     const result = searchPlacesSchema.parse({
       query: "공공 어린이 체험",

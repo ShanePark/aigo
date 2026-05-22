@@ -219,6 +219,15 @@ const searchPlacesBaseSchema = z.object({
   filterByRadius: z.boolean().optional(),
   minDistanceKm: z.number().min(0).max(500).optional(),
   maxDistanceKm: z.number().positive().max(500).optional(),
+  diversity: z
+    .object({
+      maxPerRegion: z.number().int().min(1).max(20).optional(),
+      maxPerCategory: z.number().int().min(1).max(20).optional()
+    })
+    .refine((value) => value.maxPerRegion !== undefined || value.maxPerCategory !== undefined, {
+      message: "diversity requires maxPerRegion or maxPerCategory"
+    })
+    .optional(),
   query: z.string().trim().min(1).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   tags: z.array(nonEmptyString).max(30).optional(),

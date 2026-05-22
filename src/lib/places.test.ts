@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applySearchDiversity,
   buildInfantLogisticsSignal,
   buildImageMetadata,
   buildOpeningHoursDataSignal,
@@ -64,6 +65,20 @@ describe("place search helpers", () => {
     expect(query.sql).toContain(" / 1000 >= ");
     expect(query.sql).toContain(" / 1000 <= ");
     expect(query.params).toEqual([127.4348, 36.3317, 127.4348, 36.3317, 25, 127.4348, 36.3317, 120]);
+  });
+
+  it("limits sorted search candidates by region and category diversity caps", () => {
+    const items = [
+      { name: "A", primaryCategory: "museum", region: { sido: "충남", sigungu: "부여군" } },
+      { name: "B", primaryCategory: "museum", region: { sido: "충남", sigungu: "부여군" } },
+      { name: "C", primaryCategory: "museum", region: { sido: "세종", sigungu: "세종시" } },
+      { name: "D", primaryCategory: "park", region: { sido: "세종", sigungu: "세종시" } },
+      { name: "E", primaryCategory: "park", region: { sido: "대전", sigungu: "동구" } }
+    ];
+
+    expect(applySearchDiversity(items, { maxPerRegion: 1 }).map((item) => item.name)).toEqual(["A", "C", "E"]);
+    expect(applySearchDiversity(items, { maxPerCategory: 1 }).map((item) => item.name)).toEqual(["A", "D"]);
+    expect(applySearchDiversity(items, { maxPerRegion: 1, maxPerCategory: 1 }).map((item) => item.name)).toEqual(["A", "D"]);
   });
 
   it("canonicalizes related-place pairs so the relation is bidirectional", () => {

@@ -605,6 +605,20 @@ components:
           maximum: 500
           description: >-
             Hard upper distance bound from `origin`. Use with `filterByRadius: false` when this explicit band should replace the default radius filter; requires `origin`.
+        diversity:
+          type: object
+          description: Optional post-ranking caps that keep agent planning results from over-concentrating in one region or category.
+          properties:
+            maxPerRegion:
+              type: integer
+              minimum: 1
+              maximum: 20
+              description: Maximum number of results per `regionSido` + `regionSigungu` group before pagination.
+            maxPerCategory:
+              type: integer
+              minimum: 1
+              maximum: 20
+              description: Maximum number of results per primary category before pagination.
         query:
           type: string
         primaryCategories:

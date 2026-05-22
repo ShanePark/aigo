@@ -397,6 +397,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       address: place.address,
       description: place.description,
       playFeatures: place.playFeatures,
+      region: place.region,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
@@ -434,13 +435,14 @@ export async function searchPlaces(input: SearchPlacesInput) {
     return (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY);
   });
 
-  const items = scored.slice(input.offset, input.offset + input.limit);
+  const diversified = applySearchDiversity(scored, normalizedInput.diversity);
+  const items = diversified.slice(input.offset, input.offset + input.limit);
   const itemPlaceIds = items.map((item) => item.placeId);
   const [imageMap, sourceSummaryMap] = await Promise.all([getImageMapForPlaces(itemPlaceIds), getSourceSummaryMapForPlaces(itemPlaceIds)]);
   const enrichedItems = items.map((item) => {
     const imageRows = imageMap.get(item.placeId) ?? [];
     const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
-    const { openingHoursData, ...publicItem } = item;
+    const { openingHoursData, region, ...publicItem } = item;
     return {
       ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
@@ -454,7 +456,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
     items: enrichedItems,
     meta: {
       count: enrichedItems.length,
-      total: scored.length,
+      total: diversified.length,
       limit: input.limit,
       offset: input.offset,
       projection: normalizedInput.projection ?? "full",
@@ -487,6 +489,37 @@ export function compactSearchPlacesResponse(response: FullSearchResponse) {
       projection: "compact" as const
     }
   };
+}
+
+export function applySearchDiversity<
+  T extends {
+    primaryCategory: string;
+    region?: { sido: string | null; sigungu: string | null } | null;
+  }
+>(items: T[], diversity: SearchPlacesInput["diversity"]) {
+  if (!diversity?.maxPerRegion && !diversity?.maxPerCategory) {
+    return items;
+  }
+
+  const regionCounts = new Map<string, number>();
+  const categoryCounts = new Map<string, number>();
+  const diversified: T[] = [];
+
+  for (const item of items) {
+    const regionKey = searchDiversityRegionKey(item.region);
+    const categoryKey = item.primaryCategory;
+    const regionCount = regionCounts.get(regionKey) ?? 0;
+    const categoryCount = categoryCounts.get(categoryKey) ?? 0;
+
+    if (diversity.maxPerRegion !== undefined && regionCount >= diversity.maxPerRegion) continue;
+    if (diversity.maxPerCategory !== undefined && categoryCount >= diversity.maxPerCategory) continue;
+
+    diversified.push(item);
+    regionCounts.set(regionKey, regionCount + 1);
+    categoryCounts.set(categoryKey, categoryCount + 1);
+  }
+
+  return diversified;
 }
 
 export function compactSearchPlaceItem(item: FullSearchItem) {
@@ -534,6 +567,10 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     imageHealth: item.imageHealth,
     sourceSummary: item.sourceSummary
   };
+}
+
+function searchDiversityRegionKey(region: { sido: string | null; sigungu: string | null } | null | undefined) {
+  return [region?.sido?.trim() || "unknown_sido", region?.sigungu?.trim() || "unknown_sigungu"].join(":");
 }
 
 function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPlace>["scoring"]) {
