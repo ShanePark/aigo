@@ -380,24 +380,65 @@ describe("place search helpers", () => {
       ],
       { now: new Date("2026-05-22T07:00:00.000Z") }
     );
+    const visit = {
+      reservationRequired: "unknown",
+      walkInAvailable: "unknown",
+      sessionBased: "yes",
+      sameDayAvailabilityKnown: "unknown"
+    };
 
     expect(buildOpeningHoursDataSignal({ note: "공식 페이지 확인 필요" })).toEqual({
       dataStatus: "unstructured",
       hasData: true,
       hasStructuredData: false
     });
-    expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary)).toMatchObject({
+    expect(buildOpeningHoursDataSignal("월-토 10:00-17:00")).toEqual({
+      dataStatus: "unstructured",
+      hasData: true,
+      hasStructuredData: false
+    });
+    expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)).toMatchObject({
       dataStatus: "missing",
       confidenceLevel: "source_backed",
       sourceBacked: true,
       bestSourceTier: "official",
       latestCheckedAt: "2026-05-22T06:30:00.000Z",
-      hasStructuredData: false
+      hasStructuredData: false,
+      structuredDataGaps: ["openingHours", "reservationRequired", "walkInAvailable", "sameDayAvailabilityKnown"]
     });
     expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal({ openNow: true }), sourceSummary)).toMatchObject({
       dataStatus: "structured",
       confidenceLevel: "high",
-      hasStructuredData: true
+      hasStructuredData: true,
+      structuredDataGaps: []
+    });
+  });
+
+  it("treats reservation and session sources as operational evidence", () => {
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "official_site",
+        title: "공식 예약 안내",
+        summary: "회차별 입장 예약과 현장 입장 가능 여부를 안내한다.",
+        checked_at: "2026-05-22T06:30:00.000Z",
+        created_at: "2026-05-22T06:45:00.000Z"
+      }
+    ]);
+
+    expect(sourceSummary.openingHoursEvidence).toMatchObject({
+      sourceCount: 1,
+      bestSourceTier: "official"
+    });
+    expect(
+      buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, {
+        reservationRequired: "unknown",
+        walkInAvailable: "unknown",
+        sessionBased: "unknown",
+        sameDayAvailabilityKnown: "unknown"
+      })
+    ).toMatchObject({
+      sourceBacked: true,
+      structuredDataGaps: ["openingHours", "reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"]
     });
   });
 

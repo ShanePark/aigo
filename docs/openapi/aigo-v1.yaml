@@ -1413,7 +1413,7 @@ components:
           $ref: "#/components/schemas/OpeningHoursEvidenceSummary"
     OpeningHoursSummary:
       type: object
-      description: Search-time operating-hours confidence summary. This is separate from `OPEN_NOW`/`OPENING_HOURS_UNKNOWN` reason codes so source-backed but unstructured hours are still visible.
+      description: Search/detail operating-hours and booking confidence summary. This is separate from `OPEN_NOW`/`OPENING_HOURS_UNKNOWN` reason codes so source-backed but unstructured hours are still visible.
       required:
         - dataStatus
         - confidenceLevel
@@ -1425,6 +1425,7 @@ components:
         - latestCheckedAt
         - freshnessStatus
         - hasStructuredData
+        - structuredDataGaps
       properties:
         dataStatus:
           type: string
@@ -1458,6 +1459,12 @@ components:
           enum: [checked_today, recent, aging, stale, unchecked]
         hasStructuredData:
           type: boolean
+        structuredDataGaps:
+          type: array
+          description: Source-backed operation fields that still need structured propagation from evidence sources.
+          items:
+            type: string
+            enum: [openingHours, reservationRequired, walkInAvailable, sessionBased, sameDayAvailabilityKnown]
     OpeningHoursEvidenceSummary:
       type: object
       required: [sourceCount, sourceTypes, bestSourceType, bestSourceTier, latestCheckedAt, freshnessStatus]
@@ -2020,6 +2027,7 @@ components:
         - primaryImage
         - images
         - relatedPlaces
+        - sourceSummary
         - playFeatures
         - status
         - dataConfidence
@@ -2028,6 +2036,7 @@ components:
         - facilities
         - visit
         - notes
+        - openingHoursSummary
         - version
         - createdAt
         - updatedAt
@@ -2117,6 +2126,8 @@ components:
           description: Bidirectional related-place summaries for nearby/same-building/same-site browsing.
           items:
             $ref: "#/components/schemas/RelatedPlace"
+        sourceSummary:
+          $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
         status:
@@ -2134,6 +2145,8 @@ components:
         notes:
           $ref: "#/components/schemas/PlaceNotes"
         openingHours: {}
+        openingHoursSummary:
+          $ref: "#/components/schemas/OpeningHoursSummary"
         version:
           type: integer
         createdAt:

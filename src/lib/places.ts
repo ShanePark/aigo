@@ -346,11 +346,15 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
   const sources = sourceRows.map(mapSource);
   const imageMetadata = await getPlaceImageMetadata(placeId, executor);
   const relatedPlaces = await getRelatedPlaces(placeId, executor);
+  const place = mapPlace(rows[0]);
+  const sourceSummary = buildSearchSourceSummary(sourceRows);
 
   return {
-    ...mapPlace(rows[0]),
+    ...place,
     ...imageMetadata,
     relatedPlaces,
+    sourceSummary,
+    openingHoursSummary: buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(place.openingHours), sourceSummary, place.visit),
     sources,
     versions: latestVersions.map(mapVersionSummary)
   };
@@ -448,7 +452,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       ...buildImageMetadataFromRows(imageRows),
       imageHealth: buildSearchImageHealth(imageRows),
       sourceSummary,
-      openingHoursSummary: buildSearchOpeningHoursSummary(openingHoursData, sourceSummary)
+      openingHoursSummary: buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit)
     };
   });
 
@@ -2735,19 +2739,38 @@ const openingHoursEvidenceTerms = [
   "hours",
   "operating",
   "business hour",
+  "reservation",
+  "booking",
+  "session",
   "영업시간",
   "운영시간",
   "이용시간",
   "운영",
   "영업",
   "휴무",
-  "휴관"
+  "휴관",
+  "예약",
+  "회차",
+  "세션",
+  "입장"
 ];
 
 type OpeningHoursDataSignal = ReturnType<typeof buildOpeningHoursDataSignal>;
 type SearchSourceSummary = ReturnType<typeof buildSearchSourceSummary>;
+type OpeningHoursVisitSignal = Pick<
+  ReturnType<typeof mapPlace>["visit"],
+  "reservationRequired" | "walkInAvailable" | "sessionBased" | "sameDayAvailabilityKnown"
+>;
 
 export function buildOpeningHoursDataSignal(openingHours: unknown) {
+  if (typeof openingHours === "string" && openingHours.trim().length > 0) {
+    return {
+      dataStatus: "unstructured",
+      hasData: true,
+      hasStructuredData: false
+    };
+  }
+
   if (!isPlainRecord(openingHours) || Object.keys(openingHours).length === 0) {
     return {
       dataStatus: "missing",
@@ -2764,7 +2787,11 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
   };
 }
 
-export function buildSearchOpeningHoursSummary(dataSignal: OpeningHoursDataSignal, sourceSummary: SearchSourceSummary) {
+export function buildSearchOpeningHoursSummary(
+  dataSignal: OpeningHoursDataSignal,
+  sourceSummary: SearchSourceSummary,
+  visit?: OpeningHoursVisitSignal
+) {
   const sourceEvidence = sourceSummary.openingHoursEvidence;
   const sourceBacked = sourceEvidence.sourceCount > 0;
   const confidenceLevel = openingHoursConfidenceLevel(dataSignal, sourceEvidence);
@@ -2779,8 +2806,21 @@ export function buildSearchOpeningHoursSummary(dataSignal: OpeningHoursDataSigna
     sourceTypes: sourceEvidence.sourceTypes,
     latestCheckedAt: sourceEvidence.latestCheckedAt,
     freshnessStatus: sourceEvidence.freshnessStatus,
-    hasStructuredData: dataSignal.hasStructuredData
+    hasStructuredData: dataSignal.hasStructuredData,
+    structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : []
   };
+}
+
+function openingHoursStructuredDataGaps(dataSignal: OpeningHoursDataSignal, visit?: OpeningHoursVisitSignal) {
+  const gaps: string[] = [];
+  if (!dataSignal.hasStructuredData) gaps.push("openingHours");
+  if (!visit) return gaps;
+
+  for (const field of ["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"] as const) {
+    if (visit[field] === "unknown") gaps.push(field);
+  }
+
+  return gaps;
 }
 
 function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceEvidence: SearchSourceSummary["openingHoursEvidence"]) {
