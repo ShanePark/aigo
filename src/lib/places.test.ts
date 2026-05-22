@@ -8,6 +8,7 @@ import {
   buildSearchOpeningHoursSummary,
   buildSearchQuery,
   buildSearchImageHealth,
+  buildSearchCoursePlan,
   buildSearchPreferenceSemantics,
   buildSearchSourceSummary,
   categoryClauseForKeywordTerm,
@@ -24,6 +25,48 @@ import {
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
 } from "@/lib/places";
+
+type CoursePlanTestItem = Parameters<typeof buildSearchCoursePlan>[0][number];
+
+function courseItem(
+  overrides: {
+    id: string;
+    name: string;
+    primaryCategory: string;
+    distanceKm: number | null;
+    score: number;
+    averageStayMinutes?: number | null;
+    parentEffortLevel?: number | null;
+    childEngagementLevel?: number | null;
+    indoorType?: string;
+    strollerFriendly?: string;
+    elevator?: string;
+    nursingRoom?: string;
+    diaperChangingTable?: string;
+    parkingAvailable?: string;
+    babyChair?: string;
+    foodAllowed?: string;
+  }
+) {
+  return {
+    ...overrides,
+    visit: {
+      averageStayMinutes: overrides.averageStayMinutes ?? 90,
+      parentEffortLevel: overrides.parentEffortLevel ?? null,
+      childEngagementLevel: overrides.childEngagementLevel ?? null
+    },
+    facilities: {
+      indoorType: overrides.indoorType ?? "unknown",
+      strollerFriendly: overrides.strollerFriendly ?? "unknown",
+      elevator: overrides.elevator ?? "unknown",
+      nursingRoom: overrides.nursingRoom ?? "unknown",
+      diaperChangingTable: overrides.diaperChangingTable ?? "unknown",
+      parkingAvailable: overrides.parkingAvailable ?? "unknown",
+      babyChair: overrides.babyChair ?? "unknown",
+      foodAllowed: overrides.foodAllowed ?? "unknown"
+    }
+  } as unknown as CoursePlanTestItem;
+}
 
 describe("place search helpers", () => {
   const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
@@ -518,6 +561,62 @@ describe("place search helpers", () => {
     expect(compact).not.toHaveProperty("images");
     expect(compact).not.toHaveProperty("playFeatures");
     expect(compact).not.toHaveProperty("scoring");
+  });
+
+  it("groups ranked search items into a practical course plan", () => {
+    const plan = buildSearchCoursePlan([
+      courseItem({
+        id: "anchor",
+        name: "어린이 과학관",
+        primaryCategory: "science_museum",
+        distanceKm: 42,
+        score: 91,
+        childEngagementLevel: 5,
+        parentEffortLevel: 3
+      }),
+      courseItem({
+        id: "second",
+        name: "근처 숲 놀이터",
+        primaryCategory: "park",
+        distanceKm: 44,
+        score: 83,
+        averageStayMinutes: 60
+      }),
+      courseItem({
+        id: "meal",
+        name: "놀이방 식당",
+        primaryCategory: "family_restaurant",
+        distanceKm: 45,
+        score: 78,
+        babyChair: "yes",
+        foodAllowed: "yes"
+      }),
+      courseItem({
+        id: "nap",
+        name: "귀가길 휴게소",
+        primaryCategory: "rest_area",
+        distanceKm: 75,
+        score: 72,
+        parentEffortLevel: 1
+      }),
+      courseItem({
+        id: "fallback",
+        name: "실내 쇼핑몰",
+        primaryCategory: "shopping_mall",
+        distanceKm: 8,
+        score: 70,
+        indoorType: "indoor",
+        strollerFriendly: "yes",
+        elevator: "yes",
+        nursingRoom: "partial"
+      })
+    ]);
+
+    expect(plan.anchor).toMatchObject({ id: "anchor", driveBurden: "moderate", estimatedParentEffort: 3 });
+    expect(plan.optionalSecondStop).toMatchObject({ id: "second" });
+    expect(plan.mealCareBase).toMatchObject({ id: "meal", reasonCodes: expect.arrayContaining(["COURSE_MEAL_CARE_BASE"]) });
+    expect(plan.napBreak).toMatchObject({ id: "nap", reasonCodes: expect.arrayContaining(["COURSE_NAP_BREAK"]) });
+    expect(plan.abortFallback).toMatchObject({ id: "fallback", reasonCodes: expect.arrayContaining(["COURSE_ABORT_FALLBACK"]) });
   });
 
   it("turns facility words in ordinary keyword queries into soft preferences", () => {

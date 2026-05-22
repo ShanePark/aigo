@@ -103,6 +103,15 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
+  it("accepts optional course planning mode for agent search calls", () => {
+    const result = searchPlacesSchema.parse({
+      query: "주말 반나절",
+      coursePlan: true
+    });
+
+    expect(result.coursePlan).toBe(true);
+  });
+
   it("accepts common agent aliases for search location and child ages", () => {
     const result = searchPlacesSchema.parse({
       location: { lat: 36.35, lng: 127.38, label: "대전역" },

@@ -678,6 +678,10 @@ components:
           enum: [full, compact]
           default: full
           description: Use `compact` to return lightweight search items for planning and agent calls. Default `full` preserves the complete card/detail-oriented item shape.
+        coursePlan:
+          type: boolean
+          default: false
+          description: When true, include a lightweight role-based itinerary/course plan in response meta using the ranked result set.
         limit:
           type: integer
           minimum: 1
@@ -1496,6 +1500,59 @@ components:
           enum: [positive, partial, negative, unknown, neutral]
         priority:
           type: integer
+    SearchCoursePlanCandidate:
+      type: object
+      required: [id, name, primaryCategory, distanceKm, score, estimatedParentEffort, driveBurden, reasonCodes]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        primaryCategory:
+          type: string
+        distanceKm:
+          type:
+            - number
+            - "null"
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        estimatedParentEffort:
+          type: integer
+          minimum: 1
+          maximum: 5
+        driveBurden:
+          type: string
+          enum: [nearby, easy, moderate, heavy, unknown]
+        reasonCodes:
+          type: array
+          items:
+            type: string
+    SearchCoursePlan:
+      type: object
+      required: [anchor, optionalSecondStop, mealCareBase, napBreak, abortFallback]
+      properties:
+        anchor:
+          anyOf:
+            - $ref: "#/components/schemas/SearchCoursePlanCandidate"
+            - type: "null"
+        optionalSecondStop:
+          anyOf:
+            - $ref: "#/components/schemas/SearchCoursePlanCandidate"
+            - type: "null"
+        mealCareBase:
+          anyOf:
+            - $ref: "#/components/schemas/SearchCoursePlanCandidate"
+            - type: "null"
+        napBreak:
+          anyOf:
+            - $ref: "#/components/schemas/SearchCoursePlanCandidate"
+            - type: "null"
+        abortFallback:
+          anyOf:
+            - $ref: "#/components/schemas/SearchCoursePlanCandidate"
+            - type: "null"
     SearchPlacesResponse:
       type: object
       required: [items, meta]
@@ -1524,6 +1581,10 @@ components:
             origin:
               anyOf:
                 - $ref: "#/components/schemas/Origin"
+                - type: "null"
+            coursePlan:
+              anyOf:
+                - $ref: "#/components/schemas/SearchCoursePlan"
                 - type: "null"
             search:
               type: object

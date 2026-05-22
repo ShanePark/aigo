@@ -461,6 +461,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       offset: input.offset,
       projection: normalizedInput.projection ?? "full",
       origin: input.origin ?? null,
+      coursePlan: normalizedInput.coursePlan ? buildSearchCoursePlan(enrichedItems) : null,
       search: {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
@@ -479,6 +480,29 @@ export async function searchPlaces(input: SearchPlacesInput) {
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
 type FullSearchItem = FullSearchResponse["items"][number];
 type SearchFacilities = ReturnType<typeof mapPlace>["facilities"];
+type SearchCoursePlanItem = {
+  id: string;
+  name: string;
+  primaryCategory: string;
+  distanceKm: number | null;
+  score: number;
+  facilities: Pick<
+    SearchFacilities,
+    | "indoorType"
+    | "strollerFriendly"
+    | "elevator"
+    | "nursingRoom"
+    | "diaperChangingTable"
+    | "parkingAvailable"
+    | "babyChair"
+    | "foodAllowed"
+  >;
+  visit: {
+    averageStayMinutes: number | null;
+    parentEffortLevel: number | null;
+    childEngagementLevel: number | null;
+  };
+};
 
 export function compactSearchPlacesResponse(response: FullSearchResponse) {
   return {
@@ -520,6 +544,30 @@ export function applySearchDiversity<
   }
 
   return diversified;
+}
+
+export function buildSearchCoursePlan(items: SearchCoursePlanItem[]) {
+  const selected = new Set<string>();
+  const pick = (predicate: (item: SearchCoursePlanItem) => boolean) => {
+    const candidate = items.find((item) => !selected.has(item.id) && predicate(item));
+    if (!candidate) return null;
+    selected.add(candidate.id);
+    return coursePlanCandidate(candidate);
+  };
+
+  const anchor = pick(isCourseAnchorCandidate) ?? pick(() => true);
+  const optionalSecondStop = pick((item) => isCourseAnchorCandidate(item) || isShortSecondStopCandidate(item));
+  const mealCareBase = pick(isMealCareBaseCandidate);
+  const napBreak = pick(isNapBreakCandidate);
+  const abortFallback = pick(isAbortFallbackCandidate);
+
+  return {
+    anchor,
+    optionalSecondStop,
+    mealCareBase,
+    napBreak,
+    abortFallback
+  };
 }
 
 export function compactSearchPlaceItem(item: FullSearchItem) {
@@ -571,6 +619,88 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
 
 function searchDiversityRegionKey(region: { sido: string | null; sigungu: string | null } | null | undefined) {
   return [region?.sido?.trim() || "unknown_sido", region?.sigungu?.trim() || "unknown_sigungu"].join(":");
+}
+
+function coursePlanCandidate(item: SearchCoursePlanItem) {
+  return {
+    id: item.id,
+    name: item.name,
+    primaryCategory: item.primaryCategory,
+    distanceKm: item.distanceKm,
+    score: item.score,
+    estimatedParentEffort: estimatedCourseParentEffort(item),
+    driveBurden: courseDriveBurden(item.distanceKm),
+    reasonCodes: coursePlanReasonCodes(item)
+  };
+}
+
+function isCourseAnchorCandidate(item: SearchCoursePlanItem) {
+  return (
+    ["kids_cafe", "indoor_playground", "toy_library", "library", "museum", "science_museum", "experience_center", "aquarium_zoo", "park", "accommodation"].includes(
+      item.primaryCategory
+    ) || (item.visit.childEngagementLevel ?? 0) >= 4
+  );
+}
+
+function isShortSecondStopCandidate(item: SearchCoursePlanItem) {
+  return (item.visit.averageStayMinutes ?? 90) <= 90 || item.primaryCategory === "park" || item.primaryCategory === "shopping_mall";
+}
+
+function isMealCareBaseCandidate(item: SearchCoursePlanItem) {
+  return (
+    ["family_restaurant", "family_cafe", "shopping_mall", "rest_area"].includes(item.primaryCategory) ||
+    positiveTriState(item.facilities.babyChair) ||
+    positiveTriState(item.facilities.foodAllowed)
+  );
+}
+
+function isNapBreakCandidate(item: SearchCoursePlanItem) {
+  return (
+    ["rest_area", "shopping_mall", "accommodation", "park"].includes(item.primaryCategory) ||
+    (item.visit.parentEffortLevel !== null && item.visit.parentEffortLevel <= 2)
+  );
+}
+
+function isAbortFallbackCandidate(item: SearchCoursePlanItem) {
+  const facilitySignals = [
+    item.facilities.strollerFriendly,
+    item.facilities.elevator,
+    item.facilities.nursingRoom,
+    item.facilities.diaperChangingTable,
+    item.facilities.parkingAvailable
+  ];
+  const supportCount = facilitySignals.filter(positiveTriState).length;
+  return (item.facilities.indoorType === "indoor" || item.facilities.indoorType === "mixed") && supportCount >= 2;
+}
+
+function positiveTriState(value: string) {
+  return value === "yes" || value === "partial";
+}
+
+function estimatedCourseParentEffort(item: SearchCoursePlanItem) {
+  if (typeof item.visit.parentEffortLevel === "number") return item.visit.parentEffortLevel;
+  if (item.distanceKm !== null && item.distanceKm >= 80) return 4;
+  if (item.distanceKm !== null && item.distanceKm >= 35) return 3;
+  if (isAbortFallbackCandidate(item) || isMealCareBaseCandidate(item)) return 2;
+  return 3;
+}
+
+function courseDriveBurden(distanceKm: number | null) {
+  if (distanceKm === null) return "unknown";
+  if (distanceKm < 10) return "nearby";
+  if (distanceKm < 35) return "easy";
+  if (distanceKm < 80) return "moderate";
+  return "heavy";
+}
+
+function coursePlanReasonCodes(item: SearchCoursePlanItem) {
+  const codes = new Set<string>();
+  if (isCourseAnchorCandidate(item)) codes.add("COURSE_ANCHOR_FIT");
+  if (isMealCareBaseCandidate(item)) codes.add("COURSE_MEAL_CARE_BASE");
+  if (isNapBreakCandidate(item)) codes.add("COURSE_NAP_BREAK");
+  if (isAbortFallbackCandidate(item)) codes.add("COURSE_ABORT_FALLBACK");
+  if (item.distanceKm !== null) codes.add(`DRIVE_${courseDriveBurden(item.distanceKm).toUpperCase()}`);
+  return Array.from(codes);
 }
 
 function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPlace>["scoring"]) {

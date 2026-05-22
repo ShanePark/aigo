@@ -383,6 +383,7 @@ async function safeSearch(input: SearchPlacesInput) {
         offset: input.offset,
         projection: input.projection ?? "full",
         origin: input.origin ?? null,
+        coursePlan: null,
         search: {
           originalQuery: input.query ?? null,
           normalizedQuery: input.query ?? null,
