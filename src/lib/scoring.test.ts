@@ -12,8 +12,7 @@ const baseInput: SearchPlacesInput = {
     parkingAvailable: true,
     strollerFriendly: true,
     nursingRoom: true,
-    diaperChangingTable: true,
-    foodAllowed: true
+    babyChair: true
   },
   sort: "recommended",
   limit: 20,
@@ -72,7 +71,7 @@ describe("scorePlace", () => {
 
     expect(result.reasonCodes).toContain("AGE_HINT_MISMATCH");
     expect(result.reasonCodes).toContain("PARKING_UNKNOWN");
-    expect(result.reasonCodes).toContain("FOOD_ALLOWED_UNKNOWN");
+    expect(result.reasonCodes).toContain("BABY_CHAIR_UNKNOWN");
     expect(result.score).toBeGreaterThan(0);
   });
 
@@ -569,9 +568,7 @@ describe("scorePlace", () => {
       preferences: {
         indoorTypes: ["indoor" as const],
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true,
-        elevator: true
+        nursingRoom: true
       }
     };
     const kidsCafe = scorePlace(
@@ -612,11 +609,11 @@ describe("scorePlace", () => {
         foodAllowed: "partial",
         distanceKm: 2,
         scoring: {
-          placeScore: 8.8,
+          placeScore: 7.6,
           placeScoreRationale: "객관적 가족 편의는 좋지만 즉시 아이 활동 목적지는 아님.",
-          externalRatingScore: 8.2,
+          externalRatingScore: 7.4,
           externalReviewCount: 250,
-          searchEvidenceScore: 8,
+          searchEvidenceScore: 7,
           scoreSignals: {},
           scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
         }

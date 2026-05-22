@@ -671,7 +671,7 @@ components:
         preferences:
           type: object
           description: >-
-            Facility preference signals. Defaults to soft ranking; set `preferenceMode: required` to exclude unknown or mismatched facility values.
+            Search filter preference signals for high-value parent decisions. Defaults to soft ranking; set `preferenceMode: required` to exclude unknown or mismatched facility values.
           properties:
             indoorTypes:
               type: array
@@ -683,21 +683,15 @@ components:
               type: boolean
             nursingRoom:
               type: boolean
-            diaperChangingTable:
-              type: boolean
             kidsToilet:
               type: boolean
-            elevator:
-              type: boolean
             babyChair:
-              type: boolean
-            foodAllowed:
               type: boolean
         preferenceMode:
           type: string
           enum: [soft, required]
           default: soft
-          description: Controls whether `preferences` are soft ranking signals or required filters. In `required` mode, positive facility preferences require `yes` or `partial` evidence and indoorTypes must match.
+          description: Controls whether `preferences` are soft ranking signals or required filters. In `required` mode, positive search filter preferences require `yes` or `partial` evidence and indoorTypes must match.
         sort:
           type: string
           enum: [recommended, distance, updatedAt]

@@ -240,11 +240,8 @@ const searchPlacesBaseSchema = z.object({
       parkingAvailable: z.boolean().optional(),
       strollerFriendly: z.boolean().optional(),
       nursingRoom: z.boolean().optional(),
-      diaperChangingTable: z.boolean().optional(),
       kidsToilet: z.boolean().optional(),
-      elevator: z.boolean().optional(),
-      babyChair: z.boolean().optional(),
-      foodAllowed: z.boolean().optional()
+      babyChair: z.boolean().optional()
     })
     .optional(),
   sort: z.enum(["recommended", "distance", "updatedAt"]).default("recommended"),

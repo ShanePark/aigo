@@ -1766,11 +1766,8 @@ const requiredPreferenceColumnMap = {
   parkingAvailable: "parking_available",
   strollerFriendly: "stroller_friendly",
   nursingRoom: "nursing_room",
-  diaperChangingTable: "diaper_changing_table",
   kidsToilet: "kids_toilet",
-  elevator: "elevator",
-  babyChair: "baby_chair",
-  foodAllowed: "food_allowed"
+  babyChair: "baby_chair"
 } as const;
 
 export function shouldUseAnyKeywordMatch(query: string) {
@@ -2015,22 +2012,21 @@ const queryPreferenceTerms = {
   parkingAvailable: new Set(["주차", "주차장", "parking"]),
   strollerFriendly: new Set(["유모차", "쌍둥이유모차", "stroller"]),
   nursingRoom: new Set(["수유실", "수유", "수유공간", "베이비라운지", "베이비룸", "유아휴게실", "아기휴게실", "분유", "nursing"]),
-  diaperChangingTable: new Set([
-    "기저귀",
-    "기저귀교환",
-    "기저귀교환대",
-    "기저귀갈이",
-    "기저귀갈기",
-    "베이비라운지",
-    "베이비룸",
-    "유아휴게실",
-    "아기휴게실",
-    "diaper"
-  ]),
   kidsToilet: new Set(["어린이화장실", "유아화장실", "아이화장실"]),
-  elevator: new Set(["엘리베이터", "승강기", "elevator"]),
   babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"])
-} satisfies Record<keyof Omit<NonNullable<SearchPlacesInput["preferences"]>, "indoorTypes" | "foodAllowed">, Set<string>>;
+} satisfies Record<keyof Omit<NonNullable<SearchPlacesInput["preferences"]>, "indoorTypes">, Set<string>>;
+
+const nonFilterLogisticsTerms = new Set([
+  "기저귀",
+  "기저귀교환",
+  "기저귀교환대",
+  "기저귀갈이",
+  "기저귀갈기",
+  "엘리베이터",
+  "승강기",
+  "diaper",
+  "elevator"
+]);
 
 const indoorPreferenceTerms = new Set([
   "실내",
@@ -2328,8 +2324,6 @@ function inferPreferencesFromQuery(query: string) {
       preferences.parkingAvailable = true;
       preferences.strollerFriendly = true;
       preferences.nursingRoom = true;
-      preferences.diaperChangingTable = true;
-      preferences.elevator = true;
     }
     for (const [key, values] of Object.entries(queryPreferenceTerms)) {
       if (values.has(term)) {
@@ -2431,7 +2425,7 @@ function isQueryStopTerm(term: string) {
 
 function isQueryPreferenceTerm(term: string) {
   if (indoorPreferenceTerms.has(term) || outdoorPreferenceTerms.has(term)) return true;
-  return Object.values(queryPreferenceTerms).some((terms) => terms.has(term));
+  return nonFilterLogisticsTerms.has(term) || Object.values(queryPreferenceTerms).some((terms) => terms.has(term));
 }
 
 function inferLiteralQueryAlias(query: string) {

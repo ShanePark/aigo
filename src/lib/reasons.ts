@@ -117,11 +117,8 @@ const preferencePrefixes: Array<[keyof NonNullable<SearchPlacesInput["preference
   ["parkingAvailable", "PARKING"],
   ["strollerFriendly", "STROLLER"],
   ["nursingRoom", "NURSING_ROOM"],
-  ["diaperChangingTable", "DIAPER_TABLE"],
   ["kidsToilet", "KIDS_TOILET"],
-  ["elevator", "ELEVATOR"],
-  ["babyChair", "BABY_CHAIR"],
-  ["foodAllowed", "FOOD_ALLOWED"]
+  ["babyChair", "BABY_CHAIR"]
 ];
 
 export function describeReasonCode(code: string, input?: SearchPlacesInput): ReasonMetadata {

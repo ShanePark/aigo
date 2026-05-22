@@ -178,14 +178,14 @@ describe("place search helpers", () => {
       preferenceMode: "required",
       preferences: {
         indoorTypes: ["indoor", "mixed"],
-        diaperChangingTable: true,
+        babyChair: true,
         nursingRoom: true,
         parkingAvailable: false
       }
     });
 
     expect(query.sql).toContain("indoor_type = any($1::text[])");
-    expect(query.sql).toContain("diaper_changing_table in ('yes', 'partial')");
+    expect(query.sql).toContain("baby_chair in ('yes', 'partial')");
     expect(query.sql).toContain("nursing_room in ('yes', 'partial')");
     expect(query.sql).not.toContain("parking_available in ('yes', 'partial')");
     expect(query.params).toEqual([["indoor", "mixed"]]);
@@ -536,21 +536,21 @@ describe("place search helpers", () => {
   it("describes search preferences as soft ranking signals", () => {
     expect(
       buildSearchPreferenceSemantics({
-        diaperChangingTable: true,
+        babyChair: true,
         nursingRoom: true,
         parkingAvailable: false,
         indoorTypes: ["indoor", "mixed"]
       })
     ).toEqual({
       mode: "soft",
-      requestedKeys: ["diaperChangingTable", "indoorTypes", "nursingRoom"],
+      requestedKeys: ["babyChair", "indoorTypes", "nursingRoom"],
       unknownValuesRemainEligible: true,
       mismatchesRemainEligible: true,
       hardFilteringSupported: true
     });
-    expect(buildSearchPreferenceSemantics({ diaperChangingTable: true }, "required")).toEqual({
+    expect(buildSearchPreferenceSemantics({ babyChair: true }, "required")).toEqual({
       mode: "required",
-      requestedKeys: ["diaperChangingTable"],
+      requestedKeys: ["babyChair"],
       unknownValuesRemainEligible: false,
       mismatchesRemainEligible: false,
       hardFilteringSupported: true
@@ -771,7 +771,6 @@ describe("place search helpers", () => {
       query: "키즈카페",
       preferences: {
         nursingRoom: true,
-        diaperChangingTable: true,
         strollerFriendly: true
       }
     });
@@ -821,8 +820,7 @@ describe("place search helpers", () => {
         indoorTypes: ["indoor", "mixed"],
         parkingAvailable: true,
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "비오는날 쌍둥이 유모차" })).toMatchObject({
@@ -832,9 +830,7 @@ describe("place search helpers", () => {
         indoorTypes: ["indoor", "mixed"],
         parkingAvailable: true,
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true,
-        elevator: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 30분 키즈카페 수유실" })).toMatchObject({
@@ -873,10 +869,7 @@ describe("place search helpers", () => {
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "한밭수목원 근처 키즈룸 식당 엘리베이터" })).toMatchObject({
-      query: "한밭수목원 놀이방식당",
-      preferences: {
-        elevator: true
-      }
+      query: "한밭수목원 놀이방식당"
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "수통골 놀이방 식당 아기의자 주차" })).toMatchObject({
       query: "수통골 놀이방식당"
@@ -906,8 +899,7 @@ describe("place search helpers", () => {
       query: undefined,
       preferences: {
         indoorTypes: ["indoor", "mixed"],
-        nursingRoom: true,
-        diaperChangingTable: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "쌍둥이 유모차 수유실 기저귀 갈기 편한 곳" })).toMatchObject({
@@ -915,9 +907,7 @@ describe("place search helpers", () => {
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true,
-        elevator: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "비오는날 아이랑 실내 가볼만한곳 유모차 수유실 기저귀" })).toMatchObject({
@@ -926,8 +916,7 @@ describe("place search helpers", () => {
       preferences: {
         indoorTypes: ["indoor", "mixed"],
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "밥 먹으면서 애 놀릴 수 있는 곳" })).toMatchObject({
@@ -979,8 +968,7 @@ describe("place search helpers", () => {
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
-        nursingRoom: true,
-        diaperChangingTable: true
+        nursingRoom: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 기준 1시간권 자연 실내대피 비오면 피할 곳" })).toMatchObject({

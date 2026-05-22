@@ -26,9 +26,7 @@ const childAgeMonths = [32, 7, 7];
 const familyLogistics = {
   parkingAvailable: true,
   strollerFriendly: true,
-  nursingRoom: true,
-  diaperChangingTable: true,
-  elevator: true
+  nursingRoom: true
 };
 
 const scenarios: Scenario[] = [
@@ -44,7 +42,7 @@ const scenarios: Scenario[] = [
       preferences: {
         ...familyLogistics,
         indoorTypes: ["indoor", "mixed"],
-        foodAllowed: true
+        babyChair: true
       },
       primaryCategories: ["kids_cafe", "indoor_playground", "shopping_mall", "toy_store", "library"],
       sort: "recommended",
@@ -142,7 +140,7 @@ const scenarios: Scenario[] = [
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
-        diaperChangingTable: true
+        nursingRoom: true
       },
       primaryCategories: ["accommodation"],
       sort: "recommended",
@@ -163,7 +161,7 @@ const scenarios: Scenario[] = [
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
-        diaperChangingTable: true
+        nursingRoom: true
       },
       primaryCategories: ["science_museum", "museum", "experience_center", "library", "shopping_mall", "park"],
       sort: "recommended",
@@ -183,7 +181,7 @@ const scenarios: Scenario[] = [
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
-        diaperChangingTable: true
+        nursingRoom: true
       },
       primaryCategories: ["park", "rest_area", "experience_center", "science_museum"],
       sort: "recommended",

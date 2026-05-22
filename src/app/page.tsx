@@ -172,20 +172,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 <span>수유실</span>
               </label>
               <label className="check">
-                <input name="diaper" type="checkbox" defaultChecked={effectiveParams.diaper === "on"} />
-                <span>기저귀</span>
-              </label>
-              <label className="check">
-                <input name="food" type="checkbox" defaultChecked={effectiveParams.food === "on"} />
-                <span>간식</span>
-              </label>
-              <label className="check">
                 <input name="babyChair" type="checkbox" defaultChecked={effectiveParams.babyChair === "on"} />
                 <span>아기의자</span>
-              </label>
-              <label className="check">
-                <input name="elevator" type="checkbox" defaultChecked={effectiveParams.elevator === "on"} />
-                <span>엘리베이터</span>
               </label>
             </div>
             <div className="advanced-grid">
@@ -344,10 +332,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       parkingAvailable: params.parking === "on" ? true : undefined,
       strollerFriendly: params.stroller === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
-      diaperChangingTable: params.diaper === "on" ? true : undefined,
-      foodAllowed: params.food === "on" ? true : undefined,
-      babyChair: params.babyChair === "on" ? true : undefined,
-      elevator: params.elevator === "on" ? true : undefined
+      babyChair: params.babyChair === "on" ? true : undefined
     },
     sort: sortParam(params),
     limit,

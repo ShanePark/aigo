@@ -32,21 +32,21 @@ describe("place schemas", () => {
       origin: { lat: 36.35, lng: 127.38 },
       preferences: {
         strollerFriendly: true,
-        foodAllowed: true
+        babyChair: true
       }
     });
 
     expect(result.limit).toBe(20);
     expect(result.radiusKm).toBe(80);
     expect(result.preferences?.strollerFriendly).toBe(true);
-    expect(result.preferences?.foodAllowed).toBe(true);
+    expect(result.preferences?.babyChair).toBe(true);
   });
 
   it("accepts required preference search mode", () => {
     const result = searchPlacesSchema.parse({
       preferenceMode: "required",
       preferences: {
-        diaperChangingTable: true,
+        babyChair: true,
         nursingRoom: true
       }
     });
