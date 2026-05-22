@@ -130,25 +130,14 @@ export default async function Home({ searchParams }: HomeProps) {
                   href={categoryGroupHref(params, groupId as CategoryGroupId)}
                   key={groupId}
                 >
-                  <Icon size={18} aria-hidden="true" />
+                  <Icon size={17} aria-hidden="true" />
                   <span>{group.label}</span>
-                  <small>{group.hint}</small>
                 </Link>
               );
             })}
           </div>
 
           <div className="filter-grid">
-            <label>
-              <span className="select-label">
-                <ArrowUpDown size={13} aria-hidden="true" />
-                정렬
-              </span>
-              <select name="sort" defaultValue={activeSort}>
-                <option value="recommended">관련도순</option>
-                <option value="distance">거리순</option>
-              </select>
-            </label>
             <label>
               <span>상황</span>
               <select name="visitContext" defaultValue={textParam(params.visitContext) || ""}>
@@ -172,46 +161,45 @@ export default async function Home({ searchParams }: HomeProps) {
             </label>
           </div>
 
-          <div className="checks" aria-label="선호 조건">
-            <label className="check">
-              <input name="indoor" type="checkbox" defaultChecked={params.indoor === "on"} />
-              <span>실내</span>
-            </label>
-            <label className="check">
-              <input name="parking" type="checkbox" defaultChecked={params.parking === "on"} />
-              <span>주차</span>
-            </label>
-            <label className="check">
-              <input name="stroller" type="checkbox" defaultChecked={params.stroller === "on"} />
-              <span>유모차</span>
-            </label>
-            <label className="check">
-              <input name="nursing" type="checkbox" defaultChecked={params.nursing === "on"} />
-              <span>수유실</span>
-            </label>
-            <label className="check">
-              <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
-              <span>기저귀</span>
-            </label>
-            <label className="check">
-              <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
-              <span>간식</span>
-            </label>
-            <label className="check">
-              <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
-              <span>아기의자</span>
-            </label>
-            <label className="check">
-              <input name="elevator" type="checkbox" defaultChecked={params.elevator === "on"} />
-              <span>엘리베이터</span>
-            </label>
-          </div>
-
           <details className="advanced-search">
             <summary>
               <SlidersHorizontal size={16} aria-hidden="true" />
               세부 조건
             </summary>
+            <div className="advanced-checks" aria-label="선호 조건">
+              <label className="check">
+                <input name="indoor" type="checkbox" defaultChecked={params.indoor === "on"} />
+                <span>실내</span>
+              </label>
+              <label className="check">
+                <input name="parking" type="checkbox" defaultChecked={params.parking === "on"} />
+                <span>주차</span>
+              </label>
+              <label className="check">
+                <input name="stroller" type="checkbox" defaultChecked={params.stroller === "on"} />
+                <span>유모차</span>
+              </label>
+              <label className="check">
+                <input name="nursing" type="checkbox" defaultChecked={params.nursing === "on"} />
+                <span>수유실</span>
+              </label>
+              <label className="check">
+                <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
+                <span>기저귀</span>
+              </label>
+              <label className="check">
+                <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
+                <span>간식</span>
+              </label>
+              <label className="check">
+                <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
+                <span>아기의자</span>
+              </label>
+              <label className="check">
+                <input name="elevator" type="checkbox" defaultChecked={params.elevator === "on"} />
+                <span>엘리베이터</span>
+              </label>
+            </div>
             <div className="advanced-grid">
               <label>
                 <span>아이 월령</span>
@@ -245,7 +233,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 <h2>{activeCategoryGroup === "stay" ? "키즈 숙소" : "주변 장소"}</h2>
                 <p>{resultCountLabel(result.meta)}</p>
               </div>
-              {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
+              <div className="result-actions">
+                <SortControls activeSort={activeSort} params={params} />
+                {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
+              </div>
             </section>
 
             <div className="results">
@@ -286,6 +277,29 @@ function ResultCard({ index, place }: { index: number; place: SearchItem }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function SortControls({
+  activeSort,
+  params
+}: {
+  activeSort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">;
+  params: Record<string, string | string[] | undefined>;
+}) {
+  return (
+    <nav className="sort-control" aria-label="목록 정렬">
+      <span>
+        <ArrowUpDown size={13} aria-hidden="true" />
+        정렬
+      </span>
+      <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
+        관련도순
+      </Link>
+      <Link className={`sort-option ${activeSort === "distance" ? "is-active" : ""}`} href={sortHref(params, "distance")}>
+        거리순
+      </Link>
+    </nav>
   );
 }
 
@@ -523,6 +537,27 @@ function categoryGroupHref(params: Record<string, string | string[] | undefined>
     query.categoryGroup = group;
   }
 
+  return { pathname: "/", query };
+}
+
+function sortHref(params: Record<string, string | string[] | undefined>, sort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page" || key === "offset" || key === "sort") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  query.sort = sort;
   return { pathname: "/", query };
 }
 
