@@ -481,6 +481,19 @@ h3 {
   position: relative;
 }
 
+.image-credit {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: -8px 0 18px;
+}
+
+.image-credit a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .version-box {
   min-width: 64px;
 }

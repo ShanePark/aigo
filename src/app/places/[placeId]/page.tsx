@@ -16,6 +16,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
   const heroImageUrl = place.imageUrls[0];
+  const heroImageSource = findHeroImageSource(place.sources);
 
   return (
     <div className="page detail-page">
@@ -38,6 +39,14 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
       </section>
 
       <PlaceImage src={heroImageUrl} alt={`${place.name} 대표 이미지`} variant="detail" />
+      {heroImageUrl && heroImageSource?.url ? (
+        <p className="image-credit">
+          이미지 출처:{" "}
+          <a href={heroImageSource.url} target="_blank" rel="noreferrer">
+            {heroImageSource.title ?? heroImageSource.sourceType}
+          </a>
+        </p>
+      ) : null}
 
       <section className="detail-grid">
         <div className="info-block">
@@ -198,6 +207,14 @@ function uniqueDisplaySources(sources: Source[]) {
   }
 
   return Array.from(grouped.values());
+}
+
+function findHeroImageSource(sources: Source[]) {
+  return sources.find((source) => {
+    if (!source.url) return false;
+    const searchable = [source.sourceType, source.title, source.summary].filter(Boolean).join(" ").toLocaleLowerCase("ko-KR");
+    return /image|visual|이미지|사진|비주얼/.test(searchable);
+  });
 }
 
 function normalizeSourceValue(value: string | null | undefined) {
