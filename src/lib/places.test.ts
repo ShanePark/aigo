@@ -134,6 +134,12 @@ describe("place search helpers", () => {
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 장난감도서관 근처" })).toMatchObject({
       query: "판암 동네놀이터"
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "장난감도서관" })).toMatchObject({
+      query: "장난감도서관"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 장난감도서관 근처" })).toMatchObject({
+      query: "장난감도서관"
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 모래놀이" })).toMatchObject({
       query: "판암"
     });

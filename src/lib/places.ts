@@ -819,6 +819,7 @@ const indoorPreferenceTerms = new Set([
 ]);
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
+const literalFallbackTerms = new Set(["장난감도서관"]);
 const queryStopTerms = new Set([
   "있는",
   "가능",
@@ -1115,7 +1116,16 @@ function stripPreferenceTerms(query: string) {
     .join(" ")
     .trim();
 
-  return stripped.length > 0 ? stripped : undefined;
+  if (stripped.length > 0) return stripped;
+
+  const literalFallback = query
+    .trim()
+    .split(/\s+/)
+    .filter((term) => literalFallbackTerms.has(term))
+    .join(" ")
+    .trim();
+
+  return literalFallback.length > 0 ? literalFallback : undefined;
 }
 
 function isQueryStopTerm(term: string) {
