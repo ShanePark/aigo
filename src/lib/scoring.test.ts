@@ -555,4 +555,242 @@ describe("scorePlace", () => {
     expect(kidsCafe.reasonCodes).toContain("CONTEXT_NEARBY_NOW_KID_PRIMARY");
     expect(genericLibrary.reasonCodes).toContain("CONTEXT_NEARBY_NOW_GENERIC_FAMILY_SPACE");
   });
+
+  it("weights playground searches toward very nearby options", () => {
+    const input = {
+      ...baseInput,
+      query: "놀이터",
+      visitContext: "nearbyNow" as const,
+      primaryCategories: ["park"],
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true
+      }
+    };
+    const shared = {
+      primaryCategory: "park",
+      tags: ["children_playground"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "outdoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "partial"
+    };
+    const nearbyPlayground = scorePlace(
+      {
+        ...shared,
+        distanceKm: 1.2,
+        scoring: {
+          placeScore: 6.8,
+          placeScoreRationale: "가까운 동네 놀이터.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 6.8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+    const fartherPlayground = scorePlace(
+      {
+        ...shared,
+        distanceKm: 12,
+        scoring: {
+          placeScore: 8.7,
+          placeScoreRationale: "콘텐츠가 더 좋지만 동네 놀이터 목적에는 먼 편.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 8.5,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+
+    expect(nearbyPlayground.score).toBeGreaterThan(fartherPlayground.score);
+    expect(nearbyPlayground.scoreBreakdown.distance).toBeGreaterThan(10);
+    expect(fartherPlayground.scoreBreakdown.distance).toBeLessThan(0);
+  });
+
+  it("lets destination lodging quality outweigh simple proximity", () => {
+    const input = {
+      ...baseInput,
+      primaryCategories: ["accommodation"],
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        diaperChangingTable: true
+      }
+    };
+    const shared = {
+      primaryCategory: "accommodation",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "mixed",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "partial",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "partial"
+    };
+    const nearbyLodging = scorePlace(
+      {
+        ...shared,
+        distanceKm: 8,
+        scoring: {
+          placeScore: 6.4,
+          placeScoreRationale: "가깝지만 키즈 콘텐츠 근거는 보통.",
+          externalRatingScore: 6.2,
+          externalReviewCount: 20,
+          searchEvidenceScore: 6.2,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+    const destinationLodging = scorePlace(
+      {
+        ...shared,
+        distanceKm: 95,
+        scoring: {
+          placeScore: 9.2,
+          placeScoreRationale: "숙박 자체의 키즈 콘텐츠와 가족 편의 근거가 강함.",
+          externalRatingScore: 8.6,
+          externalReviewCount: 240,
+          searchEvidenceScore: 8.8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+
+    expect(destinationLodging.score).toBeGreaterThan(nearbyLodging.score);
+    expect(destinationLodging.scoreBreakdown.distance).toBeGreaterThanOrEqual(0);
+    expect(destinationLodging.reasonCodes).toContain("DISTANCE_DAY_TRIP");
+  });
+
+  it("keeps kids cafe distance moderate so quality can overcome a short drive", () => {
+    const input = {
+      ...baseInput,
+      visitContext: "afterDaycare" as const,
+      primaryCategories: ["kids_cafe"],
+      preferences: {
+        indoorTypes: ["indoor" as const],
+        parkingAvailable: true,
+        strollerFriendly: true,
+        diaperChangingTable: true
+      }
+    };
+    const shared = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "unknown",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "partial"
+    };
+    const nearbyOkayCafe = scorePlace(
+      {
+        ...shared,
+        distanceKm: 2,
+        scoring: {
+          placeScore: 6.4,
+          placeScoreRationale: "가깝지만 콘텐츠와 외부 평가가 보통.",
+          externalRatingScore: 6.2,
+          externalReviewCount: 35,
+          searchEvidenceScore: 6.4,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+    const strongerCafe = scorePlace(
+      {
+        ...shared,
+        distanceKm: 11,
+        scoring: {
+          placeScore: 9,
+          placeScoreRationale: "조금 더 가지만 아이 활동성과 편의 근거가 강함.",
+          externalRatingScore: 8.5,
+          externalReviewCount: 180,
+          searchEvidenceScore: 8.5,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+
+    expect(strongerCafe.score).toBeGreaterThan(nearbyOkayCafe.score);
+    expect(nearbyOkayCafe.scoreBreakdown.distance).toBeGreaterThan(strongerCafe.scoreBreakdown.distance);
+    expect(strongerCafe.scoreBreakdown.distance).toBeGreaterThan(0);
+  });
+
+  it("keeps playroom restaurants distance sensitive", () => {
+    const input = {
+      ...baseInput,
+      visitContext: "afterDaycare" as const,
+      primaryCategories: ["family_restaurant"],
+      preferences: {
+        parkingAvailable: true,
+        babyChair: true
+      }
+    };
+    const shared = {
+      primaryCategory: "family_restaurant",
+      tags: ["놀이방식당"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 24,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      scoring: {
+        placeScore: 7.6,
+        placeScoreRationale: "식사와 놀이를 함께 해결하는 후보.",
+        externalRatingScore: 7.4,
+        externalReviewCount: 80,
+        searchEvidenceScore: 7.4,
+        scoreSignals: {},
+        scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+      }
+    };
+    const nearbyRestaurant = scorePlace({ ...shared, distanceKm: 3 }, input);
+    const farRestaurant = scorePlace({ ...shared, distanceKm: 18 }, input);
+
+    expect(nearbyRestaurant.score).toBeGreaterThan(farRestaurant.score);
+    expect(nearbyRestaurant.scoreBreakdown.distance).toBeGreaterThan(10);
+    expect(farRestaurant.scoreBreakdown.distance).toBeLessThan(0);
+  });
 });

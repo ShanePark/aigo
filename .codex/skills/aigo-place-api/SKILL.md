@@ -178,6 +178,7 @@ AiGo has two score layers:
 
 - Stored objective place score: `placeScore` is a 0-10 agent-assigned family outing quality score. It is not an AiGo user rating.
 - Runtime search score: `/v1/places/search` combines stored score fields with distance, query match, child ages, preferences, visit context, opening hours, visit-fit fields, and data confidence to produce a 0-100 `score` plus `scoreBreakdown` and `reasonCodes`.
+- Runtime distance scoring is category and intent sensitive: nearby playground searches should be strongly proximity-weighted, playroom restaurants should still favor easy meal logistics, kids cafes should be moderate, and lodging or destination visits should let stored quality/content evidence outweigh raw proximity.
 
 When creating or meaningfully refreshing a place, score it when the evidence is strong enough:
 

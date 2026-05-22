@@ -72,6 +72,46 @@ const scenarios: Scenario[] = [
     }
   },
   {
+    id: "nearby-playground",
+    label: "Nearby playground",
+    intent: "A playground search should strongly prefer close low-friction play over farther destination content.",
+    input: {
+      visitContext: "nearbyNow",
+      origin: daejeonStation,
+      radiusKm: 15,
+      query: "놀이터",
+      childAgeMonths,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true
+      },
+      primaryCategories: ["park", "indoor_playground", "kids_cafe"],
+      sort: "recommended",
+      limit: 8,
+      offset: 0
+    }
+  },
+  {
+    id: "playroom-restaurant",
+    label: "Playroom restaurant",
+    intent: "Meal-plus-play candidates should still be close enough that dinner logistics stay easy.",
+    input: {
+      visitContext: "afterDaycare",
+      origin: daejeonStation,
+      radiusKm: 20,
+      query: "놀이방식당",
+      childAgeMonths,
+      preferences: {
+        parkingAvailable: true,
+        babyChair: true
+      },
+      primaryCategories: ["family_restaurant", "family_cafe"],
+      sort: "recommended",
+      limit: 8,
+      offset: 0
+    }
+  },
+  {
     id: "rainy-day",
     label: "Rainy day",
     intent: "Rain-safe options should beat exposed outdoor places unless the objective place score is overwhelming.",
@@ -85,6 +125,26 @@ const scenarios: Scenario[] = [
         ...familyLogistics,
         indoorTypes: ["indoor", "mixed"]
       },
+      sort: "recommended",
+      limit: 8,
+      offset: 0
+    }
+  },
+  {
+    id: "stay-destination",
+    label: "Stay destination",
+    intent: "Lodging should lean more on stored quality, public evidence, and kid content than raw proximity.",
+    input: {
+      origin: daejeonStation,
+      radiusKm: 250,
+      query: "키즈숙소",
+      childAgeMonths,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        diaperChangingTable: true
+      },
+      primaryCategories: ["accommodation"],
       sort: "recommended",
       limit: 8,
       offset: 0
