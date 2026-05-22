@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:check": "bash scripts/build-check.sh",
+    "agent:preflight": "tsx scripts/aigo-preflight.ts",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --incremental false",
