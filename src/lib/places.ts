@@ -18,10 +18,13 @@ import { scorePlace } from "@/lib/scoring";
 import {
   emptyPlaceTaxonomy,
   inferTaxonomyFromPlace,
+  inferTaxonomySearchFacets,
   normalizeLegacyTags,
   normalizePrimaryCategory,
   normalizeRegionSido,
   normalizeSourceType,
+  taxonomyFacetFamilies,
+  type TaxonomyFacetFamily,
   type PlaceTaxonomy
 } from "@/lib/taxonomy";
 import type postgres from "postgres";
@@ -424,6 +427,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       foodAllowed: place.facilities.foodAllowed,
       openingHours: place.openingHours,
       visit: place.visit,
+      taxonomy: place.taxonomy,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);
@@ -1781,6 +1785,9 @@ export function buildSearchQuery(input: SearchPlacesInput) {
   if (input.preferenceMode === "required") {
     where.push(...requiredPreferenceClauses(input.preferences, add));
   }
+  if (input.taxonomy?.mode === "required") {
+    where.push(...requiredTaxonomyClauses(input.taxonomy, add));
+  }
 
   return {
     sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by coalesce(place_score, 5) desc, updated_at desc limit 750`,
@@ -1797,7 +1804,12 @@ export function searchTermPatterns(query: string) {
 }
 
 export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInput {
-  if (!input.query) return input;
+  const inferredTaxonomy =
+    input.query && input.matchMode !== "exactName" ? inferTaxonomySearchFacets(input.query) : undefined;
+  const taxonomy = mergeSearchTaxonomy(input.taxonomy, inferredTaxonomy);
+  if (!input.query) {
+    return taxonomy ? { ...input, taxonomy } : input;
+  }
 
   const preferences = { ...(input.preferences ?? {}) };
   const visitContext = input.visitContext ?? inferVisitContextFromQuery(input.query);
@@ -1818,6 +1830,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
       ...input,
       visitContext,
       playgroundOnly,
+      taxonomy,
       preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
     };
   }
@@ -1828,6 +1841,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     visitContext,
     query,
     playgroundOnly,
+    taxonomy,
     preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
   };
 }
@@ -1910,6 +1924,47 @@ function requiredPreferenceClauses(preferences: SearchPlacesInput["preferences"]
   return clauses;
 }
 
+function requiredTaxonomyClauses(taxonomy: NonNullable<SearchPlacesInput["taxonomy"]>, add: (value: unknown) => string) {
+  const clauses: string[] = [];
+
+  for (const family of taxonomyFacetKeys) {
+    for (const value of taxonomy[family] ?? []) {
+      const sourceBackedParam = add(JSON.stringify({ sourceBacked: { [family]: [value] } }));
+      const inferredParam = add(JSON.stringify({ inferred: { [family]: [value] } }));
+      clauses.push(`(taxonomy @> ${sourceBackedParam}::jsonb or taxonomy @> ${inferredParam}::jsonb)`);
+    }
+  }
+
+  return clauses;
+}
+
+function mergeSearchTaxonomy(
+  explicit: SearchPlacesInput["taxonomy"],
+  inferred: ReturnType<typeof inferTaxonomySearchFacets> | undefined
+): SearchPlacesInput["taxonomy"] | undefined {
+  const hasExplicitFacets = explicit ? hasSearchTaxonomyFacets(explicit) : false;
+  const hasInferredFacets = inferred ? hasSearchTaxonomyFacets(inferred) : false;
+  if (!explicit && !hasInferredFacets) return undefined;
+
+  const merged: NonNullable<SearchPlacesInput["taxonomy"]> = {
+    mode: explicit?.mode ?? "soft"
+  };
+  for (const family of taxonomyFacetKeys) {
+    const explicitValues = explicit?.[family] ?? [];
+    const inferredValues = explicitValues.length > 0 ? [] : inferred?.[family] ?? [];
+    const values = uniqueStrings([...explicitValues, ...inferredValues]);
+    if (values.length > 0) {
+      merged[family] = values as never;
+    }
+  }
+
+  return hasExplicitFacets || hasInferredFacets || explicit?.mode !== undefined ? merged : undefined;
+}
+
+function hasSearchTaxonomyFacets(taxonomy: Partial<Record<TaxonomyFacetFamily, readonly string[]>>) {
+  return taxonomyFacetKeys.some((family) => (taxonomy[family]?.length ?? 0) > 0);
+}
+
 const requiredPreferenceColumnMap = {
   parkingAvailable: "parking_available",
   strollerFriendly: "stroller_friendly",
@@ -1917,6 +1972,11 @@ const requiredPreferenceColumnMap = {
   kidsToilet: "kids_toilet",
   babyChair: "baby_chair"
 } as const;
+const taxonomyFacetKeys = Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[];
+
+function uniqueStrings(values: readonly string[]) {
+  return Array.from(new Set(values));
+}
 
 export function shouldUseAnyKeywordMatch(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);

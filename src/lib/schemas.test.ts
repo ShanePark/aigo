@@ -165,6 +165,31 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
+  it("accepts taxonomy search facets with soft mode by default", () => {
+    const result = searchPlacesSchema.parse({
+      taxonomy: {
+        activityTypes: ["sand_play"],
+        logisticsTags: ["stroller"]
+      }
+    });
+    const required = searchPlacesSchema.parse({
+      taxonomy: {
+        mode: "required",
+        visitUseCases: ["rainy_day"]
+      }
+    });
+    const invalid = searchPlacesSchema.safeParse({
+      taxonomy: {
+        activityTypes: ["made_up_facet"]
+      }
+    });
+
+    expect(result.taxonomy?.mode).toBe("soft");
+    expect(result.taxonomy?.activityTypes).toEqual(["sand_play"]);
+    expect(required.taxonomy?.mode).toBe("required");
+    expect(invalid.success).toBe(false);
+  });
+
   it("allows searches to calculate distance without applying a radius filter", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

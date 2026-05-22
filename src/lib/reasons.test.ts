@@ -41,4 +41,13 @@ describe("reason metadata", () => {
       tone: "positive"
     });
   });
+
+  it("describes taxonomy reason codes", () => {
+    expect(describeReasonCodes(["TAXONOMY_ACTIVITY_MATCH", "TAXONOMY_RISK_FLAG"])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TAXONOMY_ACTIVITY_MATCH", labelKo: "활동 유형 일치", group: "match", tone: "positive" }),
+        expect.objectContaining({ code: "TAXONOMY_RISK_FLAG", labelKo: "주의 요소 확인", group: "context", tone: "negative" })
+      ])
+    );
+  });
 });

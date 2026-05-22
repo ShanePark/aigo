@@ -105,6 +105,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For broader planning lists that should not over-concentrate in one area or category, include `diversity: { maxPerRegion, maxPerCategory }`; diversity caps are applied after ranking and before pagination.
    - For future planning, include `visitDate` and optional `visitStartTime` so opening-hours scoring evaluates the planned Asia/Seoul wall-clock time instead of the current moment. Weekly opening-hours keys may use English weekday names, numeric days, or Korean weekday keys such as `월` and `월요일`; public-holiday keys such as `공휴일` are preserved as special-day notes and are not used as normal weekday schedules.
    - For deterministic place lookup by full name, send `matchMode: "exactName"` with `query`; this restricts candidates to exact or whitespace-compacted name matches instead of broad keyword/tag matches.
+   - For controlled facet search, send `taxonomy` with canonical facet arrays. `taxonomy.mode` defaults to `soft`, which boosts matching records without excluding unknowns; use `taxonomy.mode: "required"` when every requested taxonomy facet must appear in either `sourceBacked` or `inferred` taxonomy. Natural Korean queries such as `모래놀이터`, `비오는날`, `쌍둥이 유모차`, `가는 길`, and `놀이방 식당` are also normalized into soft taxonomy facets unless explicit request facets already cover that family.
    - In search results, prefer `item.id` as the canonical place id. `item.placeId` remains a backward-compatible alias; detail responses use `id`, and duplicate candidates expose the nested candidate as `place.id`.
 
 ## API Payload Rules
@@ -167,6 +168,8 @@ Common writable fields:
 - Classification/play/image data: `taxonomy`, `playFeatures`, `images`.
 
 `taxonomy` is AiGo's controlled facet layer for parent-planning semantics. Keep `sourceBacked` limited to source-supported facts, use `inferred` for agent-derived broad planning labels, and preserve legacy/freeform cleanup context under `migration.legacyTags`, `migration.broadMappedTags`, and `migration.unmappedTags`. `tags` should remain concise search/display slugs; physical equipment such as slides, swings, seesaws, sand play, and water play belongs in `playFeatures`, while broader planning labels such as `baby_logistics`, `after_daycare`, `rainy_day`, or `route_break` belong in `taxonomy`.
+
+Search taxonomy facets use the same canonical families: `familyFitGates`, `activityTypes`, `visitUseCases`, `ageBands`, `logisticsTags`, and `riskTags`. Prefer `soft` mode for planning and discovery so unknown records remain eligible with `TAXONOMY_UNKNOWN`; use `required` only when the caller truly wants a hard facet gate.
 
 Use these enum values:
 

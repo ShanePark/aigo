@@ -1,6 +1,7 @@
 import type { Place } from "@/db/schema";
 import { seoulWallClockParts } from "@/lib/korea-time";
 import type { SearchPlacesInput } from "@/lib/schemas";
+import { taxonomyFacetFamilies, type PlaceTaxonomy, type TaxonomyFacetFamily } from "@/lib/taxonomy";
 
 type VisitScores = {
   averageStayMinutes: number | null;
@@ -42,6 +43,7 @@ type ScoreablePlace = Pick<
   openingHours?: unknown | null;
   visit?: VisitScores;
   scoring?: PlaceScoringSignals;
+  taxonomy?: PlaceTaxonomy | null;
 };
 
 type ScoreComponent =
@@ -86,6 +88,7 @@ const confidenceScore: Record<string, number> = {
   unknown: -1,
   needs_check: -4
 };
+const taxonomyFacetKeys = Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[];
 
 export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, options: ScoreOptions = {}) {
   const reasonCodes = new Set<string>();
@@ -116,6 +119,7 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
     addScore("match", Math.min(4, matchedTags.length * 1.5));
     reasonCodes.add("TAG_MATCH");
   }
+  applyTaxonomySignal(place.taxonomy, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
 
   applyAgeSignal(place, input.childAgeMonths, reasonCodes, (delta) => addScore("age", delta));
 
@@ -324,6 +328,85 @@ function reviewCountWeight(reviewCount: number | null | undefined) {
 function normalizeZeroToTen(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return Math.max(0, Math.min(10, value));
+}
+
+function applyTaxonomySignal(
+  taxonomy: PlaceTaxonomy | null | undefined,
+  requested: SearchPlacesInput["taxonomy"] | undefined,
+  reasonCodes: Set<string>,
+  addScore: (delta: number) => void
+) {
+  if (!requested || !hasRequestedTaxonomyFacets(requested)) return;
+
+  const placeFacets = combinedPlaceTaxonomyFacets(taxonomy);
+  let hasUnknownFacetFamily = false;
+  for (const family of taxonomyFacetKeys) {
+    const requestedValues = requested[family] ?? [];
+    if (requestedValues.length === 0) continue;
+
+    const availableValues = placeFacets[family];
+    const matchCount = requestedValues.filter((value) => availableValues.has(value)).length;
+    if (matchCount === 0) {
+      if (availableValues.size === 0) hasUnknownFacetFamily = true;
+      continue;
+    }
+
+    addScore(taxonomyFacetDelta(family, matchCount));
+    reasonCodes.add(taxonomyReasonCode(family));
+  }
+
+  if (hasUnknownFacetFamily) {
+    reasonCodes.add("TAXONOMY_UNKNOWN");
+  }
+}
+
+function combinedPlaceTaxonomyFacets(taxonomy: PlaceTaxonomy | null | undefined) {
+  const combined = Object.fromEntries(taxonomyFacetKeys.map((family) => [family, new Set<string>()])) as Record<TaxonomyFacetFamily, Set<string>>;
+  if (!taxonomy) return combined;
+
+  for (const family of taxonomyFacetKeys) {
+    for (const value of taxonomy.sourceBacked?.[family] ?? []) combined[family].add(value);
+    for (const value of taxonomy.inferred?.[family] ?? []) combined[family].add(value);
+  }
+  return combined;
+}
+
+function hasRequestedTaxonomyFacets(taxonomy: NonNullable<SearchPlacesInput["taxonomy"]>) {
+  return taxonomyFacetKeys.some((family) => (taxonomy[family]?.length ?? 0) > 0);
+}
+
+function taxonomyFacetDelta(family: TaxonomyFacetFamily, matchCount: number) {
+  switch (family) {
+    case "activityTypes":
+      return Math.min(6, matchCount * 3);
+    case "visitUseCases":
+    case "familyFitGates":
+      return Math.min(4, matchCount * 2);
+    case "logisticsTags":
+      return Math.min(5, matchCount * 1.5);
+    case "ageBands":
+      return Math.min(3, matchCount * 1.5);
+    case "riskTags":
+      return -2;
+    default:
+      return 0;
+  }
+}
+
+function taxonomyReasonCode(family: TaxonomyFacetFamily) {
+  switch (family) {
+    case "activityTypes":
+      return "TAXONOMY_ACTIVITY_MATCH";
+    case "logisticsTags":
+      return "TAXONOMY_LOGISTICS_MATCH";
+    case "riskTags":
+      return "TAXONOMY_RISK_FLAG";
+    case "familyFitGates":
+    case "visitUseCases":
+    case "ageBands":
+    default:
+      return "TAXONOMY_USE_CASE_MATCH";
+  }
 }
 
 function applyEvidenceCaps(value: number, place: ScoreablePlace, input: SearchPlacesInput, now: Date) {

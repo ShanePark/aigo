@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { scorePlace } from "@/lib/scoring";
 import type { SearchPlacesInput } from "@/lib/schemas";
+import { emptyPlaceTaxonomy } from "@/lib/taxonomy";
 
 const baseInput: SearchPlacesInput = {
   origin: { lat: 36.3504, lng: 127.3845, label: "대전" },
@@ -20,6 +21,53 @@ const baseInput: SearchPlacesInput = {
 };
 
 describe("scorePlace", () => {
+  it("uses requested taxonomy facets as soft match signals", () => {
+    const input = {
+      ...baseInput,
+      taxonomy: {
+        mode: "soft",
+        activityTypes: ["sand_play"],
+        logisticsTags: ["stroller"]
+      }
+    } satisfies SearchPlacesInput;
+    const shared = {
+      primaryCategory: "park",
+      tags: [],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      indoorType: "outdoor",
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 4
+    };
+    const matched = scorePlace(
+      {
+        ...shared,
+        taxonomy: {
+          ...emptyPlaceTaxonomy(),
+          sourceBacked: {
+            ...emptyPlaceTaxonomy().sourceBacked,
+            activityTypes: ["sand_play"],
+            logisticsTags: ["stroller"]
+          }
+        }
+      },
+      input
+    );
+    const unknown = scorePlace(shared, input);
+
+    expect(matched.score).toBeGreaterThan(unknown.score);
+    expect(matched.reasonCodes).toEqual(expect.arrayContaining(["TAXONOMY_ACTIVITY_MATCH", "TAXONOMY_LOGISTICS_MATCH"]));
+    expect(unknown.reasonCodes).toContain("TAXONOMY_UNKNOWN");
+  });
+
   it("uses age as a soft positive signal", () => {
     const result = scorePlace(
       {

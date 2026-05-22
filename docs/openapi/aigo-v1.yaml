@@ -412,6 +412,46 @@ components:
             normalizedAt:
               type: string
               format: date-time
+    SearchTaxonomyRequest:
+      type: object
+      description: >-
+        Controlled taxonomy facets for search. Defaults to soft ranking; use `mode: required`
+        to require every requested facet in either `sourceBacked` or `inferred` taxonomy.
+      properties:
+        mode:
+          type: string
+          enum: [soft, required]
+          default: soft
+        familyFitGates:
+          type: array
+          items:
+            type: string
+            enum: [child_primary, baby_logistics, retail_fallback, route_break, user_signal]
+        activityTypes:
+          type: array
+          items:
+            type: string
+            enum: [indoor_play, outdoor_playground, water_play, sand_play, nature_walk, reading_books, toy_borrowing, shopping_browse, meal_play, science_exhibit, culture_exhibit, hands_on_experience, animals_aquarium, lodging_play]
+        visitUseCases:
+          type: array
+          items:
+            type: string
+            enum: [after_daycare, nearby_now, rainy_day, weekend_half_day, day_trip, hot_day, cold_day]
+        ageBands:
+          type: array
+          items:
+            type: string
+            enum: [infant, toddler, preschool, school_age]
+        logisticsTags:
+          type: array
+          items:
+            type: string
+            enum: [parking, low_parking_friction, stroller, double_stroller, elevator, nursing_room, diaper_table, kids_toilet, baby_chair, food_support, reservation, session_based]
+        riskTags:
+          type: array
+          items:
+            type: string
+            enum: [water_edge, road_nearby, steep_path, crowding, fire_grill, current_operation_uncertain, seasonal_operation, infant_amenity_gap]
     RelatedPlaceRelationType:
       type: string
       enum: [nearby, same_building, same_site, parent_child, route_pair, itinerary_cluster]
@@ -846,6 +886,8 @@ components:
           description: Soft matching signal. Tags do not exclude candidates.
           items:
             type: string
+        taxonomy:
+          $ref: "#/components/schemas/SearchTaxonomyRequest"
         childAgeMonths:
           type: array
           description: Soft matching signal. Age mismatch does not exclude candidates.

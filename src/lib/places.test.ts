@@ -236,6 +236,28 @@ describe("place search helpers", () => {
     expect(query.params).toEqual([["indoor", "mixed"]]);
   });
 
+  it("can require taxonomy facets through JSONB containment", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      taxonomy: {
+        mode: "required",
+        activityTypes: ["sand_play"],
+        logisticsTags: ["stroller"]
+      }
+    });
+
+    expect(query.sql).toContain("taxonomy @> $1::jsonb");
+    expect(query.sql).toContain("taxonomy @> $2::jsonb");
+    expect(query.sql).toContain("taxonomy @> $3::jsonb");
+    expect(query.sql).toContain("taxonomy @> $4::jsonb");
+    expect(query.params).toEqual([
+      JSON.stringify({ sourceBacked: { activityTypes: ["sand_play"] } }),
+      JSON.stringify({ inferred: { activityTypes: ["sand_play"] } }),
+      JSON.stringify({ sourceBacked: { logisticsTags: ["stroller"] } }),
+      JSON.stringify({ inferred: { logisticsTags: ["stroller"] } })
+    ]);
+  });
+
   it("builds planned visit wall-clock dates for opening-hours scoring", () => {
     const planned = searchEvaluationDate({ visitDate: "2026-05-23", visitStartTime: "10:30" });
     const defaultNoon = searchEvaluationDate({ visitDate: "2026-05-23" });
@@ -844,6 +866,22 @@ describe("place search helpers", () => {
   });
 
   it("turns facility words in ordinary keyword queries into soft preferences", () => {
+    expect(
+      normalizeSearchInput({
+        ...baseSearchInput,
+        query: "쌍둥이 유모차 비오는날 모래놀이터",
+        taxonomy: {
+          mode: "required",
+          activityTypes: ["water_play"]
+        }
+      }).taxonomy
+    ).toMatchObject({
+      mode: "required",
+      activityTypes: ["water_play"],
+      familyFitGates: ["baby_logistics"],
+      visitUseCases: ["rainy_day"],
+      logisticsTags: expect.arrayContaining(["double_stroller", "stroller", "nursing_room", "diaper_table"])
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "키즈카페 수유실 기저귀 유모차" })).toMatchObject({
       query: "키즈카페",
       preferences: {

@@ -27,6 +27,15 @@ const taxonomyFacetSetSchema = z.object({
   logisticsTags: z.array(z.enum(taxonomyFacetFamilies.logisticsTags)).default([]),
   riskTags: z.array(z.enum(taxonomyFacetFamilies.riskTags)).default([])
 });
+const searchTaxonomySchema = z.object({
+  mode: z.enum(["soft", "required"]).default("soft"),
+  familyFitGates: z.array(z.enum(taxonomyFacetFamilies.familyFitGates)).max(20).optional(),
+  activityTypes: z.array(z.enum(taxonomyFacetFamilies.activityTypes)).max(20).optional(),
+  visitUseCases: z.array(z.enum(taxonomyFacetFamilies.visitUseCases)).max(20).optional(),
+  ageBands: z.array(z.enum(taxonomyFacetFamilies.ageBands)).max(20).optional(),
+  logisticsTags: z.array(z.enum(taxonomyFacetFamilies.logisticsTags)).max(20).optional(),
+  riskTags: z.array(z.enum(taxonomyFacetFamilies.riskTags)).max(20).optional()
+});
 const emptyTaxonomyFacetSetValue = () => ({
   familyFitGates: [],
   activityTypes: [],
@@ -309,6 +318,7 @@ const searchPlacesBaseSchema = z.object({
   playgroundOnly: z.boolean().optional(),
   kidsCafeOnly: z.boolean().optional(),
   tags: z.array(nonEmptyString).max(30).optional(),
+  taxonomy: searchTaxonomySchema.optional(),
   childAgeMonths: z.array(z.number().int().min(0).max(240)).max(10).optional(),
   preferenceMode: z.enum(["soft", "required"]).optional(),
   preferences: z
@@ -384,6 +394,7 @@ export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
 export type PricingInput = z.infer<typeof pricingSchema>;
 export type PlaceTaxonomyInput = z.infer<typeof taxonomySchema>;
+export type SearchTaxonomyInput = z.infer<typeof searchTaxonomySchema>;
 
 function normalizeSearchAliases(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
