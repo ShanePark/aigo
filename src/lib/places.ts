@@ -1140,8 +1140,10 @@ const duplicateGenericAliasTerms = [
   "판암동"
 ];
 
-export async function listPlaceVersions(placeId: string) {
-  const versions = await pg<VersionRow[]>`
+export async function listPlaceVersions(placeId: string, executor: SqlExecutor = pg) {
+  await ensurePlaceExists(executor, placeId);
+
+  const versions = await executor<VersionRow[]>`
     select * from place_versions
     where place_id = ${placeId}
     order by version_number desc
@@ -1150,6 +1152,18 @@ export async function listPlaceVersions(placeId: string) {
   return {
     items: versions.map(mapVersionSummary)
   };
+}
+
+async function ensurePlaceExists(executor: SqlExecutor, placeId: string) {
+  const rows = await executor<{ id: string }[]>`
+    select id from places
+    where id = ${placeId}
+    limit 1
+  `;
+
+  if (rows.length === 0) {
+    throw new ApiError(404, "Place not found");
+  }
 }
 
 export async function getPlaceVersion(placeId: string, versionId: string) {

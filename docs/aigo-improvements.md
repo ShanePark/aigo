@@ -21,8 +21,6 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 - [대기] `src/db/schema.ts`와 실제 SQL 마이그레이션 사이의 스키마 드리프트를 정리한다. Drizzle 설정은 `src/db/schema.ts`를 단일 schema source로 보지만 실제 DB에는 마이그레이션으로만 존재하는 `places.geo`, `places.search_text`, PostGIS/pg_trgm 인덱스, trigger, 각종 check constraint, `place_images_one_primary_active_idx`, related-place canonical/distinct constraint 등이 있고 Drizzle 스키마에는 누락되어 있다. 이후 `drizzle-kit` 생성/검토 시 잘못된 diff가 나올 수 있으므로 Drizzle에서 표현 가능한 항목은 반영하고, 표현이 어려운 PostGIS trigger/index/constraint는 명시적 custom migration 검증 또는 preflight schema check에 포함한다.
 
-- [대기] 버전 조회 API가 존재하지 않는 장소를 404로 반환하도록 계약과 구현을 맞춘다. 현재 `GET /v1/places/{placeId}/versions`는 `places` 존재 여부를 확인하지 않고 `place_versions`만 조회해서, 없는 `placeId`에도 `{ items: [] }`를 반환할 수 있는데 OpenAPI는 404를 문서화하고 있다. `listPlaceVersions()`에서 먼저 장소 존재를 확인하거나 공통 helper를 사용하고, 없는 장소와 버전이 없는 정상 장소를 구분하는 route/lib 테스트를 추가한다.
-
 - [대기] 운영시간 평가를 한국 로컬 일정 데이터에 맞게 고친다. 현재 `searchEvaluationDate()`는 서버 로컬 타임존으로 `new Date(year, month - 1, day, ...)`를 만들고, `parseDay()`는 영어 요일/숫자만 인식한다. 배포 환경 타임존이 UTC이거나 `openingHours.weekly`가 `월`, `화`, `월요일`, `공휴일` 같은 한국어 키를 쓰면 계획 방문 시간/요일 평가가 어긋나 `OPEN_NOW`, `CLOSED_NOW`, `OPENING_HOURS_UNKNOWN` reason code가 잘못 붙을 수 있다. Asia/Seoul 기준 wall-clock 평가를 명시적으로 구현하고 한국어 요일 키 및 자정 넘김 케이스를 테스트한다.
 
 - [대기] `DELETE /v1/places/{placeId}`의 영구 삭제 안전장치를 추가한다. 현재 API는 인증만 통과하면 장소, 출처, 이미지, 버전 기록까지 cascade hard delete하며 삭제 사유, actor, source, 확인 토큰을 남기지 않는다. AiGo 데이터는 수집 비용이 큰 핵심 자산이므로 실수/에이전트 오작동에 대비해 삭제 전 명시적 확인 payload와 `changeSummary`를 요구하거나, 기본은 `status: closed`/archived 형태의 soft delete로 바꾸고 hard delete는 별도 감사용 경로로 제한한다. 삭제 후 검색 제외와 감사 기록이 남는지 테스트한다.

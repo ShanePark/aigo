@@ -81,7 +81,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 6. Verify after meaningful changes.
    - Call `GET /v1/places/{placeId}`.
-   - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list.
+   - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list. A 404 means the parent place id is invalid; an empty version list should only be treated as "no versions yet" after the place itself exists.
    - For hard deletes, confirm `GET /v1/places/{placeId}` returns 404 and exact-name search no longer returns the place.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
