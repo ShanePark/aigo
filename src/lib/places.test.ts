@@ -118,8 +118,24 @@ describe("place search helpers", () => {
     expect(query.sql).toContain("primary_category = 'park'");
     expect(query.sql).toContain("play_features->>'slide' in ('yes', 'partial')");
     expect(query.sql).toContain("playground_tag");
-    expect(query.sql).not.toContain("kids_cafe");
+    expect(query.sql).toContain("not (");
+    expect(query.sql).toContain("commercial_tag");
+    expect(query.sql).not.toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
     expect(query.params).toEqual([["park", "indoor_playground"]]);
+  });
+
+  it("can include commercial indoor play records in kids cafe searches", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      primaryCategories: ["kids_cafe", "family_cafe"],
+      kidsCafeOnly: true
+    });
+
+    expect(query.sql).toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
+    expect(query.sql).toContain("primary_category = 'indoor_playground'");
+    expect(query.sql).toContain("commercial_tag");
+    expect(query.sql).toContain("%키즈카페%");
+    expect(query.params).toEqual([]);
   });
 
   it("keeps indoor playground keyword searches separate from outdoor parks", () => {
@@ -279,7 +295,8 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("play_features->>'slide' in ('yes', 'partial')");
-    expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("kids_cafe");
+    expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("키즈카페")).toContain("commercial_tag");
     expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
@@ -809,6 +826,12 @@ describe("place search helpers", () => {
       preferences: {
         nursingRoom: true,
         strollerFriendly: true
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "키즈 카페 주차" })).toMatchObject({
+      query: "키즈카페",
+      preferences: {
+        parkingAvailable: true
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 키즈카페 주차" })).toMatchObject({

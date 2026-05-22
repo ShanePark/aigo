@@ -652,6 +652,10 @@ components:
           type: boolean
           description: >-
             When true, restrict playground-style searches to indoor playgrounds or park records with playground evidence such as play-equipment tags, playground-like names, or positive place-level playFeatures.
+        kidsCafeOnly:
+          type: boolean
+          description: >-
+            When true, restrict kids-cafe searches to commercial/private play-cafe records, including legacy indoor_playground rows with source or tag evidence such as kids-cafe names, brand/operator tags, party-room/cafe signals, or paid commercial play branding.
         tags:
           type: array
           description: Soft matching signal. Tags do not exclude candidates.

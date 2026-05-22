@@ -1622,7 +1622,9 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     );
   }
 
-  if (input.primaryCategories?.length) {
+  if (input.kidsCafeOnly) {
+    where.push(kidsCafeEvidenceClause());
+  } else if (input.primaryCategories?.length) {
     where.push(`primary_category = any(${add(input.primaryCategories)}::text[])`);
   }
 
@@ -1875,6 +1877,35 @@ const playgroundEvidenceTags = [
   "시소"
 ];
 const playgroundEvidenceNamePatterns = ["%놀이터%", "%어린이공원%", "%물놀이터%", "%숲놀이터%"];
+const commercialKidsCafeIntentTerms = new Set(["키즈카페", "키카", "어린이카페", "베이비카페"]);
+const commercialKidsCafeEvidenceTags = [
+  "kids_cafe",
+  "kidsCafe",
+  "키즈카페",
+  "대형키즈카페",
+  "대형키즈테마파크",
+  "키즈테마파크",
+  "카페",
+  "카페내부",
+  "파티룸",
+  "종일권",
+  "챔피언",
+  "champion",
+  "플레이타임",
+  "playtime",
+  "월드킹",
+  "worldking",
+  "아틀란티스",
+  "atlantis",
+  "largeKidsCafe",
+  "largeTrampoline",
+  "partyRoom",
+  "cafeInside",
+  "activePlay",
+  "active_play",
+  "themePark"
+];
+const commercialKidsCafeEvidencePatterns = ["%키즈카페%", "%키즈 카페%", "%키즈테마파크%", "%키즈 테마파크%", "%점프홀릭%", "%월드킹%", "%챔피언%", "%아틀란티스%"];
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
 const specificPlayFeatureQueryTerms = new Set([
@@ -2431,6 +2462,7 @@ function stripPreferenceTerms(query: string) {
 }
 
 export function categoryClauseForKeywordTerm(term: string) {
+  if (commercialKidsCafeIntentTerms.has(term)) return kidsCafeEvidenceClause();
   const categories = categoryKeywordMap[term];
   if (categories) {
     if (categories.length === 1) return `primary_category = '${categories[0]}'`;
@@ -2483,6 +2515,7 @@ function isQueryPreferenceTerm(term: string) {
 
 function inferLiteralQueryAlias(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.includes("키즈") && terms.some((term) => ["카페", "까페"].includes(term))) return "키즈카페";
   if (terms.includes("장난감") && terms.includes("도서관")) return "장난감도서관";
   if (terms.includes("장난감") && terms.some((term) => ["가게", "매장", "샵", "숍"].includes(term))) return "장난감가게";
   if (terms.includes("완구") && terms.some((term) => ["가게", "매장", "샵", "숍", "점"].includes(term))) return "완구점";
@@ -2502,7 +2535,10 @@ function playgroundEvidenceClause() {
   const featureClauses = playgroundEquipmentFeatureKeys.map((key) => `play_features->>'${key}' in ('yes', 'partial')`).join(" or ");
 
   return `(
-    primary_category = 'indoor_playground'
+    (
+      primary_category = 'indoor_playground'
+      and not ${commercialIndoorPlayEvidenceClause()}
+    )
     or (
       primary_category = 'park'
       and (
@@ -2510,6 +2546,28 @@ function playgroundEvidenceClause() {
         or name ilike any(${namePatternArray})
         or ${featureClauses}
       )
+    )
+  )`;
+}
+
+function kidsCafeEvidenceClause() {
+  return `(
+    primary_category = any(array['kids_cafe','family_cafe']::text[])
+    or ${commercialIndoorPlayEvidenceClause()}
+  )`;
+}
+
+function commercialIndoorPlayEvidenceClause() {
+  const tagArray = sqlTextArray(commercialKidsCafeEvidenceTags);
+  const patternArray = sqlTextArray(commercialKidsCafeEvidencePatterns);
+
+  return `(
+    primary_category = 'indoor_playground'
+    and (
+      name ilike any(${patternArray})
+      or description ilike any(${patternArray})
+      or parent_notes ilike any(${patternArray})
+      or exists (select 1 from unnest(tags) as commercial_tag where commercial_tag = any(${tagArray}) or commercial_tag ilike any(${patternArray}))
     )
   )`;
 }

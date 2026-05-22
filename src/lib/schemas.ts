@@ -232,6 +232,7 @@ const searchPlacesBaseSchema = z.object({
   matchMode: z.enum(["keyword", "exactName"]).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   playgroundOnly: z.boolean().optional(),
+  kidsCafeOnly: z.boolean().optional(),
   tags: z.array(nonEmptyString).max(30).optional(),
   childAgeMonths: z.array(z.number().int().min(0).max(240)).max(10).optional(),
   preferenceMode: z.enum(["soft", "required"]).optional(),

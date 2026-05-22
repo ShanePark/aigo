@@ -202,6 +202,7 @@ Common `primaryCategory` values used by the UI/search:
 Playground search semantics:
 
 - Treat `park` and `playground` as different intents. A general park can be useful without being a real playground, but `놀이터` searches and the playground UI group should mean an indoor playground or a park record with playground evidence.
+- Use operating model as the main split between `kids_cafe` and playground categories. Private or corporate paid play venues opened for commercial revenue belong under `kids_cafe`, even when they contain trampolines, slides, climbing frames, or other indoor play equipment. National, municipal, public-agency, library, family-center, or other public/very-low-cost play facilities belong under `indoor_playground` or `park` depending on indoor/outdoor context.
 - For outdoor playground candidates, record source-backed `playFeatures` such as `slide`, `swing`, `seesaw`, `sandPlay`, `climbing`, `waterPlayground`, `rubberSurface`, `fenced`, and `toiletNearby` whenever evidence exists. Use `unknown` rather than guessing.
 - Use tags such as `children_playground`, `small_playground`, `play_equipment`, `놀이터`, `어린이놀이터`, `동네놀이터`, `물놀이터`, `미끄럼틀`, `그네`, or `시소` only when the place-specific evidence supports actual play equipment or a named playground.
 
