@@ -42,6 +42,17 @@ describe("place schemas", () => {
     expect(result.preferences?.foodAllowed).toBe(true);
   });
 
+  it("allows searches to calculate distance without applying a radius filter", () => {
+    const result = searchPlacesSchema.parse({
+      origin: { lat: 36.35, lng: 127.38 },
+      filterByRadius: false
+    });
+
+    expect(result.origin).toEqual({ lat: 36.35, lng: 127.38 });
+    expect(result.radiusKm).toBe(80);
+    expect(result.filterByRadius).toBe(false);
+  });
+
   it("accepts common agent aliases for search location and child ages", () => {
     const result = searchPlacesSchema.parse({
       location: { lat: 36.35, lng: 127.38, label: "대전역" },
@@ -50,6 +61,25 @@ describe("place schemas", () => {
 
     expect(result.origin).toEqual({ lat: 36.35, lng: 127.38, label: "대전역" });
     expect(result.childAgeMonths).toEqual([32, 7, 7]);
+  });
+
+  it("accepts planned visit date and time for search scoring", () => {
+    const result = searchPlacesSchema.parse({
+      visitDate: "2026-05-23",
+      visitStartTime: "10:30"
+    });
+    const invalid = searchPlacesSchema.safeParse({
+      visitDate: "2026-02-30",
+      visitStartTime: "10:30"
+    });
+    const timeWithoutDate = searchPlacesSchema.safeParse({
+      visitStartTime: "10:30"
+    });
+
+    expect(result.visitDate).toBe("2026-05-23");
+    expect(result.visitStartTime).toBe("10:30");
+    expect(invalid.success).toBe(false);
+    expect(timeWithoutDate.success).toBe(false);
   });
 
   it("defaults update source mode to append and accepts replace", () => {

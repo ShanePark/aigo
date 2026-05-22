@@ -62,7 +62,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For each place, record suggested action (`create`, `update`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
-   - When API or product usage reveals a durable improvement, copy or summarize it into `docs/aigo-improvements.md`. Use `[대기]` for not-started items, mark the one being worked on as `[개선 중]` before changing code/data/docs, and change it to `[완료]` only after verification.
+   - When API or product usage reveals a durable improvement, copy or summarize it into `docs/aigo-improvements.md`. Use `[대기]` for not-started items, mark the one being worked on as `[개선 중]` before changing code/data/docs, and remove the item after verification instead of changing it to `[완료]`.
 
 4. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
@@ -85,6 +85,10 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For hard deletes, confirm `GET /v1/places/{placeId}` returns 404 and exact-name search no longer returns the place.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
+   - Search results include compact `imageHealth` so agents can notice missing primary images or review-needed images before recommending cards; use `/v1/places/image-health` for the full audit queue.
+   - Search results include compact `sourceSummary` so agents and clients can distinguish official/public-agency sources, public-listing-backed records, and recently checked records without fetching each detail page.
+   - For future planning, include `visitDate` and optional `visitStartTime` so opening-hours scoring evaluates the planned local wall-clock time instead of the current moment.
+   - In search results, prefer `item.id` as the canonical place id. `item.placeId` remains a backward-compatible alias; detail responses use `id`, and duplicate candidates expose the nested candidate as `place.id`.
 
 ## API Payload Rules
 
@@ -196,6 +200,9 @@ AiGo has two score layers:
 - Stored objective place score: `placeScore` is a 0-10 agent-assigned family outing quality score. It is not an AiGo user rating.
 - Runtime search score: `/v1/places/search` combines stored score fields with distance, query match, child ages, preferences, visit context, opening hours, visit-fit fields, and data confidence to produce a 0-100 `score` plus `scoreBreakdown` and `reasonCodes`.
 - Runtime distance scoring is category and intent sensitive: nearby playground searches should be strongly proximity-weighted, playroom restaurants should still favor easy meal logistics, kids cafes should be moderate, and lodging or destination visits should let stored quality/content evidence outweigh raw proximity.
+- For lodging or other broad destination searches, agents may send `origin` with `filterByRadius: false` so results still expose `distanceKm` and distance-aware scoring without hiding far-but-relevant places behind the radius filter.
+- Broad public-child-facility Korean queries such as `공공 어린이 체험 박물관 과학관` should expand to public categories instead of requiring every literal token to match one row.
+- Exact compact name matches should receive a stronger query boost than partial name or tag-only matches so a full place-name query ranks the intended record above similarly named alternatives.
 
 When creating or meaningfully refreshing a place, score it when the evidence is strong enough:
 

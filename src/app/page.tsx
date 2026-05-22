@@ -330,7 +330,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
   const nearby = textParam(params.nearby) === "1";
-  const shouldUseOrigin = categoryGroup !== "stay" || hasExplicitLocationParams(params);
+  const shouldFilterByRadius = categoryGroup !== "stay" || hasExplicitLocationParams(params);
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
   const ages = (textParam(params.ages) || "32,7,7")
@@ -339,9 +339,10 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
     .filter((age) => Number.isFinite(age));
 
   return {
-    origin: shouldUseOrigin ? { lat, lng, label: nearby ? "현재 위치" : DEFAULT_ORIGIN.label } : undefined,
+    origin: { lat, lng, label: nearby ? "현재 위치" : DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
-    radiusKm: shouldUseOrigin ? Number(textParam(params.radiusKm) || 80) : undefined,
+    radiusKm: shouldFilterByRadius ? Number(textParam(params.radiusKm) || 80) : undefined,
+    filterByRadius: shouldFilterByRadius,
     query: textParam(params.query) || undefined,
     primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
     childAgeMonths: ages,

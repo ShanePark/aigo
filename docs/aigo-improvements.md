@@ -6,18 +6,18 @@ Status labels:
 
 - `[대기]`: not started.
 - `[개선 중]`: actively being worked on.
-- `[완료]`: fixed and verified.
+
+Completed improvements should be removed from this file after verification instead of being changed to `[완료]`. Keep verification details in the commit, PR, or implementation notes that closed the item.
 
 Only mark unrelated items as `[개선 중]` at the same time when they are intentionally part of the same active change.
 
 ## Backlog
 
-- [대기] Add date/time-aware search fields such as `visitDate`, `visitStartTime`, or target day so "this weekend" planning does not rely on `OPEN_NOW` for the current day. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
-- [대기] Improve Korean natural-language query matching; `"공공 어린이 체험 박물관 과학관"` returned 0 results while equivalent category filters returned useful candidates. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
-- [대기] Make place id fields consistent across search, detail, and duplicate endpoints, or document/client-normalize `placeId`, `id`, and `items[].place.id`. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add a compact/projection mode to `/v1/places/search` for planning and agent use. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
-- [대기] Surface image-health in search results so high-ranking places without an active primary image are obvious before rendering cards or recommending them. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Propagate official opening-hours confidence into search results; 대전신세계 had official hours sources but search still emitted `OPENING_HOURS_UNKNOWN`. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add reservation/session/friction flags such as `reservationRequired`, `walkInAvailable`, `sessionBased`, and `sameDayAvailabilityKnown` for places like 대전광역시어린이회관. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add structured parking friction fields such as `parkingFrictionLevel`, `peakParkingWindow`, and `parkingWaitNote`, especially for large public facilities. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add an infant-logistics confidence signal separate from toddler child-engagement scoring. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
+- [대기] Clarify soft vs. hard preference semantics. A search with `diaperChangingTable: true` still returned many high-ranking unknown records, which is useful for recall but surprising for planning twin-infant logistics. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
+- [대기] Add itinerary/cluster grouping for day trips, such as 아산장영실과학관 + 아산생태곤충원 or 국립생태원 + 씨큐리움, with shared drive burden, meal/rest fallback, and parent effort notes. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
+- [대기] Add a user-facing info link for every place, preferring an official site or public-agency/operator page and falling back to Naver Place, Kakao/Google Maps, tourism pages, mall/library listings, or other public listings when no official site exists. Run a full audit of already-registered places and backfill address-matched `officialUrl` or `externalRefs.infoLinks` entries so parents can open a reliable page for more details.

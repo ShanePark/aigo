@@ -128,6 +128,8 @@ type SourceRow = {
   created_at: Date;
 };
 
+type SearchSourceSummaryRow = Pick<SourceRow, "place_id" | "source_type" | "checked_at" | "created_at">;
+
 type VersionRow = {
   id: string;
   place_id: string;
@@ -342,6 +344,7 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
 
 export async function searchPlaces(input: SearchPlacesInput) {
   const normalizedInput = normalizeSearchInput(input);
+  const scoringNow = searchEvaluationDate(normalizedInput);
   const queryParts = buildSearchQuery(normalizedInput);
   const rows = await pg.unsafe<PlaceRow[]>(queryParts.sql, queryParts.params);
 
@@ -367,11 +370,12 @@ export async function searchPlaces(input: SearchPlacesInput) {
       visit: place.visit,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
-    const scoredPlace = scorePlace(scoringPlace, normalizedInput);
+    const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);
     const querySignal = queryMatchSignal(place, normalizedInput.query);
     const score = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
 
     return {
+      id: place.id,
       placeId: place.id,
       name: place.name,
       primaryCategory: place.primaryCategory,
@@ -415,11 +419,17 @@ export async function searchPlaces(input: SearchPlacesInput) {
   });
 
   const items = scored.slice(input.offset, input.offset + input.limit);
-  const imageMap = await getImageMapForPlaces(items.map((item) => item.placeId));
-  const enrichedItems = items.map((item) => ({
-    ...item,
-    ...buildImageMetadataFromRows(imageMap.get(item.placeId) ?? [])
-  }));
+  const itemPlaceIds = items.map((item) => item.placeId);
+  const [imageMap, sourceSummaryMap] = await Promise.all([getImageMapForPlaces(itemPlaceIds), getSourceSummaryMapForPlaces(itemPlaceIds)]);
+  const enrichedItems = items.map((item) => {
+    const imageRows = imageMap.get(item.placeId) ?? [];
+    return {
+      ...item,
+      ...buildImageMetadataFromRows(imageRows),
+      imageHealth: buildSearchImageHealth(imageRows),
+      sourceSummary: sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([])
+    };
+  });
 
   return {
     items: enrichedItems,
@@ -710,6 +720,25 @@ async function getImageMapForPlaces(placeIds: string[]) {
   }
 
   return imageMap;
+}
+
+async function getSourceSummaryMapForPlaces(placeIds: string[]) {
+  const sourceMap = new Map<string, SearchSourceSummaryRow[]>();
+  if (placeIds.length === 0) return new Map<string, ReturnType<typeof buildSearchSourceSummary>>();
+
+  const sourceRows = await pg<SearchSourceSummaryRow[]>`
+    select place_id, source_type, checked_at, created_at from place_sources
+    where place_id = any(${placeIds}::uuid[])
+    order by place_id, checked_at desc nulls last, created_at desc
+  `;
+
+  for (const row of sourceRows) {
+    const sources = sourceMap.get(row.place_id) ?? [];
+    sources.push(row);
+    sourceMap.set(row.place_id, sources);
+  }
+
+  return new Map(Array.from(sourceMap.entries()).map(([placeId, rows]) => [placeId, buildSearchSourceSummary(rows)]));
 }
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
@@ -1211,7 +1240,7 @@ async function updatePlaceRow(executor: SqlExecutor, placeId: string, record: Re
   );
 }
 
-function buildSearchQuery(input: SearchPlacesInput) {
+export function buildSearchQuery(input: SearchPlacesInput) {
   const params: SqlParam[] = [];
   const where = ["status = 'active'"];
   const add = (value: unknown) => {
@@ -1223,7 +1252,7 @@ function buildSearchQuery(input: SearchPlacesInput) {
     ? `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000`
     : "null::double precision";
 
-  if (input.origin) {
+  if (input.origin && input.filterByRadius !== false) {
     where.push(
       `ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography, ${add(
         input.radiusKm * 1000
@@ -1288,6 +1317,14 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     query,
     preferences: Object.keys(preferences).length > 0 ? preferences : input.preferences
   };
+}
+
+export function searchEvaluationDate(input: Pick<SearchPlacesInput, "visitDate" | "visitStartTime">) {
+  if (!input.visitDate) return undefined;
+
+  const [year, month, day] = input.visitDate.split("-").map(Number);
+  const [hours, minutes] = (input.visitStartTime ?? "12:00").split(":").map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
 
 function keywordSearchClauses(query: string, add: (value: unknown) => string) {
@@ -1493,6 +1530,7 @@ const broadParentIntentTerms = new Set([
   "토이플러스",
   "레고스토어",
   "공동육아나눔터",
+  "체험",
   "체험관",
   "어린이",
   "아이",
@@ -1551,6 +1589,7 @@ const broadParentCoreTerms = new Set([
   "토이플러스",
   "레고스토어",
   "공동육아나눔터",
+  "체험",
   "체험관",
   "어린이",
   "아이",
@@ -1771,6 +1810,7 @@ const broadPublicExpansionTerms = [
   "과학관",
   "박물관",
   "도서관",
+  "체험",
   "체험관",
   "장난감도서관",
   "공동육아나눔터",
@@ -2138,27 +2178,33 @@ export function queryMatchSignal(
   const reasonCodes = new Set<string>();
   let delta = 0;
 
-  if (normalizedName === normalizedQuery || compactName === compactQuery) {
-    delta += 14;
+  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery;
+  if (exactNameMatch) {
+    delta += 24;
     reasonCodes.add("QUERY_NAME_EXACT");
   } else if (normalizedName.includes(normalizedQuery) || compactName.includes(compactQuery) || terms.every((term) => normalizedName.includes(term))) {
-    delta += 10;
+    delta += 14;
     reasonCodes.add("QUERY_NAME_MATCH");
   } else if (shouldUseAnyKeywordMatch(query)) {
     const matchedNameTerms = terms.filter((term, index) => normalizedName.includes(term) || compactName.includes(compactTerms[index]));
     if (matchedNameTerms.length > 0) {
-      delta += Math.min(14, 10 + matchedNameTerms.length * 2);
+      delta += Math.min(16, 10 + matchedNameTerms.length * 2);
       reasonCodes.add("QUERY_NAME_MATCH");
     }
   }
 
-  const tagMatched = place.tags.some((tag) => {
+  const exactTagMatched = place.tags.some((tag) => {
+    const normalizedTag = normalizeSearchText(tag);
+    const compactTag = compactSearchText(tag);
+    return normalizedTag === normalizedQuery || compactTag === compactQuery;
+  });
+  const tagMatched = exactTagMatched || place.tags.some((tag) => {
     const normalizedTag = normalizeSearchText(tag);
     const compactTag = compactSearchText(tag);
     return normalizedTag.includes(normalizedQuery) || compactTag.includes(compactQuery) || terms.some((term) => normalizedTag.includes(term));
   });
   if (tagMatched) {
-    delta += reasonCodes.size > 0 ? 2 : 6;
+    delta += exactTagMatched ? (reasonCodes.size > 0 ? 4 : 12) : reasonCodes.size > 0 ? 2 : 6;
     reasonCodes.add("QUERY_TAG_MATCH");
   }
 
@@ -2174,7 +2220,7 @@ export function queryMatchSignal(
   }
 
   return {
-    delta: Math.min(delta, 16),
+    delta: Math.min(delta, exactNameMatch ? 28 : 18),
     reasonCodes: Array.from(reasonCodes)
   };
 }
@@ -2327,6 +2373,123 @@ function buildImageMetadataFromRows(imageRows: PlaceImageRow[]) {
     primaryImage: images.find((image) => image.isPrimary) ?? images[0] ?? null,
     images
   };
+}
+
+export function buildSearchImageHealth(imageRows: Pick<PlaceImageRow, "url" | "is_primary" | "review_status" | "checked_at" | "updated_at">[]) {
+  const activeCount = imageRows.length;
+  const approvedCount = imageRows.filter((row) => row.review_status === "approved").length;
+  const needsReviewCount = imageRows.filter((row) => row.review_status === "needs_review").length;
+  const pendingReviewCount = imageRows.filter((row) => row.review_status === "pending_review").length;
+  const primaryRow = imageRows.find((row) => row.is_primary) ?? null;
+  const primaryImageUrl = primaryRow?.url ?? imageRows[0]?.url ?? null;
+  const primaryReviewStatus = primaryRow?.review_status ?? imageRows[0]?.review_status ?? null;
+  const hasPrimary = primaryRow !== null;
+  const status = searchImageHealthStatus({ activeCount, hasPrimary, needsReviewCount, pendingReviewCount });
+
+  return {
+    status,
+    suggestedAction: imageHealthSuggestedAction(status),
+    priorityScore: searchImageHealthPriority(status, needsReviewCount, pendingReviewCount),
+    activeCount,
+    approvedCount,
+    needsReviewCount,
+    pendingReviewCount,
+    hasPrimary,
+    primaryImageUrl,
+    primaryReviewStatus,
+    latestImageCheckedAt: latestImageDate(imageRows.map((row) => row.checked_at)),
+    latestImageUpdatedAt: latestImageDate(imageRows.map((row) => row.updated_at))
+  };
+}
+
+export function buildSearchSourceSummary(
+  sourceRows: Pick<SourceRow, "source_type" | "checked_at" | "created_at">[],
+  options: { now?: Date } = {}
+) {
+  const sourceTypes = Array.from(new Set(sourceRows.map((row) => row.source_type))).sort(compareSourceTypes);
+  const strongestSource = sourceRows
+    .slice()
+    .sort((a, b) => sourceTierRank(sourceTrustTier(b.source_type)) - sourceTierRank(sourceTrustTier(a.source_type)) || a.source_type.localeCompare(b.source_type))[0];
+  const latestChecked = sourceRows
+    .filter((row): row is typeof row & { checked_at: Date } => Boolean(row.checked_at))
+    .sort((a, b) => b.checked_at.getTime() - a.checked_at.getTime())[0];
+  const latestCreated = sourceRows.slice().sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
+
+  return {
+    sourceCount: sourceRows.length,
+    sourceTypes,
+    bestSourceType: strongestSource?.source_type ?? null,
+    bestSourceTier: strongestSource ? sourceTrustTier(strongestSource.source_type) : "none",
+    latestSourceType: latestChecked?.source_type ?? latestCreated?.source_type ?? null,
+    latestCheckedAt: latestChecked ? toIso(latestChecked.checked_at) : null,
+    latestCreatedAt: latestCreated ? toIso(latestCreated.created_at) : null,
+    freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, options.now ?? new Date())
+  };
+}
+
+function compareSourceTypes(a: string, b: string) {
+  const tierDelta = sourceTierRank(sourceTrustTier(b)) - sourceTierRank(sourceTrustTier(a));
+  return tierDelta || a.localeCompare(b);
+}
+
+function sourceTrustTier(sourceType: string) {
+  const normalized = sourceType.toLocaleLowerCase("en-US");
+  if (normalized.includes("official")) return "official";
+  if (normalized.includes("public_agency") || normalized.includes("public_tourism")) return "public_agency";
+  if (normalized.includes("operator")) return "operator";
+  if (normalized.includes("listing") || normalized.includes("blog")) return "public_listing";
+  return "other";
+}
+
+function sourceTierRank(tier: string) {
+  switch (tier) {
+    case "official":
+      return 5;
+    case "public_agency":
+      return 4;
+    case "operator":
+      return 3;
+    case "public_listing":
+      return 2;
+    case "other":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function sourceFreshnessStatus(latestCheckedAt: Date | null, now: Date) {
+  if (!latestCheckedAt) return "unchecked";
+
+  const ageDays = Math.max(0, Math.floor((now.getTime() - latestCheckedAt.getTime()) / (24 * 60 * 60 * 1000)));
+  if (ageDays === 0) return "checked_today";
+  if (ageDays <= 30) return "recent";
+  if (ageDays <= 180) return "aging";
+  return "stale";
+}
+
+function searchImageHealthStatus(input: { activeCount: number; hasPrimary: boolean; needsReviewCount: number; pendingReviewCount: number }) {
+  if (input.activeCount === 0) return "no_active_image";
+  if (!input.hasPrimary) return "no_primary";
+  if (input.needsReviewCount > 0) return "needs_review";
+  if (input.pendingReviewCount > 0) return "pending_review";
+  return "healthy";
+}
+
+function searchImageHealthPriority(status: string, needsReviewCount: number, pendingReviewCount: number) {
+  const base =
+    status === "no_active_image" ? 100 : status === "no_primary" ? 35 : status === "needs_review" ? 20 : status === "pending_review" ? 10 : 0;
+  return base + needsReviewCount * 12 + pendingReviewCount * 7;
+}
+
+function latestImageDate(values: Array<Date | string | null>) {
+  const latest = values
+    .filter((value): value is Date | string => Boolean(value))
+    .map((value) => new Date(value).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+
+  return latest === undefined ? null : new Date(latest).toISOString();
 }
 
 function mapPlaceImage(row: PlaceImageRow) {

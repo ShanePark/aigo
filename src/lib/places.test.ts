@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildImageMetadata,
+  buildSearchQuery,
+  buildSearchImageHealth,
+  buildSearchSourceSummary,
   categoryClauseForKeywordTerm,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
@@ -10,6 +13,7 @@ import {
   normalizeSearchInput,
   queryMatchSignal,
   relatedPlacePair,
+  searchEvaluationDate,
   searchTermPatterns,
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
@@ -22,6 +26,26 @@ describe("place search helpers", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);
   });
 
+  it("can calculate distance without applying the radius filter for wider day-trip planning", () => {
+    const constrained = buildSearchQuery({
+      ...baseSearchInput,
+      origin: { lat: 36.3317, lng: 127.4348 },
+      radiusKm: 80
+    });
+    const unconstrained = buildSearchQuery({
+      ...baseSearchInput,
+      origin: { lat: 36.3317, lng: 127.4348 },
+      radiusKm: 80,
+      filterByRadius: false
+    });
+
+    expect(constrained.sql).toContain("ST_DWithin");
+    expect(constrained.sql).toContain("ST_Distance");
+    expect(unconstrained.sql).not.toContain("ST_DWithin");
+    expect(unconstrained.sql).toContain("ST_Distance");
+    expect(unconstrained.params).toEqual([127.4348, 36.3317]);
+  });
+
   it("canonicalizes related-place pairs so the relation is bidirectional", () => {
     expect(relatedPlacePair("b0000000-0000-0000-0000-000000000000", "a0000000-0000-0000-0000-000000000000")).toEqual([
       "a0000000-0000-0000-0000-000000000000",
@@ -31,6 +55,18 @@ describe("place search helpers", () => {
 
   it("collapses repeated whitespace in keyword queries", () => {
     expect(searchTermPatterns("  대청호   명상정원  ")).toEqual(["%대청호%", "%명상정원%"]);
+  });
+
+  it("builds planned visit wall-clock dates for opening-hours scoring", () => {
+    const planned = searchEvaluationDate({ visitDate: "2026-05-23", visitStartTime: "10:30" });
+    const defaultNoon = searchEvaluationDate({ visitDate: "2026-05-23" });
+
+    expect(planned?.getFullYear()).toBe(2026);
+    expect(planned?.getMonth()).toBe(4);
+    expect(planned?.getDate()).toBe(23);
+    expect(planned?.getHours()).toBe(10);
+    expect(planned?.getMinutes()).toBe(30);
+    expect(defaultNoon?.getHours()).toBe(12);
   });
 
   it("recognizes broad nature intent queries", () => {
@@ -133,6 +169,95 @@ describe("place search helpers", () => {
       sourceId: "source-3",
       displayTier: "rights_unclear",
       creditText: "지역 기사 사진"
+    });
+  });
+
+  it("summarizes search image health from active image rows", () => {
+    const checkedAt = new Date("2026-05-22T02:00:00.000Z");
+    const updatedAt = new Date("2026-05-22T03:00:00.000Z");
+
+    expect(buildSearchImageHealth([])).toMatchObject({
+      status: "no_active_image",
+      suggestedAction: "find_first_image",
+      priorityScore: 100,
+      hasPrimary: false,
+      primaryImageUrl: null
+    });
+    expect(
+      buildSearchImageHealth([
+        {
+          url: "https://example.com/place.jpg",
+          is_primary: false,
+          review_status: "needs_review",
+          checked_at: checkedAt,
+          updated_at: updatedAt
+        }
+      ])
+    ).toMatchObject({
+      status: "no_primary",
+      suggestedAction: "choose_primary_image",
+      activeCount: 1,
+      needsReviewCount: 1,
+      primaryImageUrl: "https://example.com/place.jpg",
+      latestImageCheckedAt: "2026-05-22T02:00:00.000Z",
+      latestImageUpdatedAt: "2026-05-22T03:00:00.000Z"
+    });
+    expect(
+      buildSearchImageHealth([
+        {
+          url: "https://example.com/place.jpg",
+          is_primary: true,
+          review_status: "approved",
+          checked_at: checkedAt,
+          updated_at: updatedAt
+        }
+      ])
+    ).toMatchObject({
+      status: "healthy",
+      suggestedAction: "none",
+      hasPrimary: true,
+      approvedCount: 1
+    });
+  });
+
+  it("summarizes source freshness and provenance for search results", () => {
+    const now = new Date("2026-05-22T07:00:00.000Z");
+
+    expect(buildSearchSourceSummary([], { now })).toMatchObject({
+      sourceCount: 0,
+      sourceTypes: [],
+      bestSourceType: null,
+      bestSourceTier: "none",
+      latestSourceType: null,
+      latestCheckedAt: null,
+      freshnessStatus: "unchecked"
+    });
+
+    expect(
+      buildSearchSourceSummary(
+        [
+          {
+            source_type: "public_listing",
+            checked_at: new Date("2026-01-10T00:00:00.000Z"),
+            created_at: new Date("2026-01-10T00:00:00.000Z")
+          },
+          {
+            source_type: "official_site",
+            checked_at: new Date("2026-05-22T06:30:00.000Z"),
+            created_at: new Date("2026-05-22T06:45:00.000Z")
+          }
+        ],
+        { now }
+      )
+    ).toMatchObject({
+      sourceCount: 2,
+      sourceTypes: ["official_site", "public_listing"],
+      bestSourceType: "official_site",
+      bestSourceTier: "official",
+      latestSourceType: "official_site",
+      latestCheckedAt: "2026-05-22T06:30:00.000Z",
+      latestCreatedAt: "2026-05-22T06:45:00.000Z",
+      freshnessStatus: "checked_today"
     });
   });
 
@@ -320,6 +445,10 @@ describe("place search helpers", () => {
         indoorTypes: ["indoor", "mixed"]
       }
     });
+    expect(isBroadParentIntentQuery("공공 어린이 체험 박물관 과학관")).toBe(true);
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "공공 어린이 체험 박물관 과학관" })).toMatchObject({
+      query: "공공 어린이 체험 박물관 과학관"
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 영아 실내 공공시설" })).toMatchObject({
       query: "대전역 영아 실내 공공시설",
       preferences: {
@@ -426,6 +555,33 @@ describe("place search helpers", () => {
     expect(nameMatch.delta).toBeGreaterThan(tagMatch.delta);
     expect(nameMatch.reasonCodes).toContain("QUERY_NAME_MATCH");
     expect(tagMatch.reasonCodes).toContain("QUERY_TAG_MATCH");
+  });
+
+  it("boosts exact place-name matches over partial museum-name matches", () => {
+    const exactBuyeo = queryMatchSignal(
+      {
+        name: "국립부여박물관 어린이박물관",
+        tags: ["어린이박물관"],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "국립부여박물관 어린이박물관"
+    );
+    const partialSejong = queryMatchSignal(
+      {
+        name: "세종 국립어린이박물관",
+        tags: ["어린이박물관"],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "국립부여박물관 어린이박물관"
+    );
+
+    expect(exactBuyeo.delta).toBeGreaterThanOrEqual(partialSejong.delta + 8);
+    expect(exactBuyeo.reasonCodes).toContain("QUERY_NAME_EXACT");
+    expect(partialSejong.reasonCodes).toContain("QUERY_NAME_MATCH");
   });
 
   it("does not add literal query boosts for broad nature intent queries", () => {

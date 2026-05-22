@@ -544,6 +544,14 @@ components:
           type: string
           enum: [afterDaycare, nearbyNow, rainyDay, weekendHalfDay, dayTrip]
           description: Soft ranking context for common parent outing scenarios.
+        visitDate:
+          type: string
+          format: date
+          description: Planned local visit date used for opening-hours scoring. When omitted, immediate searches use the current service date/time.
+        visitStartTime:
+          type: string
+          pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+          description: Planned local visit start time in 24-hour `HH:mm` format. Requires `visitDate`; when omitted with `visitDate`, search evaluates opening hours at noon.
         origin:
           $ref: "#/components/schemas/Origin"
         location:
@@ -554,6 +562,10 @@ components:
           type: number
           default: 80
           maximum: 200
+        filterByRadius:
+          type: boolean
+          default: true
+          description: When false, keep `origin` for distance calculation and scoring but do not restrict results to `radiusKm`. Useful for lodging/destination searches.
         query:
           type: string
         primaryCategories:
@@ -972,6 +984,7 @@ components:
     SearchPlaceItem:
       type: object
       required:
+        - id
         - placeId
         - name
         - primaryCategory
@@ -980,6 +993,8 @@ components:
         - imageUrls
         - primaryImage
         - images
+        - imageHealth
+        - sourceSummary
         - playFeatures
         - score
         - scoreBreakdown
@@ -994,9 +1009,15 @@ components:
         - version
         - updatedAt
       properties:
+        id:
+          type: string
+          format: uuid
+          description: Canonical place id, matching place detail and duplicate candidate `place.id` values.
         placeId:
           type: string
           format: uuid
+          deprecated: true
+          description: Backward-compatible alias for `id`; prefer `id` in new agent/client code.
         name:
           type: string
         primaryCategory:
@@ -1027,6 +1048,62 @@ components:
           description: First-class image entities, ordered by primary image and sort order.
           items:
             $ref: "#/components/schemas/PlaceImage"
+        imageHealth:
+          type: object
+          description: Compact image coverage summary for rendering/search planning. Use `/v1/places/image-health` for full audit queues including rejected and archived image counts.
+          required:
+            - status
+            - suggestedAction
+            - priorityScore
+            - activeCount
+            - approvedCount
+            - needsReviewCount
+            - pendingReviewCount
+            - hasPrimary
+            - primaryImageUrl
+            - primaryReviewStatus
+            - latestImageCheckedAt
+            - latestImageUpdatedAt
+          properties:
+            status:
+              type: string
+              enum: [no_active_image, needs_review, pending_review, no_primary, healthy]
+            suggestedAction:
+              type: string
+              enum: [find_first_image, choose_primary_image, review_or_replace_images, audit_pending_images, none]
+            priorityScore:
+              type: integer
+            activeCount:
+              type: integer
+            approvedCount:
+              type: integer
+            needsReviewCount:
+              type: integer
+            pendingReviewCount:
+              type: integer
+            hasPrimary:
+              type: boolean
+            primaryImageUrl:
+              type:
+                - string
+                - "null"
+              format: uri
+            primaryReviewStatus:
+              type:
+                - string
+                - "null"
+            latestImageCheckedAt:
+              type:
+                - string
+                - "null"
+              format: date-time
+            latestImageUpdatedAt:
+              type:
+                - string
+                - "null"
+              format: date-time
+        sourceSummary:
+          $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
         lat:
@@ -1068,6 +1145,51 @@ components:
         updatedAt:
           type: string
           format: date-time
+    SearchSourceSummary:
+      type: object
+      description: Compact source provenance and freshness summary for search cards and agent planning.
+      required:
+        - sourceCount
+        - sourceTypes
+        - bestSourceType
+        - bestSourceTier
+        - latestSourceType
+        - latestCheckedAt
+        - latestCreatedAt
+        - freshnessStatus
+      properties:
+        sourceCount:
+          type: integer
+          minimum: 0
+        sourceTypes:
+          type: array
+          description: Unique source types ordered by provenance strength.
+          items:
+            type: string
+        bestSourceType:
+          type:
+            - string
+            - "null"
+        bestSourceTier:
+          type: string
+          enum: [official, public_agency, operator, public_listing, other, none]
+        latestSourceType:
+          type:
+            - string
+            - "null"
+        latestCheckedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        latestCreatedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        freshnessStatus:
+          type: string
+          enum: [checked_today, recent, aging, stale, unchecked]
     SearchReason:
       type: object
       required: [code, labelKo, group, tone, priority]

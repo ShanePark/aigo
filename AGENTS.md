@@ -84,13 +84,12 @@ When AiGo service/API usage reveals friction, bugs, unclear behavior, or future 
 
 Use a simple checklist format with one improvement per item. Keep each item actionable, include the source task or research file when useful, and preserve enough API payload/result context for a future agent to reproduce the issue.
 
-Use these Korean status labels at the start of each item:
+Use these Korean status labels at the start of each open item:
 
 - `[대기]` for an improvement that has not started.
 - `[개선 중]` for the single improvement currently being worked on.
-- `[완료]` for a fixed and verified improvement.
 
-When starting work on an existing improvement, first update that item from `[대기]` to `[개선 중]`, then implement and verify the fix. When finishing, update it to `[완료]` with a short note about the relevant commit, PR, test, or verification. Do not leave multiple unrelated items marked `[개선 중]` unless they are intentionally part of the same active change.
+When starting work on an existing improvement, first update that item from `[대기]` to `[개선 중]`, then implement and verify the fix. When finishing, delete the item from `docs/aigo-improvements.md` instead of changing it to `[완료]`; keep verification details in the relevant commit, PR, test, or implementation notes. Do not leave multiple unrelated items marked `[개선 중]` unless they are intentionally part of the same active change.
 
 ## API Data Mutation Rules
 

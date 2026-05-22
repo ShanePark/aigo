@@ -191,6 +191,15 @@ export const updatePlaceSchema = z
 
 const searchPlacesBaseSchema = z.object({
   visitContext: z.enum(["afterDaycare", "nearbyNow", "rainyDay", "weekendHalfDay", "dayTrip"]).optional(),
+  visitDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "visitDate must use YYYY-MM-DD")
+    .refine(isCalendarDate, "visitDate must be a valid calendar date")
+    .optional(),
+  visitStartTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "visitStartTime must use HH:mm in 24-hour time")
+    .optional(),
   origin: z
     .object({
       lat: z.number().min(-90).max(90),
@@ -199,6 +208,7 @@ const searchPlacesBaseSchema = z.object({
     })
     .optional(),
   radiusKm: z.number().positive().max(200).default(80),
+  filterByRadius: z.boolean().optional(),
   query: z.string().trim().min(1).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   tags: z.array(nonEmptyString).max(30).optional(),
@@ -219,6 +229,9 @@ const searchPlacesBaseSchema = z.object({
   sort: z.enum(["recommended", "distance", "updatedAt"]).default("recommended"),
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).max(1000).default(0)
+}).refine((input) => input.visitStartTime === undefined || input.visitDate !== undefined, {
+  message: "visitStartTime requires visitDate",
+  path: ["visitStartTime"]
 });
 
 export const searchPlacesSchema = z.preprocess(normalizeSearchAliases, searchPlacesBaseSchema);
@@ -265,4 +278,14 @@ function normalizeSearchAliases(value: unknown) {
   }
 
   return input;
+}
+
+function isCalendarDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
