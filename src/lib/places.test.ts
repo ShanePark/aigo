@@ -25,6 +25,7 @@ import {
   normalizedImagePrimaryForTest,
   queryMatchSignal,
   relatedPlacePair,
+  retailAliasCompactTextsForTest,
   searchEvaluationDate,
   searchTermPatterns,
   shouldUseAnyKeywordMatch,
@@ -209,6 +210,23 @@ describe("place search helpers", () => {
     expect(query.sql).not.toContain("description ilike");
     expect(query.sql).not.toContain("exists (select 1 from unnest(tags)");
     expect(query.params).toEqual(["국립부여박물관 어린이박물관", "국립부여박물관어린이박물관"]);
+  });
+
+  it("expands exact-name retail branch aliases for mall and outlet names", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "롯데몰 김포공항",
+      matchMode: "exactName"
+    });
+
+    expect(retailAliasCompactTextsForTest("백화점 김포공항점")).toContain("롯데몰김포공항점");
+    expect(retailAliasCompactTextsForTest("롯데프리미엄아울렛 의왕점")).toContain("타임빌라스");
+    expect(query.sql).toContain("= any(");
+    expect(query.params).toEqual([
+      "롯데몰 김포공항",
+      "롯데몰김포공항",
+      expect.arrayContaining(["롯데백화점김포공항", "백화점김포공항", "쇼핑몰김포공항"])
+    ]);
   });
 
   it("preserves literal exact-name queries during preference inference", () => {
@@ -1358,6 +1376,22 @@ describe("place search helpers", () => {
     expect(exactBuyeo.delta).toBeGreaterThanOrEqual(partialSejong.delta + 8);
     expect(exactBuyeo.reasonCodes).toContain("QUERY_NAME_EXACT");
     expect(partialSejong.reasonCodes).toContain("QUERY_NAME_MATCH");
+  });
+
+  it("boosts retail alias name matches across chain naming variants", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "롯데백화점 김포공항점",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "롯데몰 김포공항"
+    );
+
+    expect(signal.delta).toBeGreaterThanOrEqual(18);
+    expect(signal.reasonCodes).toContain("QUERY_RETAIL_ALIAS_MATCH");
   });
 
   it("does not add literal query boosts for broad nature intent queries", () => {

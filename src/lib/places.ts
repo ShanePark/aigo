@@ -1056,6 +1056,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const containsName = `%${input.name}%`;
   const compactName = compactSearchText(input.name);
   const containsCompactName = `%${compactName}%`;
+  const retailAliasCompacts = retailAliasCompactTexts(input.name);
   const genericAliasTerms = duplicateGenericAliasTerms;
   const hasCoordinates = input.lat !== undefined && input.lng !== undefined;
   const lat = input.lat ?? null;
@@ -1097,6 +1098,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
             then 0.65
             else 0
           end,
+          case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[]) then 0.82 else 0 end,
           case
             when exists (
               select 1
@@ -1125,6 +1127,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
               )
           )
           or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
+          or regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[])
         ) as alias_match,
         (
           array_length(${addressCandidates}::text[], 1) is not null
@@ -1965,7 +1968,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const exactParam = add(normalizeSearchText(query));
   const compactParam = add(compactSearchText(query));
-  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam})`;
+  const retailAliasCompacts = retailAliasCompactTexts(query);
+  const retailAliasClause =
+    retailAliasCompacts.length > 1 ? ` or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = any(${add(retailAliasCompacts)}::text[])` : "";
+  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause})`;
 }
 
 function requiredPreferenceClauses(preferences: SearchPlacesInput["preferences"] | undefined, add: (value: unknown) => string) {
@@ -2963,6 +2969,7 @@ export function queryMatchSignal(
   const normalizedName = normalizeSearchText(place.name);
   const compactName = compactSearchText(place.name);
   const compactQuery = compactSearchText(query);
+  const retailAliasMatched = retailAliasCompactTexts(query).some((alias) => retailAliasCompactTexts(place.name).includes(alias));
   const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
   let delta = 0;
@@ -2971,6 +2978,9 @@ export function queryMatchSignal(
   if (exactNameMatch) {
     delta += 24;
     reasonCodes.add("QUERY_NAME_EXACT");
+  } else if (retailAliasMatched) {
+    delta += 20;
+    reasonCodes.add("QUERY_RETAIL_ALIAS_MATCH");
   } else if (normalizedName.includes(normalizedQuery) || compactName.includes(compactQuery) || terms.every((term) => normalizedName.includes(term))) {
     delta += 14;
     reasonCodes.add("QUERY_NAME_MATCH");
@@ -3031,6 +3041,55 @@ function compactSearchText(value: string) {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+export function retailAliasCompactTextsForTest(value: string) {
+  return retailAliasCompactTexts(value);
+}
+
+function retailAliasCompactTexts(value: string) {
+  const aliases = new Set<string>();
+  const addAlias = (alias: string) => {
+    const compact = compactSearchText(alias);
+    if (!compact) return;
+    aliases.add(compact);
+    if (compact.endsWith("점")) aliases.add(compact.slice(0, -1));
+  };
+
+  const compact = compactSearchText(value.replace(/ak\s*plaza/gi, "ak플라자"));
+  addAlias(compact);
+
+  const retailReplacements: Array<[RegExp, string[]]> = [
+    [/롯데몰/g, ["롯데백화점", "롯데쇼핑몰", "백화점", "쇼핑몰", "롯데"]],
+    [/롯데백화점/g, ["롯데몰", "롯데쇼핑몰", "백화점", "쇼핑몰", "롯데"]],
+    [/백화점/g, ["롯데백화점", "롯데몰", "롯데쇼핑몰", "롯데", "쇼핑몰", ""]],
+    [/쇼핑몰/g, ["롯데몰", "롯데백화점", "롯데쇼핑몰", "롯데", "백화점", ""]],
+    [/롯데프리미엄아울렛/g, ["프리미엄아울렛", "롯데아울렛", "아울렛"]],
+    [/프리미엄아울렛/g, ["롯데프리미엄아울렛", "롯데아울렛", "아울렛"]],
+    [/ak플라자/g, ["ak", "애경백화점", "애경플라자"]]
+  ];
+
+  for (const [pattern, replacements] of retailReplacements) {
+    if (!pattern.test(compact)) continue;
+    pattern.lastIndex = 0;
+    for (const replacement of replacements) {
+      addAlias(compact.replace(pattern, replacement));
+    }
+  }
+
+  if (compact.includes("롯데프리미엄아울렛의왕") || compact.includes("타임빌라스")) {
+    [
+      "타임빌라스",
+      "의왕타임빌라스",
+      "롯데프리미엄아울렛의왕점",
+      "롯데프리미엄아울렛의왕",
+      "롯데프리미엄아울렛타임빌라스",
+      "롯데아울렛의왕점",
+      "롯데아울렛타임빌라스"
+    ].forEach(addAlias);
+  }
+
+  return Array.from(aliases);
 }
 
 function mergeReasonCodes(first: string[], second: string[]) {

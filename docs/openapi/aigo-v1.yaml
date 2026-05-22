@@ -993,7 +993,7 @@ components:
           type: string
           enum: [keyword, exactName]
           default: keyword
-          description: Use `exactName` for deterministic place-name lookup; it matches exact or whitespace-compacted place names instead of broad keyword/tag text.
+          description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, and known retail-chain alias place names instead of broad keyword/tag text.
         primaryCategories:
           type: array
           items:
