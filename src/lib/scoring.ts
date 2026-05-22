@@ -1,4 +1,5 @@
 import type { Place } from "@/db/schema";
+import { seoulWallClockParts } from "@/lib/korea-time";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
 type VisitScores = {
@@ -693,8 +694,9 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   const periods = collectOpeningPeriods(openingHours);
   if (periods.length === 0) return { state: "unknown" };
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const today = now.getDay();
+  const nowParts = seoulWallClockParts(now);
+  const nowMinutes = nowParts.hours * 60 + nowParts.minutes;
+  const today = nowParts.weekday;
   const yesterday = (today + 6) % 7;
   let hasApplicableSchedule = false;
 
@@ -811,11 +813,35 @@ const dayNames: Record<string, number> = {
   sat: 6
 };
 
+const koreanDayNames: Record<string, number> = {
+  일: 0,
+  일요일: 0,
+  월: 1,
+  월요일: 1,
+  화: 2,
+  화요일: 2,
+  수: 3,
+  수요일: 3,
+  목: 4,
+  목요일: 4,
+  금: 5,
+  금요일: 5,
+  토: 6,
+  토요일: 6
+};
+
+const unsupportedSpecialDayNames = new Set(["공휴일", "휴일", "holiday", "holidays", "publicholiday", "publicholidays"]);
+
 function parseDay(value: unknown) {
   if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 6) return value;
   if (typeof value !== "string") return null;
-  const normalized = value.toLowerCase().replace(/^https?:\/\/schema\.org\//, "");
-  return dayNames[normalized] ?? null;
+  const normalized = value
+    .toLowerCase()
+    .replace(/^https?:\/\/schema\.org\//, "")
+    .replace(/\s+/g, "");
+  if (/^[0-6]$/.test(normalized)) return Number(normalized);
+  if (unsupportedSpecialDayNames.has(normalized)) return null;
+  return dayNames[normalized] ?? koreanDayNames[normalized] ?? null;
 }
 
 function periodAppliesToDay(period: OpeningPeriod, day: number) {

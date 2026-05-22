@@ -461,6 +461,79 @@ describe("scorePlace", () => {
     expect(closed.scoreBreakdown.openingHours).toBeLessThan(0);
   });
 
+  it("evaluates weekly opening hours against Asia/Seoul and Korean weekday keys", () => {
+    const shared = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 2
+    };
+
+    const result = scorePlace(
+      {
+        ...shared,
+        openingHours: {
+          weekly: {
+            금요일: { opens: "10:00", closes: "18:00" },
+            공휴일: { closed: true }
+          }
+        }
+      },
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-05-22T07:30:00.000Z") }
+    );
+
+    expect(result.reasonCodes).toContain("OPEN_NOW");
+    expect(result.reasonCodes).not.toContain("CLOSED_NOW");
+  });
+
+  it("keeps Seoul overnight hours open after midnight", () => {
+    const shared = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 2
+    };
+
+    const result = scorePlace(
+      {
+        ...shared,
+        openingHours: {
+          weekly: {
+            금: { opens: "22:00", closes: "02:00" }
+          }
+        }
+      },
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-05-22T16:30:00.000Z") }
+    );
+
+    expect(result.reasonCodes).toContain("OPEN_NOW");
+    expect(result.reasonCodes).not.toContain("CLOSED_NOW");
+  });
+
   it("penalizes unknown hours for immediate visit searches", () => {
     const shared = {
       primaryCategory: "kids_cafe",

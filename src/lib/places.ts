@@ -11,6 +11,7 @@ import {
   type UpdatePlaceInput
 } from "@/lib/schemas";
 import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
+import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
 import type postgres from "postgres";
@@ -1616,9 +1617,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
 export function searchEvaluationDate(input: Pick<SearchPlacesInput, "visitDate" | "visitStartTime">) {
   if (!input.visitDate) return undefined;
 
-  const [year, month, day] = input.visitDate.split("-").map(Number);
-  const [hours, minutes] = (input.visitStartTime ?? "12:00").split(":").map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return dateFromSeoulWallClock(input.visitDate, input.visitStartTime ?? "12:00");
 }
 
 function keywordSearchClauses(query: string, add: (value: unknown) => string) {

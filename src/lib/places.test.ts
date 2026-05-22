@@ -182,12 +182,8 @@ describe("place search helpers", () => {
     const planned = searchEvaluationDate({ visitDate: "2026-05-23", visitStartTime: "10:30" });
     const defaultNoon = searchEvaluationDate({ visitDate: "2026-05-23" });
 
-    expect(planned?.getFullYear()).toBe(2026);
-    expect(planned?.getMonth()).toBe(4);
-    expect(planned?.getDate()).toBe(23);
-    expect(planned?.getHours()).toBe(10);
-    expect(planned?.getMinutes()).toBe(30);
-    expect(defaultNoon?.getHours()).toBe(12);
+    expect(planned?.toISOString()).toBe("2026-05-23T01:30:00.000Z");
+    expect(defaultNoon?.toISOString()).toBe("2026-05-23T03:00:00.000Z");
   });
 
   it("recognizes broad nature intent queries", () => {
