@@ -145,7 +145,7 @@ Rules for `sources`:
 Common writable fields:
 
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
-- Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
+- Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `parkingFrictionLevel`, `peakParkingWindow`, `parkingWaitNote`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
 - Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `reservationRequired`, `walkInAvailable`, `sessionBased`, `sameDayAvailabilityKnown`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
@@ -156,6 +156,7 @@ Use these enum values:
 
 - Tri-state fields: `yes`, `no`, `partial`, `unknown`.
 - `indoorType`: `indoor`, `outdoor`, `mixed`, `unknown`.
+- `parkingFrictionLevel`: `low`, `medium`, `high`, `unknown`.
 - `status`: API accepts `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`.
 - `dataConfidence`: API accepts `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`; user-requested registrations from this skill should use `agent_collected`, `user_reported`, or `official_verified`.
 - Related-place `relationType`: use `same_building` for branches inside the same mall/building, `same_site` for campus/resort/public-facility subvenues, `nearby` for very close practical companions, `parent_child` for explicit parent/subfacility relationships, and `route_pair` for route-break pairings.

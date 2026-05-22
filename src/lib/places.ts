@@ -50,6 +50,9 @@ type PlaceRow = {
   indoor_type: string;
   stroller_friendly: string;
   parking_available: string;
+  parking_friction_level: string;
+  peak_parking_window: string | null;
+  parking_wait_note: string | null;
   nursing_room: string;
   diaper_changing_table: string;
   kids_toilet: string;
@@ -217,6 +220,9 @@ const columnMap = {
   indoorType: "indoor_type",
   strollerFriendly: "stroller_friendly",
   parkingAvailable: "parking_available",
+  parkingFrictionLevel: "parking_friction_level",
+  peakParkingWindow: "peak_parking_window",
+  parkingWaitNote: "parking_wait_note",
   nursingRoom: "nursing_room",
   diaperChangingTable: "diaper_changing_table",
   kidsToilet: "kids_toilet",
@@ -504,6 +510,9 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
       indoorType: item.facilities.indoorType,
       strollerFriendly: item.facilities.strollerFriendly,
       parkingAvailable: item.facilities.parkingAvailable,
+      parkingFrictionLevel: item.facilities.parkingFrictionLevel,
+      peakParkingWindow: item.facilities.peakParkingWindow,
+      parkingWaitNote: item.facilities.parkingWaitNote,
       nursingRoom: item.facilities.nursingRoom,
       diaperChangingTable: item.facilities.diaperChangingTable,
       kidsToilet: item.facilities.kidsToilet,
@@ -2392,6 +2401,9 @@ function mapPlace(row: PlaceRow) {
       indoorType: row.indoor_type,
       strollerFriendly: row.stroller_friendly,
       parkingAvailable: row.parking_available,
+      parkingFrictionLevel: row.parking_friction_level,
+      peakParkingWindow: row.peak_parking_window,
+      parkingWaitNote: row.parking_wait_note,
       nursingRoom: row.nursing_room,
       diaperChangingTable: row.diaper_changing_table,
       kidsToilet: row.kids_toilet,

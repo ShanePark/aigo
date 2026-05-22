@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const triStateSchema = z.enum(["yes", "no", "partial", "unknown"]);
 export const indoorTypeSchema = z.enum(["indoor", "outdoor", "mixed", "unknown"]);
+export const parkingFrictionLevelSchema = z.enum(["low", "medium", "high", "unknown"]);
 export const imageDisplayTierSchema = z.enum(["official", "public_agency", "public_listing", "rights_unclear", "unknown"]);
 export const imageStatusSchema = z.enum(["active", "archived"]);
 export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "needs_review", "rejected"]);
@@ -125,6 +126,9 @@ const writablePlaceFields = {
   indoorType: indoorTypeSchema.optional(),
   strollerFriendly: triStateSchema.optional(),
   parkingAvailable: triStateSchema.optional(),
+  parkingFrictionLevel: parkingFrictionLevelSchema.optional(),
+  peakParkingWindow: z.string().trim().max(500).optional(),
+  parkingWaitNote: z.string().trim().max(1000).optional(),
   nursingRoom: triStateSchema.optional(),
   diaperChangingTable: triStateSchema.optional(),
   kidsToilet: triStateSchema.optional(),

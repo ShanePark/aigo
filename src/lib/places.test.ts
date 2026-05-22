@@ -410,6 +410,9 @@ describe("place search helpers", () => {
         indoorType: "indoor",
         strollerFriendly: "yes",
         parkingAvailable: "yes",
+        parkingFrictionLevel: "high",
+        peakParkingWindow: "Weekend late mornings",
+        parkingWaitNote: "Main lot can back up during public programs.",
         nursingRoom: "unknown",
         diaperChangingTable: "unknown",
         kidsToilet: "unknown",
@@ -466,6 +469,11 @@ describe("place search helpers", () => {
       },
       openingHoursSummary: {
         confidenceLevel: "high"
+      },
+      facilities: {
+        parkingFrictionLevel: "high",
+        peakParkingWindow: "Weekend late mornings",
+        parkingWaitNote: "Main lot can back up during public programs."
       },
       visit: {
         reservationRequired: "yes",

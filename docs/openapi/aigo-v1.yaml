@@ -285,6 +285,10 @@ components:
     IndoorType:
       type: string
       enum: [indoor, outdoor, mixed, unknown]
+    ParkingFrictionLevel:
+      type: string
+      enum: [low, medium, high, unknown]
+      description: Parent-facing parking difficulty signal; use unknown when source evidence is weak.
     RelatedPlaceRelationType:
       type: string
       enum: [nearby, same_building, same_site, parent_child, route_pair]
@@ -451,6 +455,16 @@ components:
           $ref: "#/components/schemas/TriState"
         parkingAvailable:
           $ref: "#/components/schemas/TriState"
+        parkingFrictionLevel:
+          $ref: "#/components/schemas/ParkingFrictionLevel"
+        peakParkingWindow:
+          type: string
+          maxLength: 500
+          description: Source-backed time window when parking is most likely to be difficult.
+        parkingWaitNote:
+          type: string
+          maxLength: 1000
+          description: Practical parent note about parking entry, queues, validation, or fallback lots.
         nursingRoom:
           $ref: "#/components/schemas/TriState"
         diaperChangingTable:
@@ -1740,6 +1754,9 @@ components:
         - indoorType
         - strollerFriendly
         - parkingAvailable
+        - parkingFrictionLevel
+        - peakParkingWindow
+        - parkingWaitNote
         - nursingRoom
         - diaperChangingTable
         - kidsToilet
@@ -1753,6 +1770,14 @@ components:
           $ref: "#/components/schemas/TriState"
         parkingAvailable:
           $ref: "#/components/schemas/TriState"
+        parkingFrictionLevel:
+          $ref: "#/components/schemas/ParkingFrictionLevel"
+        peakParkingWindow:
+          type: string
+          nullable: true
+        parkingWaitNote:
+          type: string
+          nullable: true
         nursingRoom:
           $ref: "#/components/schemas/TriState"
         diaperChangingTable:

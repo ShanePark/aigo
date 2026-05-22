@@ -131,6 +131,24 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
+  it("accepts structured parking friction fields", () => {
+    const result = updatePlaceSchema.parse({
+      parkingFrictionLevel: "high",
+      peakParkingWindow: "Weekend late mornings",
+      parkingWaitNote: "Large public events can make on-site parking slow; consider nearby overflow parking.",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const invalid = updatePlaceSchema.safeParse({
+      parkingFrictionLevel: "severe",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.parkingFrictionLevel).toBe("high");
+    expect(result.peakParkingWindow).toBe("Weekend late mornings");
+    expect(result.parkingWaitNote).toContain("overflow parking");
+    expect(invalid.success).toBe(false);
+  });
+
   it("accepts related-place updates with relation metadata", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "agent_observation", externalId: "related-place-audit-20260522" }],
