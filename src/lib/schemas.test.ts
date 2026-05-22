@@ -27,6 +27,37 @@ describe("place schemas", () => {
     expect(result.primaryCategory).toBe("accommodation");
   });
 
+  it("accepts source-backed pricing with a price basis date", () => {
+    const result = createPlaceSchema.parse({
+      name: "유료 키즈카페",
+      primaryCategory: "kids_cafe",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      pricing: {
+        summary: "어린이 2시간 15,000원, 보호자 4,000원",
+        currency: "KRW",
+        basisDate: "2026-05-22",
+        checkedAt: "2026-05-22T09:00:00.000+09:00",
+        staleAfterDays: 90,
+        items: [
+          { label: "어린이 2시간", amount: 15000, currency: "KRW", unit: "child/2h" },
+          { label: "보호자 입장", amount: 4000, currency: "KRW", unit: "guardian" }
+        ],
+        sourceUrl: "https://example.com/prices"
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com/prices" }]
+    });
+    const invalidDate = updatePlaceSchema.safeParse({
+      pricing: { summary: "어린이 15,000원", basisDate: "2026-02-30" },
+      sources: [{ sourceType: "official_site", url: "https://example.com/prices" }]
+    });
+
+    expect(result.pricing?.summary).toBe("어린이 2시간 15,000원, 보호자 4,000원");
+    expect(result.pricing?.items?.[0]?.amount).toBe(15000);
+    expect(invalidDate.success).toBe(false);
+  });
+
   it("defaults search pagination and keeps facility preferences soft", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

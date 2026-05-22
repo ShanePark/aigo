@@ -160,7 +160,7 @@ Common writable fields:
 - Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `parkingFrictionLevel`, `peakParkingWindow`, `parkingWaitNote`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
 - Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `reservationRequired`, `walkInAvailable`, `sessionBased`, `sameDayAvailabilityKnown`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
-- Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
+- Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `pricing`, `status`, `dataConfidence`.
 - Related places: `relatedPlaces` accepts existing place IDs with `relationType`, `note`, and optional `evidence`; use `relatedPlaceMode: "append"` by default or `"replace"` only when deliberately rewriting the current relation set.
 - Play/image data: `playFeatures`, `images`.
 
@@ -295,6 +295,7 @@ Capture the practical parent tradeoffs in structured fields and notes:
 - Parking entry friction, validation, elevator connection, and whether one building solves food/rest/play.
 - Reservation/session friction, same-day availability, walk-in fallback, and whether parent timing must be planned before departure.
 - Snack/meal handling: outside food, food court, cafe, family restaurant playroom, baby chair.
+- Paid-entry details: use structured `pricing` only when source-backed. Include a compact `summary`, `basisDate` or `checkedAt`, optional `staleAfterDays`, item rows for child/guardian/time/reservation/free conditions, and a source URL. Do not estimate unknown prices.
 - Stay duration, parent effort level, child engagement level, rainy/hot/cold day suitability.
 - Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.
 - Day-trip fallback: toilets, shade, feeding/change fallback, route/time burden, rest areas.

@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, History, MapPin, MessageSquareText, ShieldCheck } from "lucide-react";
+import { Clock, ExternalLink, History, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
@@ -8,6 +8,7 @@ import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
+import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLabel } from "@/lib/pricing";
 
 type PlaceDetailProps = {
   params: Promise<{
@@ -41,6 +42,10 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const infoLinks = buildPlaceInfoLinks(place);
   const naverMapLink = buildNaverMapLink(place);
   const reviewLinks = buildReviewLinks(place);
+  const priceLabel = pricingSummaryLabel(place.pricing);
+  const priceEvidence = pricingEvidenceLabel(place.pricing);
+  const priceItems = pricingItemLabels(place.pricing);
+  const priceNote = pricingNote(place.pricing);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
   const backHref = searchBackHref(query.returnTo);
@@ -200,6 +205,23 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           <span>추운 날 {scoreLabel(place.visit.coldDayScore)}</span>
         </div>
       </section>
+
+      {priceLabel || priceItems.length > 0 || priceNote ? (
+        <section className="info-block full">
+          <h2>
+            <Ticket size={18} aria-hidden="true" />
+            가격 정보
+          </h2>
+          <div className="detail-signal-grid">
+            {priceLabel ? <span>{priceLabel}</span> : null}
+            {!priceLabel && priceEvidence ? <span>{priceEvidence}</span> : null}
+            {priceItems.slice(0, 4).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+          {priceNote ? <p className="play-feature-note">{priceNote}</p> : null}
+        </section>
+      ) : null}
 
       {playFeatureEntries(place.playFeatures).length > 0 ? (
         <section className="info-block full">

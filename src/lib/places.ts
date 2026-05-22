@@ -38,6 +38,7 @@ type PlaceRow = {
   kakao_place_id: string | null;
   external_refs: Record<string, unknown>;
   play_features: Record<string, unknown>;
+  pricing: Record<string, unknown>;
   status: string;
   data_confidence: string;
   place_score: number | null;
@@ -208,6 +209,7 @@ const columnMap = {
   kakaoPlaceId: "kakao_place_id",
   externalRefs: "external_refs",
   playFeatures: "play_features",
+  pricing: "pricing",
   status: "status",
   dataConfidence: "data_confidence",
   placeScore: "place_score",
@@ -422,6 +424,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       address: place.address,
       description: place.description,
       playFeatures: place.playFeatures,
+      pricing: place.pricing,
       region: place.region,
       lat: place.lat,
       lng: place.lng,
@@ -610,6 +613,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     reasonCodes: item.reasonCodes,
     reasons: item.reasons,
     dataConfidence: item.dataConfidence,
+    pricing: item.pricing,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
     openingHoursSummary: item.openingHoursSummary,
@@ -2789,7 +2793,7 @@ function quoteIdentifier(identifier: string) {
 }
 
 function placeholderFor(column: string, index: number) {
-  if (column === "external_refs" || column === "opening_hours" || column === "score_signals") {
+  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "score_signals") {
     return `$${index}::jsonb`;
   }
   if (column === "play_features") {
@@ -2799,7 +2803,7 @@ function placeholderFor(column: string, index: number) {
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "score_signals") {
+  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "score_signals") {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -2832,6 +2836,7 @@ function mapPlace(row: PlaceRow) {
     },
     externalRefs: row.external_refs,
     playFeatures: row.play_features ?? {},
+    pricing: row.pricing ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,
     scoring: {

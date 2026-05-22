@@ -22,6 +22,7 @@ import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
 import { SearchResultTrustBadges } from "@/app/search-result-badges";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
+import { pricingSummaryLabel } from "@/lib/pricing";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
@@ -235,6 +236,7 @@ export default async function Home({ searchParams }: HomeProps) {
 function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
+  const priceLabel = pricingSummaryLabel(place.pricing);
 
   return (
     <Link
@@ -262,6 +264,11 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
             <span key={keyword}>{keyword}</span>
           ))}
         </div>
+        {priceLabel ? (
+          <div className="trust-row">
+            <span className="trust-badge warning">{priceLabel}</span>
+          </div>
+        ) : null}
         <SearchResultTrustBadges openingHoursSummary={place.openingHoursSummary} sourceSummary={place.sourceSummary} />
       </div>
     </Link>

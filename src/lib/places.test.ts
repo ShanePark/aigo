@@ -649,6 +649,11 @@ describe("place search helpers", () => {
       reasonCodes: ["DIAPER_TABLE_UNKNOWN"],
       reasons: [],
       dataConfidence: "agent_collected",
+      pricing: {
+        summary: "어린이 2시간 15,000원",
+        currency: "KRW",
+        basisDate: "2026-05-22"
+      },
       recommendedAgeMonths: { min: 24, max: 96 },
       infantLogistics: {
         confidenceLevel: "medium",
@@ -737,6 +742,10 @@ describe("place search helpers", () => {
       },
       openingHoursSummary: {
         confidenceLevel: "high"
+      },
+      pricing: {
+        summary: "어린이 2시간 15,000원",
+        basisDate: "2026-05-22"
       },
       facilities: {
         parkingFrictionLevel: "high",

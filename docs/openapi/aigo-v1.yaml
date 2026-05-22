@@ -340,6 +340,73 @@ components:
           type: object
           description: Agent-maintained relation evidence such as distance meters, address match, source URLs, or audit batch id. For itinerary_cluster relations, include fields such as clusterName, sharedDriveBurden, mealRestFallback, parentEffortNotes, and sourceUrls when available.
           additionalProperties: true
+    PricingItem:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          description: Human-readable price row such as child 2-hour pass, guardian entry, infant free condition, weekday rate, or reservation price.
+        amount:
+          type: integer
+          minimum: 0
+          maximum: 100000000
+          description: KRW amount when the source provides a fixed numeric price. Omit instead of guessing.
+        currency:
+          type: string
+          enum: [KRW]
+          default: KRW
+        unit:
+          type: string
+          description: Price unit such as person, child, guardian, 2 hours, night, or session.
+        ageRange:
+          type: string
+          description: Source-backed age/person condition for this price row.
+        conditions:
+          type: string
+          description: Weekday/weekend, reservation, companion, free-entry, or time-limit conditions.
+        notes:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+    Pricing:
+      type: object
+      description: Source-backed fee summary for paid places. Prices change often, so include `basisDate` or `checkedAt` whenever prices are known and omit unknown amounts instead of estimating.
+      properties:
+        summary:
+          type: string
+          maxLength: 1000
+          description: Compact parent-facing summary shown on cards/details.
+        currency:
+          type: string
+          enum: [KRW]
+          default: KRW
+        basisDate:
+          type: string
+          format: date
+          description: Date the listed prices apply to or were published, in YYYY-MM-DD.
+        checkedAt:
+          type: string
+          format: date-time
+          description: Agent/source verification timestamp for the price information.
+        staleAfterDays:
+          type: integer
+          minimum: 1
+          maximum: 730
+          description: Optional freshness window after which the UI should show the price as needing recheck.
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PricingItem"
+        sourceUrl:
+          type: string
+          format: uri
+        sourceTitle:
+          type: string
+        notes:
+          type: string
     PlaceWritableFields:
       type: object
       properties:
@@ -394,6 +461,8 @@ components:
           additionalProperties: true
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        pricing:
+          $ref: "#/components/schemas/Pricing"
         imageUrls:
           type: array
           deprecated: true
@@ -1090,6 +1159,7 @@ components:
         - imageHealth
         - sourceSummary
         - playFeatures
+        - pricing
         - score
         - scoreBreakdown
         - reasonCodes
@@ -1202,6 +1272,8 @@ components:
           $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        pricing:
+          $ref: "#/components/schemas/Pricing"
         lat:
           type: number
         lng:
@@ -1263,6 +1335,7 @@ components:
         - recommendedAgeMonths
         - infantLogistics
         - openingHoursSummary
+        - pricing
         - facilities
         - visit
         - notes
@@ -1313,6 +1386,8 @@ components:
           $ref: "#/components/schemas/InfantLogisticsSignal"
         openingHoursSummary:
           $ref: "#/components/schemas/OpeningHoursSummary"
+        pricing:
+          $ref: "#/components/schemas/Pricing"
         facilities:
           $ref: "#/components/schemas/Facilities"
         visit:
@@ -2094,6 +2169,7 @@ components:
         - relatedPlaces
         - sourceSummary
         - playFeatures
+        - pricing
         - status
         - dataConfidence
         - scoring
@@ -2195,6 +2271,8 @@ components:
           $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        pricing:
+          $ref: "#/components/schemas/Pricing"
         status:
           type: string
         dataConfidence:

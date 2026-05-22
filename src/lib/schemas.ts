@@ -87,6 +87,36 @@ export const relatedPlaceInputSchema = z.object({
   evidence: z.record(z.string(), z.unknown()).optional()
 });
 
+const calendarDateString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "date must use YYYY-MM-DD")
+  .refine(isCalendarDate, "date must be a valid calendar date");
+
+export const pricingItemSchema = z.object({
+  label: nonEmptyString,
+  amount: z.number().int().min(0).max(100_000_000).optional(),
+  currency: z.literal("KRW").optional(),
+  unit: z.string().trim().max(200).optional(),
+  ageRange: z.string().trim().max(200).optional(),
+  conditions: z.string().trim().max(1000).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  sourceUrl: urlString.optional()
+});
+
+export const pricingSchema = z
+  .object({
+    summary: z.string().trim().max(1000).optional(),
+    currency: z.literal("KRW").optional(),
+    basisDate: calendarDateString.optional(),
+    checkedAt: z.string().datetime({ offset: true }).optional(),
+    staleAfterDays: z.number().int().min(1).max(730).optional(),
+    items: z.array(pricingItemSchema).max(50).optional(),
+    sourceUrl: urlString.optional(),
+    sourceTitle: z.string().trim().max(500).optional(),
+    notes: z.string().trim().max(2000).optional()
+  })
+  .catchall(z.unknown());
+
 const writablePlaceFields = {
   name: nonEmptyString.optional(),
   slug: z.string().trim().optional(),
@@ -107,6 +137,7 @@ const writablePlaceFields = {
   kakaoPlaceId: z.string().trim().optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   playFeatures: playFeaturesSchema.optional(),
+  pricing: pricingSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
   relatedPlaces: z.array(relatedPlaceInputSchema).max(50).optional(),
@@ -307,6 +338,7 @@ export type PlaceImageHealthQueryInput = z.infer<typeof placeImageHealthQuerySch
 export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
+export type PricingInput = z.infer<typeof pricingSchema>;
 
 function normalizeSearchAliases(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

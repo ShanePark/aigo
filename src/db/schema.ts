@@ -48,6 +48,10 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    pricing: jsonb("pricing")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     status: text("status").notNull().default("active"),
     dataConfidence: text("data_confidence").notNull().default("unknown"),
     placeScore: doublePrecision("place_score"),
