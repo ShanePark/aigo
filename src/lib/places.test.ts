@@ -9,6 +9,7 @@ import {
   isRouteBreakIntentQuery,
   normalizeSearchInput,
   queryMatchSignal,
+  relatedPlacePair,
   searchTermPatterns,
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
@@ -19,6 +20,13 @@ describe("place search helpers", () => {
 
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);
+  });
+
+  it("canonicalizes related-place pairs so the relation is bidirectional", () => {
+    expect(relatedPlacePair("b0000000-0000-0000-0000-000000000000", "a0000000-0000-0000-0000-000000000000")).toEqual([
+      "a0000000-0000-0000-0000-000000000000",
+      "b0000000-0000-0000-0000-000000000000"
+    ]);
   });
 
   it("collapses repeated whitespace in keyword queries", () => {

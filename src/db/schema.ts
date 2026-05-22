@@ -14,6 +14,7 @@ import {
 
 export type TriState = "yes" | "no" | "partial" | "unknown";
 export type IndoorType = "indoor" | "outdoor" | "mixed" | "unknown";
+export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair";
 
 export const places = pgTable(
   "places",
@@ -153,6 +154,32 @@ export const placeImages = pgTable(
   })
 );
 
+export const placeRelatedPlaces = pgTable(
+  "place_related_places",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    relatedPlaceId: uuid("related_place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    relationType: text("relation_type").notNull().default("nearby"),
+    note: text("note"),
+    evidence: jsonb("evidence")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    placeIdx: index("place_related_places_place_id_idx").on(table.placeId),
+    relatedPlaceIdx: index("place_related_places_related_place_id_idx").on(table.relatedPlaceId),
+    pairUnique: uniqueIndex("place_related_places_pair_unique").on(table.placeId, table.relatedPlaceId)
+  })
+);
+
 export const placeVersions = pgTable(
   "place_versions",
   {
@@ -178,4 +205,5 @@ export type Place = typeof places.$inferSelect;
 export type NewPlace = typeof places.$inferInsert;
 export type PlaceSource = typeof placeSources.$inferSelect;
 export type PlaceImage = typeof placeImages.$inferSelect;
+export type PlaceRelatedPlace = typeof placeRelatedPlaces.$inferSelect;
 export type PlaceVersion = typeof placeVersions.$inferSelect;

@@ -5,6 +5,7 @@ import {
   type DuplicatePlaceInput,
   type PlaceImageHealthQueryInput,
   type PlaceImageInput,
+  type RelatedPlaceInput,
   type SearchPlacesInput,
   type SourceInput,
   type UpdatePlaceInput
@@ -94,6 +95,25 @@ type PlaceImageRow = {
   checked_at: Date | null;
   created_at: Date;
   updated_at: Date;
+};
+
+type RelatedPlaceRow = {
+  relation_id: string;
+  related_place_id: string;
+  relation_type: string;
+  note: string | null;
+  evidence: Record<string, unknown>;
+  relation_created_at: Date;
+  relation_updated_at: Date;
+  name: string;
+  primary_category: string;
+  tags: string[];
+  address: string | null;
+  road_address: string | null;
+  lat: number;
+  lng: number;
+  status: string;
+  distance_meters: number | null;
 };
 
 type SourceRow = {
@@ -219,6 +239,7 @@ export async function createPlace(input: CreatePlaceInput) {
     await insertSources(tx, place.id, input.sources);
     await insertImages(tx, place.id, imageInputs);
     await ensurePrimaryImage(tx, place.id);
+    await upsertRelatedPlaces(tx, place.id, input.relatedPlaces ?? [], "append");
     await createVersion(tx, place.id, 1, "create", input.actor, input.changeSummary, input.sources);
 
     return getPlaceDetail(place.id, tx);
@@ -230,6 +251,7 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   const columns = Object.keys(patch);
   const imageInputs = normalizeImageInputs(input.images, input.imageUrls, input.sources);
   const hasImagePatch = input.images !== undefined || input.imageUrls !== undefined;
+  const hasRelatedPlacePatch = input.relatedPlaces !== undefined;
 
   return pg.begin(async (tx) => {
     const existing = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
@@ -259,6 +281,9 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
       }
       await insertImages(tx, updated.id, imageInputs);
       await ensurePrimaryImage(tx, updated.id);
+    }
+    if (hasRelatedPlacePatch) {
+      await upsertRelatedPlaces(tx, updated.id, input.relatedPlaces ?? [], input.relatedPlaceMode);
     }
     await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
 
@@ -304,10 +329,12 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
 
   const sources = sourceRows.map(mapSource);
   const imageMetadata = await getPlaceImageMetadata(placeId, executor);
+  const relatedPlaces = await getRelatedPlaces(placeId, executor);
 
   return {
     ...mapPlace(rows[0]),
     ...imageMetadata,
+    relatedPlaces,
     sources,
     versions: latestVersions.map(mapVersionSummary)
   };
@@ -558,6 +585,36 @@ async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg
   `;
 
   return buildImageMetadataFromRows(imageRows);
+}
+
+async function getRelatedPlaces(placeId: string, executor: SqlExecutor = pg) {
+  const rows = await executor<RelatedPlaceRow[]>`
+    select
+      r.id as relation_id,
+      case when r.place_id = ${placeId} then r.related_place_id else r.place_id end as related_place_id,
+      r.relation_type,
+      r.note,
+      r.evidence,
+      r.created_at as relation_created_at,
+      r.updated_at as relation_updated_at,
+      related.name,
+      related.primary_category,
+      related.tags,
+      related.address,
+      related.road_address,
+      related.lat,
+      related.lng,
+      related.status,
+      ST_Distance(current_place.geo, related.geo) as distance_meters
+    from place_related_places r
+    join places current_place on current_place.id = ${placeId}
+    join places related on related.id = case when r.place_id = ${placeId} then r.related_place_id else r.place_id end
+    where r.place_id = ${placeId}
+      or r.related_place_id = ${placeId}
+    order by distance_meters asc nulls last, related.name asc
+  `;
+
+  return rows.map(mapRelatedPlace);
 }
 
 function imageHealthPredicate(status: PlaceImageHealthQueryInput["status"]) {
@@ -1030,6 +1087,61 @@ async function ensurePrimaryImage(executor: SqlExecutor, placeId: string) {
   `;
 }
 
+async function upsertRelatedPlaces(
+  executor: SqlExecutor,
+  placeId: string,
+  relatedPlaces: RelatedPlaceInput[],
+  mode: "append" | "replace"
+) {
+  if (mode === "replace") {
+    await executor`delete from place_related_places where place_id = ${placeId} or related_place_id = ${placeId}`;
+  }
+
+  if (relatedPlaces.length === 0) return;
+
+  const targetIds = Array.from(new Set(relatedPlaces.map((relatedPlace) => relatedPlace.placeId)));
+  if (targetIds.includes(placeId)) {
+    throw new ApiError(400, "A place cannot be related to itself");
+  }
+
+  const existingTargets = await executor<{ id: string }[]>`
+    select id from places where id = any(${targetIds}::uuid[])
+  `;
+  const existingIds = new Set(existingTargets.map((row) => row.id));
+  const missingIds = targetIds.filter((targetId) => !existingIds.has(targetId));
+  if (missingIds.length > 0) {
+    throw new ApiError(400, `Related place not found: ${missingIds.join(", ")}`);
+  }
+
+  const byPair = new Map<string, RelatedPlaceInput & { leftId: string; rightId: string }>();
+  for (const relatedPlace of relatedPlaces) {
+    const [leftId, rightId] = relatedPlacePair(placeId, relatedPlace.placeId);
+    byPair.set(`${leftId}:${rightId}`, { ...relatedPlace, leftId, rightId });
+  }
+
+  for (const relatedPlace of byPair.values()) {
+    await executor`
+      insert into place_related_places (place_id, related_place_id, relation_type, note, evidence)
+      values (
+        ${relatedPlace.leftId},
+        ${relatedPlace.rightId},
+        ${relatedPlace.relationType},
+        ${relatedPlace.note ?? null},
+        ${JSON.stringify(relatedPlace.evidence ?? {})}::jsonb
+      )
+      on conflict (place_id, related_place_id) do update set
+        relation_type = excluded.relation_type,
+        note = excluded.note,
+        evidence = excluded.evidence,
+        updated_at = now()
+    `;
+  }
+}
+
+export function relatedPlacePair(placeId: string, relatedPlaceId: string) {
+  return [placeId, relatedPlaceId].sort() as [string, string];
+}
+
 async function createVersion(
   executor: SqlExecutor,
   placeId: string,
@@ -1057,6 +1169,16 @@ async function createVersion(
               select jsonb_agg(to_jsonb(i) order by i.is_primary desc, i.sort_order asc, i.created_at asc)
               from place_images i
               where i.place_id = ${placeId}
+            ),
+            '[]'::jsonb
+          ),
+          'relatedPlaces',
+          coalesce(
+            (
+              select jsonb_agg(to_jsonb(r) order by r.created_at asc)
+              from place_related_places r
+              where r.place_id = ${placeId}
+                or r.related_place_id = ${placeId}
             ),
             '[]'::jsonb
           )
@@ -2117,6 +2239,27 @@ function mapPlace(row: PlaceRow) {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     lastVerifiedAt: row.last_verified_at ? toIso(row.last_verified_at) : null
+  };
+}
+
+function mapRelatedPlace(row: RelatedPlaceRow) {
+  return {
+    relationId: row.relation_id,
+    placeId: row.related_place_id,
+    name: row.name,
+    primaryCategory: row.primary_category,
+    tags: row.tags,
+    address: row.address,
+    roadAddress: row.road_address,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    status: row.status,
+    relationType: row.relation_type,
+    note: row.note,
+    evidence: row.evidence ?? {},
+    distanceMeters: row.distance_meters === null || row.distance_meters === undefined ? null : Math.round(Number(row.distance_meters)),
+    createdAt: toIso(row.relation_created_at),
+    updatedAt: toIso(row.relation_updated_at)
   };
 }
 

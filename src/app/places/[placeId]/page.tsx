@@ -1,4 +1,5 @@
 import { Clock, ExternalLink, History, MapPin, MessageSquareText, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
@@ -25,6 +26,10 @@ function searchBackHref(value: string | string[] | undefined): Route {
   } catch {
     return "/";
   }
+}
+
+function relatedPlaceHref(placeId: string, backHref: Route): Route {
+  return `/places/${placeId}?returnTo=${encodeURIComponent(backHref)}` as Route;
 }
 
 export default async function PlaceDetailPage({ params, searchParams }: PlaceDetailProps) {
@@ -65,6 +70,25 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       ) : null}
 
       <PlaceDetailMap address={place.address ?? place.roadAddress ?? undefined} category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
+
+      {place.relatedPlaces.length > 0 ? (
+        <section className="info-block full">
+          <h2>관련 장소</h2>
+          <div className="related-place-grid">
+            {place.relatedPlaces.map((relatedPlace) => (
+              <Link className="related-place-card" href={relatedPlaceHref(relatedPlace.placeId, backHref)} key={relatedPlace.relationId}>
+                <span>{relationTypeLabel(relatedPlace.relationType)}</span>
+                <strong>{relatedPlace.name}</strong>
+                <small>
+                  {categoryLabel(relatedPlace.primaryCategory)}
+                  {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
+                </small>
+                {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {galleryImages.length > 0 ? (
         <section className="image-audit-section">
@@ -439,6 +463,21 @@ function scoreLabel(value: number | null) {
 
 function tenPointScoreLabel(value: number | null) {
   return value === null ? "미평가" : `${value}/10`;
+}
+
+function metersLabel(value: number) {
+  return value < 1000 ? `${value}m` : `${(value / 1000).toFixed(1)}km`;
+}
+
+function relationTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    nearby: "가까운 곳",
+    same_building: "같은 건물",
+    same_site: "같은 시설",
+    parent_child: "부속 시설",
+    route_pair: "함께 보기"
+  };
+  return labels[value] ?? "관련 장소";
 }
 
 function categoryLabel(value: string) {

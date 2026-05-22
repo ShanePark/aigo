@@ -285,6 +285,10 @@ components:
     IndoorType:
       type: string
       enum: [indoor, outdoor, mixed, unknown]
+    RelatedPlaceRelationType:
+      type: string
+      enum: [nearby, same_building, same_site, parent_child, route_pair]
+      description: Agent-maintained relationship between two registered places. Relations are stored once and returned bidirectionally.
     SourceInput:
       type: object
       required: [sourceType]
@@ -307,6 +311,23 @@ components:
       anyOf:
         - required: [url]
         - required: [externalId]
+    RelatedPlaceInput:
+      type: object
+      required: [placeId]
+      properties:
+        placeId:
+          type: string
+          format: uuid
+        relationType:
+          $ref: "#/components/schemas/RelatedPlaceRelationType"
+          default: nearby
+        note:
+          type: string
+          maxLength: 1000
+        evidence:
+          type: object
+          description: Agent-maintained relation evidence such as distance meters, address match, source URLs, or audit batch id.
+          additionalProperties: true
     PlaceWritableFields:
       type: object
       properties:
@@ -374,6 +395,12 @@ components:
           maxItems: 30
           items:
             $ref: "#/components/schemas/PlaceImageInput"
+        relatedPlaces:
+          type: array
+          description: Existing places that should be shown as related to this place, usually because they share a building, campus, resort, mall, or very close practical visit context.
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/RelatedPlaceInput"
         status:
           type: string
           enum: [active, temporarily_closed, closed, draft, needs_review]
@@ -500,6 +527,11 @@ components:
               enum: [append, replace]
               default: append
               description: Append image records by default. Use replace after manual visual audit to keep only meaningful active images.
+            relatedPlaceMode:
+              type: string
+              enum: [append, replace]
+              default: append
+              description: Append related-place pairs by default. Use replace to rewrite this place's current relationship set.
             actor:
               type: string
               default: agent
@@ -735,6 +767,69 @@ components:
         reviewStatus:
           type: string
           enum: [pending_review, approved, needs_review, rejected]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RelatedPlace:
+      type: object
+      required:
+        - relationId
+        - placeId
+        - name
+        - primaryCategory
+        - tags
+        - address
+        - roadAddress
+        - lat
+        - lng
+        - status
+        - relationType
+        - note
+        - evidence
+        - distanceMeters
+        - createdAt
+        - updatedAt
+      properties:
+        relationId:
+          type: string
+          format: uuid
+        placeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        primaryCategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        address:
+          type: string
+          nullable: true
+        roadAddress:
+          type: string
+          nullable: true
+        lat:
+          type: number
+        lng:
+          type: number
+        status:
+          type: string
+        relationType:
+          $ref: "#/components/schemas/RelatedPlaceRelationType"
+        note:
+          type: string
+          nullable: true
+        evidence:
+          type: object
+          additionalProperties: true
+        distanceMeters:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -1395,6 +1490,7 @@ components:
         - imageUrls
         - primaryImage
         - images
+        - relatedPlaces
         - playFeatures
         - status
         - dataConfidence
@@ -1487,6 +1583,11 @@ components:
           description: First-class image entities, ordered by primary image and sort order.
           items:
             $ref: "#/components/schemas/PlaceImage"
+        relatedPlaces:
+          type: array
+          description: Bidirectional related-place summaries for nearby/same-building/same-site browsing.
+          items:
+            $ref: "#/components/schemas/RelatedPlace"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
         status:

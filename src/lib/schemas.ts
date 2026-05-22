@@ -5,6 +5,7 @@ export const indoorTypeSchema = z.enum(["indoor", "outdoor", "mixed", "unknown"]
 export const imageDisplayTierSchema = z.enum(["official", "public_agency", "public_listing", "rights_unclear", "unknown"]);
 export const imageStatusSchema = z.enum(["active", "archived"]);
 export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "needs_review", "rejected"]);
+export const relatedPlaceRelationTypeSchema = z.enum(["nearby", "same_building", "same_site", "parent_child", "route_pair"]);
 
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
@@ -78,6 +79,13 @@ export const placeImageInputSchema = z.object({
   checkedAt: z.string().datetime({ offset: true }).optional()
 });
 
+export const relatedPlaceInputSchema = z.object({
+  placeId: z.string().uuid(),
+  relationType: relatedPlaceRelationTypeSchema.default("nearby"),
+  note: z.string().trim().max(1000).optional(),
+  evidence: z.record(z.string(), z.unknown()).optional()
+});
+
 const writablePlaceFields = {
   name: nonEmptyString.optional(),
   slug: z.string().trim().optional(),
@@ -100,6 +108,7 @@ const writablePlaceFields = {
   playFeatures: playFeaturesSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
+  relatedPlaces: z.array(relatedPlaceInputSchema).max(50).optional(),
   status: z.enum(["active", "temporarily_closed", "closed", "draft", "needs_review"]).optional(),
   dataConfidence: z
     .enum(["official_verified", "operator_curated", "agent_collected", "user_reported", "needs_check", "unknown"])
@@ -163,6 +172,7 @@ export const updatePlaceSchema = z
     sources: z.array(sourceSchema).min(1),
     sourceMode: z.enum(["append", "replace"]).default("append"),
     imageMode: z.enum(["append", "replace"]).default("append"),
+    relatedPlaceMode: z.enum(["append", "replace"]).default("append"),
     actor: z.string().trim().default("agent"),
     changeSummary: z.string().trim().max(2000).optional()
   })
@@ -239,6 +249,7 @@ export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
 export type PlaceImageHealthQueryInput = z.infer<typeof placeImageHealthQuerySchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
+export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
 
 function normalizeSearchAliases(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

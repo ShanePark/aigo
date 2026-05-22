@@ -65,6 +65,33 @@ describe("place schemas", () => {
     expect(replace.sourceMode).toBe("replace");
   });
 
+  it("accepts related-place updates with relation metadata", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "agent_observation", externalId: "related-place-audit-20260522" }],
+      relatedPlaceMode: "replace",
+      relatedPlaces: [
+        {
+          placeId: "96640384-4dff-4470-a40e-75d1491f1e73",
+          relationType: "same_building",
+          note: "좌표와 주소 기준 같은 건물 안에서 함께 비교할 장소.",
+          evidence: {
+            distanceMeters: 0,
+            basis: "existing_place_coordinates"
+          }
+        }
+      ]
+    });
+
+    expect(result.relatedPlaceMode).toBe("replace");
+    expect(result.relatedPlaces?.[0]).toMatchObject({
+      placeId: "96640384-4dff-4470-a40e-75d1491f1e73",
+      relationType: "same_building",
+      evidence: {
+        distanceMeters: 0
+      }
+    });
+  });
+
   it("accepts structured image entities for visual audit metadata", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "official_site", url: "https://example.com/place" }],

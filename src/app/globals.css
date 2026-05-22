@@ -624,6 +624,10 @@ h3 {
   pointer-events: auto;
 }
 
+.map-place-marker.is-hovered {
+  z-index: 700 !important;
+}
+
 .map-place-marker span {
   align-items: center;
   background: var(--mint);
@@ -636,17 +640,32 @@ h3 {
   font-weight: 900;
   height: 32px;
   justify-content: center;
+  position: relative;
   transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
   width: 32px;
 }
 
 .map-place-marker.is-hovered span {
+  border-color: #fff;
   box-shadow:
-    0 0 0 6px rgba(19, 122, 86, 0.16),
-    0 10px 22px rgba(33, 48, 42, 0.28);
-  transform: scale(1.12);
+    0 0 0 5px #fff,
+    0 0 0 12px rgba(233, 179, 64, 0.46),
+    0 18px 34px rgba(24, 33, 29, 0.32);
+  transform: scale(1.36);
+}
+
+.map-place-marker.is-hovered span::after {
+  animation: map-marker-pulse 1s ease-out infinite;
+  border: 2px solid rgba(233, 179, 64, 0.72);
+  border-radius: inherit;
+  content: "";
+  inset: -9px;
+  pointer-events: none;
+  position: absolute;
 }
 
 .map-place-marker.visit span {
@@ -667,6 +686,28 @@ h3 {
 
 .map-place-marker.stay span {
   background: #7f63c8;
+}
+
+.map-place-marker.is-hovered span {
+  background: var(--text);
+}
+
+@keyframes map-marker-pulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.82);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-place-marker.is-hovered span::after {
+    animation: none;
+  }
 }
 
 .map-origin-marker {
@@ -1445,6 +1486,45 @@ dd {
   grid-template-columns: 48px 90px minmax(180px, 1fr) auto;
 }
 
+.related-place-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.related-place-card {
+  background: #f8fbf9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.related-place-card:hover {
+  border-color: #badfc9;
+}
+
+.related-place-card span {
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.related-place-card strong {
+  line-height: 1.35;
+}
+
+.related-place-card small,
+.related-place-card p {
+  color: var(--muted);
+}
+
+.related-place-card p {
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
 .detail-signal-grid {
   display: grid;
   gap: 8px;
@@ -1600,6 +1680,7 @@ dd {
   .source-row,
   .version-row,
   .detail-signal-grid,
+  .related-place-grid,
   .image-audit-grid,
   dl {
     grid-template-columns: 1fr;

@@ -140,6 +140,7 @@ Common writable fields:
 - Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
+- Related places: `relatedPlaces` accepts existing place IDs with `relationType`, `note`, and optional `evidence`; use `relatedPlaceMode: "append"` by default or `"replace"` only when deliberately rewriting the current relation set.
 - Play/image data: `playFeatures`, `images`.
 
 Use these enum values:
@@ -148,6 +149,19 @@ Use these enum values:
 - `indoorType`: `indoor`, `outdoor`, `mixed`, `unknown`.
 - `status`: API accepts `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`.
 - `dataConfidence`: API accepts `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`; user-requested registrations from this skill should use `agent_collected`, `user_reported`, or `official_verified`.
+- Related-place `relationType`: use `same_building` for branches inside the same mall/building, `same_site` for campus/resort/public-facility subvenues, `nearby` for very close practical companions, `parent_child` for explicit parent/subfacility relationships, and `route_pair` for route-break pairings.
+
+## Related Places
+
+Use related-place relationships when two already registered places should be shown together because a parent would naturally compare or combine them: a kids cafe inside a mall, a child facility inside a museum/science center campus, a resort subfacility, or a named playground attached to a larger destination.
+
+Mutation rules:
+
+- Mutate related places through `PATCH /v1/places/{placeId}` with `relatedPlaces`, not direct DB writes.
+- Keep relationships source-backed like other updates: include at least one `sources` item, plus `evidence` such as stored coordinate distance, same-address match, official/public source URL, or audit batch ID.
+- Relationships are bidirectional in the API response even though the DB stores each pair once. One PATCH from either place is enough.
+- Prefer conservative relation types. Use `nearby` when the evidence only supports close coordinates; use `same_building` or `same_site` only when address/name/source evidence supports it.
+- Do not use related places to hide likely duplicates. Stage likely duplicates separately for duplicate review instead of linking them as recommendations.
 
 Common `primaryCategory` values used by the UI/search:
 
