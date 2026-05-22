@@ -246,7 +246,6 @@ export default async function Home({ searchParams }: HomeProps) {
 function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
-  const source = sourceBadge(place);
 
   return (
     <Link
@@ -262,17 +261,13 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       <div className="result-card-body">
         <div className="result-card-topline">
           <span className="rank-badge">{index}</span>
-          <span className="score-pill">추천 {place.score}</span>
+          <span className={`score-pill ${scoreTone(place.score)}`}>추천 {place.score}</span>
           <span className="distance-pill">
             <MapPin size={14} aria-hidden="true" />
             {distanceLabel(place.distanceKm)}
           </span>
         </div>
         <h3>{place.name}</h3>
-        <div className="source-row" aria-label="출처 신뢰도">
-          <span className={`source-badge ${source.tierClass}`}>{source.tierLabel}</span>
-          <span className={`source-freshness ${source.freshnessClass}`}>{source.freshnessLabel}</span>
-        </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (
             <span key={keyword}>{keyword}</span>
@@ -683,34 +678,11 @@ function positiveFacilityKeywords(place: SearchItem) {
   return facilities.filter(([value]) => value === "yes").map(([, label]) => String(label));
 }
 
-function sourceBadge(place: SearchItem) {
-  const summary = place.sourceSummary;
-  return {
-    tierLabel: sourceTierLabel(summary.bestSourceTier, summary.bestSourceType),
-    tierClass: `tier-${summary.bestSourceTier}`,
-    freshnessLabel: sourceFreshnessLabel(summary.freshnessStatus),
-    freshnessClass: `freshness-${summary.freshnessStatus}`
-  };
-}
-
-function sourceTierLabel(tier: string, sourceType: string | null) {
-  if (tier === "official") return "공식 출처";
-  if (tier === "public_agency") return "공공 출처";
-  if (tier === "operator") return "운영자 출처";
-  if (tier === "public_listing") return "공개 목록";
-  if (sourceType) return "보조 출처";
-  return "출처 없음";
-}
-
-function sourceFreshnessLabel(status: string) {
-  const labels: Record<string, string> = {
-    checked_today: "오늘 확인",
-    recent: "최근 확인",
-    aging: "확인 시점 오래됨",
-    stale: "재확인 필요",
-    unchecked: "확인일 없음"
-  };
-  return labels[status] ?? "확인일 없음";
+function scoreTone(score: number) {
+  if (score >= 65) return "score-high";
+  if (score >= 58) return "score-good";
+  if (score >= 50) return "score-mid";
+  return "score-low";
 }
 
 function formatKeyword(value: string) {
