@@ -148,6 +148,7 @@ Image enrichment updates require:
 - `images` with at least one source-backed image when adding or replacing images.
 - For user-requested registration/enrichment work, include at least one source-backed `images` item in the same API mutation. If no usable image is found, hold the candidate in research notes unless the user explicitly approves a no-image exception.
 - Re-sending an existing URL through `imageUrls` is a safe shorthand append: it should not downgrade existing source linkage, display tier, review status, or primary-image selection on URL conflict. Use structured `images` when intentionally changing image metadata or review status, and use `imageMode: "replace"` only after a deliberate visual audit.
+- With default `imageMode: "append"`, structured images stay secondary unless the image explicitly has `isPrimary: true`; use that explicit flag only when intentionally replacing the current representative image.
 
 Source objects:
 

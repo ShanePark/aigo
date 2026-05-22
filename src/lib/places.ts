@@ -285,7 +285,10 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   const normalizedInput = normalizeUpdatePlaceInput(input);
   const patch = toDbRecord(normalizedInput);
   const columns = Object.keys(patch);
-  const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources);
+  const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources, {
+    assignFallbackPrimary: normalizedInput.imageMode === "replace",
+    allowStructuredPrimaryOverwrite: normalizedInput.imageMode === "replace"
+  });
   const hasImagePatch = normalizedInput.images !== undefined || normalizedInput.imageUrls !== undefined;
   const hasRelatedPlacePatch = normalizedInput.relatedPlaces !== undefined;
 
@@ -1385,8 +1388,18 @@ type ImageConflictPolicy = Pick<
   "allowConflictMetadataOverwrite" | "allowConflictPrimaryOverwrite" | "allowConflictReviewStatusOverwrite"
 >;
 
-export function imageConflictPolicyForTest(images: PlaceImageInput[] | undefined, imageUrls: string[] | undefined, sources: SourceInput[]) {
-  return normalizeImageInputs(images, imageUrls, sources).map((image) => ({
+type NormalizeImageInputsOptions = {
+  assignFallbackPrimary?: boolean;
+  allowStructuredPrimaryOverwrite?: boolean;
+};
+
+export function imageConflictPolicyForTest(
+  images: PlaceImageInput[] | undefined,
+  imageUrls: string[] | undefined,
+  sources: SourceInput[],
+  options?: NormalizeImageInputsOptions
+) {
+  return normalizeImageInputs(images, imageUrls, sources, options).map((image) => ({
     url: image.url,
     metadata: image.allowConflictMetadataOverwrite,
     primary: image.allowConflictPrimaryOverwrite,
@@ -1394,17 +1407,37 @@ export function imageConflictPolicyForTest(images: PlaceImageInput[] | undefined
   }));
 }
 
-function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: string[] | undefined, sources: SourceInput[]) {
+export function normalizedImagePrimaryForTest(
+  images: PlaceImageInput[] | undefined,
+  imageUrls: string[] | undefined,
+  sources: SourceInput[],
+  options?: NormalizeImageInputsOptions
+) {
+  return normalizeImageInputs(images, imageUrls, sources, options).map((image) => ({
+    url: image.url,
+    isPrimary: image.isPrimary,
+    primary: image.allowConflictPrimaryOverwrite
+  }));
+}
+
+function normalizeImageInputs(
+  images: PlaceImageInput[] | undefined,
+  imageUrls: string[] | undefined,
+  sources: SourceInput[],
+  options: NormalizeImageInputsOptions = {}
+) {
   const fallbackSource = sources.find(isImageLikeSource) ?? sources[0] ?? null;
   const byUrl = new Map<string, NormalizedImageInput>();
   let index = 0;
+  const assignFallbackPrimary = options.assignFallbackPrimary ?? true;
+  const allowStructuredPrimaryOverwrite = options.allowStructuredPrimaryOverwrite ?? true;
 
   for (const image of images ?? []) {
     byUrl.set(
       image.url,
       normalizeImageInput(image, index, fallbackSource, {
         allowConflictMetadataOverwrite: true,
-        allowConflictPrimaryOverwrite: true,
+        allowConflictPrimaryOverwrite: allowStructuredPrimaryOverwrite || image.isPrimary === true,
         allowConflictReviewStatusOverwrite: true
       })
     );
@@ -1447,7 +1480,11 @@ function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: 
     image.isPrimary = false;
   }
   const firstActive = normalized.find((image) => image.status === "active" && image.reviewStatus !== "rejected");
-  if (firstActive && !normalized.some((image) => image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected")) {
+  if (
+    assignFallbackPrimary &&
+    firstActive &&
+    !normalized.some((image) => image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected")
+  ) {
     firstActive.isPrimary = true;
   }
 

@@ -22,6 +22,7 @@ import {
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
   normalizeSearchInput,
+  normalizedImagePrimaryForTest,
   queryMatchSignal,
   relatedPlacePair,
   searchEvaluationDate,
@@ -417,6 +418,84 @@ describe("place search helpers", () => {
         metadata: true,
         primary: true,
         reviewStatus: true
+      }
+    ]);
+  });
+
+  it("keeps append-only structured images secondary unless primary is explicit", () => {
+    const sources = [
+      {
+        sourceType: "official_image_source" as const,
+        title: "공식 이미지 출처",
+        url: "https://example.go.kr/place",
+        checkedAt: "2026-05-22T00:00:00.000Z"
+      }
+    ];
+    const appendSecondary = normalizedImagePrimaryForTest(
+      [
+        {
+          url: "https://example.go.kr/secondary.jpg",
+          reviewStatus: "approved",
+          isPrimary: false
+        }
+      ],
+      undefined,
+      sources,
+      {
+        assignFallbackPrimary: false,
+        allowStructuredPrimaryOverwrite: false
+      }
+    );
+    const appendExplicitPrimary = normalizedImagePrimaryForTest(
+      [
+        {
+          url: "https://example.go.kr/new-primary.jpg",
+          reviewStatus: "approved",
+          isPrimary: true
+        }
+      ],
+      undefined,
+      sources,
+      {
+        assignFallbackPrimary: false,
+        allowStructuredPrimaryOverwrite: false
+      }
+    );
+    const replaceFallbackPrimary = normalizedImagePrimaryForTest(
+      [
+        {
+          url: "https://example.go.kr/replacement.jpg",
+          reviewStatus: "approved",
+          isPrimary: false
+        }
+      ],
+      undefined,
+      sources,
+      {
+        assignFallbackPrimary: true,
+        allowStructuredPrimaryOverwrite: true
+      }
+    );
+
+    expect(appendSecondary).toEqual([
+      {
+        url: "https://example.go.kr/secondary.jpg",
+        isPrimary: false,
+        primary: false
+      }
+    ]);
+    expect(appendExplicitPrimary).toEqual([
+      {
+        url: "https://example.go.kr/new-primary.jpg",
+        isPrimary: true,
+        primary: true
+      }
+    ]);
+    expect(replaceFallbackPrimary).toEqual([
+      {
+        url: "https://example.go.kr/replacement.jpg",
+        isPrimary: true,
+        primary: true
       }
     ]);
   });

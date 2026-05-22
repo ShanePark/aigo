@@ -918,7 +918,9 @@ components:
               type: string
               enum: [append, replace]
               default: append
-              description: Append image records by default. Use replace after manual visual audit to keep only meaningful active images.
+              description: >
+                Append image records by default; appended structured images remain secondary unless
+                `isPrimary: true` is explicit. Use replace after manual visual audit to keep only meaningful active images.
             relatedPlaceMode:
               type: string
               enum: [append, replace]
