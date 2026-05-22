@@ -11,7 +11,7 @@ import {
   type SourceInput,
   type UpdatePlaceInput
 } from "@/lib/schemas";
-import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
+import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateReasonCodes } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
@@ -1166,10 +1166,21 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
 
   const items = await Promise.all(
     rows.map(async (row) => {
+      const locationSignals = duplicateLocationSignals(input, {
+        address: row.address,
+        addressMatch: row.address_match,
+        distanceMeters: row.distance_meters,
+        regionMatch: row.region_match,
+        regionSido: row.region_sido,
+        regionSigungu: row.region_sigungu,
+        roadAddress: row.road_address
+      });
       const signals = {
         aliasMatch: row.alias_match,
         addressMatch: row.address_match,
         regionMatch: row.region_match,
+        genericBranchName: duplicateGenericBranchName(input.name, row.name),
+        ...locationSignals,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
         distanceMeters: row.distance_meters,

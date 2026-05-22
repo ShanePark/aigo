@@ -74,6 +74,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 5. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng` or source-backed `roadAddress`/`address`/`regionSigungu`; include optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters` when coordinates are known.
+   - For generic branch names such as common food chains or category-like restaurant names, treat `GENERIC_BRANCH_NAME` and `ADDRESS_REGION_CONFLICT` reason codes as strong caution. A same-province fuzzy name is not enough for high confidence; prefer same address, same 시군구, nearby coordinates, external refs, or a provider id before calling it a duplicate.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
    - If evidence is weak or identity is uncertain for a user-requested registration, still keep the place searchable with `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; make the uncertainty explicit in `parentNotes`, `safetyNotes`, tags, or structured `unknown` fields.

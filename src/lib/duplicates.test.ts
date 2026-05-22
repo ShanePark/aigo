@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
+import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateReasonCodes } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
   it("treats kakao place id match as high confidence", () => {
@@ -108,5 +108,62 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateReasonCodes(signals)).toContain("REGION_MATCH");
+  });
+
+  it("lowers generic branch-name candidates when source-backed regions conflict", () => {
+    const signals = {
+      aliasMatch: false,
+      addressRegionConflict: true,
+      genericBranchName: true,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["GENERIC_BRANCH_NAME", "REGION_MATCH", "ADDRESS_REGION_CONFLICT"]));
+  });
+
+  it("allows generic branch-name candidates with strict same-district evidence", () => {
+    const signals = {
+      aliasMatch: false,
+      genericBranchName: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateReasonCodes(signals)).toContain("GENERIC_BRANCH_NAME");
+  });
+
+  it("detects address-region conflicts from normalized region and address tokens", () => {
+    const signals = duplicateLocationSignals(
+      {
+        address: "부산광역시 동구 초량동",
+        regionSido: "부산",
+        regionSigungu: "동구",
+        radiusMeters: 500
+      },
+      {
+        address: "대전광역시 동구 가양동",
+        addressMatch: false,
+        distanceMeters: null,
+        regionMatch: false,
+        regionSido: "대전광역시",
+        regionSigungu: "동구"
+      }
+    );
+
+    expect(signals).toEqual({
+      addressRegionConflict: true,
+      sameSigunguMatch: false
+    });
+    expect(duplicateGenericBranchName("맛나감자탕 초량점", "이바돔감자탕 가양점")).toBe(true);
   });
 });
