@@ -621,7 +621,17 @@ h3 {
   font-weight: 900;
   height: 32px;
   justify-content: center;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
   width: 32px;
+}
+
+.map-place-marker.is-hovered span {
+  box-shadow:
+    0 0 0 6px rgba(19, 122, 86, 0.16),
+    0 10px 22px rgba(33, 48, 42, 0.28);
+  transform: scale(1.12);
 }
 
 .map-place-marker.visit span {
@@ -687,8 +697,10 @@ h3 {
   display: grid;
   min-height: 100%;
   overflow: hidden;
+  scroll-margin-top: 96px;
   transition:
     border-color 160ms ease,
+    outline-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
 }
@@ -697,6 +709,16 @@ h3 {
   border-color: #cad9cf;
   box-shadow: 0 16px 34px rgba(24, 33, 29, 0.1);
   transform: translateY(-1px);
+}
+
+.result-card.is-map-highlighted {
+  border-color: #77caa0;
+  box-shadow:
+    0 0 0 4px rgba(19, 122, 86, 0.14),
+    0 18px 38px rgba(24, 33, 29, 0.13);
+  outline: 2px solid rgba(19, 122, 86, 0.22);
+  outline-offset: 2px;
+  transform: translateY(-2px);
 }
 
 .result-card:focus-visible {

@@ -274,7 +274,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
   const primaryImage = place.primaryImage;
 
   return (
-    <Link className="result-card" href={placeDetailHref(place.placeId, returnHref)}>
+    <Link className="result-card" id={`place-card-${place.placeId}`} href={placeDetailHref(place.placeId, returnHref)}>
       <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
       <div className="result-card-body">
         <div className="result-card-topline">

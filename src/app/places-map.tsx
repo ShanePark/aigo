@@ -42,6 +42,7 @@ type LeafletModule = typeof import("leaflet");
 const DEFAULT_MAP_CENTER = { lat: 36.3322, lng: 127.4341 };
 const DEFAULT_MAP_ZOOM = 13;
 const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
+let highlightedResultTimer: number | undefined;
 
 export function PlacesMap({ origin, places }: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
@@ -92,6 +93,13 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
           direction: "top",
           offset: [0, -18],
           opacity: 0.92
+        });
+        marker.on("mouseover focus", () => {
+          marker.getElement()?.classList.add("is-hovered");
+          revealResultCard(place.placeId);
+        });
+        marker.on("mouseout blur", () => {
+          marker.getElement()?.classList.remove("is-hovered");
         });
         marker.on("click", () => {
           window.location.href = place.href;
@@ -185,6 +193,22 @@ function originIcon(L: LeafletModule) {
     iconAnchor: [10, 10],
     iconSize: [20, 20]
   });
+}
+
+function revealResultCard(placeId: string) {
+  const card = document.getElementById(`place-card-${placeId}`);
+  if (!card) return;
+
+  document.querySelectorAll(".result-card.is-map-highlighted").forEach((element) => {
+    element.classList.remove("is-map-highlighted");
+  });
+  card.classList.add("is-map-highlighted");
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  if (highlightedResultTimer) window.clearTimeout(highlightedResultTimer);
+  highlightedResultTimer = window.setTimeout(() => {
+    card.classList.remove("is-map-highlighted");
+  }, 2200);
 }
 
 function boundsForLeaflet(origin: MapOrigin, places: MapPlace[]): LatLngBoundsExpression | null {
