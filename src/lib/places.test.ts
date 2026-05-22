@@ -79,6 +79,8 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
     expect(categoryClauseForKeywordTerm("놀이터")).toBe("primary_category = any(array['park','indoor_playground','kids_cafe']::text[])");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
+    expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
+    expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");
     expect(categoryClauseForKeywordTerm("미끄럼틀")).toBeNull();
   });
 
@@ -163,6 +165,15 @@ describe("place search helpers", () => {
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 장난감도서관 근처" })).toMatchObject({
       query: "장난감도서관"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 장난감 가게 근처" })).toMatchObject({
+      query: "장난감가게"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "레고 스토어 주차" })).toMatchObject({
+      query: "레고스토어",
+      preferences: {
+        parkingAvailable: true
+      }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "판암 동네놀이터 모래놀이" })).toMatchObject({
       query: "판암"

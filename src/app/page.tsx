@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  Puzzle,
   Search,
   SlidersHorizontal,
   TreePine,
@@ -39,6 +40,7 @@ const CATEGORY_GROUPS = {
     icon: Building2,
     categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "shopping_mall", "sports_venue", "rest_area"]
   },
+  toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: ["toy_store"] },
   playground: { label: "놀이터", hint: "공원/실내", icon: TreePine, categories: ["park", "indoor_playground"] },
   kidsCafe: { label: "키즈카페", hint: "놀이 카페", icon: Baby, categories: ["kids_cafe", "family_cafe"] },
   playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: ["family_restaurant"] }
@@ -71,6 +73,7 @@ const TAG_LABELS: Record<string, string> = {
   slide: "미끄럼틀",
   stroller: "유모차",
   toyLibrary: "장난감도서관",
+  toyStore: "장난감가게",
   waterPlayground: "물놀이터"
 };
 
@@ -694,6 +697,7 @@ function categoryLabel(value: string) {
   const labels: Record<string, string> = {
     kids_cafe: "키즈카페",
     indoor_playground: "실내놀이터",
+    toy_store: "장난감 가게",
     toy_library: "장난감도서관",
     library: "도서관",
     museum: "박물관/미술관",

@@ -1483,6 +1483,15 @@ const broadParentIntentTerms = new Set([
   "박물관",
   "도서관",
   "장난감도서관",
+  "장난감",
+  "장난감가게",
+  "장난감매장",
+  "완구",
+  "완구점",
+  "완구매장",
+  "토이저러스",
+  "토이플러스",
+  "레고스토어",
   "공동육아나눔터",
   "체험관",
   "어린이",
@@ -1532,6 +1541,15 @@ const broadParentCoreTerms = new Set([
   "박물관",
   "도서관",
   "장난감도서관",
+  "장난감",
+  "장난감가게",
+  "장난감매장",
+  "완구",
+  "완구점",
+  "완구매장",
+  "토이저러스",
+  "토이플러스",
+  "레고스토어",
   "공동육아나눔터",
   "체험관",
   "어린이",
@@ -1641,6 +1659,10 @@ const queryStopTerms = new Set([
   "주변",
   "인근",
   "장난감도서관",
+  "가게",
+  "매장",
+  "샵",
+  "숍",
   "가까운",
   "쌍둥이",
   "쌍둥이랑",
@@ -1766,7 +1788,14 @@ const broadShoppingExpansionTerms = [
   "쇼핑몰",
   "백화점",
   "아울렛",
-  "복합쇼핑몰"
+  "복합쇼핑몰",
+  "장난감가게",
+  "장난감매장",
+  "완구점",
+  "완구매장",
+  "토이저러스",
+  "토이플러스",
+  "레고스토어"
 ];
 
 const mealPlayMealTerms = new Set([
@@ -1927,8 +1956,17 @@ const categoryKeywordMap: Record<string, string[]> = {
   키즈카페: ["kids_cafe"],
   실내놀이터: ["indoor_playground", "kids_cafe"],
   도서관: ["library", "toy_library"],
+  장난감: ["toy_store", "toy_library"],
+  장난감가게: ["toy_store"],
+  장난감매장: ["toy_store"],
   장난감도서관: ["toy_library"],
   공동육아나눔터: ["toy_library"],
+  완구: ["toy_store"],
+  완구점: ["toy_store"],
+  완구매장: ["toy_store"],
+  토이저러스: ["toy_store"],
+  토이플러스: ["toy_store"],
+  레고스토어: ["toy_store"],
   과학관: ["science_museum"],
   박물관: ["museum"],
   체험관: ["experience_center"],
@@ -1956,6 +1994,10 @@ function isQueryPreferenceTerm(term: string) {
 
 function inferLiteralQueryAlias(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.includes("장난감") && terms.includes("도서관")) return "장난감도서관";
+  if (terms.includes("장난감") && terms.some((term) => ["가게", "매장", "샵", "숍"].includes(term))) return "장난감가게";
+  if (terms.includes("완구") && terms.some((term) => ["가게", "매장", "샵", "숍", "점"].includes(term))) return "완구점";
+  if (terms.includes("레고") && terms.some((term) => ["스토어", "가게", "매장", "샵", "숍"].includes(term))) return "레고스토어";
   const hasMealTerm = terms.some((term) => mealPlayMealTerms.has(term));
   const hasPlayTerm = terms.some((term) => mealPlayActivityTerms.has(term));
   if (hasMealTerm && hasPlayTerm) {
@@ -2025,6 +2067,21 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
 
   if (termSet.has("쇼핑몰") || termSet.has("백화점") || termSet.has("아울렛")) {
     clauses.push("primary_category = 'shopping_mall'");
+    addTextExpansionClauses(clauses, broadShoppingExpansionTerms, add);
+  }
+
+  if (
+    termSet.has("장난감") ||
+    termSet.has("장난감가게") ||
+    termSet.has("장난감매장") ||
+    termSet.has("완구") ||
+    termSet.has("완구점") ||
+    termSet.has("완구매장") ||
+    termSet.has("토이저러스") ||
+    termSet.has("토이플러스") ||
+    termSet.has("레고스토어")
+  ) {
+    clauses.push("primary_category = 'toy_store'");
     addTextExpansionClauses(clauses, broadShoppingExpansionTerms, add);
   }
 

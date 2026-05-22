@@ -3,7 +3,9 @@ const categoryGroupIntentPatterns: Record<string, RegExp[]> = {
   playroomDining: [/놀이방\s*식당|식당|맛집|고깃집|고기|뷔페|브런치|레스토랑|dining|restaurant/i],
   playground: [/놀이터|공원|숲|수목원|휴양림|물놀이터|물놀이|산책|잔디|모래놀이/i],
   stay: [/숙박|숙소|호텔|펜션|리조트|키즈\s*풀빌라|풀빌라|camping|glamping/i],
-  visit: [/도서관|장난감\s*도서관|박물관|미술관|과학관|체험|문화|아쿠아리움|동물원|쇼핑|쇼핑\s*몰|백화점|아울렛|휴게소|전시/i]
+  visit: [
+    /도서관|장난감\s*도서관|장난감\s*(가게|매장|샵|숍)|완구|토이저러스|토이플러스|레고\s*스토어|박물관|미술관|과학관|체험|문화|아쿠아리움|동물원|쇼핑|쇼핑\s*몰|백화점|아울렛|휴게소|전시/i
+  ]
 };
 
 export function shouldFallbackToAllCategoriesForQuery(query: string | undefined, categoryGroup: string) {

@@ -484,6 +484,7 @@ function categoryLabel(value: string) {
   const labels: Record<string, string> = {
     kids_cafe: "키즈카페",
     indoor_playground: "실내놀이터",
+    toy_store: "장난감 가게",
     toy_library: "장난감도서관",
     library: "도서관",
     museum: "박물관/미술관",

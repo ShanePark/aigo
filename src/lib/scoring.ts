@@ -250,7 +250,7 @@ function distanceProfileFor(place: ScoreablePlace, input: SearchPlacesInput): Di
   if (isDestinationCategory(category) || (category === "park" && (input.visitContext === "dayTrip" || input.visitContext === "weekendHalfDay"))) {
     return distanceProfiles.destination;
   }
-  if (["family_cafe", "shopping_mall", "library", "toy_library", "family_restaurant"].includes(category)) {
+  if (["family_cafe", "shopping_mall", "library", "toy_library", "toy_store", "family_restaurant"].includes(category)) {
     return distanceProfiles.localFallback;
   }
   return distanceProfiles.destination;
@@ -372,7 +372,7 @@ function applyVisitContextSignal(
       addScore(3);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "toy_library", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "toy_library", "toy_store", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -481,7 +481,7 @@ function isKidPrimaryPlace(category: string, tags: Set<string>) {
 }
 
 function isGenericFamilySpace(category: string) {
-  return ["family_cafe", "library", "shopping_mall"].includes(category);
+  return ["family_cafe", "library", "shopping_mall", "toy_store"].includes(category);
 }
 
 function isImmediateVisitContext(input: SearchPlacesInput) {

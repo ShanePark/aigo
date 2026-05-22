@@ -46,7 +46,7 @@ const scenarios: Scenario[] = [
         indoorTypes: ["indoor", "mixed"],
         foodAllowed: true
       },
-      primaryCategories: ["kids_cafe", "indoor_playground", "shopping_mall", "library"],
+      primaryCategories: ["kids_cafe", "indoor_playground", "shopping_mall", "toy_store", "library"],
       sort: "recommended",
       limit: 8,
       offset: 0

@@ -337,7 +337,7 @@ components:
           type: string
         primaryCategory:
           type: string
-          description: Primary place category, such as kids_cafe, park, shopping_mall, rest_area, or accommodation.
+          description: Primary place category, such as kids_cafe, toy_store, park, shopping_mall, rest_area, or accommodation.
         tags:
           type: array
           items:

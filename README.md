@@ -18,7 +18,7 @@ The data model intentionally treats parent logistics as first-class signals:
 - Recommended child ages
 - Stroller practicality, elevator access, parking, nursing rooms, diaper changing tables, kids toilets, baby chairs, and food/snack handling
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
-- Public child-friendly facilities, indoor playgrounds, kids cafes, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, and short nature trips
+- Public child-friendly facilities, indoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, and short nature trips
 - Source-backed place records, image provenance, and wiki-style version history
 
 Unknown is an acceptable value when evidence is weak. AiGo should not invent amenities just to make a place look complete.
