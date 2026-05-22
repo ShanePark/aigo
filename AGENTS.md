@@ -148,6 +148,20 @@ Use parallel execution especially for:
 
 Keep the critical path moving locally while background or delegated work runs.
 
+## Frontend Visual Assets and ImageGen
+
+For frontend work, use visual assets actively when they make the app easier to scan, warmer, or more delightful for family outing discovery. AiGo should feel polished, cute, friendly, and practical rather than generic or text-heavy.
+
+Use existing code-native assets first for deterministic UI controls: lucide icons, established SVG/icon systems, CSS shapes, map markers, state indicators, toolbar buttons, and simple category/filter icons. These should stay crisp, accessible, and consistent with the surrounding component system.
+
+Use the `$imagegen` skill at `/Users/shane/.codex/skills/.system/imagegen/SKILL.md` when the frontend needs high-quality raster visuals such as cute category illustrations, mascot-like icons, empty-state art, hero or onboarding images, polished app badges, transparent-background cutouts, or visual variants that would be weaker as plain SVG.
+
+Before generating or editing any project-bound raster asset, read and follow the ImageGen skill. Use the built-in `image_gen` path by default. If the final asset is referenced by the app, move or copy it into the repository, usually under `public/`, and update the consuming code so the project never depends on a file left only under `$CODEX_HOME`.
+
+For transparent icons or cutouts, prefer the skill's chroma-key workflow first, then validate the alpha output before using it in the UI. Ask before falling back to CLI/native transparency paths that require model or API-key changes.
+
+Generated AiGo visual assets should be readable at real UI sizes, warm and family-friendly, and visually consistent across a set. Avoid tiny text inside generated icons unless explicitly required, and do not use generated raster assets when a simple lucide/code-native icon is the cleaner fit.
+
 ## Editing Rules
 
 - Preserve existing user changes.

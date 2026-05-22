@@ -1,7 +1,24 @@
 import Link from "next/link";
-import { Database, MapPin, Search, Tag } from "lucide-react";
+import type { UrlObject } from "url";
+import {
+  ArrowUpDown,
+  Baby,
+  BedDouble,
+  Blocks,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  TreePine,
+  Utensils,
+  type LucideIcon
+} from "lucide-react";
 
+import { NearbySearchButton } from "@/app/nearby-search-button";
 import { PlaceImage } from "@/app/place-image";
+import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
 import { searchPlaces } from "@/lib/places";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
@@ -12,237 +29,287 @@ const DEFAULT_ORIGIN = {
 };
 const DEFAULT_RESULT_LIMIT = 30;
 const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
+const CATEGORY_GROUPS = {
+  all: { label: "전체", hint: "모두", icon: Blocks, categories: undefined },
+  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, categories: ["accommodation"] },
+  visit: {
+    label: "방문",
+    hint: "과학관/쇼핑",
+    icon: Building2,
+    categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "shopping_mall", "sports_venue", "rest_area"]
+  },
+  playground: { label: "놀이터", hint: "공원/실내", icon: TreePine, categories: ["park", "indoor_playground"] },
+  kidsCafe: { label: "키즈카페", hint: "놀이 카페", icon: Baby, categories: ["kids_cafe", "family_cafe"] },
+  playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: ["family_restaurant"] }
+} as const satisfies Record<
+  string,
+  {
+    categories?: readonly string[];
+    hint: string;
+    icon: LucideIcon;
+    label: string;
+  }
+>;
+const TAG_LABELS: Record<string, string> = {
+  babyChair: "아기의자",
+  childrenRoom: "어린이자료실",
+  diaperChangingTable: "기저귀",
+  familyRestaurant: "가족식당",
+  infantRoom: "유아실",
+  kidsCafe: "키즈카페",
+  library: "도서관",
+  meatRestaurant: "고깃집",
+  nursingRoom: "수유실",
+  parking: "주차",
+  playroom: "놀이방",
+  publicFacility: "공공시설",
+  publicLibrary: "공공도서관",
+  sandPlay: "모래놀이",
+  science: "과학",
+  shoppingMall: "쇼핑몰",
+  slide: "미끄럼틀",
+  stroller: "유모차",
+  toyLibrary: "장난감도서관",
+  waterPlayground: "물놀이터"
+};
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type CategoryGroupId = keyof typeof CATEGORY_GROUPS;
+
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const input = searchPlacesSchema.parse(buildSearchInput(params));
   const result = await safeSearch(input);
+  const activeCategoryGroup = categoryGroupParam(params);
+  const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, params);
+  const activeSort = sortParam(params);
+  const mapOrigin = mapOriginFromMeta(result.meta);
+  const mapPlaces = result.items.map(mapPlaceForMap);
 
   return (
     <div className="page">
       <section className="search-shell">
-        <div>
-          <p className="eyebrow">Agent-friendly place search</p>
-          <h1>아이와 갈 장소를 조건으로 비교하기</h1>
-          <p className="lede">
-            권장 나이와 편의시설은 후보를 제외하지 않고 점수와 reason code에 반영합니다.
-          </p>
+        <div className="search-copy">
+          <p className="eyebrow">Daejeon family picks</p>
+          <h1>지도에서 고르는 오늘의 외출</h1>
+          <p className="lede">현재 위치나 대전역 기준으로 주변을 보고, 큰 분류만 톡톡 골라 빠르게 좁혀보세요.</p>
         </div>
 
         <form className="search-form" action="/">
-          <label>
-            <span>키워드</span>
-            <input name="query" defaultValue={textParam(params.query)} placeholder="실내, 과학, 물놀이..." />
-          </label>
-          <label>
-            <span>주카테고리</span>
-            <select name="category" defaultValue={textParam(params.category) || ""}>
-              <option value="">전체</option>
-              <option value="kids_cafe">키즈카페</option>
-              <option value="indoor_playground">실내놀이터</option>
-              <option value="toy_library">장난감도서관</option>
-              <option value="library">도서관</option>
-              <option value="museum">박물관/미술관</option>
-              <option value="science_museum">과학관</option>
-              <option value="experience_center">체험관</option>
-              <option value="aquarium_zoo">동물/아쿠아리움</option>
-              <option value="park">공원/놀이터</option>
-              <option value="family_cafe">가족 카페</option>
-              <option value="family_restaurant">놀이방/가족 식당</option>
-              <option value="sports_venue">스포츠/야구장</option>
-              <option value="shopping_mall">쇼핑/몰</option>
-              <option value="rest_area">휴게소/이동 중 쉼터</option>
-            </select>
-          </label>
-          <label>
-            <span>상황</span>
-            <select name="visitContext" defaultValue={textParam(params.visitContext) || ""}>
-              <option value="">기본 추천</option>
-              <option value="afterDaycare">하원 후</option>
-              <option value="nearbyNow">당장 근처</option>
-              <option value="rainyDay">비 오는 날</option>
-              <option value="weekendHalfDay">주말 반나절</option>
-              <option value="dayTrip">주말 당일치기</option>
-            </select>
-          </label>
-          <label>
-            <span>아이 월령</span>
-            <input name="ages" defaultValue={textParam(params.ages) || "32,7,7"} placeholder="32,7,7" />
-          </label>
-          <label>
-            <span>반경 km</span>
-            <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(params.radiusKm) || "80"} />
-          </label>
-          <label>
-            <span>표시 개수</span>
-            <select name="limit" defaultValue={String(resultLimitParam(params))}>
-              {RESULT_LIMIT_OPTIONS.map((limit) => (
-                <option value={limit} key={limit}>
-                  {limit}개
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>위도</span>
-            <input name="lat" type="number" step="0.000001" defaultValue={textParam(params.lat) || String(DEFAULT_ORIGIN.lat)} />
-          </label>
-          <label>
-            <span>경도</span>
-            <input name="lng" type="number" step="0.000001" defaultValue={textParam(params.lng) || String(DEFAULT_ORIGIN.lng)} />
-          </label>
-          <div className="checks">
+          <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
+          {textParam(params.nearby) === "1" ? <input name="nearby" type="hidden" value="1" /> : null}
+          <div className="search-bar">
+            <label className="query-field">
+              <span>검색어</span>
+              <input name="query" defaultValue={textParam(params.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
+            </label>
+            <button type="submit" className="primary-button">
+              <Search size={17} aria-hidden="true" />
+              검색
+            </button>
+          </div>
+
+          <div className="location-row">
+            <NearbySearchButton />
+            <span className="origin-pill">
+              <MapPin size={14} aria-hidden="true" />
+              {input.origin?.label ?? (nationwideStaySearch ? "전국" : DEFAULT_ORIGIN.label)}
+            </span>
+          </div>
+
+          <div className="category-tabs" aria-label="큰 분류">
+            {Object.entries(CATEGORY_GROUPS).map(([groupId, group]) => {
+              const Icon = group.icon;
+
+              return (
+                <Link
+                  className={`category-tab ${activeCategoryGroup === groupId ? "is-active" : ""}`}
+                  href={categoryGroupHref(params, groupId as CategoryGroupId)}
+                  key={groupId}
+                >
+                  <Icon size={18} aria-hidden="true" />
+                  <span>{group.label}</span>
+                  <small>{group.hint}</small>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="filter-grid">
+            <label>
+              <span className="select-label">
+                <ArrowUpDown size={13} aria-hidden="true" />
+                정렬
+              </span>
+              <select name="sort" defaultValue={activeSort}>
+                <option value="recommended">관련도순</option>
+                <option value="distance">거리순</option>
+              </select>
+            </label>
+            <label>
+              <span>상황</span>
+              <select name="visitContext" defaultValue={textParam(params.visitContext) || ""}>
+                <option value="">기본 추천</option>
+                <option value="afterDaycare">하원 후</option>
+                <option value="nearbyNow">당장 근처</option>
+                <option value="rainyDay">비 오는 날</option>
+                <option value="weekendHalfDay">주말 반나절</option>
+                <option value="dayTrip">주말 당일치기</option>
+              </select>
+            </label>
+            <label>
+              <span>한 페이지</span>
+              <select name="limit" defaultValue={String(resultLimitParam(params))}>
+                {RESULT_LIMIT_OPTIONS.map((limit) => (
+                  <option value={limit} key={limit}>
+                    {limit}개
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="checks" aria-label="선호 조건">
             <label className="check">
               <input name="indoor" type="checkbox" defaultChecked={params.indoor === "on"} />
-              <span>실내 선호</span>
+              <span>실내</span>
             </label>
             <label className="check">
               <input name="parking" type="checkbox" defaultChecked={params.parking === "on"} />
-              <span>주차 선호</span>
+              <span>주차</span>
             </label>
             <label className="check">
               <input name="stroller" type="checkbox" defaultChecked={params.stroller === "on"} />
-              <span>유모차 선호</span>
+              <span>유모차</span>
             </label>
             <label className="check">
               <input name="nursing" type="checkbox" defaultChecked={params.nursing === "on"} />
-              <span>수유실 선호</span>
+              <span>수유실</span>
             </label>
             <label className="check">
               <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
-              <span>기저귀 선호</span>
+              <span>기저귀</span>
             </label>
             <label className="check">
               <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
-              <span>간식 공간 선호</span>
+              <span>간식</span>
             </label>
             <label className="check">
               <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
-              <span>아기의자 선호</span>
+              <span>아기의자</span>
             </label>
             <label className="check">
               <input name="elevator" type="checkbox" defaultChecked={params.elevator === "on"} />
-              <span>엘리베이터 선호</span>
+              <span>엘리베이터</span>
             </label>
           </div>
-          <button type="submit" className="primary-button">
-            <Search size={16} aria-hidden="true" />
-            검색
-          </button>
+
+          <details className="advanced-search">
+            <summary>
+              <SlidersHorizontal size={16} aria-hidden="true" />
+              세부 조건
+            </summary>
+            <div className="advanced-grid">
+              <label>
+                <span>아이 월령</span>
+                <input name="ages" defaultValue={textParam(params.ages) || "32,7,7"} placeholder="32,7,7" />
+              </label>
+              <label>
+                <span>반경 km</span>
+                <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(params.radiusKm) ?? (nationwideStaySearch ? "" : "80")} />
+              </label>
+              <label>
+                <span>위도</span>
+                <input name="lat" type="number" step="0.000001" defaultValue={textParam(params.lat) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lat))} />
+              </label>
+              <label>
+                <span>경도</span>
+                <input name="lng" type="number" step="0.000001" defaultValue={textParam(params.lng) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lng))} />
+              </label>
+            </div>
+          </details>
         </form>
       </section>
-
-      <section className="result-header">
-        <div>
-          <h2>검색 결과</h2>
-          <p>{result.error ? "DB 연결 또는 마이그레이션 상태를 확인하세요." : resultCountLabel(result.meta)}</p>
-        </div>
-        <div className="code-pill">
-          <Database size={14} aria-hidden="true" />
-          <span>soft matching</span>
-        </div>
-      </section>
-
-      {!result.error ? <SearchInterpretation search={result.meta.search} /> : null}
 
       {result.error ? (
         <div className="notice">{result.error}</div>
       ) : (
-        <div className="results">
-          {result.items.map((place) => {
-            const visibleReasons = place.reasons.slice(0, 8);
-            const hiddenReasonCount = Math.max(0, place.reasons.length - visibleReasons.length);
-            const primaryImage = place.primaryImage;
-            const playFeatureSignals = playFeatureChips(place.playFeatures).slice(0, 8);
+        <section className="explore-layout">
+          <PlacesMap origin={mapOrigin} places={mapPlaces} />
+          <div className="results-panel">
+            <section className="result-header">
+              <div>
+                <h2>{activeCategoryGroup === "stay" ? "키즈 숙소" : "주변 장소"}</h2>
+                <p>{resultCountLabel(result.meta)}</p>
+              </div>
+              {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
+            </section>
 
-            return (
-              <article className="result-card" key={place.placeId}>
-                <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-                <div className="result-main">
-                  <div>
-                    <p className="category" title={place.primaryCategory}>
-                      {categoryLabel(place.primaryCategory)}
-                    </p>
-                    <h3>
-                      <Link href={`/places/${place.placeId}`}>{place.name}</Link>
-                    </h3>
-                  </div>
-                  <div className="score">{place.score}</div>
-                </div>
-                <div className="meta-row">
-                  <span>
-                    <MapPin size={14} aria-hidden="true" />
-                    {place.distanceKm === null ? "거리 미계산" : `${place.distanceKm.toFixed(1)}km`}
-                  </span>
-                  <span>
-                    <Tag size={14} aria-hidden="true" />
-                    {place.tags.slice(0, 4).join(", ") || "태그 없음"}
-                  </span>
-                </div>
-                {place.description ? <p className="result-description">{place.description}</p> : null}
-                <div className="facility-grid">
-                  {facilitySignals(place).map((signal) => (
-                    <span className={`facility-chip ${signal.tone}`} key={signal.label}>
-                      {signal.label}: {signal.value}
-                    </span>
-                  ))}
-                </div>
-                {playFeatureSignals.length > 0 ? (
-                  <div className="play-feature-grid" aria-label="놀이시설">
-                    {playFeatureSignals.map((signal) => (
-                      <span className={`play-feature-chip ${signal.tone}`} key={signal.label}>
-                        {signal.label}: {signal.value}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="visit-row">
-                  <span>v{place.version}</span>
-                  <span>신뢰도 {confidenceLabel(place.dataConfidence)}</span>
-                  {primaryImage ? <span>이미지 {imageTierLabel(primaryImage.displayTier)}</span> : null}
-                  {place.visit.averageStayMinutes ? <span>체류 {place.visit.averageStayMinutes}분</span> : null}
-                  {place.visit.parentEffortLevel ? <span>부모 난이도 {place.visit.parentEffortLevel}/5</span> : null}
-                  {place.notes.safety ? <span className="caution">안전 메모 있음</span> : null}
-                </div>
-                {place.notes.parent ? <p className="result-note">{place.notes.parent}</p> : null}
-                {place.notes.safety ? <p className="result-note caution">{place.notes.safety}</p> : null}
-                <div className="reason-grid">
-                  {visibleReasons.map((reason) => (
-                    <span className={reason.tone} key={reason.code} title={reason.code}>
-                      {reason.labelKo}
-                    </span>
-                  ))}
-                  {hiddenReasonCount > 0 ? <span className="more">+{hiddenReasonCount}</span> : null}
-                </div>
-              </article>
-            );
-          })}
-          {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
-        </div>
+            <div className="results">
+              {result.items.map((place, index) => (
+                <ResultCard index={result.meta.offset + index + 1} place={place} key={place.placeId} />
+              ))}
+              {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
+            </div>
+            <Pagination meta={result.meta} params={params} />
+          </div>
+        </section>
       )}
     </div>
   );
 }
 
+function ResultCard({ index, place }: { index: number; place: SearchItem }) {
+  const keywords = resultKeywordChips(place);
+  const primaryImage = place.primaryImage;
+
+  return (
+    <Link className="result-card" href={`/places/${place.placeId}`}>
+      <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
+      <div className="result-card-body">
+        <div className="result-card-topline">
+          <span className="rank-badge">{index}</span>
+          <span className="score-pill">추천 {place.score}</span>
+          <span className="distance-pill">
+            <MapPin size={14} aria-hidden="true" />
+            {distanceLabel(place.distanceKm)}
+          </span>
+        </div>
+        <h3>{place.name}</h3>
+        <div className="keyword-row" aria-label="키워드">
+          {keywords.map((keyword) => (
+            <span key={keyword}>{keyword}</span>
+          ))}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
+  const category = textParam(params.category);
+  const categoryGroup = categoryGroupParam(params);
+  const groupCategories = CATEGORY_GROUPS[categoryGroup].categories;
+  const limit = resultLimitParam(params);
+  const page = currentPageParam(params);
+  const nearby = textParam(params.nearby) === "1";
+  const shouldUseOrigin = categoryGroup !== "stay" || hasExplicitLocationParams(params);
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
-  const category = textParam(params.category);
   const ages = (textParam(params.ages) || "32,7,7")
     .split(",")
     .map((age) => Number(age.trim()))
     .filter((age) => Number.isFinite(age));
 
   return {
-    origin: { lat, lng, label: DEFAULT_ORIGIN.label },
+    origin: shouldUseOrigin ? { lat, lng, label: nearby ? "현재 위치" : DEFAULT_ORIGIN.label } : undefined,
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
-    radiusKm: Number(textParam(params.radiusKm) || 80),
+    radiusKm: shouldUseOrigin ? Number(textParam(params.radiusKm) || 80) : undefined,
     query: textParam(params.query) || undefined,
-    primaryCategories: category ? [category] : undefined,
+    primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
     childAgeMonths: ages,
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
@@ -254,8 +321,18 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       babyChair: params.babyChair === "on" ? true : undefined,
       elevator: params.elevator === "on" ? true : undefined
     },
-    limit: resultLimitParam(params)
+    sort: sortParam(params),
+    limit,
+    offset: Math.min((page - 1) * limit, 1000)
   };
+}
+
+function hasExplicitLocationParams(params: Record<string, string | string[] | undefined>) {
+  return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm));
+}
+
+function isNationwideStaySearch(categoryGroup: CategoryGroupId, params: Record<string, string | string[] | undefined>) {
+  return categoryGroup === "stay" && !hasExplicitLocationParams(params);
 }
 
 async function safeSearch(input: SearchPlacesInput) {
@@ -292,68 +369,215 @@ function resultLimitParam(params: Record<string, string | string[] | undefined>)
   return RESULT_LIMIT_OPTIONS.includes(requested as (typeof RESULT_LIMIT_OPTIONS)[number]) ? requested : DEFAULT_RESULT_LIMIT;
 }
 
-type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
-type SearchMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"]["search"];
-type SearchResultMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"];
-
-function resultCountLabel(meta: SearchResultMeta) {
-  if (meta.total <= meta.count) {
-    return `${meta.total}개 후보`;
-  }
-  return `${meta.total}개 후보 중 상위 ${meta.count}개 표시`;
+function currentPageParam(params: Record<string, string | string[] | undefined>) {
+  const requested = Number(textParam(params.page) || 1);
+  return Number.isInteger(requested) && requested > 0 ? requested : 1;
 }
 
-function SearchInterpretation({ search }: { search: SearchMeta }) {
-  const preferenceLabels = preferenceChips(search.appliedPreferences);
+function sortParam(params: Record<string, string | string[] | undefined>): Extract<SearchPlacesInput["sort"], "recommended" | "distance"> {
+  const value = textParam(params.sort);
+  if (value === "recommended" || value === "distance") {
+    return value;
+  }
+  return textParam(params.nearby) === "1" ? "distance" : "recommended";
+}
 
-  if (!search.originalQuery && !search.normalizedQuery && !search.visitContext && preferenceLabels.length === 0) {
+type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
+type SearchResultMeta = Awaited<ReturnType<typeof searchPlaces>>["meta"];
+
+function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {
+  const value = textParam(params.categoryGroup);
+  return value && value in CATEGORY_GROUPS ? (value as CategoryGroupId) : "all";
+}
+
+function resultCountLabel(meta: SearchResultMeta) {
+  if (meta.total === 0 || meta.count === 0) {
+    return `${meta.total}개 후보`;
+  }
+
+  const start = Math.min(meta.offset + 1, meta.total);
+  const end = Math.min(meta.offset + meta.count, meta.total);
+  return `${meta.total}개 중 ${start}-${end}번째`;
+}
+
+function currentResultPage(meta: SearchResultMeta) {
+  return Math.floor(meta.offset / meta.limit) + 1;
+}
+
+function Pagination({ meta, params }: { meta: SearchResultMeta; params: Record<string, string | string[] | undefined> }) {
+  const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit));
+  const currentPage = Math.min(currentResultPage(meta), totalPages);
+
+  if (totalPages <= 1) {
     return null;
   }
 
   return (
-    <section className="search-interpretation" aria-label="검색 해석">
-      <div>
-        <strong>검색 해석</strong>
-        <span>{search.normalized ? "자동 정규화" : "입력 조건 그대로"}</span>
+    <nav className="pagination" aria-label="검색 결과 페이지">
+      {currentPage > 1 ? (
+        <Link className="page-control" href={pageHref(params, currentPage - 1, meta.limit)}>
+          <ChevronLeft size={16} aria-hidden="true" />
+          이전
+        </Link>
+      ) : (
+        <span className="page-control is-disabled">
+          <ChevronLeft size={16} aria-hidden="true" />
+          이전
+        </span>
+      )}
+
+      <div className="page-numbers">
+        {pageItems(currentPage, totalPages).map((page, index) =>
+          page === "gap" ? (
+            <span className="page-ellipsis" key={`gap-${index}`}>
+              ...
+            </span>
+          ) : page === currentPage ? (
+            <span className="page-number is-current" aria-current="page" key={page}>
+              {page}
+            </span>
+          ) : (
+            <Link className="page-number" href={pageHref(params, page, meta.limit)} key={page}>
+              {page}
+            </Link>
+          )
+        )}
       </div>
-      <div className="interpretation-tags">
-        {search.originalQuery ? <span>입력: {search.originalQuery}</span> : null}
-        {search.normalizedQuery ? <span>키워드: {search.normalizedQuery}</span> : null}
-        {search.visitContext ? <span>상황: {visitContextLabel(search.visitContext)}</span> : null}
-        {preferenceLabels.map((label) => (
-          <span key={label}>{label}</span>
-        ))}
-      </div>
-    </section>
+
+      {currentPage < totalPages ? (
+        <Link className="page-control" href={pageHref(params, currentPage + 1, meta.limit)}>
+          다음
+          <ChevronRight size={16} aria-hidden="true" />
+        </Link>
+      ) : (
+        <span className="page-control is-disabled">
+          다음
+          <ChevronRight size={16} aria-hidden="true" />
+        </span>
+      )}
+    </nav>
   );
 }
 
-function preferenceChips(preferences: SearchMeta["appliedPreferences"]) {
-  if (!preferences || typeof preferences !== "object") return [];
-  const chips: string[] = [];
-  const typed = preferences as NonNullable<SearchPlacesInput["preferences"]>;
+function pageItems(currentPage: number, totalPages: number) {
+  const candidates = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  const pages = Array.from(candidates)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+  const items: Array<number | "gap"> = [];
 
-  if (typed.indoorTypes?.includes("indoor")) chips.push("실내 우선");
-  if (typed.parkingAvailable) chips.push("주차");
-  if (typed.strollerFriendly) chips.push("유모차");
-  if (typed.nursingRoom) chips.push("수유실");
-  if (typed.diaperChangingTable) chips.push("기저귀");
-  if (typed.elevator) chips.push("엘리베이터");
-  if (typed.babyChair) chips.push("아기의자");
-  if (typed.foodAllowed) chips.push("간식 공간");
+  for (const page of pages) {
+    const previous = items[items.length - 1];
+    if (typeof previous === "number" && page - previous > 1) {
+      items.push("gap");
+    }
+    items.push(page);
+  }
 
-  return chips;
+  return items;
 }
 
-function visitContextLabel(value: NonNullable<SearchPlacesInput["visitContext"]>) {
-  const labels: Record<NonNullable<SearchPlacesInput["visitContext"]>, string> = {
-    afterDaycare: "하원 후",
-    nearbyNow: "당장 근처",
-    rainyDay: "비 오는 날",
-    weekendHalfDay: "주말 반나절",
-    dayTrip: "당일치기"
+function pageHref(params: Record<string, string | string[] | undefined>, page: number, limit: number): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page" || key === "offset") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  query.limit = String(limit);
+  if (page > 1) {
+    query.page = String(page);
+  }
+
+  return { pathname: "/", query };
+}
+
+function categoryGroupHref(params: Record<string, string | string[] | undefined>, group: CategoryGroupId): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  if (group !== "all") {
+    query.categoryGroup = group;
+  }
+
+  return { pathname: "/", query };
+}
+
+function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
+  if (!meta.origin) return null;
+  return {
+    label: meta.origin.label ?? DEFAULT_ORIGIN.label,
+    lat: meta.origin.lat,
+    lng: meta.origin.lng
   };
-  return labels[value] ?? value;
+}
+
+function mapPlaceForMap(place: SearchItem): MapPlace {
+  return {
+    category: place.primaryCategory,
+    distance: distanceLabel(place.distanceKm),
+    href: `/places/${place.placeId}`,
+    lat: place.lat,
+    lng: place.lng,
+    name: place.name,
+    placeId: place.placeId
+  };
+}
+
+function resultKeywordChips(place: SearchItem) {
+  const keywords = [
+    categoryLabel(place.primaryCategory),
+    indoorLabel(place.facilities.indoorType),
+    ...place.tags.map(formatKeyword),
+    ...positiveFacilityKeywords(place)
+  ];
+
+  return Array.from(new Set(keywords.filter(Boolean))).slice(0, 5);
+}
+
+function positiveFacilityKeywords(place: SearchItem) {
+  const facilities = [
+    [place.facilities.parkingAvailable, "주차"],
+    [place.facilities.strollerFriendly, "유모차"],
+    [place.facilities.nursingRoom, "수유실"],
+    [place.facilities.diaperChangingTable, "기저귀"],
+    [place.facilities.babyChair, "아기의자"]
+  ];
+
+  return facilities.filter(([value]) => value === "yes").map(([, label]) => String(label));
+}
+
+function formatKeyword(value: string) {
+  if (TAG_LABELS[value]) return TAG_LABELS[value];
+  if (/[가-힣]/.test(value)) return value.replace(/[_-]+/g, " ");
+  return "";
+}
+
+function distanceLabel(value: number | null) {
+  return value === null ? "거리 미계산" : `${value.toFixed(1)}km`;
 }
 
 function categoryLabel(value: string) {
@@ -371,145 +595,18 @@ function categoryLabel(value: string) {
     family_restaurant: "놀이방/가족 식당",
     sports_venue: "스포츠/야구장",
     shopping_mall: "쇼핑/몰",
-    rest_area: "휴게소/쉼터"
+    rest_area: "휴게소/쉼터",
+    accommodation: "키즈 숙소"
   };
   return labels[value] ?? value;
-}
-
-function confidenceLabel(value: string) {
-  const labels: Record<string, string> = {
-    official_verified: "공식 확인",
-    operator_curated: "운영자 확인",
-    agent_collected: "에이전트 수집",
-    user_reported: "사용자 제보",
-    needs_check: "확인 필요",
-    unknown: "미확인"
-  };
-  return labels[value] ?? value;
-}
-
-function imageTierLabel(value: string) {
-  const labels: Record<string, string> = {
-    official: "공식",
-    public_agency: "공공",
-    public_listing: "목록",
-    rights_unclear: "검토",
-    unknown: "미확인"
-  };
-  return labels[value] ?? value;
-}
-
-function facilitySignals(place: SearchItem) {
-  return [
-    { label: "실내외", value: indoorLabel(place.facilities.indoorType), tone: toneForIndoor(place.facilities.indoorType) },
-    { label: "주차", value: triStateLabel(place.facilities.parkingAvailable), tone: toneForTriState(place.facilities.parkingAvailable) },
-    { label: "유모차", value: triStateLabel(place.facilities.strollerFriendly), tone: toneForTriState(place.facilities.strollerFriendly) },
-    { label: "수유실", value: triStateLabel(place.facilities.nursingRoom), tone: toneForTriState(place.facilities.nursingRoom) },
-    { label: "기저귀", value: triStateLabel(place.facilities.diaperChangingTable), tone: toneForTriState(place.facilities.diaperChangingTable) },
-    { label: "유아화장실", value: triStateLabel(place.facilities.kidsToilet), tone: toneForTriState(place.facilities.kidsToilet) },
-    { label: "엘리베이터", value: triStateLabel(place.facilities.elevator), tone: toneForTriState(place.facilities.elevator) },
-    { label: "아기의자", value: triStateLabel(place.facilities.babyChair), tone: toneForTriState(place.facilities.babyChair) },
-    { label: "간식", value: triStateLabel(place.facilities.foodAllowed), tone: toneForTriState(place.facilities.foodAllowed) }
-  ];
-}
-
-function playFeatureChips(playFeatures: Record<string, unknown>) {
-  return playFeatureEntries(playFeatures).map(([key, value]) => ({
-    label: playFeatureLabel(key),
-    value: playFeatureValueLabel(value),
-    tone: playFeatureTone(value)
-  }));
-}
-
-function playFeatureEntries(playFeatures: Record<string, unknown>) {
-  const preferredOrder = [
-    "slide",
-    "swing",
-    "babySwing",
-    "waterPlayground",
-    "sandPlay",
-    "climbing",
-    "seesaw",
-    "trampoline",
-    "rideOnToys",
-    "playHouse",
-    "openLawn",
-    "shade",
-    "fenced",
-    "rubberSurface",
-    "strollerPath",
-    "toiletNearby"
-  ];
-  const entries = Object.entries(playFeatures ?? {}).filter(([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null);
-  const order = new Map(preferredOrder.map((key, index) => [key, index]));
-  return entries.sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999) || a[0].localeCompare(b[0]));
-}
-
-function playFeatureLabel(key: string) {
-  const labels: Record<string, string> = {
-    slide: "미끄럼틀",
-    swing: "그네",
-    babySwing: "영아그네",
-    waterPlayground: "물놀이터",
-    sandPlay: "모래놀이",
-    climbing: "클라이밍",
-    seesaw: "시소",
-    trampoline: "트램폴린",
-    rideOnToys: "승용완구",
-    playHouse: "놀이집",
-    openLawn: "잔디",
-    shade: "그늘",
-    fenced: "울타리",
-    rubberSurface: "탄성포장",
-    strollerPath: "유모차길",
-    toiletNearby: "화장실 인근"
-  };
-  return labels[key] ?? key;
-}
-
-function playFeatureValueLabel(value: unknown) {
-  if (typeof value === "string") return triStateLabel(value);
-  if (typeof value === "boolean") return value ? "있음" : "없음";
-  return "기록";
-}
-
-function playFeatureTone(value: unknown) {
-  if (value === "yes" || value === true) return "positive";
-  if (value === "partial") return "partial";
-  if (value === "no" || value === false) return "negative";
-  return "unknown";
 }
 
 function indoorLabel(value: string) {
   const labels: Record<string, string> = {
     indoor: "실내",
     outdoor: "실외",
-    mixed: "혼합",
-    unknown: "미확인"
+    mixed: "실내외",
+    unknown: "확인중"
   };
   return labels[value] ?? value;
-}
-
-function triStateLabel(value: string) {
-  const labels: Record<string, string> = {
-    yes: "있음",
-    partial: "일부",
-    no: "없음",
-    unknown: "미확인"
-  };
-  return labels[value] ?? value;
-}
-
-function toneForIndoor(value: string) {
-  if (value === "indoor") return "positive";
-  if (value === "mixed") return "partial";
-  if (value === "outdoor") return "neutral";
-  return "unknown";
-}
-
-function toneForTriState(value: string) {
-  if (value === "yes") return "positive";
-  if (value === "partial") return "partial";
-  if (value === "no") return "negative";
-  return "unknown";
 }
