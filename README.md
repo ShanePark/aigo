@@ -40,7 +40,8 @@ Out of scope for the current MVP:
 
 The web app provides a Korean place-search UI with:
 
-- Keyword, category, visit-context, age, distance, and family-logistics filters
+- Keyword, category, age, map-viewport/distance, and family-logistics filters
+- Map-first browsing: pan or zoom the map, then tap `현 지도에서 검색` to refresh the list from the visible map area without changing results during casual map movement
 - Soft matching instead of hard exclusion for age and amenity mismatches
 - Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, and reason codes
 - Place detail pages with source links, image audit information, child-friendly signals, play features, visit judgment, notes, and recent versions
@@ -84,6 +85,7 @@ Real place data should be created and updated through the AiGo API, not direct d
 Search uses PostGIS distance filtering plus text/tag/play-feature matching and a scoring layer in [`src/lib/scoring.ts`](src/lib/scoring.ts). Scores and reason codes are influenced by:
 
 - Distance from the requested origin
+- Optional `viewportBounds`, which restricts candidates to the visible map area while keeping `origin` for distance labels and scoring
 - Visit context: `afterDaycare`, `nearbyNow`, `rainyDay`, `weekendHalfDay`, or `dayTrip`
 - Category, tag, and taxonomy facet matches
 - Recommended child-age fit
@@ -150,6 +152,7 @@ AIGO_API_KEY=change-me
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm build:check
 pnpm build
 pnpm db:migrate
 pnpm agent:preflight
@@ -165,7 +168,13 @@ curl -sS http://localhost:3000/v1/places/search \
   -H "Content-Type: application/json" \
   -d '{
     "origin": { "lat": 36.3322, "lng": 127.4341, "label": "Daejeon Station / old downtown" },
-    "radiusKm": 80,
+    "filterByRadius": false,
+    "viewportBounds": {
+      "minLat": 36.25,
+      "minLng": 127.32,
+      "maxLat": 36.43,
+      "maxLng": 127.52
+    },
     "visitContext": "rainyDay",
     "childAgeMonths": [32, 7, 7],
     "preferences": {
@@ -173,7 +182,7 @@ curl -sS http://localhost:3000/v1/places/search \
       "parkingAvailable": true,
       "strollerFriendly": true,
       "nursingRoom": true,
-      "diaperChangingTable": true
+      "babyChair": true
     },
     "limit": 20
   }'
