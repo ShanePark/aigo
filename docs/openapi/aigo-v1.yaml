@@ -297,6 +297,44 @@ components:
       type: string
       enum: [low, medium, high, unknown]
       description: Parent-facing parking difficulty signal; use unknown when source evidence is weak.
+    PrimaryCategory:
+      type: string
+      enum:
+        - kids_cafe
+        - indoor_playground
+        - toy_store
+        - toy_library
+        - library
+        - museum
+        - science_museum
+        - experience_center
+        - aquarium_zoo
+        - park
+        - family_cafe
+        - family_restaurant
+        - sports_venue
+        - shopping_mall
+        - rest_area
+        - accommodation
+      description: Closed top-level place category set. Finer classification belongs in taxonomy facets.
+    SourceType:
+      type: string
+      enum:
+        - official_site
+        - public_agency
+        - public_tourism
+        - operator_page
+        - public_listing
+        - public_blog
+        - user_observation
+        - agent_observation
+        - official_image_source
+        - public_listing_image_source
+        - public_news_image_source
+        - map_service
+        - geocode
+        - unknown
+      description: Canonical source provenance type. Common aliases such as `official`, `official_page`, `blog`, `public_data_mirror`, and image-source variants are normalized by the API.
     RelatedPlaceRelationType:
       type: string
       enum: [nearby, same_building, same_site, parent_child, route_pair, itinerary_cluster]
@@ -306,7 +344,7 @@ components:
       required: [sourceType]
       properties:
         sourceType:
-          type: string
+          $ref: "#/components/schemas/SourceType"
         title:
           type: string
         url:
@@ -415,8 +453,7 @@ components:
         slug:
           type: string
         primaryCategory:
-          type: string
-          description: Primary place category, such as kids_cafe, toy_store, park, shopping_mall, rest_area, or accommodation.
+          $ref: "#/components/schemas/PrimaryCategory"
         tags:
           type: array
           items:
@@ -807,7 +844,7 @@ components:
           type: string
           format: uri
         sourceType:
-          type: string
+          $ref: "#/components/schemas/SourceType"
         sourceTitle:
           type: string
         creditText:

@@ -21,6 +21,7 @@ Do not use direct database writes for real place data. Real mutations go through
 - Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
 - Subagents may research and write `agent-research/*.md`; they must not mutate data. For broad discovery work, assigned subagents may use read-only AiGo API checks such as `POST /v1/places/search`, `POST /v1/places/duplicates`, and `GET /v1/places/{placeId}` before deep research so they do not spend tokens on already-registered places. The main agent, or one explicitly assigned API mutation agent, consolidates findings and calls create/update/delete APIs to avoid conflicting writes.
 - For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; do not use `status: "needs_review"`, `dataConfidence: "needs_check"`, or image `reviewStatus: "needs_review"` in API payloads. Capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
+- During place research, data collection, or API registration waves, do not stop to fix product/API/schema/tooling issues discovered along the way. Add an actionable `[대기]` proposal to `docs/aigo-improvements.md` with enough context for the separate improvement automation to pick it up later.
 
 ## Family-Fit Gate
 
@@ -69,7 +70,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For each place, record suggested action (`create`, `update`, `skip_existing`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
-   - When API or product usage reveals a durable improvement, copy or summarize it into `docs/aigo-improvements.md`. Use `[대기]` for not-started items, mark the one being worked on as `[개선 중]` before changing code/data/docs, and remove the item after verification instead of changing it to `[완료]`.
+   - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it.
 
 5. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
@@ -205,6 +206,8 @@ Common `primaryCategory` values used by the UI/search:
 - `shopping_mall`
 - `rest_area`
 - `accommodation`
+
+`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags now and taxonomy facets as they become available. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
 
 Playground search semantics:
 

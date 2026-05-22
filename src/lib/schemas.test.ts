@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceSchema, deletePlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
+import { createPlaceSchema, deletePlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, taxonomySchema, updatePlaceSchema } from "@/lib/schemas";
 
 describe("place schemas", () => {
   it("requires coordinates and at least one source when creating a place", () => {
@@ -25,6 +25,68 @@ describe("place schemas", () => {
     });
 
     expect(result.primaryCategory).toBe("accommodation");
+  });
+
+  it("rejects unknown primary categories", () => {
+    const result = createPlaceSchema.safeParse({
+      name: "임의 분류 장소",
+      primaryCategory: "playground",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("canonicalizes source type and region aliases on place inputs", () => {
+    const result = createPlaceSchema.parse({
+      name: "공식 출처 장소",
+      primaryCategory: "library",
+      regionSido: "충남",
+      lat: 36.35,
+      lng: 127.38,
+      sources: [{ sourceType: "official_page", url: "https://example.com" }],
+      images: [{ url: "https://example.com/place.jpg", sourceType: "official_library_image_source" }]
+    });
+    const invalidSource = updatePlaceSchema.safeParse({
+      sources: [{ sourceType: "made_up_source", url: "https://example.com" }]
+    });
+
+    expect(result.regionSido).toBe("충청남도");
+    expect(result.sources[0].sourceType).toBe("official_site");
+    expect(result.images?.[0]?.sourceType).toBe("official_image_source");
+    expect(invalidSource.success).toBe(false);
+  });
+
+  it("validates taxonomy v1 shape without wiring it into writes yet", () => {
+    const result = taxonomySchema.parse({
+      schemaVersion: 1,
+      sourceBacked: {
+        familyFitGates: ["child_primary"],
+        logisticsTags: ["parking"]
+      },
+      inferred: {
+        activityTypes: ["sand_play"],
+        confidence: "medium",
+        basis: "Legacy tags mention sand play."
+      },
+      migration: {
+        legacyTags: ["모래놀이"],
+        broadMappedTags: ["모래놀이"],
+        unmappedTags: [],
+        normalizedAt: "2026-05-23T00:00:00.000+09:00"
+      }
+    });
+    const invalid = taxonomySchema.safeParse({
+      schemaVersion: 1,
+      inferred: { confidence: "certain" }
+    });
+
+    expect(result.sourceBacked.familyFitGates).toEqual(["child_primary"]);
+    expect(result.inferred.activityTypes).toEqual(["sand_play"]);
+    expect(invalid.success).toBe(false);
   });
 
   it("accepts source-backed pricing with a price basis date", () => {

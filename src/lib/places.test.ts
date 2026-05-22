@@ -359,7 +359,7 @@ describe("place search helpers", () => {
   it("does not let imageUrls shorthand downgrade existing image provenance on conflict", () => {
     const sources = [
       {
-        sourceType: "official_image_source",
+        sourceType: "official_image_source" as const,
         title: "공식 이미지 출처",
         url: "https://example.go.kr/place",
         checkedAt: "2026-05-22T00:00:00.000Z"

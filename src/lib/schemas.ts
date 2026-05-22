@@ -1,8 +1,15 @@
 import { z } from "zod";
 
+import { normalizeRegionSido, normalizeSourceType, primaryCategories, sourceTypes, taxonomyFacetFamilies } from "@/lib/taxonomy";
+
 export const triStateSchema = z.enum(["yes", "no", "partial", "unknown"]);
 export const indoorTypeSchema = z.enum(["indoor", "outdoor", "mixed", "unknown"]);
 export const parkingFrictionLevelSchema = z.enum(["low", "medium", "high", "unknown"]);
+export const primaryCategorySchema = z.enum(primaryCategories);
+export const sourceTypeSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  return normalizeSourceType(value) ?? value.trim();
+}, z.enum(sourceTypes));
 export const imageDisplayTierSchema = z.enum(["official", "public_agency", "public_listing", "rights_unclear", "unknown"]);
 export const imageStatusSchema = z.enum(["active", "archived"]);
 export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "needs_review", "rejected"]);
@@ -11,6 +18,42 @@ export const relatedPlaceRelationTypeSchema = z.enum(["nearby", "same_building",
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
 const zeroToTenScore = z.number().min(0).max(10);
+const regionSidoSchema = z.preprocess((value) => (typeof value === "string" ? normalizeRegionSido(value) : value), z.string().trim()).optional();
+const taxonomyFacetSetSchema = z.object({
+  familyFitGates: z.array(z.enum(taxonomyFacetFamilies.familyFitGates)).default([]),
+  activityTypes: z.array(z.enum(taxonomyFacetFamilies.activityTypes)).default([]),
+  visitUseCases: z.array(z.enum(taxonomyFacetFamilies.visitUseCases)).default([]),
+  ageBands: z.array(z.enum(taxonomyFacetFamilies.ageBands)).default([]),
+  logisticsTags: z.array(z.enum(taxonomyFacetFamilies.logisticsTags)).default([]),
+  riskTags: z.array(z.enum(taxonomyFacetFamilies.riskTags)).default([])
+});
+const emptyTaxonomyFacetSetValue = () => ({
+  familyFitGates: [],
+  activityTypes: [],
+  visitUseCases: [],
+  ageBands: [],
+  logisticsTags: [],
+  riskTags: []
+});
+
+export const taxonomySchema = z.object({
+  schemaVersion: z.literal(1),
+  sourceBacked: taxonomyFacetSetSchema.default(emptyTaxonomyFacetSetValue),
+  inferred: taxonomyFacetSetSchema
+    .extend({
+      confidence: z.enum(["high", "medium", "low"]).optional(),
+      basis: z.string().trim().max(1000).optional()
+    })
+    .default(emptyTaxonomyFacetSetValue),
+  migration: z
+    .object({
+      legacyTags: z.array(nonEmptyString).max(200).default([]),
+      broadMappedTags: z.array(nonEmptyString).max(200).default([]),
+      unmappedTags: z.array(nonEmptyString).max(200).default([]),
+      normalizedAt: z.string().datetime({ offset: true }).optional()
+    })
+    .default(() => ({ legacyTags: [], broadMappedTags: [], unmappedTags: [] }))
+});
 
 export const playFeaturesSchema = z
   .object({
@@ -48,7 +91,7 @@ export const playFeaturesSchema = z
 
 export const sourceSchema = z
   .object({
-    sourceType: nonEmptyString,
+    sourceType: sourceTypeSchema,
     title: z.string().trim().optional(),
     url: urlString.optional(),
     externalId: z.string().trim().optional(),
@@ -63,7 +106,7 @@ export const placeImageInputSchema = z.object({
   url: urlString,
   sourceId: z.string().uuid().optional(),
   sourceUrl: urlString.optional(),
-  sourceType: z.string().trim().optional(),
+  sourceType: sourceTypeSchema.optional(),
   sourceTitle: z.string().trim().optional(),
   creditText: z.string().trim().max(500).optional(),
   altText: z.string().trim().max(500).optional(),
@@ -120,12 +163,12 @@ export const pricingSchema = z
 const writablePlaceFields = {
   name: nonEmptyString.optional(),
   slug: z.string().trim().optional(),
-  primaryCategory: nonEmptyString.optional(),
+  primaryCategory: primaryCategorySchema.optional(),
   tags: z.array(nonEmptyString).max(50).optional(),
   description: z.string().trim().max(5000).optional(),
   address: z.string().trim().optional(),
   roadAddress: z.string().trim().optional(),
-  regionSido: z.string().trim().optional(),
+  regionSido: regionSidoSchema,
   regionSigungu: z.string().trim().optional(),
   regionDong: z.string().trim().optional(),
   lat: z.number().min(-90).max(90).optional(),
@@ -185,7 +228,7 @@ export const createPlaceSchema = z
   .object({
     ...writablePlaceFields,
     name: nonEmptyString,
-    primaryCategory: nonEmptyString,
+    primaryCategory: primaryCategorySchema,
     lat: z.number().min(-90).max(90),
     lng: z.number().min(-180).max(180),
     sources: z.array(sourceSchema).min(1),
