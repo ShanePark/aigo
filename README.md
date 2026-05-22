@@ -4,13 +4,13 @@
 
 <h1 align="center">AiGo</h1>
 
-AiGo is an agent-friendly place database and search UI for kid-friendly family outings around Daejeon, South Korea. It is built for the practical questions parents ask before leaving the house: Is this place indoors? Can a stroller move through it? Is there parking, a nursing room, a diaper changing table, an elevator, a baby chair, or a reliable snack/meal fallback?
+AiGo is an agent-friendly place database and search UI for kid-friendly family outings across Korea, anchored around a Daejeon family context. It is built for the practical questions parents ask before leaving the house: Is this place indoors? Can a stroller move through it? Is there parking, a nursing room, a diaper changing table, an elevator, a baby chair, or a reliable snack/meal fallback?
 
 The project combines a Korean Next.js search experience with a structured API that external agents can use to collect, deduplicate, enrich, and inspect source-backed place data. It is a personal/family place intelligence tool, not a generic travel marketplace or review community.
 
 ## Product Focus
 
-AiGo is optimized for families planning low-friction outings from the Daejeon Station / old downtown area across Daejeon and roughly one-hour day-trip range.
+AiGo is optimized for families planning low-friction outings, with Daejeon Station / old downtown as the default personalization anchor and nationwide Korea as the broader collection scope.
 
 The data model intentionally treats parent logistics as first-class signals:
 
@@ -18,8 +18,9 @@ The data model intentionally treats parent logistics as first-class signals:
 - Recommended child ages
 - Stroller practicality, elevator access, parking, nursing rooms, diaper changing tables, kids toilets, baby chairs, and food/snack handling
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
-- Public child-friendly facilities, indoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, and short nature trips
+- Public child-friendly facilities, indoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, kid-primary accommodations, and short nature trips
 - Source-backed place records, image provenance, and wiki-style version history
+- Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, logistics, and risk semantics
 
 Unknown is an acceptable value when evidence is weak. AiGo should not invent amenities just to make a place look complete.
 
@@ -31,8 +32,8 @@ Out of scope for the current MVP:
 
 - User accounts and family profiles
 - Saved lists, reviews, visit logs, and community features
-- Natural-language search as an API responsibility
-- Course generation, real-time crowding, reservations, payments, and accommodations
+- Full natural-language trip planning as an API responsibility
+- Full itinerary generation, real-time crowding, reservations, payments, and lodging booking flows
 - Admin data-entry UI
 
 ## Current App
@@ -48,7 +49,7 @@ The default origin in the UI is Daejeon Station / old downtown.
 
 ## Agent API
 
-The OpenAPI contract is in [`docs/openapi/aigo-v1.yaml`](docs/openapi/aigo-v1.yaml). The API expects structured JSON; natural-language parsing belongs outside the API.
+The OpenAPI contract is in [`docs/openapi/aigo-v1.yaml`](docs/openapi/aigo-v1.yaml). The API expects structured JSON; it supports lightweight keyword and taxonomy-facet normalization for search, while full natural-language trip planning belongs outside the API.
 
 Main endpoints:
 
@@ -71,7 +72,7 @@ Authorization: Bearer $AIGO_API_KEY
 
 AiGo stores places in PostgreSQL/PostGIS with Drizzle schema definitions in [`src/db/schema.ts`](src/db/schema.ts). The main tables are:
 
-- `places` - identity, category, tags, location, family logistics, visit-fit scores, notes, status, confidence, and derived search/geography fields
+- `places` - identity, closed primary category, canonical tags, controlled taxonomy facets, location, family logistics, visit-fit scores, notes, status, confidence, and derived search/geography fields
 - `place_sources` - source evidence attached to a place
 - `place_images` - remote image URLs with provenance, display tier, review status, visual features, and primary-image selection
 - `place_versions` - wiki-style snapshots created after create/update actions
@@ -84,12 +85,14 @@ Search uses PostGIS distance filtering plus text/tag/play-feature matching and a
 
 - Distance from the requested origin
 - Visit context: `afterDaycare`, `nearbyNow`, `rainyDay`, `weekendHalfDay`, or `dayTrip`
-- Category and tag matches
+- Category, tag, and taxonomy facet matches
 - Recommended child-age fit
 - Family logistics preferences
 - Data confidence
 
 Age or amenity mismatches usually reduce score or add cautionary reason codes; they do not automatically remove a candidate.
+
+Taxonomy search facets use `soft` mode by default, so unknown records remain eligible with reason-code context. Use `taxonomy.mode: "required"` only when every requested facet must appear in either `sourceBacked` or `inferred` taxonomy.
 
 ## Tech Stack
 
@@ -149,6 +152,9 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm db:migrate
+pnpm agent:preflight
+pnpm tsx scripts/audit-taxonomy.ts --json
+pnpm tsx scripts/apply-taxonomy-migration.ts --limit=5
 ```
 
 ## API Example
@@ -180,5 +186,7 @@ curl -sS http://localhost:3000/v1/places/search \
 - Prefer official, public-agency, facility, library, tourism, mall, or operator pages.
 - Use public blogs or public listings only as supporting evidence.
 - Store image URLs only when the source page is citeable and the image helps identify or compare the exact place.
+- Keep `primaryCategory` in the closed top-level category set; use taxonomy facets for finer family-planning meaning and `playFeatures` for physical equipment.
+- Use canonical source types and full Korean province/city names; API normalization handles common aliases such as `official`, `blog`, `public_data_mirror`, `대전`, `충남`, and `세종`.
 - Use `unknown` when evidence is weak instead of guessing.
 - Preserve uncertainty in `parentNotes`, `safetyNotes`, `dataConfidence`, image review status, or play-feature evidence.
