@@ -20,6 +20,7 @@ import {
 import { NearbySearchButton } from "@/app/nearby-search-button";
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
+import { SearchResultTrustBadges } from "@/app/search-result-badges";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
@@ -273,6 +274,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
             <span key={keyword}>{keyword}</span>
           ))}
         </div>
+        <SearchResultTrustBadges openingHoursSummary={place.openingHoursSummary} sourceSummary={place.sourceSummary} />
       </div>
     </Link>
   );

@@ -969,6 +969,47 @@ h3 {
   gap: 6px;
 }
 
+.trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trust-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  max-width: 100%;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.trust-badge.positive {
+  background: var(--mint-soft);
+  border-color: #c7e8d5;
+  color: var(--mint);
+}
+
+.trust-badge.neutral {
+  background: #f2f6f4;
+  color: #52625a;
+}
+
+.trust-badge.warning {
+  background: var(--yellow-soft);
+  border-color: #f1dda5;
+  color: #806113;
+}
+
+.trust-badge.danger {
+  background: var(--coral-soft);
+  border-color: #ecc4bd;
+  color: var(--coral);
+}
+
 .meta-row {
   color: var(--muted);
   display: flex;
