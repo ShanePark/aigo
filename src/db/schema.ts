@@ -43,6 +43,10 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    playFeatures: jsonb("play_features")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     status: text("status").notNull().default("active"),
     dataConfidence: text("data_confidence").notNull().default("unknown"),
     minRecommendedAgeMonths: integer("min_recommended_age_months"),

@@ -145,6 +145,7 @@ export default async function Home({ searchParams }: HomeProps) {
             const visibleReasons = place.reasons.slice(0, 8);
             const hiddenReasonCount = Math.max(0, place.reasons.length - visibleReasons.length);
             const primaryImage = place.primaryImage;
+            const playFeatureSignals = playFeatureChips(place.playFeatures).slice(0, 8);
 
             return (
               <article className="result-card" key={place.placeId}>
@@ -178,6 +179,15 @@ export default async function Home({ searchParams }: HomeProps) {
                     </span>
                   ))}
                 </div>
+                {playFeatureSignals.length > 0 ? (
+                  <div className="play-feature-grid" aria-label="놀이시설">
+                    {playFeatureSignals.map((signal) => (
+                      <span className={`play-feature-chip ${signal.tone}`} key={signal.label}>
+                        {signal.label}: {signal.value}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="visit-row">
                   <span>v{place.version}</span>
                   <span>신뢰도 {confidenceLabel(place.dataConfidence)}</span>
@@ -376,6 +386,73 @@ function facilitySignals(place: SearchItem) {
     { label: "아기의자", value: triStateLabel(place.facilities.babyChair), tone: toneForTriState(place.facilities.babyChair) },
     { label: "간식", value: triStateLabel(place.facilities.foodAllowed), tone: toneForTriState(place.facilities.foodAllowed) }
   ];
+}
+
+function playFeatureChips(playFeatures: Record<string, unknown>) {
+  return playFeatureEntries(playFeatures).map(([key, value]) => ({
+    label: playFeatureLabel(key),
+    value: playFeatureValueLabel(value),
+    tone: playFeatureTone(value)
+  }));
+}
+
+function playFeatureEntries(playFeatures: Record<string, unknown>) {
+  const preferredOrder = [
+    "slide",
+    "swing",
+    "babySwing",
+    "waterPlayground",
+    "sandPlay",
+    "climbing",
+    "seesaw",
+    "trampoline",
+    "rideOnToys",
+    "playHouse",
+    "openLawn",
+    "shade",
+    "fenced",
+    "rubberSurface",
+    "strollerPath",
+    "toiletNearby"
+  ];
+  const entries = Object.entries(playFeatures ?? {}).filter(([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null);
+  const order = new Map(preferredOrder.map((key, index) => [key, index]));
+  return entries.sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999) || a[0].localeCompare(b[0]));
+}
+
+function playFeatureLabel(key: string) {
+  const labels: Record<string, string> = {
+    slide: "미끄럼틀",
+    swing: "그네",
+    babySwing: "영아그네",
+    waterPlayground: "물놀이터",
+    sandPlay: "모래놀이",
+    climbing: "클라이밍",
+    seesaw: "시소",
+    trampoline: "트램폴린",
+    rideOnToys: "승용완구",
+    playHouse: "놀이집",
+    openLawn: "잔디",
+    shade: "그늘",
+    fenced: "울타리",
+    rubberSurface: "탄성포장",
+    strollerPath: "유모차길",
+    toiletNearby: "화장실 인근"
+  };
+  return labels[key] ?? key;
+}
+
+function playFeatureValueLabel(value: unknown) {
+  if (typeof value === "string") return triStateLabel(value);
+  if (typeof value === "boolean") return value ? "있음" : "없음";
+  return "기록";
+}
+
+function playFeatureTone(value: unknown) {
+  if (value === "yes" || value === true) return "positive";
+  if (value === "partial") return "partial";
+  if (value === "no" || value === false) return "negative";
+  return "unknown";
 }
 
 function indoorLabel(value: string) {

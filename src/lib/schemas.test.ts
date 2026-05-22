@@ -93,4 +93,33 @@ describe("place schemas", () => {
       childSignals: { slide: true, swing: false }
     });
   });
+
+  it("accepts place-level playground equipment signals", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "user_observation", externalId: "user-20260522-gao-playground" }],
+      playFeatures: {
+        slide: "yes",
+        swing: "no",
+        waterPlayground: "yes",
+        sandPlay: "unknown",
+        strollerPath: "partial",
+        notes: "사용자 관찰 기반. 공개 출처로 재확인 필요.",
+        evidence: [
+          {
+            feature: "slide",
+            value: "yes",
+            basis: "사용자가 가오근린공원 놀이터에 미끄럼틀이 있다고 제보.",
+            confidence: "user_reported"
+          }
+        ]
+      }
+    });
+
+    expect(result.playFeatures).toMatchObject({
+      slide: "yes",
+      swing: "no",
+      waterPlayground: "yes",
+      strollerPath: "partial"
+    });
+  });
 });

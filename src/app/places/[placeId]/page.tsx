@@ -143,6 +143,22 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
         </div>
       </section>
 
+      {playFeatureEntries(place.playFeatures).length > 0 ? (
+        <section className="info-block full">
+          <h2>놀이시설</h2>
+          <div className="play-feature-grid detail-play-feature-grid">
+            {playFeatureEntries(place.playFeatures).map(([key, value]) => (
+              <span className={`play-feature-chip ${playFeatureTone(value)}`} key={key}>
+                {playFeatureLabel(key)}: {playFeatureValueLabel(value)}
+              </span>
+            ))}
+          </div>
+          {typeof place.playFeatures.notes === "string" && place.playFeatures.notes.trim().length > 0 ? (
+            <p className="play-feature-note">{place.playFeatures.notes}</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {place.notes.safety || place.notes.parent ? (
         <section className="info-block full">
           <h2>
@@ -304,6 +320,65 @@ function confidenceLabel(value: string) {
     unknown: "미확인"
   };
   return labels[value] ?? value;
+}
+
+function playFeatureEntries(playFeatures: Record<string, unknown>) {
+  const preferredOrder = [
+    "slide",
+    "swing",
+    "babySwing",
+    "waterPlayground",
+    "sandPlay",
+    "climbing",
+    "seesaw",
+    "trampoline",
+    "rideOnToys",
+    "playHouse",
+    "openLawn",
+    "shade",
+    "fenced",
+    "rubberSurface",
+    "strollerPath",
+    "toiletNearby"
+  ];
+  const entries = Object.entries(playFeatures ?? {}).filter(([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null);
+  const order = new Map(preferredOrder.map((key, index) => [key, index]));
+  return entries.sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999) || a[0].localeCompare(b[0]));
+}
+
+function playFeatureLabel(key: string) {
+  const labels: Record<string, string> = {
+    slide: "미끄럼틀",
+    swing: "그네",
+    babySwing: "영아그네",
+    waterPlayground: "물놀이터",
+    sandPlay: "모래놀이",
+    climbing: "클라이밍",
+    seesaw: "시소",
+    trampoline: "트램폴린",
+    rideOnToys: "승용완구",
+    playHouse: "놀이집",
+    openLawn: "잔디",
+    shade: "그늘",
+    fenced: "울타리",
+    rubberSurface: "탄성포장",
+    strollerPath: "유모차길",
+    toiletNearby: "화장실 인근"
+  };
+  return labels[key] ?? key;
+}
+
+function playFeatureValueLabel(value: unknown) {
+  if (typeof value === "string") return triStateLabel(value);
+  if (typeof value === "boolean") return value ? "있음" : "없음";
+  return "기록";
+}
+
+function playFeatureTone(value: unknown) {
+  if (value === "yes" || value === true) return "positive";
+  if (value === "partial") return "partial";
+  if (value === "no" || value === false) return "negative";
+  return "unknown";
 }
 
 function imageTierLabel(value: string) {

@@ -385,20 +385,23 @@ h3 {
   margin: 12px 0;
 }
 
-.facility-chip {
+.facility-chip,
+.play-feature-chip {
   border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 12px;
   padding: 5px 7px;
 }
 
-.facility-chip.positive {
+.facility-chip.positive,
+.play-feature-chip.positive {
   background: var(--soft-green);
   border-color: #c7e5d2;
   color: var(--green);
 }
 
-.facility-chip.partial {
+.facility-chip.partial,
+.play-feature-chip.partial {
   background: #fff7e8;
   border-color: #ecd3a4;
   color: var(--amber);
@@ -406,9 +409,30 @@ h3 {
 
 .facility-chip.negative,
 .facility-chip.unknown,
-.facility-chip.neutral {
+.facility-chip.neutral,
+.play-feature-chip.negative,
+.play-feature-chip.unknown,
+.play-feature-chip.neutral {
   background: #f3f2ec;
   color: #4f5a54;
+}
+
+.play-feature-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.detail-play-feature-grid {
+  margin-top: 10px;
+}
+
+.play-feature-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 8px 0 0;
 }
 
 .reason-grid span {

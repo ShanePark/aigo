@@ -33,6 +33,7 @@ type PlaceRow = {
   kakao_place_url: string | null;
   kakao_place_id: string | null;
   external_refs: Record<string, unknown>;
+  play_features: Record<string, unknown>;
   status: string;
   data_confidence: string;
   min_recommended_age_months: number | null;
@@ -140,6 +141,7 @@ const columnMap = {
   kakaoPlaceUrl: "kakao_place_url",
   kakaoPlaceId: "kakao_place_id",
   externalRefs: "external_refs",
+  playFeatures: "play_features",
   status: "status",
   dataConfidence: "data_confidence",
   minRecommendedAgeMonths: "min_recommended_age_months",
@@ -286,6 +288,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       tags: place.tags,
       address: place.address,
       description: place.description,
+      playFeatures: place.playFeatures,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
@@ -838,7 +841,8 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `region_sido ilike ${patternParam}`,
       `region_sigungu ilike ${patternParam}`,
       `region_dong ilike ${patternParam}`,
-      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
+      `play_features::text ilike ${patternParam}`
     ];
     const categoryClause = categoryClauseForKeywordTerm(term);
     if (categoryClause) {
@@ -1486,7 +1490,8 @@ function addTextExpansionClauses(clauses: string[], terms: string[], add: (value
     clauses.push(
       `name ilike ${patternParam}`,
       `description ilike ${patternParam}`,
-      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
+      `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
+      `play_features::text ilike ${patternParam}`
     );
   }
 }
@@ -1499,7 +1504,9 @@ export function shouldSearchAddressForTerm(query: string, term: string) {
 }
 
 export function queryMatchSignal(
-  place: Pick<ReturnType<typeof mapPlace>, "name" | "tags" | "description" | "address" | "roadAddress">,
+  place: Pick<ReturnType<typeof mapPlace>, "name" | "tags" | "description" | "address" | "roadAddress"> & {
+    playFeatures?: Record<string, unknown>;
+  },
   query?: string
 ) {
   if (!query || isBroadNatureIntentQuery(query)) {
@@ -1547,6 +1554,11 @@ export function queryMatchSignal(
     reasonCodes.add("QUERY_TAG_MATCH");
   }
 
+  if (playFeaturesMatch(place.playFeatures, normalizedQuery, terms)) {
+    delta += reasonCodes.size > 0 ? 2 : 7;
+    reasonCodes.add("QUERY_PLAY_FEATURE_MATCH");
+  }
+
   const searchableText = [place.description, place.address, place.roadAddress].filter(Boolean).map((value) => normalizeSearchText(String(value)));
   if (searchableText.some((value) => value.includes(normalizedQuery))) {
     delta += reasonCodes.size > 0 ? 1 : 3;
@@ -1557,6 +1569,13 @@ export function queryMatchSignal(
     delta: Math.min(delta, 16),
     reasonCodes: Array.from(reasonCodes)
   };
+}
+
+function playFeaturesMatch(playFeatures: Record<string, unknown> | undefined, normalizedQuery: string, terms: string[]) {
+  if (!playFeatures) return false;
+  const text = normalizeSearchText(JSON.stringify(playFeatures));
+  if (!text || text === "{}") return false;
+  return text.includes(normalizedQuery) || terms.some((term) => text.includes(term));
 }
 
 function normalizeSearchText(value: string) {
@@ -1586,11 +1605,14 @@ function placeholderFor(column: string, index: number) {
   if (column === "external_refs" || column === "opening_hours") {
     return `$${index}::jsonb`;
   }
+  if (column === "play_features") {
+    return `$${index}::jsonb`;
+  }
   return `$${index}`;
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours") {
+  if (column === "external_refs" || column === "opening_hours" || column === "play_features") {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -1622,6 +1644,7 @@ function mapPlace(row: PlaceRow) {
       kakaoPlaceId: row.kakao_place_id
     },
     externalRefs: row.external_refs,
+    playFeatures: row.play_features ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,
     recommendedAgeMonths: {

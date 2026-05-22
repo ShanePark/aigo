@@ -403,4 +403,26 @@ describe("place search helpers", () => {
     expect(signal.delta).toBe(0);
     expect(signal.reasonCodes).toEqual([]);
   });
+
+  it("adds query match signals for place-level playground features", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "가오근린공원",
+        tags: ["공원"],
+        description: null,
+        address: null,
+        roadAddress: null,
+        playFeatures: {
+          slide: "yes",
+          swing: "no",
+          waterPlayground: "yes",
+          notes: "미끄럼틀과 물놀이터 관찰 기록"
+        }
+      },
+      "미끄럼틀 물놀이터"
+    );
+
+    expect(signal.delta).toBeGreaterThan(0);
+    expect(signal.reasonCodes).toContain("QUERY_PLAY_FEATURE_MATCH");
+  });
 });

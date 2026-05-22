@@ -296,6 +296,8 @@ components:
           type: object
           description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`.
           additionalProperties: true
+        playFeatures:
+          $ref: "#/components/schemas/PlayFeatures"
         imageUrls:
           type: array
           deprecated: true
@@ -657,6 +659,7 @@ components:
         - imageUrls
         - primaryImage
         - images
+        - playFeatures
         - score
         - reasonCodes
         - reasons
@@ -701,6 +704,8 @@ components:
           description: First-class image entities, ordered by primary image and sort order.
           items:
             $ref: "#/components/schemas/PlaceImage"
+        playFeatures:
+          $ref: "#/components/schemas/PlayFeatures"
         lat:
           type: number
         lng:
@@ -860,6 +865,65 @@ components:
         max:
           type: integer
           nullable: true
+    PlayFeatures:
+      type: object
+      description: Place-level playground and physical play signals. These describe the place as a whole; image-level `visualFeatures` only describe what was visible in one image.
+      properties:
+        slide:
+          $ref: "#/components/schemas/TriState"
+        swing:
+          $ref: "#/components/schemas/TriState"
+        babySwing:
+          $ref: "#/components/schemas/TriState"
+        waterPlayground:
+          $ref: "#/components/schemas/TriState"
+        sandPlay:
+          $ref: "#/components/schemas/TriState"
+        climbing:
+          $ref: "#/components/schemas/TriState"
+        seesaw:
+          $ref: "#/components/schemas/TriState"
+        trampoline:
+          $ref: "#/components/schemas/TriState"
+        rideOnToys:
+          $ref: "#/components/schemas/TriState"
+        playHouse:
+          $ref: "#/components/schemas/TriState"
+        openLawn:
+          $ref: "#/components/schemas/TriState"
+        shade:
+          $ref: "#/components/schemas/TriState"
+        fenced:
+          $ref: "#/components/schemas/TriState"
+        rubberSurface:
+          $ref: "#/components/schemas/TriState"
+        strollerPath:
+          $ref: "#/components/schemas/TriState"
+        toiletNearby:
+          $ref: "#/components/schemas/TriState"
+        notes:
+          type: string
+          description: Short source-backed notes for equipment, layout, or open questions.
+        evidence:
+          type: array
+          description: Evidence items that explain why a feature value is present. Field-level provenance is still out of MVP scope, but agents can use this for practical traceability.
+          items:
+            type: object
+            required: [feature]
+            properties:
+              feature:
+                type: string
+              value:
+                $ref: "#/components/schemas/TriState"
+              basis:
+                type: string
+              sourceUrl:
+                type: string
+                format: uri
+              confidence:
+                type: string
+                enum: [official, visual_confirmed, user_reported, blog_supported, needs_check, unknown]
+      additionalProperties: true
     Facilities:
       type: object
       required:
@@ -1003,6 +1067,7 @@ components:
         - imageUrls
         - primaryImage
         - images
+        - playFeatures
         - status
         - dataConfidence
         - recommendedAgeMonths
@@ -1092,6 +1157,8 @@ components:
           description: First-class image entities, ordered by primary image and sort order.
           items:
             $ref: "#/components/schemas/PlaceImage"
+        playFeatures:
+          $ref: "#/components/schemas/PlayFeatures"
         status:
           type: string
         dataConfidence:

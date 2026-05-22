@@ -9,6 +9,40 @@ export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "ne
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
 
+export const playFeaturesSchema = z
+  .object({
+    slide: triStateSchema.optional(),
+    swing: triStateSchema.optional(),
+    babySwing: triStateSchema.optional(),
+    waterPlayground: triStateSchema.optional(),
+    sandPlay: triStateSchema.optional(),
+    climbing: triStateSchema.optional(),
+    seesaw: triStateSchema.optional(),
+    trampoline: triStateSchema.optional(),
+    rideOnToys: triStateSchema.optional(),
+    playHouse: triStateSchema.optional(),
+    openLawn: triStateSchema.optional(),
+    shade: triStateSchema.optional(),
+    fenced: triStateSchema.optional(),
+    rubberSurface: triStateSchema.optional(),
+    strollerPath: triStateSchema.optional(),
+    toiletNearby: triStateSchema.optional(),
+    notes: z.string().trim().max(5000).optional(),
+    evidence: z
+      .array(
+        z.object({
+          feature: nonEmptyString,
+          value: triStateSchema.optional(),
+          basis: z.string().trim().max(1000).optional(),
+          sourceUrl: urlString.optional(),
+          confidence: z.enum(["official", "visual_confirmed", "user_reported", "blog_supported", "needs_check", "unknown"]).optional()
+        })
+      )
+      .max(50)
+      .optional()
+  })
+  .catchall(z.unknown());
+
 export const sourceSchema = z
   .object({
     sourceType: nonEmptyString,
@@ -62,6 +96,7 @@ const writablePlaceFields = {
   kakaoPlaceUrl: urlString.optional(),
   kakaoPlaceId: z.string().trim().optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
+  playFeatures: playFeaturesSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
   status: z.enum(["active", "temporarily_closed", "closed", "draft", "needs_review"]).optional(),
