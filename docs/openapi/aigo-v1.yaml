@@ -335,6 +335,83 @@ components:
         - geocode
         - unknown
       description: Canonical source provenance type. Common aliases such as `official`, `official_page`, `blog`, `public_data_mirror`, and image-source variants are normalized by the API.
+    TaxonomyFacetSet:
+      type: object
+      description: Controlled place taxonomy facet set. Canonical values are English snake_case slugs.
+      properties:
+        familyFitGates:
+          type: array
+          items:
+            type: string
+            enum: [child_primary, baby_logistics, retail_fallback, route_break, user_signal]
+        activityTypes:
+          type: array
+          items:
+            type: string
+            enum: [indoor_play, outdoor_playground, water_play, sand_play, nature_walk, reading_books, toy_borrowing, shopping_browse, meal_play, science_exhibit, culture_exhibit, hands_on_experience, animals_aquarium, lodging_play]
+        visitUseCases:
+          type: array
+          items:
+            type: string
+            enum: [after_daycare, nearby_now, rainy_day, weekend_half_day, day_trip, hot_day, cold_day]
+        ageBands:
+          type: array
+          items:
+            type: string
+            enum: [infant, toddler, preschool, school_age]
+        logisticsTags:
+          type: array
+          items:
+            type: string
+            enum: [parking, low_parking_friction, stroller, double_stroller, elevator, nursing_room, diaper_table, kids_toilet, baby_chair, food_support, reservation, session_based]
+        riskTags:
+          type: array
+          items:
+            type: string
+            enum: [water_edge, road_nearby, steep_path, crowding, fire_grill, current_operation_uncertain, seasonal_operation, infant_amenity_gap]
+    PlaceTaxonomy:
+      type: object
+      description: Source-backed and inferred controlled classification for parent-planning semantics. Use `sourceBacked` only for cited facts and `inferred` for agent-derived broad planning labels.
+      required: [schemaVersion, sourceBacked, inferred, migration]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        sourceBacked:
+          $ref: "#/components/schemas/TaxonomyFacetSet"
+        inferred:
+          allOf:
+            - $ref: "#/components/schemas/TaxonomyFacetSet"
+            - type: object
+              properties:
+                confidence:
+                  type: string
+                  enum: [high, medium, low]
+                basis:
+                  type: string
+                  maxLength: 1000
+        migration:
+          type: object
+          required: [legacyTags, broadMappedTags, unmappedTags]
+          properties:
+            legacyTags:
+              type: array
+              maxItems: 200
+              items:
+                type: string
+            broadMappedTags:
+              type: array
+              maxItems: 200
+              items:
+                type: string
+            unmappedTags:
+              type: array
+              maxItems: 200
+              items:
+                type: string
+            normalizedAt:
+              type: string
+              format: date-time
     RelatedPlaceRelationType:
       type: string
       enum: [nearby, same_building, same_site, parent_child, route_pair, itinerary_cluster]
@@ -498,6 +575,8 @@ components:
           additionalProperties: true
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        taxonomy:
+          $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
         imageUrls:
@@ -1196,6 +1275,7 @@ components:
         - imageHealth
         - sourceSummary
         - playFeatures
+        - taxonomy
         - pricing
         - score
         - scoreBreakdown
@@ -1309,6 +1389,8 @@ components:
           $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        taxonomy:
+          $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
         lat:
@@ -1369,6 +1451,7 @@ components:
         - reasonCodes
         - reasons
         - dataConfidence
+        - taxonomy
         - recommendedAgeMonths
         - infantLogistics
         - openingHoursSummary
@@ -1417,6 +1500,8 @@ components:
             $ref: "#/components/schemas/SearchReason"
         dataConfidence:
           type: string
+        taxonomy:
+          $ref: "#/components/schemas/PlaceTaxonomy"
         recommendedAgeMonths:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         infantLogistics:
@@ -2206,6 +2291,7 @@ components:
         - relatedPlaces
         - sourceSummary
         - playFeatures
+        - taxonomy
         - pricing
         - status
         - dataConfidence
@@ -2308,6 +2394,8 @@ components:
           $ref: "#/components/schemas/SearchSourceSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
+        taxonomy:
+          $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
         status:

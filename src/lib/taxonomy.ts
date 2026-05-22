@@ -76,12 +76,7 @@ export type SourceType = (typeof sourceTypes)[number];
 export type TaxonomyFacetFamily = keyof typeof taxonomyFacetFamilies;
 export type TaxonomyConfidence = "high" | "medium" | "low";
 export type TaxonomyFacetSet = {
-  familyFitGates: string[];
-  activityTypes: string[];
-  visitUseCases: string[];
-  ageBands: string[];
-  logisticsTags: string[];
-  riskTags: string[];
+  [Key in TaxonomyFacetFamily]: Array<(typeof taxonomyFacetFamilies)[Key][number]>;
 };
 
 export type PlaceTaxonomy = {
@@ -193,6 +188,19 @@ export function emptyTaxonomyFacetSet(): TaxonomyFacetSet {
   };
 }
 
+export function emptyPlaceTaxonomy(): PlaceTaxonomy {
+  return {
+    schemaVersion: 1,
+    sourceBacked: emptyTaxonomyFacetSet(),
+    inferred: emptyTaxonomyFacetSet(),
+    migration: {
+      legacyTags: [],
+      broadMappedTags: [],
+      unmappedTags: []
+    }
+  };
+}
+
 export function normalizeLegacyTags(tags: string[]) {
   const facets = emptyTaxonomyFacetSet();
   const broadMappedTags: string[] = [];
@@ -287,7 +295,7 @@ function positive(value: string | undefined) {
 
 function mergeFacetSet(target: TaxonomyFacetSet, source: Partial<TaxonomyFacetSet>) {
   for (const key of Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[]) {
-    target[key].push(...(source[key] ?? []));
+    (target[key] as string[]).push(...((source[key] ?? []) as string[]));
   }
 }
 

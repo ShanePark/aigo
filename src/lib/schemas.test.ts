@@ -60,7 +60,7 @@ describe("place schemas", () => {
     expect(invalidSource.success).toBe(false);
   });
 
-  it("validates taxonomy v1 shape without wiring it into writes yet", () => {
+  it("accepts taxonomy v1 shape on place writes", () => {
     const result = taxonomySchema.parse({
       schemaVersion: 1,
       sourceBacked: {
@@ -83,9 +83,19 @@ describe("place schemas", () => {
       schemaVersion: 1,
       inferred: { confidence: "certain" }
     });
+    const create = createPlaceSchema.parse({
+      name: "분류 장소",
+      primaryCategory: "park",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      taxonomy: result,
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
 
     expect(result.sourceBacked.familyFitGates).toEqual(["child_primary"]);
     expect(result.inferred.activityTypes).toEqual(["sand_play"]);
+    expect(create.taxonomy?.sourceBacked.familyFitGates).toEqual(["child_primary"]);
     expect(invalid.success).toBe(false);
   });
 

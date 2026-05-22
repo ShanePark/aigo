@@ -164,7 +164,9 @@ Common writable fields:
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `pricing`, `status`, `dataConfidence`.
 - Related places: `relatedPlaces` accepts existing place IDs with `relationType`, `note`, and optional `evidence`; use `relatedPlaceMode: "append"` by default or `"replace"` only when deliberately rewriting the current relation set.
-- Play/image data: `playFeatures`, `images`.
+- Classification/play/image data: `taxonomy`, `playFeatures`, `images`.
+
+`taxonomy` is AiGo's controlled facet layer for parent-planning semantics. Keep `sourceBacked` limited to source-supported facts, use `inferred` for agent-derived broad planning labels, and preserve legacy/freeform cleanup context under `migration.legacyTags`, `migration.broadMappedTags`, and `migration.unmappedTags`. `tags` should remain concise search/display slugs; physical equipment such as slides, swings, seesaws, sand play, and water play belongs in `playFeatures`, while broader planning labels such as `baby_logistics`, `after_daycare`, `rainy_day`, or `route_break` belong in `taxonomy`.
 
 Use these enum values:
 
@@ -207,7 +209,7 @@ Common `primaryCategory` values used by the UI/search:
 - `rest_area`
 - `accommodation`
 
-`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags now and taxonomy facets as they become available. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
+`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
 
 Playground search semantics:
 

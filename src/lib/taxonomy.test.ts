@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { inferTaxonomyFromPlace, inferTaxonomySearchFacets, normalizeLegacyTags, normalizeRegionSido, normalizeSourceType, primaryCategories } from "@/lib/taxonomy";
+import {
+  emptyPlaceTaxonomy,
+  inferTaxonomyFromPlace,
+  inferTaxonomySearchFacets,
+  normalizeLegacyTags,
+  normalizeRegionSido,
+  normalizeSourceType,
+  primaryCategories
+} from "@/lib/taxonomy";
 
 describe("taxonomy catalog", () => {
   it("keeps primary categories as a closed top-level set", () => {
@@ -26,6 +34,33 @@ describe("taxonomy catalog", () => {
     expect(normalized.facets.logisticsTags).toEqual(["parking"]);
     expect(normalized.broadMappedTags).toEqual(["모래놀이", "parking"]);
     expect(normalized.unmappedTags).toEqual(["unknown-local-tag"]);
+  });
+
+  it("builds an empty taxonomy object suitable for database defaults", () => {
+    expect(emptyPlaceTaxonomy()).toEqual({
+      schemaVersion: 1,
+      sourceBacked: {
+        familyFitGates: [],
+        activityTypes: [],
+        visitUseCases: [],
+        ageBands: [],
+        logisticsTags: [],
+        riskTags: []
+      },
+      inferred: {
+        familyFitGates: [],
+        activityTypes: [],
+        visitUseCases: [],
+        ageBands: [],
+        logisticsTags: [],
+        riskTags: []
+      },
+      migration: {
+        legacyTags: [],
+        broadMappedTags: [],
+        unmappedTags: []
+      }
+    });
   });
 
   it("infers place taxonomy facets from current place fields", () => {

@@ -180,6 +180,7 @@ const writablePlaceFields = {
   kakaoPlaceId: z.string().trim().optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   playFeatures: playFeaturesSchema.optional(),
+  taxonomy: taxonomySchema.optional(),
   pricing: pricingSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
@@ -382,6 +383,7 @@ export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
 export type PricingInput = z.infer<typeof pricingSchema>;
+export type PlaceTaxonomyInput = z.infer<typeof taxonomySchema>;
 
 function normalizeSearchAliases(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

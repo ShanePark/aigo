@@ -28,6 +28,7 @@ import {
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
 } from "@/lib/places";
+import { emptyPlaceTaxonomy } from "@/lib/taxonomy";
 
 type CoursePlanTestItem = Parameters<typeof buildSearchCoursePlan>[0][number];
 
@@ -649,6 +650,14 @@ describe("place search helpers", () => {
       reasonCodes: ["DIAPER_TABLE_UNKNOWN"],
       reasons: [],
       dataConfidence: "agent_collected",
+      taxonomy: {
+        ...emptyPlaceTaxonomy(),
+        inferred: {
+          ...emptyPlaceTaxonomy().inferred,
+          activityTypes: ["science_exhibit"],
+          confidence: "medium"
+        }
+      },
       pricing: {
         summary: "어린이 2시간 15,000원",
         currency: "KRW",
@@ -746,6 +755,11 @@ describe("place search helpers", () => {
       pricing: {
         summary: "어린이 2시간 15,000원",
         basisDate: "2026-05-22"
+      },
+      taxonomy: {
+        inferred: {
+          activityTypes: ["science_exhibit"]
+        }
       },
       facilities: {
         parkingFrictionLevel: "high",

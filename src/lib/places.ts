@@ -15,6 +15,15 @@ import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
+import {
+  emptyPlaceTaxonomy,
+  inferTaxonomyFromPlace,
+  normalizeLegacyTags,
+  normalizePrimaryCategory,
+  normalizeRegionSido,
+  normalizeSourceType,
+  type PlaceTaxonomy
+} from "@/lib/taxonomy";
 import type postgres from "postgres";
 
 type PlaceRow = {
@@ -38,6 +47,7 @@ type PlaceRow = {
   kakao_place_id: string | null;
   external_refs: Record<string, unknown>;
   play_features: Record<string, unknown>;
+  taxonomy: PlaceTaxonomy;
   pricing: Record<string, unknown>;
   status: string;
   data_confidence: string;
@@ -209,6 +219,7 @@ const columnMap = {
   kakaoPlaceId: "kakao_place_id",
   externalRefs: "external_refs",
   playFeatures: "play_features",
+  taxonomy: "taxonomy",
   pricing: "pricing",
   status: "status",
   dataConfidence: "data_confidence",
@@ -249,29 +260,31 @@ const columnMap = {
 } as const;
 
 export async function createPlace(input: CreatePlaceInput) {
-  const insert = toDbRecord(input);
+  const normalizedInput = normalizeCreatePlaceInput(input);
+  const insert = toDbRecord(normalizedInput);
   const columns = Object.keys(insert);
-  const imageInputs = normalizeImageInputs(input.images, input.imageUrls, input.sources);
+  const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources);
 
   return pg.begin(async (tx) => {
     const [place] = await insertPlace(tx, insert, columns);
 
-    await insertSources(tx, place.id, input.sources);
+    await insertSources(tx, place.id, normalizedInput.sources);
     await insertImages(tx, place.id, imageInputs);
     await ensurePrimaryImage(tx, place.id);
-    await upsertRelatedPlaces(tx, place.id, input.relatedPlaces ?? [], "append");
-    await createVersion(tx, place.id, 1, "create", input.actor, input.changeSummary, input.sources);
+    await upsertRelatedPlaces(tx, place.id, normalizedInput.relatedPlaces ?? [], "append");
+    await createVersion(tx, place.id, 1, "create", normalizedInput.actor, normalizedInput.changeSummary, normalizedInput.sources);
 
     return getPlaceDetail(place.id, tx);
   });
 }
 
 export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
-  const patch = toDbRecord(input);
+  const normalizedInput = normalizeUpdatePlaceInput(input);
+  const patch = toDbRecord(normalizedInput);
   const columns = Object.keys(patch);
-  const imageInputs = normalizeImageInputs(input.images, input.imageUrls, input.sources);
-  const hasImagePatch = input.images !== undefined || input.imageUrls !== undefined;
-  const hasRelatedPlacePatch = input.relatedPlaces !== undefined;
+  const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources);
+  const hasImagePatch = normalizedInput.images !== undefined || normalizedInput.imageUrls !== undefined;
+  const hasRelatedPlacePatch = normalizedInput.relatedPlaces !== undefined;
 
   return pg.begin(async (tx) => {
     const existing = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
@@ -291,21 +304,23 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
       `;
     }
 
-    if (input.sourceMode === "replace") {
+    const imageSourceLinks = normalizedInput.sourceMode === "replace" ? await getImageSourceLinks(tx, updated.id) : [];
+    if (normalizedInput.sourceMode === "replace") {
       await tx`delete from place_sources where place_id = ${updated.id}`;
     }
-    await insertSources(tx, updated.id, input.sources);
+    await insertSources(tx, updated.id, normalizedInput.sources);
+    await reconnectImageSources(tx, updated.id, imageSourceLinks);
     if (hasImagePatch) {
-      if (input.imageMode === "replace") {
+      if (normalizedInput.imageMode === "replace") {
         await tx`delete from place_images where place_id = ${updated.id}`;
       }
       await insertImages(tx, updated.id, imageInputs);
       await ensurePrimaryImage(tx, updated.id);
     }
     if (hasRelatedPlacePatch) {
-      await upsertRelatedPlaces(tx, updated.id, input.relatedPlaces ?? [], input.relatedPlaceMode);
+      await upsertRelatedPlaces(tx, updated.id, normalizedInput.relatedPlaces ?? [], normalizedInput.relatedPlaceMode);
     }
-    await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
+    await createVersion(tx, updated.id, updated.version, "update", normalizedInput.actor, normalizedInput.changeSummary, normalizedInput.sources);
 
     return getPlaceDetail(updated.id, tx);
   });
@@ -424,6 +439,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       address: place.address,
       description: place.description,
       playFeatures: place.playFeatures,
+      taxonomy: place.taxonomy,
       pricing: place.pricing,
       region: place.region,
       lat: place.lat,
@@ -470,7 +486,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
   const enrichedItems = items.map((item) => {
     const imageRows = imageMap.get(item.placeId) ?? [];
     const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
-    const { openingHoursData, region, ...publicItem } = item;
+    const { openingHoursData, region: _region, ...publicItem } = item;
+    void _region;
     return {
       ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
@@ -613,6 +630,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     reasonCodes: item.reasonCodes,
     reasons: item.reasons,
     dataConfidence: item.dataConfidence,
+    taxonomy: item.taxonomy,
     pricing: item.pricing,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
@@ -1206,6 +1224,76 @@ export async function getPlaceVersion(placeId: string, versionId: string) {
   return mapVersion(versions[0]);
 }
 
+function normalizeCreatePlaceInput(input: CreatePlaceInput): CreatePlaceInput {
+  const normalized = normalizePlaceWriteInput(input);
+  return {
+    ...normalized,
+    taxonomy: normalized.taxonomy ?? buildInitialPlaceTaxonomy(normalized)
+  };
+}
+
+function normalizeUpdatePlaceInput(input: UpdatePlaceInput): UpdatePlaceInput {
+  return normalizePlaceWriteInput(input);
+}
+
+function normalizePlaceWriteInput<T extends CreatePlaceInput | UpdatePlaceInput>(input: T): T {
+  const tags = normalizeTags(input.tags);
+  return {
+    ...input,
+    ...(input.primaryCategory !== undefined ? { primaryCategory: normalizePrimaryCategory(input.primaryCategory) ?? input.primaryCategory } : {}),
+    ...(input.regionSido !== undefined ? { regionSido: normalizeRegionSido(input.regionSido) } : {}),
+    ...(tags !== undefined ? { tags } : {}),
+    sources: normalizeSources(input.sources),
+    ...(input.images !== undefined ? { images: normalizePlaceImages(input.images) } : {})
+  };
+}
+
+function buildInitialPlaceTaxonomy(input: CreatePlaceInput): PlaceTaxonomy {
+  const tags = input.tags ?? [];
+  const legacyTags = normalizeLegacyTags(tags);
+  const inferred = inferTaxonomyFromPlace(input);
+  const hasInferred = hasFacetValues(inferred);
+
+  return {
+    ...emptyPlaceTaxonomy(),
+    inferred: {
+      ...inferred,
+      confidence: hasInferred ? "medium" : "low",
+      basis: hasInferred
+        ? "Inferred from submitted category, tags, and logistics fields."
+        : "No taxonomy facets were submitted; keep facets empty until source-backed evidence is added."
+    },
+    migration: {
+      legacyTags: tags,
+      broadMappedTags: legacyTags.broadMappedTags,
+      unmappedTags: legacyTags.unmappedTags
+    }
+  };
+}
+
+function normalizeSources(sources: SourceInput[]): SourceInput[] {
+  return sources.map((source) => ({
+    ...source,
+    sourceType: normalizeSourceType(source.sourceType) ?? source.sourceType
+  }));
+}
+
+function normalizePlaceImages(images: PlaceImageInput[]): PlaceImageInput[] {
+  return images.map((image) => ({
+    ...image,
+    ...(image.sourceType !== undefined ? { sourceType: normalizeSourceType(image.sourceType) ?? image.sourceType } : {})
+  }));
+}
+
+function normalizeTags(tags: string[] | undefined) {
+  if (tags === undefined) return undefined;
+  return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
+}
+
+function hasFacetValues(facets: PlaceTaxonomy["sourceBacked"]) {
+  return Object.values(facets).some((values) => values.length > 0);
+}
+
 function toDbRecord(input: Partial<CreatePlaceInput | UpdatePlaceInput>) {
   const record: Record<string, unknown> = {};
   for (const [apiKey, dbKey] of Object.entries(columnMap)) {
@@ -1230,6 +1318,48 @@ async function insertSources(executor: SqlExecutor, placeId: string, sources: So
         ${source.summary ?? null},
         ${source.checkedAt ?? null}
       )
+    `;
+  }
+}
+
+type ImageSourceLinkRow = {
+  image_id: string;
+  source_id: string | null;
+  source_url: string | null;
+  source_type: string | null;
+};
+
+async function getImageSourceLinks(executor: SqlExecutor, placeId: string) {
+  return executor<ImageSourceLinkRow[]>`
+    select id as image_id, source_id, source_url, source_type
+    from place_images
+    where place_id = ${placeId}
+      and source_url is not null
+      and source_type is not null
+  `;
+}
+
+async function reconnectImageSources(executor: SqlExecutor, placeId: string, imageSourceLinks: ImageSourceLinkRow[]) {
+  for (const link of imageSourceLinks) {
+    if (!link.source_url || !link.source_type) continue;
+
+    const canonicalSourceType = normalizeSourceType(link.source_type) ?? link.source_type;
+    const [source] = await executor<{ id: string }[]>`
+      select id
+      from place_sources
+      where place_id = ${placeId}
+        and url = ${link.source_url}
+        and source_type = ${canonicalSourceType}
+      order by created_at desc
+      limit 1
+    `;
+    if (!source) continue;
+
+    await executor`
+      update place_images
+      set source_id = ${source.id}, updated_at = now()
+      where place_id = ${placeId}
+        and id = ${link.image_id}
     `;
   }
 }
@@ -1741,7 +1871,8 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `region_sigungu ilike ${patternParam}`,
       `region_dong ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
-      `play_features::text ilike ${patternParam}`
+      `play_features::text ilike ${patternParam}`,
+      `taxonomy::text ilike ${patternParam}`
     ];
     const categoryClause = categoryClauseForKeywordTerm(term);
     if (categoryClause) {
@@ -2793,7 +2924,7 @@ function quoteIdentifier(identifier: string) {
 }
 
 function placeholderFor(column: string, index: number) {
-  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "score_signals") {
+  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "score_signals" || column === "taxonomy") {
     return `$${index}::jsonb`;
   }
   if (column === "play_features") {
@@ -2803,7 +2934,7 @@ function placeholderFor(column: string, index: number) {
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "score_signals") {
+  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "score_signals" || column === "taxonomy") {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -2836,6 +2967,7 @@ function mapPlace(row: PlaceRow) {
     },
     externalRefs: row.external_refs,
     playFeatures: row.play_features ?? {},
+    taxonomy: row.taxonomy ?? emptyPlaceTaxonomy(),
     pricing: row.pricing ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,
