@@ -569,10 +569,15 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
   });
 }
 
-function shouldUseAnyKeywordMatch(query: string) {
+export function shouldUseAnyKeywordMatch(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
-  if (terms.length < 3) return false;
+  if (terms.length < 2) return false;
   const placeLikeTerms = terms.filter((term) => isLikelyPlaceNameTerm(term));
+  const alternativeTerms = terms.filter((term) => isAlternativeKeywordTerm(term) || isLikelyPlaceNameTerm(term));
+  if (alternativeTerms.length === terms.length && terms.some((term) => isAlternativeKeywordTerm(term))) {
+    return true;
+  }
+  if (terms.length < 3) return false;
   return placeLikeTerms.length >= 3 && placeLikeTerms.length === terms.length;
 }
 
@@ -584,6 +589,10 @@ function isLikelyPlaceNameTerm(term: string) {
     !broadParentIntentTerms.has(term) &&
     !broadPlaygroundIntentTerms.has(term)
   );
+}
+
+function isAlternativeKeywordTerm(term: string) {
+  return alternativeKeywordTerms.has(term);
 }
 
 function stripLocalPlaygroundIntentTerms(query: string | undefined) {
@@ -608,6 +617,22 @@ const removableLocalPlaygroundIntentTerms = new Set(["동네놀이터", "어린�
 const localPlaygroundSandTerms = new Set(["모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
+
+const alternativeKeywordTerms = new Set([
+  "아쿠아리움",
+  "수족관",
+  "동물원",
+  "사파리",
+  "과학관",
+  "체험",
+  "체험관",
+  "박물관",
+  "미술관",
+  "전시관",
+  "천문대",
+  "곤충",
+  "생태관"
+]);
 
 const routeBreakCoreTerms = new Set(["휴게소", "쉼터", "휴식", "정차"]);
 

@@ -8,6 +8,7 @@ import {
   normalizeSearchInput,
   queryMatchSignal,
   searchTermPatterns,
+  shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
 } from "@/lib/places";
 
@@ -47,6 +48,13 @@ describe("place search helpers", () => {
     expect(isBroadParentIntentQuery("공원 자연 당일치기 유모차 주차")).toBe(true);
     expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
     expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
+  });
+
+  it("widens alternative attraction keyword searches without widening local category searches", () => {
+    expect(shouldUseAnyKeywordMatch("아쿠아리움 동물원")).toBe(true);
+    expect(shouldUseAnyKeywordMatch("과학관 체험 창의나래 넥스페리움")).toBe(true);
+    expect(shouldUseAnyKeywordMatch("대전 키즈카페")).toBe(false);
+    expect(shouldUseAnyKeywordMatch("판암 동네놀이터")).toBe(false);
   });
 
   it("turns facility words in ordinary keyword queries into soft preferences", () => {
