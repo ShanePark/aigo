@@ -51,6 +51,21 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
+  it("applies hard distance bands for outside-city day-trip searches", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      origin: { lat: 36.3317, lng: 127.4348 },
+      minDistanceKm: 25,
+      maxDistanceKm: 120,
+      filterByRadius: false
+    });
+
+    expect(query.sql).not.toContain("ST_DWithin");
+    expect(query.sql).toContain(" / 1000 >= ");
+    expect(query.sql).toContain(" / 1000 <= ");
+    expect(query.params).toEqual([127.4348, 36.3317, 127.4348, 36.3317, 25, 127.4348, 36.3317, 120]);
+  });
+
   it("canonicalizes related-place pairs so the relation is bidirectional", () => {
     expect(relatedPlacePair("b0000000-0000-0000-0000-000000000000", "a0000000-0000-0000-0000-000000000000")).toEqual([
       "a0000000-0000-0000-0000-000000000000",

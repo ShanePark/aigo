@@ -53,6 +53,27 @@ describe("place schemas", () => {
     expect(result.filterByRadius).toBe(false);
   });
 
+  it("accepts hard distance bands when an origin is provided", () => {
+    const result = searchPlacesSchema.parse({
+      origin: { lat: 36.35, lng: 127.38 },
+      minDistanceKm: 25,
+      maxDistanceKm: 120,
+      filterByRadius: false
+    });
+    const missingOrigin = searchPlacesSchema.safeParse({ minDistanceKm: 25 });
+    const invertedBand = searchPlacesSchema.safeParse({
+      origin: { lat: 36.35, lng: 127.38 },
+      minDistanceKm: 120,
+      maxDistanceKm: 25
+    });
+
+    expect(result.minDistanceKm).toBe(25);
+    expect(result.maxDistanceKm).toBe(120);
+    expect(result.filterByRadius).toBe(false);
+    expect(missingOrigin.success).toBe(false);
+    expect(invertedBand.success).toBe(false);
+  });
+
   it("accepts compact search projection for agent planning calls", () => {
     const result = searchPlacesSchema.parse({
       query: "공공 어린이 체험",

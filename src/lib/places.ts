@@ -1343,6 +1343,22 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     );
   }
 
+  if (input.origin && input.minDistanceKm !== undefined) {
+    where.push(
+      `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000 >= ${add(
+        input.minDistanceKm
+      )}`
+    );
+  }
+
+  if (input.origin && input.maxDistanceKm !== undefined) {
+    where.push(
+      `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000 <= ${add(
+        input.maxDistanceKm
+      )}`
+    );
+  }
+
   if (input.primaryCategories?.length) {
     where.push(`primary_category = any(${add(input.primaryCategories)}::text[])`);
   }

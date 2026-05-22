@@ -592,6 +592,19 @@ components:
           type: boolean
           default: true
           description: When false, keep `origin` for distance calculation and scoring but do not restrict results to `radiusKm`. Useful for lodging/destination searches.
+        minDistanceKm:
+          type: number
+          minimum: 0
+          maximum: 500
+          description: >-
+            Hard lower distance bound from `origin`. Useful for outside-city or farther day-trip planning; requires `origin`.
+        maxDistanceKm:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          maximum: 500
+          description: >-
+            Hard upper distance bound from `origin`. Use with `filterByRadius: false` when this explicit band should replace the default radius filter; requires `origin`.
         query:
           type: string
         primaryCategories:

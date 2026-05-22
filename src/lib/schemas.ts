@@ -217,6 +217,8 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   radiusKm: z.number().positive().max(200).default(80),
   filterByRadius: z.boolean().optional(),
+  minDistanceKm: z.number().min(0).max(500).optional(),
+  maxDistanceKm: z.number().positive().max(500).optional(),
   query: z.string().trim().min(1).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   tags: z.array(nonEmptyString).max(30).optional(),
@@ -238,10 +240,23 @@ const searchPlacesBaseSchema = z.object({
   projection: z.enum(["full", "compact"]).optional(),
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).max(1000).default(0)
-}).refine((input) => input.visitStartTime === undefined || input.visitDate !== undefined, {
-  message: "visitStartTime requires visitDate",
-  path: ["visitStartTime"]
-});
+})
+  .refine((input) => input.visitStartTime === undefined || input.visitDate !== undefined, {
+    message: "visitStartTime requires visitDate",
+    path: ["visitStartTime"]
+  })
+  .refine((input) => input.minDistanceKm === undefined || input.maxDistanceKm === undefined || input.minDistanceKm <= input.maxDistanceKm, {
+    message: "minDistanceKm must be less than or equal to maxDistanceKm",
+    path: ["minDistanceKm"]
+  })
+  .refine((input) => input.minDistanceKm === undefined || input.origin !== undefined, {
+    message: "minDistanceKm requires origin",
+    path: ["minDistanceKm"]
+  })
+  .refine((input) => input.maxDistanceKm === undefined || input.origin !== undefined, {
+    message: "maxDistanceKm requires origin",
+    path: ["maxDistanceKm"]
+  });
 
 export const searchPlacesSchema = z.preprocess(normalizeSearchAliases, searchPlacesBaseSchema);
 
