@@ -46,6 +46,7 @@ function courseItem(
     parkingAvailable?: string;
     babyChair?: string;
     foodAllowed?: string;
+    imageHealth?: ReturnType<typeof buildSearchImageHealth>;
   }
 ) {
   return {
@@ -64,7 +65,8 @@ function courseItem(
       parkingAvailable: overrides.parkingAvailable ?? "unknown",
       babyChair: overrides.babyChair ?? "unknown",
       foodAllowed: overrides.foodAllowed ?? "unknown"
-    }
+    },
+    imageHealth: overrides.imageHealth
   } as unknown as CoursePlanTestItem;
 }
 
@@ -572,7 +574,8 @@ describe("place search helpers", () => {
         distanceKm: 42,
         score: 91,
         childEngagementLevel: 5,
-        parentEffortLevel: 3
+        parentEffortLevel: 3,
+        imageHealth: buildSearchImageHealth([])
       }),
       courseItem({
         id: "second",
@@ -612,7 +615,12 @@ describe("place search helpers", () => {
       })
     ]);
 
-    expect(plan.anchor).toMatchObject({ id: "anchor", driveBurden: "moderate", estimatedParentEffort: 3 });
+    expect(plan.anchor).toMatchObject({
+      id: "anchor",
+      driveBurden: "moderate",
+      estimatedParentEffort: 3,
+      imageHealth: { status: "no_active_image", suggestedAction: "find_first_image" }
+    });
     expect(plan.optionalSecondStop).toMatchObject({ id: "second" });
     expect(plan.mealCareBase).toMatchObject({ id: "meal", reasonCodes: expect.arrayContaining(["COURSE_MEAL_CARE_BASE"]) });
     expect(plan.napBreak).toMatchObject({ id: "nap", reasonCodes: expect.arrayContaining(["COURSE_NAP_BREAK"]) });

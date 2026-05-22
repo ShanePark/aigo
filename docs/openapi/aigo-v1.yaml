@@ -1502,7 +1502,7 @@ components:
           type: integer
     SearchCoursePlanCandidate:
       type: object
-      required: [id, name, primaryCategory, distanceKm, score, estimatedParentEffort, driveBurden, reasonCodes]
+      required: [id, name, primaryCategory, distanceKm, score, estimatedParentEffort, driveBurden, imageHealth, reasonCodes]
       properties:
         id:
           type: string
@@ -1525,6 +1525,11 @@ components:
         driveBurden:
           type: string
           enum: [nearby, easy, moderate, heavy, unknown]
+        imageHealth:
+          anyOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
         reasonCodes:
           type: array
           items:

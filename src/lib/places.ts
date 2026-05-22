@@ -502,6 +502,7 @@ type SearchCoursePlanItem = {
     parentEffortLevel: number | null;
     childEngagementLevel: number | null;
   };
+  imageHealth?: ReturnType<typeof buildSearchImageHealth>;
 };
 
 export function compactSearchPlacesResponse(response: FullSearchResponse) {
@@ -630,6 +631,7 @@ function coursePlanCandidate(item: SearchCoursePlanItem) {
     score: item.score,
     estimatedParentEffort: estimatedCourseParentEffort(item),
     driveBurden: courseDriveBurden(item.distanceKm),
+    imageHealth: item.imageHealth ?? null,
     reasonCodes: coursePlanReasonCodes(item)
   };
 }
