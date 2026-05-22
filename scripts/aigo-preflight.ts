@@ -1,6 +1,7 @@
 import postgres from "postgres";
 
 import { assertSafeApiKeyForRuntime, env, isDefaultDevApiKey } from "@/env";
+import { missingDatabaseSchemaArtifacts } from "./aigo-preflight-schema";
 
 const apiBaseUrl = normalizeBaseUrl(process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
 const sql = postgres(env.databaseUrl, { max: 1, prepare: false });
@@ -9,26 +10,6 @@ type CheckResult = {
   name: string;
   ok: boolean;
   detail: string;
-};
-
-const requiredSchema: Record<string, string[]> = {
-  places: [
-    "id",
-    "name",
-    "geo",
-    "official_url",
-    "external_refs",
-    "opening_hours",
-    "reservation_required",
-    "walk_in_available",
-    "session_based",
-    "same_day_availability_known",
-    "parking_friction_level"
-  ],
-  place_sources: ["id", "place_id", "source_type", "url", "external_id", "checked_at"],
-  place_images: ["id", "place_id", "url", "source_url", "review_status", "is_primary"],
-  place_related_places: ["id", "place_id", "related_place_id", "relation_type", "evidence"],
-  place_versions: ["id", "place_id", "version_number", "snapshot", "sources"]
 };
 
 const results: CheckResult[] = [];
@@ -129,14 +110,37 @@ async function checkApiAcceptsExpectedKey(): Promise<CheckResult> {
 
 async function checkDatabaseSchema(): Promise<CheckResult> {
   try {
-    const [columnRows, extensionRows, countRows] = await Promise.all([
+    const [columnRows, extensionRows, indexRows, constraintRows, triggerRows, functionRows, countRows] = await Promise.all([
       sql<{ table_name: string; column_name: string }[]>`
         select table_name, column_name
         from information_schema.columns
         where table_schema = 'public'
       `,
-      sql<{ exists: boolean }[]>`
-        select exists(select 1 from pg_extension where extname = 'postgis')
+      sql<{ extname: string }[]>`
+        select extname
+        from pg_extension
+        where extname in ('postgis', 'pg_trgm', 'pgcrypto')
+      `,
+      sql<{ tablename: string; indexname: string }[]>`
+        select tablename, indexname
+        from pg_indexes
+        where schemaname = 'public'
+      `,
+      sql<{ table_name: string; constraint_name: string }[]>`
+        select table_name, constraint_name
+        from information_schema.table_constraints
+        where table_schema = 'public'
+      `,
+      sql<{ table_name: string; trigger_name: string }[]>`
+        select event_object_table as table_name, trigger_name
+        from information_schema.triggers
+        where trigger_schema = 'public'
+      `,
+      sql<{ proname: string }[]>`
+        select p.proname
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
       `,
       sql<{ count: string }[]>`
         select count(*)::text as count
@@ -144,26 +148,14 @@ async function checkDatabaseSchema(): Promise<CheckResult> {
       `
     ]);
 
-    const availableColumns = new Map<string, Set<string>>();
-    for (const row of columnRows) {
-      const tableColumns = availableColumns.get(row.table_name) ?? new Set<string>();
-      tableColumns.add(row.column_name);
-      availableColumns.set(row.table_name, tableColumns);
-    }
-
-    const missing = Object.entries(requiredSchema).flatMap(([table, columns]) => {
-      const tableColumns = availableColumns.get(table);
-      if (!tableColumns) {
-        return [`${table}.*`];
-      }
-
-      return columns.filter((column) => !tableColumns.has(column)).map((column) => `${table}.${column}`);
+    const missing = missingDatabaseSchemaArtifacts({
+      columns: columnRows.map((row) => ({ tableName: row.table_name, columnName: row.column_name })),
+      constraints: constraintRows.map((row) => ({ tableName: row.table_name, name: row.constraint_name })),
+      extensions: extensionRows.map((row) => row.extname),
+      functions: functionRows.map((row) => row.proname),
+      indexes: indexRows.map((row) => ({ tableName: row.tablename, name: row.indexname })),
+      triggers: triggerRows.map((row) => ({ tableName: row.table_name, name: row.trigger_name }))
     });
-
-    const hasPostgis = extensionRows[0]?.exists === true;
-    if (!hasPostgis) {
-      missing.push("extension.postgis");
-    }
 
     const placeCount = countRows[0]?.count ?? "unknown";
     return {
@@ -171,7 +163,7 @@ async function checkDatabaseSchema(): Promise<CheckResult> {
       ok: missing.length === 0,
       detail:
         missing.length === 0
-          ? `required tables/columns are present and places is readable (${placeCount} row(s))`
+          ? `required tables, columns, custom schema artifacts, and places are readable (${placeCount} row(s))`
           : `missing ${missing.join(", ")}`
     };
   } catch (error) {
