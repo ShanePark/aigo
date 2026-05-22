@@ -3,6 +3,7 @@ import { ApiError } from "@/lib/errors";
 import {
   type CreatePlaceInput,
   type DuplicatePlaceInput,
+  type PlaceImageHealthQueryInput,
   type PlaceImageInput,
   type SearchPlacesInput,
   type SourceInput,
@@ -110,6 +111,33 @@ type VersionRow = {
   snapshot: Record<string, unknown>;
   sources: unknown[];
   created_at: Date;
+};
+
+type PlaceImageHealthRow = {
+  place_id: string;
+  name: string;
+  primary_category: string;
+  tags: string[];
+  address: string | null;
+  road_address: string | null;
+  region_sido: string | null;
+  region_sigungu: string | null;
+  region_dong: string | null;
+  data_confidence: string;
+  updated_at: Date;
+  active_image_count: number;
+  approved_image_count: number;
+  needs_review_image_count: number;
+  pending_review_image_count: number;
+  rejected_image_count: number;
+  archived_image_count: number;
+  primary_active_image_count: number;
+  primary_image_url: string | null;
+  primary_review_status: string | null;
+  latest_image_checked_at: Date | null;
+  latest_image_updated_at: Date | null;
+  health_status: string;
+  priority_score: number;
 };
 
 type ImageMetadataSource = {
@@ -347,6 +375,131 @@ export async function searchPlaces(input: SearchPlacesInput) {
   };
 }
 
+export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {
+  const params: SqlParam[] = [];
+  const where = ["p.status = 'active'", "p.primary_category <> 'accommodation'"];
+  const add = (value: unknown) => {
+    params.push(value as SqlParam);
+    return `$${params.length}`;
+  };
+
+  if (input.primaryCategory) {
+    where.push(`p.primary_category = ${add(input.primaryCategory)}`);
+  }
+
+  const healthPredicate = imageHealthPredicate(input.status);
+  const baseParams = [...params];
+  const rows = await pg.unsafe<PlaceImageHealthRow[]>(
+    `
+      with image_counts as (
+        select
+          p.id as place_id,
+          p.name,
+          p.primary_category,
+          p.tags,
+          p.address,
+          p.road_address,
+          p.region_sido,
+          p.region_sigungu,
+          p.region_dong,
+          p.data_confidence,
+          p.updated_at,
+          count(i.id) filter (where i.status = 'active' and i.review_status <> 'rejected')::int as active_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status = 'approved')::int as approved_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status = 'needs_review')::int as needs_review_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status = 'pending_review')::int as pending_review_image_count,
+          count(i.id) filter (where i.review_status = 'rejected')::int as rejected_image_count,
+          count(i.id) filter (where i.status = 'archived')::int as archived_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status <> 'rejected' and i.is_primary)::int as primary_active_image_count,
+          (array_agg(i.url order by i.is_primary desc, i.sort_order asc, i.created_at asc)
+            filter (where i.status = 'active' and i.review_status <> 'rejected'))[1] as primary_image_url,
+          (array_agg(i.review_status order by i.is_primary desc, i.sort_order asc, i.created_at asc)
+            filter (where i.status = 'active' and i.review_status <> 'rejected'))[1] as primary_review_status,
+          max(i.checked_at) as latest_image_checked_at,
+          max(i.updated_at) as latest_image_updated_at
+        from places p
+        left join place_images i on i.place_id = p.id
+        where ${where.join(" and ")}
+        group by p.id
+      ),
+      image_health as (
+        select
+          *,
+          case
+            when active_image_count = 0 and rejected_image_count > 0 then 'rejected_only'
+            when active_image_count = 0 then 'no_active_image'
+            when primary_active_image_count = 0 then 'no_primary'
+            when needs_review_image_count > 0 then 'needs_review'
+            when pending_review_image_count > 0 then 'pending_review'
+            else 'healthy'
+          end as health_status,
+          (
+            case when active_image_count = 0 then 100 else 0 end +
+            case when active_image_count > 0 and primary_active_image_count = 0 then 35 else 0 end +
+            needs_review_image_count * 12 +
+            pending_review_image_count * 7 +
+            rejected_image_count * 3
+          )::int as priority_score
+        from image_counts
+      )
+      select *
+      from image_health
+      where ${healthPredicate}
+      order by priority_score desc, updated_at desc, name asc
+      limit ${add(input.limit)}
+      offset ${add(input.offset)}
+    `,
+    params
+  );
+
+  const totalRows = await pg.unsafe<{ total: number }[]>(
+    `
+      with image_counts as (
+        select
+          p.id as place_id,
+          count(i.id) filter (where i.status = 'active' and i.review_status <> 'rejected')::int as active_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status = 'needs_review')::int as needs_review_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status = 'pending_review')::int as pending_review_image_count,
+          count(i.id) filter (where i.review_status = 'rejected')::int as rejected_image_count,
+          count(i.id) filter (where i.status = 'active' and i.review_status <> 'rejected' and i.is_primary)::int as primary_active_image_count
+        from places p
+        left join place_images i on i.place_id = p.id
+        where ${where.join(" and ")}
+        group by p.id
+      ),
+      image_health as (
+        select
+          *,
+          case
+            when active_image_count = 0 and rejected_image_count > 0 then 'rejected_only'
+            when active_image_count = 0 then 'no_active_image'
+            when primary_active_image_count = 0 then 'no_primary'
+            when needs_review_image_count > 0 then 'needs_review'
+            when pending_review_image_count > 0 then 'pending_review'
+            else 'healthy'
+          end as health_status
+        from image_counts
+      )
+      select count(*)::int as total
+      from image_health
+      where ${healthPredicate}
+    `,
+    baseParams
+  );
+
+  return {
+    items: rows.map(mapPlaceImageHealthRow),
+    meta: {
+      count: rows.length,
+      total: totalRows[0]?.total ?? 0,
+      limit: input.limit,
+      offset: input.offset,
+      status: input.status,
+      primaryCategory: input.primaryCategory ?? null
+    }
+  };
+}
+
 async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg) {
   const imageRows = await executor<PlaceImageRow[]>`
     select * from place_images
@@ -357,6 +510,80 @@ async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg
   `;
 
   return buildImageMetadataFromRows(imageRows);
+}
+
+function imageHealthPredicate(status: PlaceImageHealthQueryInput["status"]) {
+  switch (status) {
+    case "no_active_image":
+      return "health_status = 'no_active_image'";
+    case "rejected_only":
+      return "health_status = 'rejected_only'";
+    case "needs_review":
+      return "health_status = 'needs_review'";
+    case "pending_review":
+      return "health_status = 'pending_review'";
+    case "no_primary":
+      return "health_status = 'no_primary'";
+    case "healthy":
+      return "health_status = 'healthy'";
+    case "all":
+      return "true";
+    case "attention":
+    default:
+      return "health_status <> 'healthy'";
+  }
+}
+
+function mapPlaceImageHealthRow(row: PlaceImageHealthRow) {
+  const suggestedAction = imageHealthSuggestedAction(row.health_status);
+  return {
+    placeId: row.place_id,
+    name: row.name,
+    primaryCategory: row.primary_category,
+    tags: row.tags,
+    address: row.address,
+    roadAddress: row.road_address,
+    region: {
+      sido: row.region_sido,
+      sigungu: row.region_sigungu,
+      dong: row.region_dong
+    },
+    dataConfidence: row.data_confidence,
+    updatedAt: toIso(row.updated_at),
+    imageHealth: {
+      status: row.health_status,
+      suggestedAction,
+      priorityScore: row.priority_score,
+      activeCount: row.active_image_count,
+      approvedCount: row.approved_image_count,
+      needsReviewCount: row.needs_review_image_count,
+      pendingReviewCount: row.pending_review_image_count,
+      rejectedCount: row.rejected_image_count,
+      archivedCount: row.archived_image_count,
+      hasPrimary: row.primary_active_image_count > 0,
+      primaryImageUrl: row.primary_image_url,
+      primaryReviewStatus: row.primary_review_status,
+      latestImageCheckedAt: row.latest_image_checked_at ? toIso(row.latest_image_checked_at) : null,
+      latestImageUpdatedAt: row.latest_image_updated_at ? toIso(row.latest_image_updated_at) : null
+    }
+  };
+}
+
+function imageHealthSuggestedAction(status: string) {
+  switch (status) {
+    case "rejected_only":
+      return "find_replacement_image";
+    case "no_active_image":
+      return "find_first_image";
+    case "no_primary":
+      return "choose_primary_image";
+    case "needs_review":
+      return "review_or_replace_images";
+    case "pending_review":
+      return "audit_pending_images";
+    default:
+      return "none";
+  }
 }
 
 async function getImageMapForPlaces(placeIds: string[]) {

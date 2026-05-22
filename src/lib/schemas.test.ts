@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceSchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
+import { createPlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
 
 describe("place schemas", () => {
   it("requires coordinates and at least one source when creating a place", () => {
@@ -120,6 +120,22 @@ describe("place schemas", () => {
       swing: "no",
       waterPlayground: "yes",
       strollerPath: "partial"
+    });
+  });
+
+  it("parses image health query strings for agent queues", () => {
+    const result = placeImageHealthQuerySchema.parse({
+      primaryCategory: "family_restaurant",
+      status: "no_active_image",
+      limit: "25",
+      offset: "50"
+    });
+
+    expect(result).toEqual({
+      primaryCategory: "family_restaurant",
+      status: "no_active_image",
+      limit: 25,
+      offset: 50
     });
   });
 });

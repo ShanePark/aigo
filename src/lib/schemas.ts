@@ -221,10 +221,20 @@ export const duplicatePlaceSchema = z.object({
   limit: z.number().int().min(1).max(20).default(10)
 });
 
+export const placeImageHealthQuerySchema = z.object({
+  primaryCategory: z.string().trim().min(1).optional(),
+  status: z
+    .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "all"])
+    .default("attention"),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).max(5000).default(0)
+});
+
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type SearchPlacesInput = z.infer<typeof searchPlacesSchema>;
 export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
+export type PlaceImageHealthQueryInput = z.infer<typeof placeImageHealthQuerySchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 
