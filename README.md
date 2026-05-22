@@ -139,7 +139,7 @@ DATABASE_URL=postgres://aigo:aigo@localhost:5431/aigo
 AIGO_API_KEY=change-me
 ```
 
-Set `AIGO_API_KEY` to a real local secret before exposing the API beyond local development.
+`AIGO_API_KEY=change-me` is accepted only as a local development convenience. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
 
 ## Useful Commands
 

@@ -73,6 +73,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 5. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
+   - The default development key `change-me` is local-only. When `NODE_ENV=production` or `AIGO_REQUIRE_STRONG_API_KEY=true`, configure a non-default `AIGO_API_KEY` before calling the API.
    - Base URL is normally `http://localhost:3000`.
    - Creates use `POST /v1/places`.
    - Updates use `PATCH /v1/places/{placeId}`.

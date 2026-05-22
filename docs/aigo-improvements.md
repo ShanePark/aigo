@@ -13,8 +13,6 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 ## Backlog
 
-- [대기] 프로덕션에서 기본 개발용 인증키(`AIGO_API_KEY=change-me`)가 그대로 허용되지 않도록 환경 설정을 강제한다. 현재 `src/env.ts`가 `AIGO_API_KEY` 미설정 시 공개적으로 추측 가능한 `"change-me"`를 사용하고, 모든 `/v1/places` 쓰기/삭제 API가 그 값만 알면 통과한다. `NODE_ENV=production` 또는 명시적 외부 노출 환경에서는 앱 시작 시 실패시키거나 API 라우트에서 기본 키를 거부하고, README/프리플라이트도 “로컬 개발 전용 기본값”과 “외부 노출 금지”를 검증하도록 맞춘다. 회귀 테스트는 env 조합별 `requireApiKey` 동작 또는 route-handler 단위 테스트로 추가한다.
-
 - [대기] `/v1/places/search`의 후보군 산출을 `limit 750` 고정 선필터 방식에서 실제 검색 규모에 맞는 페이징/카운트 구조로 바꾼다. 현재 `buildSearchQuery()`가 DB에서 `order by coalesce(place_score, 5) desc, updated_at desc limit 750`만 가져온 뒤 애플리케이션에서 런타임 점수화, 다양성 필터, `offset/limit`을 적용하므로 장소 수가 750개를 넘으면 관련 후보가 사전에 잘리고 `meta.total`도 실제 전체가 아니라 잘린 후보 수가 된다. `query`, `tags`, 선호조건, 거리대, 다양성 필터가 있는 경우에도 누락 없이 동작하도록 SQL 후보 점수/키셋 페이징/별도 count 전략 중 하나를 설계하고, 800개 이상 더미 데이터에서 `offset`과 `total`이 깨지지 않는 통합 테스트를 추가한다.
 
 - [대기] Zod 요청 스키마와 `docs/openapi/aigo-v1.yaml`의 계약 불일치를 막는 동기화 검증을 추가한다. 현재 API는 `createPlaceSchema`에서 `address` 또는 `regionSido`를 필수로 요구하고, `updatePlaceSchema`에서 `lat/lng` 동시 업데이트 및 권장 월령 min/max 순서를 검증하지만 OpenAPI에는 이 refinement가 표현되지 않아 에이전트가 문서상 유효한 payload를 보내고 실제 API에서 400을 받을 수 있다. 최소한 OpenAPI에 `anyOf`/설명/테스트 사례를 보강하고, `tests/openapi.test.ts`가 문서 문법 검증뿐 아니라 대표 Zod accept/reject 케이스와 OpenAPI accept/reject 케이스를 비교하도록 확장한다.

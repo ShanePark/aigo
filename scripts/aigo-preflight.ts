@@ -1,6 +1,6 @@
 import postgres from "postgres";
 
-import { env } from "@/env";
+import { assertSafeApiKeyForRuntime, env, isDefaultDevApiKey } from "@/env";
 
 const apiBaseUrl = normalizeBaseUrl(process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
 const sql = postgres(env.databaseUrl, { max: 1, prepare: false });
@@ -34,8 +34,12 @@ const requiredSchema: Record<string, string[]> = {
 const results: CheckResult[] = [];
 
 try {
-  results.push(await checkApiRejectsMissingKey());
-  results.push(await checkApiAcceptsExpectedKey());
+  const apiKeyConfiguration = checkApiKeyConfiguration();
+  results.push(apiKeyConfiguration);
+  if (apiKeyConfiguration.ok) {
+    results.push(await checkApiRejectsMissingKey());
+    results.push(await checkApiAcceptsExpectedKey());
+  }
   results.push(await checkDatabaseSchema());
 } finally {
   await sql.end();
@@ -53,6 +57,23 @@ if (results.some((result) => !result.ok)) {
 }
 
 console.log(`AiGo preflight passed for ${apiBaseUrl} with ${describeApiKey()}.`);
+
+function checkApiKeyConfiguration(): CheckResult {
+  try {
+    assertSafeApiKeyForRuntime();
+    return {
+      name: "api key configuration",
+      ok: true,
+      detail: isDefaultDevApiKey() ? "using the local development API key" : "configured API key is non-default"
+    };
+  } catch (error) {
+    return {
+      name: "api key configuration",
+      ok: false,
+      detail: errorMessage(error)
+    };
+  }
+}
 
 async function checkApiRejectsMissingKey(): Promise<CheckResult> {
   try {
@@ -187,7 +208,7 @@ function normalizeBaseUrl(value: string) {
 }
 
 function describeApiKey() {
-  return env.apiKey === "change-me" ? "the default development API key" : "the configured AIGO_API_KEY";
+  return isDefaultDevApiKey() ? "the default development API key" : "the configured AIGO_API_KEY";
 }
 
 function errorMessage(error: unknown) {
