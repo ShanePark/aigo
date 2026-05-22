@@ -1310,11 +1310,15 @@ const broadParentIntentTerms = new Set([
   "박물관",
   "도서관",
   "장난감도서관",
+  "공동육아나눔터",
   "체험관",
   "어린이",
   "아이",
   "영유아",
+  "영아",
+  "돌쟁이",
   "실내",
+  "공공실내",
   "비오는날",
   "비",
   "수유실",
@@ -1355,8 +1359,14 @@ const broadParentCoreTerms = new Set([
   "박물관",
   "도서관",
   "장난감도서관",
+  "공동육아나눔터",
   "체험관",
   "어린이",
+  "아이",
+  "영유아",
+  "영아",
+  "돌쟁이",
+  "공공실내",
   "놀이터",
   "동네놀이터",
   "어린이공원",
@@ -1559,6 +1569,7 @@ const broadWaterPlayExpansionTerms = [
 
 const broadPublicExpansionTerms = [
   "공공시설",
+  "공공실내",
   "국립",
   "시립",
   "과학",
@@ -1567,10 +1578,16 @@ const broadPublicExpansionTerms = [
   "도서관",
   "체험관",
   "장난감도서관",
+  "공동육아나눔터",
   "육아종합지원센터",
+  "영유아",
+  "영아",
+  "돌쟁이",
   "어린이회관",
   "꿈아띠"
 ];
+
+const sharedChildcareExpansionTerms = ["공동육아나눔터", "shared_childcare_room", "shared_childcare", "돌봄품앗이", "손오공"];
 
 const broadShoppingExpansionTerms = [
   "쇼핑몰",
@@ -1738,6 +1755,7 @@ const categoryKeywordMap: Record<string, string[]> = {
   실내놀이터: ["indoor_playground", "kids_cafe"],
   도서관: ["library", "toy_library"],
   장난감도서관: ["toy_library"],
+  공동육아나눔터: ["toy_library"],
   과학관: ["science_museum"],
   박물관: ["museum"],
   체험관: ["experience_center"],
@@ -1797,6 +1815,11 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
   const termSet = new Set(terms);
   const clauses: string[] = [];
 
+  if (termSet.has("공동육아나눔터")) {
+    addTextExpansionClauses(clauses, sharedChildcareExpansionTerms, add);
+    return `(${clauses.join(" or ")})`;
+  }
+
   if (terms.some((term) => broadNatureIntentTerms.has(term)) || termSet.has("당일치기") || termSet.has("근교")) {
     clauses.push("primary_category = 'park'");
     addTextExpansionClauses(clauses, broadNatureExpansionTerms, add);
@@ -1810,6 +1833,10 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
     termSet.has("과학관") ||
     termSet.has("박물관") ||
     termSet.has("도서관") ||
+    termSet.has("공동육아나눔터") ||
+    termSet.has("공공실내") ||
+    termSet.has("영유아") ||
+    termSet.has("영아") ||
     termSet.has("체험관") ||
     termSet.has("어린이")
   ) {

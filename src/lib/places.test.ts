@@ -49,6 +49,8 @@ describe("place search helpers", () => {
   it("recognizes broad parent intent queries that should not require every token", () => {
     expect(isBroadParentIntentQuery("공원 자연 당일치기 유모차 주차")).toBe(true);
     expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
+    expect(isBroadParentIntentQuery("영아 실내 공공시설")).toBe(true);
+    expect(isBroadParentIntentQuery("공동육아나눔터 영유아 실내")).toBe(true);
     expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
   });
 
@@ -66,6 +68,7 @@ describe("place search helpers", () => {
   it("maps common Korean category terms to primary category clauses", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
     expect(categoryClauseForKeywordTerm("놀이터")).toBe("primary_category = any(array['park','indoor_playground','kids_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("미끄럼틀")).toBeNull();
   });
 
@@ -292,6 +295,18 @@ describe("place search helpers", () => {
     expect(normalizeSearchInput({ ...baseSearchInput, query: "주말 반나절 공공시설 과학관 도서관 어린이 무료 저렴 실내" })).toMatchObject({
       visitContext: "weekendHalfDay",
       query: "주말 반나절 공공시설 과학관 도서관 어린이 무료 저렴 실내",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전역 영아 실내 공공시설" })).toMatchObject({
+      query: "대전역 영아 실내 공공시설",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "공동육아나눔터 영유아 실내" })).toMatchObject({
+      query: "공동육아나눔터 영유아 실내",
       preferences: {
         indoorTypes: ["indoor", "mixed"]
       }
