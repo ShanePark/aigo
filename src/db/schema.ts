@@ -14,7 +14,7 @@ import {
 
 export type TriState = "yes" | "no" | "partial" | "unknown";
 export type IndoorType = "indoor" | "outdoor" | "mixed" | "unknown";
-export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair";
+export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair" | "itinerary_cluster";
 
 export const places = pgTable(
   "places",

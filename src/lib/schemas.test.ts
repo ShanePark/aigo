@@ -149,18 +149,20 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
-  it("accepts related-place updates with relation metadata", () => {
+  it("accepts itinerary cluster related-place metadata", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "agent_observation", externalId: "related-place-audit-20260522" }],
       relatedPlaceMode: "replace",
       relatedPlaces: [
         {
           placeId: "96640384-4dff-4470-a40e-75d1491f1e73",
-          relationType: "same_building",
-          note: "좌표와 주소 기준 같은 건물 안에서 함께 비교할 장소.",
+          relationType: "itinerary_cluster",
+          note: "아산 day-trip cluster에서 함께 묶어 비교할 장소.",
           evidence: {
-            distanceMeters: 0,
-            basis: "existing_place_coordinates"
+            clusterName: "Asan science and ecology half-day",
+            sharedDriveBurden: "same_outbound_drive",
+            mealRestFallback: "Use nearby family restaurant or rest stop after both venues.",
+            parentEffortNotes: "Works best when paired as one planned drive rather than two separate trips."
           }
         }
       ]
@@ -169,9 +171,10 @@ describe("place schemas", () => {
     expect(result.relatedPlaceMode).toBe("replace");
     expect(result.relatedPlaces?.[0]).toMatchObject({
       placeId: "96640384-4dff-4470-a40e-75d1491f1e73",
-      relationType: "same_building",
+      relationType: "itinerary_cluster",
       evidence: {
-        distanceMeters: 0
+        clusterName: "Asan science and ecology half-day",
+        sharedDriveBurden: "same_outbound_drive"
       }
     });
   });

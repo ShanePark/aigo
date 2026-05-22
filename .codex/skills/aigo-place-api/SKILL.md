@@ -159,7 +159,7 @@ Use these enum values:
 - `parkingFrictionLevel`: `low`, `medium`, `high`, `unknown`.
 - `status`: API accepts `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`.
 - `dataConfidence`: API accepts `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`; user-requested registrations from this skill should use `agent_collected`, `user_reported`, or `official_verified`.
-- Related-place `relationType`: use `same_building` for branches inside the same mall/building, `same_site` for campus/resort/public-facility subvenues, `nearby` for very close practical companions, `parent_child` for explicit parent/subfacility relationships, and `route_pair` for route-break pairings.
+- Related-place `relationType`: use `same_building` for branches inside the same mall/building, `same_site` for campus/resort/public-facility subvenues, `nearby` for very close practical companions, `parent_child` for explicit parent/subfacility relationships, `route_pair` for route-break pairings, and `itinerary_cluster` for day-trip clusters that share drive burden, meal/rest fallback, and parent-effort planning.
 
 ## Related Places
 
@@ -171,6 +171,7 @@ Mutation rules:
 - Keep relationships source-backed like other updates: include at least one `sources` item, plus `evidence` such as stored coordinate distance, same-address match, official/public source URL, or audit batch ID.
 - Relationships are bidirectional in the API response even though the DB stores each pair once. One PATCH from either place is enough.
 - Prefer conservative relation types. Use `nearby` when the evidence only supports close coordinates; use `same_building` or `same_site` only when address/name/source evidence supports it.
+- For `itinerary_cluster` relations, include structured `evidence` such as `clusterName`, `sharedDriveBurden`, `mealRestFallback`, `parentEffortNotes`, and source URLs so agents can explain why the places should be planned together.
 - Do not use related places to hide likely duplicates. Stage likely duplicates separately for duplicate review instead of linking them as recommendations.
 
 Common `primaryCategory` values used by the UI/search:

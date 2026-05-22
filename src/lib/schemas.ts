@@ -6,7 +6,7 @@ export const parkingFrictionLevelSchema = z.enum(["low", "medium", "high", "unkn
 export const imageDisplayTierSchema = z.enum(["official", "public_agency", "public_listing", "rights_unclear", "unknown"]);
 export const imageStatusSchema = z.enum(["active", "archived"]);
 export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "needs_review", "rejected"]);
-export const relatedPlaceRelationTypeSchema = z.enum(["nearby", "same_building", "same_site", "parent_child", "route_pair"]);
+export const relatedPlaceRelationTypeSchema = z.enum(["nearby", "same_building", "same_site", "parent_child", "route_pair", "itinerary_cluster"]);
 
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
