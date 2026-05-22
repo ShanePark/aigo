@@ -59,6 +59,8 @@ For broad place expansion, use a duplicate-first discovery loop. Gather shallow 
 
 For nationwide expansion, split work by both region and category. Useful region blocks include Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong/Daejeon/Sejong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize high-signal family categories first: major malls/outlets, kids cafes and indoor playgrounds, public child facilities, toy libraries, science/museum experience spaces, water/sand/forest play, playroom restaurants, kid-primary accommodations, and route-break support stops.
 
+When place research or registration reveals product/API/schema/search/tooling friction, do not fix it directly as part of the data-collection wave. Add an actionable `[대기]` proposal to `docs/aigo-improvements.md` with enough source task, research-file, payload, and result context for the separate improvement automation to reproduce and solve it later.
+
 Avoid high-volume map service/API use. Do not make repeated automated Kakao Map/API calls or loops. If a map search URL is used as a source, keep it sparse and manual-style, and record only URL/external ID/summary, never copied source text.
 
 Do not add committed documentation or code comments that imply AiGo depends on aggressive Kakao Map usage or scraping. Operational collection limits and sensitive collection notes belong only in ignored planning/worklog/spec files.
@@ -91,7 +93,7 @@ Research files are staging material only. Actual DB changes must go through AiGo
 
 ## AiGo Improvement Backlog
 
-When AiGo service/API usage reveals friction, bugs, unclear behavior, or future product improvements, record the durable improvement backlog in `docs/aigo-improvements.md`. `agent-research/*.md` files may contain task-local observations and raw notes, but any improvement that should be fixable later must be copied or summarized into `docs/aigo-improvements.md`.
+When AiGo service/API usage reveals friction, bugs, unclear behavior, or future product improvements, record the durable improvement backlog in `docs/aigo-improvements.md`. `agent-research/*.md` files may contain task-local observations and raw notes, but any improvement that should be fixable later must be copied or summarized into `docs/aigo-improvements.md`. During place data collection/registration, the correct action is to write the improvement proposal, not to implement the fix directly.
 
 Use a simple checklist format with one improvement per item. Keep each item actionable, include the source task or research file when useful, and preserve enough API payload/result context for a future agent to reproduce the issue.
 
