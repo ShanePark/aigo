@@ -255,13 +255,15 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
             </section>
 
-            <div className="results">
-              {result.items.map((place, index) => (
-                <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
-              ))}
-              {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
+            <div className="results-scroll" data-results-scroll>
+              <div className="results">
+                {result.items.map((place, index) => (
+                  <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
+                ))}
+                {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
+              </div>
+              <Pagination meta={result.meta} params={effectiveParams} />
             </div>
-            <Pagination meta={result.meta} params={effectiveParams} />
           </div>
         </section>
       )}

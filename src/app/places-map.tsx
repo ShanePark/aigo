@@ -203,7 +203,16 @@ function revealResultCard(placeId: string) {
     element.classList.remove("is-map-highlighted");
   });
   card.classList.add("is-map-highlighted");
-  card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  const scroller = card.closest("[data-results-scroll]") as HTMLElement | null;
+  if (scroller) {
+    const cardRect = card.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+    const centeredTop = scroller.scrollTop + cardRect.top - scrollerRect.top - (scroller.clientHeight - cardRect.height) / 2;
+    scroller.scrollTo({ top: Math.max(0, centeredTop), behavior: "smooth" });
+  } else {
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   if (highlightedResultTimer) window.clearTimeout(highlightedResultTimer);
   highlightedResultTimer = window.setTimeout(() => {
