@@ -1869,7 +1869,7 @@ export function buildSearchQuery(input: SearchPlacesInput) {
   }
 
   return {
-    sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by coalesce(place_score, 5) desc, updated_at desc limit 750`,
+    sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")}`,
     params
   };
 }

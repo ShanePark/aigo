@@ -110,6 +110,19 @@ describe("place search helpers", () => {
     expect(query.sql).toContain("where status = 'active'");
   });
 
+  it("does not cap SQL candidates before runtime scoring and pagination", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      limit: 20,
+      offset: 800,
+      query: "키즈카페"
+    });
+
+    expect(query.sql).not.toContain("limit 750");
+    expect(query.sql).not.toContain("offset");
+    expect(query.sql).not.toContain("limit $");
+  });
+
   it("can restrict playground searches to actual playground evidence", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,

@@ -1311,8 +1311,10 @@ components:
           properties:
             count:
               type: integer
+              description: Number of items returned in this page after runtime scoring, diversity, offset, and limit.
             total:
               type: integer
+              description: Total active candidates that matched the request after runtime scoring and diversity, before offset and limit. The API does not pre-truncate this value with a fixed SQL candidate cap.
             limit:
               type: integer
             offset:
