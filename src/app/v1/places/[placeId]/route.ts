@@ -4,7 +4,7 @@ import { requireApiKey } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/errors";
 import { readJson } from "@/lib/http";
 import { deletePlace, getPlaceDetail, updatePlace } from "@/lib/places";
-import { updatePlaceSchema } from "@/lib/schemas";
+import { deletePlaceSchema, updatePlaceSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     requireApiKey(request);
     const { placeId } = await context.params;
-    return NextResponse.json(await deletePlace(placeId));
+    const input = deletePlaceSchema.parse(await readJson(request));
+    return NextResponse.json(await deletePlace(placeId, input));
   } catch (error) {
     return apiErrorResponse(error);
   }

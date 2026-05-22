@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applySearchDiversity,
+  assertDeleteConfirmationMatches,
   buildInfantLogisticsSignal,
   buildImageMetadata,
   buildOpeningHoursDataSignal,
@@ -98,6 +99,12 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
+  it("search candidates exclude soft-deleted closed places", () => {
+    const query = buildSearchQuery(baseSearchInput);
+
+    expect(query.sql).toContain("where status = 'active'");
+  });
+
   it("applies hard distance bands for outside-city day-trip searches", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,
@@ -132,6 +139,11 @@ describe("place search helpers", () => {
       "a0000000-0000-0000-0000-000000000000",
       "b0000000-0000-0000-0000-000000000000"
     ]);
+  });
+
+  it("requires the delete confirmation name to match the current place name", () => {
+    expect(() => assertDeleteConfirmationMatches("대전 어린이 시설", "대전 어린이 시설")).not.toThrow();
+    expect(() => assertDeleteConfirmationMatches("대전 어린이 시설", "다른 시설")).toThrow("confirmName must match");
   });
 
   it("collapses repeated whitespace in keyword queries", () => {

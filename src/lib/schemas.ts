@@ -282,6 +282,14 @@ export const duplicatePlaceSchema = z.object({
   limit: z.number().int().min(1).max(20).default(10)
 });
 
+export const deletePlaceSchema = z.object({
+  confirmation: z.literal("close_place"),
+  confirmName: nonEmptyString,
+  sources: z.array(sourceSchema).min(1),
+  actor: z.string().trim().default("agent"),
+  changeSummary: z.string().trim().min(10).max(2000)
+});
+
 export const placeImageHealthQuerySchema = z.object({
   primaryCategory: z.string().trim().min(1).optional(),
   status: z
@@ -295,6 +303,7 @@ export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type SearchPlacesInput = z.infer<typeof searchPlacesSchema>;
 export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
+export type DeletePlaceInput = z.infer<typeof deletePlaceSchema>;
 export type PlaceImageHealthQueryInput = z.infer<typeof placeImageHealthQuerySchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;

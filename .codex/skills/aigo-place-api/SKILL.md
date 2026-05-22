@@ -77,13 +77,13 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Base URL is normally `http://localhost:3000`.
    - Creates use `POST /v1/places`.
    - Updates use `PATCH /v1/places/{placeId}`.
-   - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. This is a hard delete and cascades sources, images, and version history.
+   - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. The endpoint performs a source-backed soft delete by setting `status: "closed"` and preserving sources, images, and version history. Requests must include `confirmation: "close_place"`, the exact `confirmName`, at least one source, and a `changeSummary`.
    - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
 
 6. Verify after meaningful changes.
    - Call `GET /v1/places/{placeId}`.
    - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list. A 404 means the parent place id is invalid; an empty version list should only be treated as "no versions yet" after the place itself exists.
-   - For hard deletes, confirm `GET /v1/places/{placeId}` returns 404 and exact-name search no longer returns the place.
+   - For soft deletes, confirm `GET /v1/places/{placeId}` returns the place with `status: "closed"`, exact-name search no longer returns it, and `GET /v1/places/{placeId}/versions` includes the delete audit `changeSummary`.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
    - Search results include compact `imageHealth` so agents can notice missing primary images or review-needed images before recommending cards; use `/v1/places/image-health` for the full audit queue.

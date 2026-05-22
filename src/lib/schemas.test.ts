@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
+import { createPlaceSchema, deletePlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, updatePlaceSchema } from "@/lib/schemas";
 
 describe("place schemas", () => {
   it("requires coordinates and at least one source when creating a place", () => {
@@ -168,6 +168,31 @@ describe("place schemas", () => {
 
     expect(append.sourceMode).toBe("append");
     expect(replace.sourceMode).toBe("replace");
+  });
+
+  it("requires explicit confirmation details for delete requests", () => {
+    const result = deletePlaceSchema.parse({
+      confirmation: "close_place",
+      confirmName: "테스트 장소",
+      changeSummary: "사용자 요청으로 검색에서 제외한다.",
+      sources: [{ sourceType: "user_observation", externalId: "delete-request-20260522" }]
+    });
+    const missingSummary = deletePlaceSchema.safeParse({
+      confirmation: "close_place",
+      confirmName: "테스트 장소",
+      sources: [{ sourceType: "user_observation", externalId: "delete-request-20260522" }]
+    });
+    const wrongToken = deletePlaceSchema.safeParse({
+      confirmation: "delete_forever",
+      confirmName: "테스트 장소",
+      changeSummary: "사용자 요청으로 검색에서 제외한다.",
+      sources: [{ sourceType: "user_observation", externalId: "delete-request-20260522" }]
+    });
+
+    expect(result.actor).toBe("agent");
+    expect(result.confirmation).toBe("close_place");
+    expect(missingSummary.success).toBe(false);
+    expect(wrongToken.success).toBe(false);
   });
 
   it("accepts reservation and session planning flags", () => {

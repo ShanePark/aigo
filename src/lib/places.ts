@@ -2,6 +2,7 @@ import { pg } from "@/db/client";
 import { ApiError } from "@/lib/errors";
 import {
   type CreatePlaceInput,
+  type DeletePlaceInput,
   type DuplicatePlaceInput,
   type PlaceImageHealthQueryInput,
   type PlaceImageInput,
@@ -308,21 +309,40 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   });
 }
 
-export async function deletePlace(placeId: string) {
+export async function deletePlace(placeId: string, input: DeletePlaceInput) {
   return pg.begin(async (tx) => {
     const rows = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
     if (rows.length === 0) {
       throw new ApiError(404, "Place not found");
     }
 
-    await tx`delete from places where id = ${placeId}`;
+    const existing = rows[0];
+    assertDeleteConfirmationMatches(existing.name, input.confirmName);
+    const [updated] = await tx<PlaceRow[]>`
+      update places
+      set status = 'closed', updated_at = now(), version = version + 1
+      where id = ${placeId}
+      returning *
+    `;
+    await insertSources(tx, updated.id, input.sources);
+    await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
 
     return {
-      id: rows[0].id,
-      name: rows[0].name,
-      deleted: true
+      id: updated.id,
+      name: updated.name,
+      deleted: true,
+      deletionMode: "soft",
+      status: updated.status,
+      actor: input.actor,
+      changeSummary: input.changeSummary
     };
   });
+}
+
+export function assertDeleteConfirmationMatches(placeName: string, confirmName: string) {
+  if (placeName.trim() !== confirmName.trim()) {
+    throw new ApiError(400, "confirmName must match the current place name before deletion");
+  }
 }
 
 export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg) {
