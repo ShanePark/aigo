@@ -31,12 +31,24 @@ type MapBounds = {
   minLng: number;
 };
 
+type SavedMapView = {
+  lat: number;
+  lng: number;
+  zoom: number;
+};
+
 type LeafletModule = typeof import("leaflet");
+
+const DEFAULT_MAP_CENTER = { lat: 36.3322, lng: 127.4341 };
+const DEFAULT_MAP_ZOOM = 13;
+const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
 
 export function PlacesMap({ origin, places }: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
+  const initializedViewKeyRef = useRef<string | null>(null);
+  const viewKeyRef = useRef(mapViewKey(origin));
 
   useEffect(() => {
     return () => {
@@ -53,7 +65,10 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       const L = await import("leaflet");
       if (disposed || !mapElementRef.current) return;
 
-      const map = getOrCreateMap(L, mapElementRef.current, mapRef);
+      const viewKey = mapViewKey(origin);
+      const shouldApplyMapView = initializedViewKeyRef.current !== viewKey;
+      viewKeyRef.current = viewKey;
+      const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef);
       const markers = getOrCreateMarkerLayer(L, map, markersRef);
       markers.clearLayers();
 
@@ -84,11 +99,14 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
         marker.addTo(markers);
       });
 
-      const bounds = boundsForLeaflet(origin, places);
-      if (bounds) {
-        map.fitBounds(bounds, { animate: false, maxZoom: 14, padding: [24, 24] });
-      } else {
-        map.setView([36.3322, 127.4341], 12);
+      if (shouldApplyMapView) {
+        const savedView = loadSavedMapView(viewKey);
+        if (savedView) {
+          map.setView([savedView.lat, savedView.lng], savedView.zoom, { animate: false });
+        } else {
+          setInitialMapView(map, origin, places);
+        }
+        initializedViewKeyRef.current = viewKey;
       }
 
       map.invalidateSize();
@@ -117,7 +135,12 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
   );
 }
 
-function getOrCreateMap(L: LeafletModule, element: HTMLDivElement, mapRef: MutableRefObject<LeafletMap | null>) {
+function getOrCreateMap(
+  L: LeafletModule,
+  element: HTMLDivElement,
+  mapRef: MutableRefObject<LeafletMap | null>,
+  viewKeyRef: MutableRefObject<string>
+) {
   if (mapRef.current) return mapRef.current;
 
   const map = L.map(element, {
@@ -130,6 +153,10 @@ function getOrCreateMap(L: LeafletModule, element: HTMLDivElement, mapRef: Mutab
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19
   }).addTo(map);
+
+  map.on("moveend zoomend", () => {
+    saveMapView(viewKeyRef.current, map);
+  });
 
   mapRef.current = map;
   return map;
@@ -173,6 +200,100 @@ function boundsForLeaflet(origin: MapOrigin, places: MapPlace[]): LatLngBoundsEx
     [bounds.minLat, bounds.minLng],
     [bounds.maxLat, bounds.maxLng]
   ];
+}
+
+function setInitialMapView(map: LeafletMap, origin: MapOrigin, places: MapPlace[]) {
+  if (origin) {
+    map.setView([origin.lat, origin.lng], initialZoomForOrigin(origin, places), { animate: false });
+    return;
+  }
+
+  const bounds = boundsForLeaflet(origin, places);
+  if (bounds) {
+    map.fitBounds(bounds, { animate: false, maxZoom: DEFAULT_MAP_ZOOM, padding: [24, 24] });
+    return;
+  }
+
+  map.setView([DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng], DEFAULT_MAP_ZOOM, { animate: false });
+}
+
+function initialZoomForOrigin(origin: NonNullable<MapOrigin>, places: MapPlace[]) {
+  const farthestKm = places.reduce((max, place) => Math.max(max, distanceKm(origin.lat, origin.lng, place.lat, place.lng)), 0);
+
+  if (farthestKm <= 2) return 15;
+  if (farthestKm <= 5) return 14;
+  return DEFAULT_MAP_ZOOM;
+}
+
+function mapViewKey(origin: MapOrigin) {
+  if (!origin) return "nationwide";
+  return `${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}`;
+}
+
+function loadSavedMapView(viewKey: string): SavedMapView | null {
+  const storage = mapViewStorage();
+  if (!storage) return null;
+
+  try {
+    const saved = storage.getItem(MAP_VIEW_STORAGE_KEY);
+    if (!saved) return null;
+
+    const parsed = JSON.parse(saved) as Partial<Record<string, SavedMapView>>;
+    const view = parsed[viewKey];
+    if (!view || !Number.isFinite(view.lat) || !Number.isFinite(view.lng) || !Number.isFinite(view.zoom)) return null;
+    return view;
+  } catch {
+    return null;
+  }
+}
+
+function saveMapView(viewKey: string, map: LeafletMap) {
+  const storage = mapViewStorage();
+  if (!storage) return;
+
+  const center = map.getCenter();
+  const nextView = {
+    lat: center.lat,
+    lng: center.lng,
+    zoom: map.getZoom()
+  };
+
+  try {
+    const saved = storage.getItem(MAP_VIEW_STORAGE_KEY);
+    const parsed = saved ? (JSON.parse(saved) as Partial<Record<string, SavedMapView>>) : {};
+    storage.setItem(MAP_VIEW_STORAGE_KEY, JSON.stringify({ ...parsed, [viewKey]: nextView }));
+  } catch {
+    try {
+      storage.setItem(MAP_VIEW_STORAGE_KEY, JSON.stringify({ [viewKey]: nextView }));
+    } catch {
+      // Storage may be blocked in embedded or private browser contexts; in-memory map state still preserves same-page category switches.
+    }
+  }
+}
+
+function mapViewStorage() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function distanceKm(fromLat: number, fromLng: number, toLat: number, toLng: number) {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(toLat - fromLat);
+  const dLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
 }
 
 function mapBounds(origin: MapOrigin, places: MapPlace[]): MapBounds {
