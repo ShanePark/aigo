@@ -14,7 +14,7 @@ Keep commit guidance synchronized with the project skill. When commit workflow b
 
 For AiGo place-data work, read and follow the committed repo skill at `.codex/skills/aigo-place-api/SKILL.md` before researching places, preparing payloads, delegating data research, or calling the AiGo API.
 
-Use this skill whenever a task involves Daejeon family outing research, source-backed place creation or enrichment, duplicate review, AiGo API data mutations, image URL provenance, `agent-research/` staging files, or place-data quality review. The skill is also the handoff document for subagents: subagents should use it to understand how to search, what evidence to record, what fields matter for the family context, and where their responsibility ends before the main agent performs API mutations.
+Use this skill whenever a task involves family outing place research across Korea, source-backed place creation or enrichment, duplicate review, AiGo API data mutations, image URL provenance, `agent-research/` staging files, or place-data quality review. The skill is also the handoff document for subagents: subagents should use it to understand how to search, what evidence to record, what fields matter for the family context, and where their responsibility ends before the main agent performs API mutations.
 
 Keep detailed, evolving AiGo data workflow instructions in the skill rather than scattering them across code comments or unrelated docs. `AGENTS.md` should state the trigger and repository-wide rules; `.codex/skills/aigo-place-api/SKILL.md` should carry the operational workflow, API request sequence, payload expectations, source/image provenance rules, and verification checklist.
 
@@ -22,9 +22,10 @@ When any change affects the place-data workflow, update the skill in the same co
 
 ## AiGo Data Mission
 
-AiGo's most important asset is the breadth and quality of real place data for family outings around Daejeon. Data work should prioritize places that match the user's actual family context:
+AiGo's most important asset is the breadth and quality of real place data for family outings across Korea. Data work should now collect nationwide, while preserving the user's actual family context as the strongest personalization signal:
 
-- Base area: Daejeon Station / old downtown, with Daejeon + roughly one-hour driving range.
+- Collection scope: nationwide Korea. Do not limit discovery to Daejeon or the one-hour Daejeon driving range when the task is broad place expansion.
+- Personalization anchor: Daejeon Station / old downtown, with Daejeon + roughly one-hour driving range, remains the user's base context for scoring, examples, and local fallback value.
 - Children: one toddler born 2023-09 and twin infants born 2025-10.
 - Strong preference signals: indoor options after daycare, nearby kids cafes, stroller practicality, nursing room, diaper changing table, parking, snack/meal handling, public child-friendly facilities, nature/day-trip destinations.
 - User-visited reference places should be treated as strong leads for research and either enriched if already registered or created if missing.
@@ -38,8 +39,8 @@ Treat the user's visited/reference places as product-shaping signals, not just a
 - Low-friction indoor fallback: department stores, outlets, malls, kids cafes inside malls, and facilities where parking/elevator/baby lounge/food can be solved in one building.
 - First-child play value plus twin-infant logistics: active kids cafes and playgrounds matter, but recommendations must still expose stroller, nursing, diaper, safety, and parent-effort tradeoffs.
 - Public child-friendly half-day options: science museums, children's halls, libraries, toy libraries, arboretums, parks, and municipal/national facilities are high value because they are repeatable and often cheaper.
-- Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially when close to old downtown or easy parking.
-- Day-trip nature with practical stops: Daecheong Lake, Cheongnamdae, Gyeryongsan/Sutonggol, Jangtaesan, Sangso-dong, Buso-damak, and rest areas should include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
+- Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially when close to a user's base area, lodging, transit hub, or easy parking.
+- Day-trip nature with practical stops: Daejeon-area examples such as Daecheong Lake, Cheongnamdae, Gyeryongsan/Sutonggol, Jangtaesan, Sangso-dong, and Buso-damak are useful pattern references, but nationwide nature/travel candidates should also include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
 - Playroom/family restaurants: these are useful after daycare or for meal+play combinations, but grill/fire risks, playroom line-of-sight, baby chairs, parking, and floor changes should be explicit.
 
 When a source is weak or current operation is uncertain, keep the place searchable for user-requested registration and use cautionary parent notes, `unknown` fields, and conservative scoring rather than silently removing it from research. Do not use `needs_check` or `needs_review` as registration/review states for places the user asked us to add.
@@ -55,6 +56,8 @@ Use broad public internet research first:
 - Subagents should not call map/vendor APIs in bulk. If they need coordinates, prefer official pages, public address/coordinate pages, public facility datasets, or a small number of source-backed public pages.
 
 For broad place expansion, use a duplicate-first discovery loop. Gather shallow candidate names and rough areas from search results or directory pages, check AiGo with read-only search/duplicate endpoints before deep research, and only spend deeper source-reading effort on places that appear missing, stale, or valuable to enrich. Keep a visited-query/source ledger in the active `agent-research/` context or slice file so later agents do not keep reopening the same pages.
+
+For nationwide expansion, split work by both region and category. Useful region blocks include Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong/Daejeon/Sejong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize high-signal family categories first: major malls/outlets, kids cafes and indoor playgrounds, public child facilities, toy libraries, science/museum experience spaces, water/sand/forest play, playroom restaurants, kid-primary accommodations, and route-break support stops.
 
 Avoid high-volume map service/API use. Do not make repeated automated Kakao Map/API calls or loops. If a map search URL is used as a source, keep it sparse and manual-style, and record only URL/external ID/summary, never copied source text.
 

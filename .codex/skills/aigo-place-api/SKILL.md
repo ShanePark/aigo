@@ -1,6 +1,6 @@
 ---
 name: aigo-place-api
-description: Use when researching, deduplicating, creating, updating, enriching, or verifying AiGo place data through the /v1/places API, including source-backed Daejeon family outing data, agent-research staging notes, image URL provenance, duplicate checks, and version-history verification.
+description: Use when researching, deduplicating, creating, updating, enriching, or verifying AiGo place data through the /v1/places API, including source-backed family outing data across Korea, agent-research staging notes, image URL provenance, duplicate checks, and version-history verification.
 ---
 
 # AiGo Place API
@@ -29,10 +29,10 @@ Before recommending `create` for a real place, explicitly record why it belongs 
 - Child-primary destination: kids cafe, indoor playground, children's museum, toy library, children's room/library, playground, water/sand/sensory play, or an official child/family program.
 - Baby-logistics destination: source-backed nursing room, diaper-changing table, stroller/elevator route, baby chair, food/snack handling, or a mall/public facility where first-child activity and infant care can be solved together.
 - User-requested short retail fallback: toy stores or character stores can be registered under `toy_store` when they are source-backed and useful for child-focused shopping, rainy-day browsing, or a practical stop inside a mall/outlet with family logistics. Keep play value and stay duration conservative unless sources show real play/experience zones.
-- Route-break utility: highway rest area, public facility, or route stop with source-backed toilets, nursing/diaper support, parking, and a clear route context such as Daecheong Lake, Cheongnamdae, or one-hour day trips.
+- Route-break utility: highway rest area, public facility, or route stop with source-backed toilets, nursing/diaper support, parking, and a clear route context such as family travel routes, regional day trips, or long-distance kid-friendly itineraries.
 - User-signal exception: the user explicitly mentioned or visited the place, but weak family fit must still be documented with cautionary notes and conservative scores.
 
-Do not create or keep an active recommendation just because a place is indoor, free, official, near Daejeon Station, or has tourism/culture value. Tourist information centers, travel lounges, adult-oriented galleries, generic historic exhibits, scenic viewpoints, large cafes, and general rest spaces should be skipped or held in research notes unless they pass one of the gates above or the user explicitly asks to register them.
+Do not create or keep an active recommendation just because a place is indoor, free, official, close to a base area, or has tourism/culture value. Tourist information centers, travel lounges, adult-oriented galleries, generic historic exhibits, scenic viewpoints, large cafes, and general rest spaces should be skipped or held in research notes unless they pass one of the gates above or the user explicitly asks to register them.
 
 Do not force a weak candidate into `family_cafe` only because no better category exists. Use `family_cafe` for a cafe/restaurant-style place with source-backed family logistics or child value. Use `rest_area` only for route-break stops, and make the route-break purpose explicit in tags and `parentNotes`; it is not a standalone outing destination.
 
@@ -46,13 +46,14 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 ## Workflow
 
 1. Scope the research slice.
-   - Prioritize Daejeon Station / old downtown, Daejeon, and roughly one-hour driving range.
+   - For broad expansion, collect family-useful places nationwide across Korea. Daejeon Station / old downtown, Daejeon, and roughly one-hour driving range remain important personalization anchors and prior-coverage references, but they are not geographic limits.
+   - Split nationwide work into region blocks so coverage grows evenly: Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize major cities, tourism corridors, and family-travel routes before smaller long-tail areas.
    - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
    - Apply the Family-Fit Gate before staging a create candidate. If the only positive evidence is "official/indoor/free/nearby/tourism", stage as `skip` or hold it in research notes, not `create`, unless the user explicitly asked to register it.
 
 2. Delegate independent research.
-   - Split broad Daejeon collection work by district and category so reports stay comparable and dedupe-friendly. Useful district slices include Jung-gu, Dong-gu, Seo-gu, Yuseong-gu, Daedeok-gu, and nearby one-hour day-trip areas such as Sejong, Gongju, Geumsan, Okcheon, Cheongju, Gyeryong, Nonsan, and Cheongyang.
-   - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; route-break rest areas and day-trip support stops.
+   - Split nationwide collection by region block and category so reports stay comparable and dedupe-friendly. Useful region slices include Seoul/Incheon/Gyeonggi; Busan/Ulsan/Gyeongnam; Daegu/Gyeongbuk; Gwangju/Jeonnam/Jeonbuk; Gangwon; Chungcheong/Daejeon/Sejong; and Jeju.
+   - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; family-friendly lodging/resorts; route-break rest areas and travel support stops.
    - Give each subagent clear ownership of one district/category slice, concrete search terms, and a unique report filename under `agent-research/`.
    - Tell subagents not to mutate data. For broad candidate discovery, have them do a cheap read-only dedupe pass before opening many source pages: use exact-name `/v1/places/search` when coordinates are unknown, `/v1/places/duplicates` when name and coordinates are known, and `GET /v1/places/{placeId}` only for likely matches that need comparison. Their deliverable is a structured Markdown file under `agent-research/`.
    - Use only one API mutation executor after research reports are available. That executor performs duplicate checks, compares existing records, creates missing places, patches enrichments, and verifies versions.
