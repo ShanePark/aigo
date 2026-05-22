@@ -840,6 +840,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `region_dong ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`
     ];
+    const categoryClause = categoryClauseForKeywordTerm(term);
+    if (categoryClause) {
+      columns.push(categoryClause);
+    }
 
     if (shouldSearchAddressForTerm(query, term)) {
       columns.push(`address ilike ${patternParam}`, `road_address ilike ${patternParam}`);
@@ -1370,6 +1374,29 @@ function stripPreferenceTerms(query: string) {
 
   return literalFallback.length > 0 ? literalFallback : undefined;
 }
+
+export function categoryClauseForKeywordTerm(term: string) {
+  const categories = categoryKeywordMap[term];
+  if (!categories) return null;
+  if (categories.length === 1) return `primary_category = '${categories[0]}'`;
+  return `primary_category = any(array[${categories.map((category) => `'${category}'`).join(",")}]::text[])`;
+}
+
+const categoryKeywordMap: Record<string, string[]> = {
+  공원: ["park"],
+  놀이터: ["park", "indoor_playground", "kids_cafe"],
+  키즈카페: ["kids_cafe"],
+  실내놀이터: ["indoor_playground", "kids_cafe"],
+  도서관: ["library", "toy_library"],
+  장난감도서관: ["toy_library"],
+  과학관: ["science_museum"],
+  박물관: ["museum"],
+  체험관: ["experience_center"],
+  수목원: ["park"],
+  휴게소: ["rest_area"],
+  식당: ["family_restaurant"],
+  놀이방식당: ["family_restaurant"]
+};
 
 function isQueryStopTerm(term: string) {
   if (queryStopTerms.has(term)) return true;

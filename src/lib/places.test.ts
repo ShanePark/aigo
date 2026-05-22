@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildImageMetadata,
+  categoryClauseForKeywordTerm,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -56,6 +57,12 @@ describe("place search helpers", () => {
     expect(shouldUseAnyKeywordMatch("과학관 체험 창의나래 넥스페리움")).toBe(true);
     expect(shouldUseAnyKeywordMatch("대전 키즈카페")).toBe(false);
     expect(shouldUseAnyKeywordMatch("판암 동네놀이터")).toBe(false);
+  });
+
+  it("maps common Korean category terms to primary category clauses", () => {
+    expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
+    expect(categoryClauseForKeywordTerm("놀이터")).toBe("primary_category = any(array['park','indoor_playground','kids_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("미끄럼틀")).toBeNull();
   });
 
   it("builds image metadata with source provenance and display tiers", () => {
