@@ -16,6 +16,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
   const heroImage = place.primaryImage;
+  const galleryImages = place.images;
 
   return (
     <div className="page detail-page">
@@ -45,6 +46,39 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
             {heroImage.sourceTitle ?? heroImage.creditText}
           </a>
         </p>
+      ) : null}
+
+      {galleryImages.length > 0 ? (
+        <section className="image-audit-section">
+          <h2>이미지 검수</h2>
+          <div className="image-audit-grid">
+            {galleryImages.map((image) => (
+              <article className="image-audit-card" key={image.id}>
+                <PlaceImage src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
+                <div>
+                  <div className="visit-row">
+                    {image.isPrimary ? <span>대표</span> : null}
+                    <span>이미지 {imageTierLabel(image.displayTier)}</span>
+                    <span>{imageReviewLabel(image.reviewStatus)}</span>
+                  </div>
+                  {image.description ? <p>{image.description}</p> : <p className="muted">아직 눈으로 검수한 설명이 없습니다.</p>}
+                  {image.visualFeatures.length > 0 ? (
+                    <div className="reason-grid">
+                      {image.visualFeatures.slice(0, 10).map((feature) => (
+                        <span key={feature}>{imageFeatureLabel(feature)}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {image.sourceUrl ? (
+                    <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
+                      {image.sourceTitle ?? image.creditText}
+                    </a>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <section className="detail-grid">
@@ -279,6 +313,35 @@ function imageTierLabel(value: string) {
     public_listing: "목록",
     rights_unclear: "검토",
     unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function imageReviewLabel(value: string) {
+  const labels: Record<string, string> = {
+    pending_review: "검수 대기",
+    approved: "검수 완료",
+    needs_review: "재검수",
+    rejected: "제외"
+  };
+  return labels[value] ?? value;
+}
+
+function imageFeatureLabel(value: string) {
+  const labels: Record<string, string> = {
+    slide: "미끄럼틀",
+    swing: "그네",
+    sand_play: "모래놀이",
+    ball_pool: "볼풀",
+    trampoline: "트램펄린",
+    climbing: "클라이밍",
+    water_play: "물놀이",
+    fountain: "분수",
+    stroller_path: "유모차 동선",
+    shade: "그늘",
+    books: "책/그림책",
+    playroom: "놀이방",
+    baby_chair: "아기의자"
   };
   return labels[value] ?? value;
 }

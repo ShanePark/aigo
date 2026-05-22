@@ -3,6 +3,7 @@ import { ApiError } from "@/lib/errors";
 import {
   type CreatePlaceInput,
   type DuplicatePlaceInput,
+  type PlaceImageInput,
   type SearchPlacesInput,
   type SourceInput,
   type UpdatePlaceInput
@@ -32,7 +33,6 @@ type PlaceRow = {
   kakao_place_url: string | null;
   kakao_place_id: string | null;
   external_refs: Record<string, unknown>;
-  image_urls: string[];
   status: string;
   data_confidence: string;
   min_recommended_age_months: number | null;
@@ -60,6 +60,31 @@ type PlaceRow = {
   updated_at: Date;
   last_verified_at: Date | null;
   distance_km?: number | null;
+};
+
+type PlaceImageRow = {
+  id: string;
+  place_id: string;
+  url: string;
+  source_id: string | null;
+  source_type: string | null;
+  source_title: string | null;
+  source_url: string | null;
+  credit_text: string | null;
+  alt_text: string | null;
+  description: string | null;
+  visual_features: string[];
+  child_signals: Record<string, unknown>;
+  display_tier: string;
+  status: string;
+  review_status: string;
+  is_primary: boolean;
+  sort_order: number;
+  width: number | null;
+  height: number | null;
+  checked_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 };
 
 type SourceRow = {
@@ -115,7 +140,6 @@ const columnMap = {
   kakaoPlaceUrl: "kakao_place_url",
   kakaoPlaceId: "kakao_place_id",
   externalRefs: "external_refs",
-  imageUrls: "image_urls",
   status: "status",
   dataConfidence: "data_confidence",
   minRecommendedAgeMonths: "min_recommended_age_months",
@@ -143,11 +167,14 @@ const columnMap = {
 export async function createPlace(input: CreatePlaceInput) {
   const insert = toDbRecord(input);
   const columns = Object.keys(insert);
+  const imageInputs = normalizeImageInputs(input.images, input.imageUrls, input.sources);
 
   return pg.begin(async (tx) => {
     const [place] = await insertPlace(tx, insert, columns);
 
     await insertSources(tx, place.id, input.sources);
+    await insertImages(tx, place.id, imageInputs);
+    await ensurePrimaryImage(tx, place.id);
     await createVersion(tx, place.id, 1, "create", input.actor, input.changeSummary, input.sources);
 
     return getPlaceDetail(place.id, tx);
@@ -157,6 +184,8 @@ export async function createPlace(input: CreatePlaceInput) {
 export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   const patch = toDbRecord(input);
   const columns = Object.keys(patch);
+  const imageInputs = normalizeImageInputs(input.images, input.imageUrls, input.sources);
+  const hasImagePatch = input.images !== undefined || input.imageUrls !== undefined;
 
   return pg.begin(async (tx) => {
     const existing = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
@@ -180,6 +209,13 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
       await tx`delete from place_sources where place_id = ${updated.id}`;
     }
     await insertSources(tx, updated.id, input.sources);
+    if (hasImagePatch) {
+      if (input.imageMode === "replace") {
+        await tx`delete from place_images where place_id = ${updated.id}`;
+      }
+      await insertImages(tx, updated.id, imageInputs);
+      await ensurePrimaryImage(tx, updated.id);
+    }
     await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
 
     return getPlaceDetail(updated.id, tx);
@@ -206,10 +242,11 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
   `;
 
   const sources = sourceRows.map(mapSource);
+  const imageMetadata = await getPlaceImageMetadata(placeId, executor);
 
   return {
     ...mapPlace(rows[0]),
-    ...buildImageMetadata(rows[0].image_urls, sources),
+    ...imageMetadata,
     sources,
     versions: latestVersions.map(mapVersionSummary)
   };
@@ -249,7 +286,6 @@ export async function searchPlaces(input: SearchPlacesInput) {
       tags: place.tags,
       address: place.address,
       description: place.description,
-      imageUrls: place.imageUrls,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
@@ -280,10 +316,10 @@ export async function searchPlaces(input: SearchPlacesInput) {
   });
 
   const items = scored.slice(input.offset, input.offset + input.limit);
-  const sourceMap = await getSourceMapForPlaces(items.map((item) => item.placeId));
+  const imageMap = await getImageMapForPlaces(items.map((item) => item.placeId));
   const enrichedItems = items.map((item) => ({
     ...item,
-    ...buildImageMetadata(item.imageUrls, sourceMap.get(item.placeId) ?? [])
+    ...buildImageMetadataFromRows(imageMap.get(item.placeId) ?? [])
   }));
 
   return {
@@ -308,23 +344,37 @@ export async function searchPlaces(input: SearchPlacesInput) {
   };
 }
 
-async function getSourceMapForPlaces(placeIds: string[]) {
-  const sourceMap = new Map<string, ReturnType<typeof mapSource>[]>();
-  if (placeIds.length === 0) return sourceMap;
-
-  const sourceRows = await pg<SourceRow[]>`
-    select * from place_sources
-    where place_id = any(${placeIds}::uuid[])
-    order by created_at desc
+async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg) {
+  const imageRows = await executor<PlaceImageRow[]>`
+    select * from place_images
+    where place_id = ${placeId}
+      and status = 'active'
+      and review_status <> 'rejected'
+    order by is_primary desc, sort_order asc, created_at asc
   `;
 
-  for (const row of sourceRows) {
-    const sources = sourceMap.get(row.place_id) ?? [];
-    sources.push(mapSource(row));
-    sourceMap.set(row.place_id, sources);
+  return buildImageMetadataFromRows(imageRows);
+}
+
+async function getImageMapForPlaces(placeIds: string[]) {
+  const imageMap = new Map<string, PlaceImageRow[]>();
+  if (placeIds.length === 0) return imageMap;
+
+  const imageRows = await pg<PlaceImageRow[]>`
+    select * from place_images
+    where place_id = any(${placeIds}::uuid[])
+      and status = 'active'
+      and review_status <> 'rejected'
+    order by place_id, is_primary desc, sort_order asc, created_at asc
+  `;
+
+  for (const row of imageRows) {
+    const images = imageMap.get(row.place_id) ?? [];
+    images.push(row);
+    imageMap.set(row.place_id, images);
   }
 
-  return sourceMap;
+  return imageMap;
 }
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
@@ -445,6 +495,183 @@ async function insertSources(executor: SqlExecutor, placeId: string, sources: So
   }
 }
 
+type NormalizedImageInput = Required<Pick<PlaceImageInput, "url" | "status" | "reviewStatus" | "displayTier" | "isPrimary" | "sortOrder">> &
+  Omit<PlaceImageInput, "url" | "status" | "reviewStatus" | "displayTier" | "isPrimary" | "sortOrder">;
+
+function normalizeImageInputs(images: PlaceImageInput[] | undefined, imageUrls: string[] | undefined, sources: SourceInput[]) {
+  const fallbackSource = sources.find(isImageLikeSource) ?? sources[0] ?? null;
+  const byUrl = new Map<string, NormalizedImageInput>();
+  let index = 0;
+
+  for (const image of images ?? []) {
+    byUrl.set(image.url, normalizeImageInput(image, index, fallbackSource));
+    index += 1;
+  }
+
+  for (const url of imageUrls ?? []) {
+    if (byUrl.has(url)) continue;
+    byUrl.set(
+      url,
+      normalizeImageInput(
+        {
+          url,
+          sourceUrl: fallbackSource?.url,
+          sourceType: fallbackSource?.sourceType,
+          sourceTitle: fallbackSource?.title,
+          creditText: imageCreditText(fallbackSource, fallbackSource ? imageDisplayTier(fallbackSource) : "unknown"),
+          checkedAt: fallbackSource?.checkedAt
+        },
+        index,
+        fallbackSource
+      )
+    );
+    index += 1;
+  }
+
+  const normalized = Array.from(byUrl.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+  let primaryAssigned = false;
+  for (const image of normalized) {
+    if (!image.isPrimary || image.status !== "active" || image.reviewStatus === "rejected") continue;
+    if (!primaryAssigned) {
+      primaryAssigned = true;
+      continue;
+    }
+    image.isPrimary = false;
+  }
+  const firstActive = normalized.find((image) => image.status === "active" && image.reviewStatus !== "rejected");
+  if (firstActive && !normalized.some((image) => image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected")) {
+    firstActive.isPrimary = true;
+  }
+
+  return normalized;
+}
+
+function normalizeImageInput(image: PlaceImageInput, index: number, fallbackSource: SourceInput | null): NormalizedImageInput {
+  const sourceLike = {
+    sourceType: image.sourceType ?? fallbackSource?.sourceType ?? "unknown",
+    title: image.sourceTitle ?? fallbackSource?.title,
+    url: image.sourceUrl ?? fallbackSource?.url,
+    externalId: fallbackSource?.externalId,
+    summary: fallbackSource?.summary,
+    checkedAt: image.checkedAt ?? fallbackSource?.checkedAt
+  };
+  const displayTier = image.displayTier ?? imageDisplayTier(sourceLike);
+
+  return {
+    ...image,
+    sourceUrl: image.sourceUrl ?? fallbackSource?.url,
+    sourceType: image.sourceType ?? fallbackSource?.sourceType,
+    sourceTitle: image.sourceTitle ?? fallbackSource?.title,
+    creditText: image.creditText ?? imageCreditText(sourceLike, displayTier),
+    checkedAt: image.checkedAt ?? fallbackSource?.checkedAt,
+    visualFeatures: image.visualFeatures ?? [],
+    childSignals: image.childSignals ?? {},
+    displayTier,
+    status: image.status ?? "active",
+    reviewStatus: image.reviewStatus ?? "pending_review",
+    isPrimary: image.isPrimary ?? false,
+    sortOrder: image.sortOrder ?? index
+  };
+}
+
+async function insertImages(executor: SqlExecutor, placeId: string, images: NormalizedImageInput[]) {
+  if (images.length === 0) return;
+
+  if (images.some((image) => image.isPrimary && image.status === "active" && image.reviewStatus !== "rejected")) {
+    await executor`update place_images set is_primary = false, updated_at = now() where place_id = ${placeId}`;
+  }
+
+  for (const image of images) {
+    await executor`
+      insert into place_images (
+        place_id,
+        url,
+        source_id,
+        source_type,
+        source_title,
+        source_url,
+        credit_text,
+        alt_text,
+        description,
+        visual_features,
+        child_signals,
+        display_tier,
+        status,
+        review_status,
+        is_primary,
+        sort_order,
+        width,
+        height,
+        checked_at
+      )
+      values (
+        ${placeId},
+        ${image.url},
+        ${image.sourceId ?? null},
+        ${image.sourceType ?? null},
+        ${image.sourceTitle ?? null},
+        ${image.sourceUrl ?? null},
+        ${image.creditText ?? null},
+        ${image.altText ?? null},
+        ${image.description ?? null},
+        ${image.visualFeatures ?? []},
+        ${JSON.stringify(image.childSignals ?? {})}::jsonb,
+        ${image.displayTier},
+        ${image.status},
+        ${image.reviewStatus},
+        ${image.isPrimary},
+        ${image.sortOrder},
+        ${image.width ?? null},
+        ${image.height ?? null},
+        ${image.checkedAt ?? null}
+      )
+      on conflict (place_id, url) do update set
+        source_id = excluded.source_id,
+        source_type = excluded.source_type,
+        source_title = excluded.source_title,
+        source_url = excluded.source_url,
+        credit_text = excluded.credit_text,
+        alt_text = excluded.alt_text,
+        description = excluded.description,
+        visual_features = excluded.visual_features,
+        child_signals = excluded.child_signals,
+        display_tier = excluded.display_tier,
+        status = excluded.status,
+        review_status = excluded.review_status,
+        is_primary = excluded.is_primary,
+        sort_order = excluded.sort_order,
+        width = excluded.width,
+        height = excluded.height,
+        checked_at = excluded.checked_at,
+        updated_at = now()
+    `;
+  }
+}
+
+async function ensurePrimaryImage(executor: SqlExecutor, placeId: string) {
+  await executor`
+    update place_images
+    set is_primary = true, updated_at = now()
+    where id = (
+      select id
+      from place_images
+      where place_id = ${placeId}
+        and status = 'active'
+        and review_status <> 'rejected'
+      order by sort_order asc, created_at asc
+      limit 1
+    )
+      and not exists (
+        select 1
+        from place_images
+        where place_id = ${placeId}
+          and status = 'active'
+          and review_status <> 'rejected'
+          and is_primary
+      )
+  `;
+}
+
 async function createVersion(
   executor: SqlExecutor,
   placeId: string,
@@ -462,7 +689,23 @@ async function createVersion(
       ${action},
       ${actor},
       ${changeSummary ?? null},
-      (select to_jsonb(p) from places p where p.id = ${placeId}),
+      (
+        select jsonb_build_object(
+          'place',
+          to_jsonb(p) - 'image_urls',
+          'images',
+          coalesce(
+            (
+              select jsonb_agg(to_jsonb(i) order by i.is_primary desc, i.sort_order asc, i.created_at asc)
+              from place_images i
+              where i.place_id = ${placeId}
+            ),
+            '[]'::jsonb
+          )
+        )
+        from places p
+        where p.id = ${placeId}
+      ),
       ${JSON.stringify(sources)}::jsonb
     )
   `;
@@ -1352,7 +1595,6 @@ function mapPlace(row: PlaceRow) {
       kakaoPlaceId: row.kakao_place_id
     },
     externalRefs: row.external_refs,
-    imageUrls: row.image_urls,
     status: row.status,
     dataConfidence: row.data_confidence,
     recommendedAgeMonths: {
@@ -1387,6 +1629,52 @@ function mapPlace(row: PlaceRow) {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     lastVerifiedAt: row.last_verified_at ? toIso(row.last_verified_at) : null
+  };
+}
+
+function buildImageMetadataFromRows(imageRows: PlaceImageRow[]) {
+  const images = imageRows.map(mapPlaceImage);
+  return {
+    imageUrls: images.map((image) => image.url),
+    primaryImage: images.find((image) => image.isPrimary) ?? images[0] ?? null,
+    images
+  };
+}
+
+function mapPlaceImage(row: PlaceImageRow) {
+  return {
+    id: row.id,
+    placeId: row.place_id,
+    url: row.url,
+    sortOrder: row.sort_order,
+    isPrimary: row.is_primary,
+    sourceId: row.source_id,
+    sourceUrl: row.source_url,
+    sourceType: row.source_type,
+    sourceTitle: row.source_title,
+    displayTier: row.display_tier,
+    creditText: row.credit_text ?? imageCreditText(imageRowSource(row), row.display_tier),
+    altText: row.alt_text,
+    description: row.description,
+    visualFeatures: row.visual_features,
+    childSignals: row.child_signals,
+    width: row.width,
+    height: row.height,
+    checkedAt: row.checked_at ? toIso(row.checked_at) : null,
+    status: row.status,
+    reviewStatus: row.review_status,
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+function imageRowSource(row: PlaceImageRow): ImageMetadataSource {
+  return {
+    id: row.source_id,
+    sourceType: row.source_type ?? "unknown",
+    title: row.source_title,
+    url: row.source_url,
+    checkedAt: row.checked_at ? toIso(row.checked_at) : null
   };
 }
 

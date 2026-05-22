@@ -64,4 +64,33 @@ describe("place schemas", () => {
     expect(append.sourceMode).toBe("append");
     expect(replace.sourceMode).toBe("replace");
   });
+
+  it("accepts structured image entities for visual audit metadata", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "official_site", url: "https://example.com/place" }],
+      imageMode: "replace",
+      images: [
+        {
+          url: "https://example.com/place.jpg",
+          sourceUrl: "https://example.com/place",
+          sourceType: "official_image_source",
+          sourceTitle: "공식 대표 사진",
+          description: "실내 놀이 공간과 낮은 미끄럼틀이 보이는 대표 사진.",
+          visualFeatures: ["indoor_play", "slide"],
+          childSignals: { slide: true, swing: false },
+          displayTier: "official",
+          reviewStatus: "approved",
+          isPrimary: true
+        }
+      ]
+    });
+
+    expect(result.imageMode).toBe("replace");
+    expect(result.images?.[0]).toMatchObject({
+      displayTier: "official",
+      reviewStatus: "approved",
+      visualFeatures: ["indoor_play", "slide"],
+      childSignals: { slide: true, swing: false }
+    });
+  });
 });

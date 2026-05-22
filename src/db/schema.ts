@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -42,10 +43,6 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    imageUrls: text("image_urls")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
     status: text("status").notNull().default("active"),
     dataConfidence: text("data_confidence").notNull().default("unknown"),
     minRecommendedAgeMonths: integer("min_recommended_age_months"),
@@ -100,6 +97,48 @@ export const placeSources = pgTable(
   })
 );
 
+export const placeImages = pgTable(
+  "place_images",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    sourceId: uuid("source_id").references(() => placeSources.id, { onDelete: "set null" }),
+    sourceType: text("source_type"),
+    sourceTitle: text("source_title"),
+    sourceUrl: text("source_url"),
+    creditText: text("credit_text"),
+    altText: text("alt_text"),
+    description: text("description"),
+    visualFeatures: text("visual_features")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    childSignals: jsonb("child_signals")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    displayTier: text("display_tier").notNull().default("unknown"),
+    status: text("status").notNull().default("active"),
+    reviewStatus: text("review_status").notNull().default("pending_review"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    width: integer("width"),
+    height: integer("height"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    placeIdx: index("place_images_place_id_idx").on(table.placeId),
+    sourceIdx: index("place_images_source_id_idx").on(table.sourceId),
+    reviewStatusIdx: index("place_images_review_status_idx").on(table.reviewStatus),
+    placeUrlUnique: uniqueIndex("place_images_place_url_unique").on(table.placeId, table.url)
+  })
+);
+
 export const placeVersions = pgTable(
   "place_versions",
   {
@@ -124,5 +163,5 @@ export const placeVersions = pgTable(
 export type Place = typeof places.$inferSelect;
 export type NewPlace = typeof places.$inferInsert;
 export type PlaceSource = typeof placeSources.$inferSelect;
+export type PlaceImage = typeof placeImages.$inferSelect;
 export type PlaceVersion = typeof placeVersions.$inferSelect;
-

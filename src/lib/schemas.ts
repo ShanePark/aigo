@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const triStateSchema = z.enum(["yes", "no", "partial", "unknown"]);
 export const indoorTypeSchema = z.enum(["indoor", "outdoor", "mixed", "unknown"]);
+export const imageDisplayTierSchema = z.enum(["official", "public_agency", "public_listing", "rights_unclear", "unknown"]);
+export const imageStatusSchema = z.enum(["active", "archived"]);
+export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "needs_review", "rejected"]);
 
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
@@ -18,6 +21,27 @@ export const sourceSchema = z
   .refine((source) => Boolean(source.url || source.externalId), {
     message: "source requires either url or externalId"
   });
+
+export const placeImageInputSchema = z.object({
+  url: urlString,
+  sourceId: z.string().uuid().optional(),
+  sourceUrl: urlString.optional(),
+  sourceType: z.string().trim().optional(),
+  sourceTitle: z.string().trim().optional(),
+  creditText: z.string().trim().max(500).optional(),
+  altText: z.string().trim().max(500).optional(),
+  description: z.string().trim().max(4000).optional(),
+  visualFeatures: z.array(nonEmptyString).max(40).optional(),
+  childSignals: z.record(z.string(), z.unknown()).optional(),
+  displayTier: imageDisplayTierSchema.optional(),
+  status: imageStatusSchema.optional(),
+  reviewStatus: imageReviewStatusSchema.optional(),
+  isPrimary: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(1000).optional(),
+  width: z.number().int().positive().max(20000).optional(),
+  height: z.number().int().positive().max(20000).optional(),
+  checkedAt: z.string().datetime({ offset: true }).optional()
+});
 
 const writablePlaceFields = {
   name: nonEmptyString.optional(),
@@ -39,6 +63,7 @@ const writablePlaceFields = {
   kakaoPlaceId: z.string().trim().optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   imageUrls: z.array(urlString).max(20).optional(),
+  images: z.array(placeImageInputSchema).max(30).optional(),
   status: z.enum(["active", "temporarily_closed", "closed", "draft", "needs_review"]).optional(),
   dataConfidence: z
     .enum(["official_verified", "operator_curated", "agent_collected", "user_reported", "needs_check", "unknown"])
@@ -97,6 +122,7 @@ export const updatePlaceSchema = z
     ...writablePlaceFields,
     sources: z.array(sourceSchema).min(1),
     sourceMode: z.enum(["append", "replace"]).default("append"),
+    imageMode: z.enum(["append", "replace"]).default("append"),
     actor: z.string().trim().default("agent"),
     changeSummary: z.string().trim().max(2000).optional()
   })
@@ -165,6 +191,7 @@ export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type SearchPlacesInput = z.infer<typeof searchPlacesSchema>;
 export type DuplicatePlaceInput = z.infer<typeof duplicatePlaceSchema>;
 export type SourceInput = z.infer<typeof sourceSchema>;
+export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 
 function normalizeSearchAliases(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
