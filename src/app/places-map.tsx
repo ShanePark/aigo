@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type MutableRefObject } from "react";
-import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap } from "leaflet";
+import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 export type MapPlace = {
   category: string;
@@ -48,7 +48,9 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
+  const placeMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
   const initializedViewKeyRef = useRef<string | null>(null);
+  const hoveredCardPlaceIdRef = useRef<string | null>(null);
   const viewKeyRef = useRef(mapViewKey(origin));
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef);
       const markers = getOrCreateMarkerLayer(L, map, markersRef);
       markers.clearLayers();
+      placeMarkersRef.current.clear();
 
       if (origin) {
         L.marker([origin.lat, origin.lng], {
@@ -105,6 +108,7 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
           window.location.href = place.href;
         });
         marker.addTo(markers);
+        placeMarkersRef.current.set(place.placeId, marker);
       });
 
       if (shouldApplyMapView) {
@@ -126,6 +130,47 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
       disposed = true;
     };
   }, [origin, places]);
+
+  useEffect(() => {
+    function handleCardEnter(event: Event) {
+      const card = resultCardFromEvent(event);
+      if (!card) return;
+
+      const placeId = card.dataset.mapPlaceId;
+      const lat = Number(card.dataset.mapPlaceLat);
+      const lng = Number(card.dataset.mapPlaceLng);
+      if (!placeId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      hoveredCardPlaceIdRef.current = placeId;
+      focusMapPlace(mapRef.current, placeMarkersRef.current, { lat, lng, placeId });
+    }
+
+    function handleCardLeave(event: Event) {
+      const card = resultCardFromEvent(event);
+      if (!card) return;
+
+      const relatedTarget = relatedNodeFromEvent(event);
+      if (relatedTarget && card.contains(relatedTarget)) return;
+
+      const placeId = card.dataset.mapPlaceId;
+      if (placeId && hoveredCardPlaceIdRef.current === placeId) {
+        hoveredCardPlaceIdRef.current = null;
+        clearMapMarkerHighlight(placeMarkersRef.current, placeId);
+      }
+    }
+
+    document.addEventListener("pointerover", handleCardEnter);
+    document.addEventListener("focusin", handleCardEnter);
+    document.addEventListener("pointerout", handleCardLeave);
+    document.addEventListener("focusout", handleCardLeave);
+
+    return () => {
+      document.removeEventListener("pointerover", handleCardEnter);
+      document.removeEventListener("focusin", handleCardEnter);
+      document.removeEventListener("pointerout", handleCardLeave);
+      document.removeEventListener("focusout", handleCardLeave);
+    };
+  }, []);
 
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
@@ -218,6 +263,32 @@ function revealResultCard(placeId: string) {
   highlightedResultTimer = window.setTimeout(() => {
     card.classList.remove("is-map-highlighted");
   }, 2200);
+}
+
+function resultCardFromEvent(event: Event) {
+  if (!(event.target instanceof Element)) return null;
+  return event.target.closest<HTMLElement>("[data-map-place-card]");
+}
+
+function relatedNodeFromEvent(event: Event) {
+  if (!("relatedTarget" in event)) return null;
+  return event.relatedTarget instanceof Node ? event.relatedTarget : null;
+}
+
+function focusMapPlace(map: LeafletMap | null, markers: Map<string, LeafletMarker>, place: { lat: number; lng: number; placeId: string }) {
+  if (!map) return;
+
+  map.panTo([place.lat, place.lng], { animate: true, duration: 0.45 });
+  clearMapMarkerHighlight(markers);
+  markers.get(place.placeId)?.getElement()?.classList.add("is-hovered");
+}
+
+function clearMapMarkerHighlight(markers: Map<string, LeafletMarker>, placeId?: string) {
+  const markerElements = placeId ? [markers.get(placeId)?.getElement()] : Array.from(markers.values()).map((marker) => marker.getElement());
+
+  markerElements.forEach((element) => {
+    element?.classList.remove("is-hovered");
+  });
 }
 
 function boundsForLeaflet(origin: MapOrigin, places: MapPlace[]): LatLngBoundsExpression | null {
