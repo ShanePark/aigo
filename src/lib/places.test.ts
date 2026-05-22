@@ -12,6 +12,7 @@ import {
   buildSearchCoursePlan,
   buildSearchPreferenceSemantics,
   buildSearchSourceSummary,
+  buildStructuredDataGaps,
   categoryClauseForKeywordTerm,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
@@ -610,6 +611,77 @@ describe("place search helpers", () => {
     });
   });
 
+  it("summarizes source-backed family logistics data gaps", () => {
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "official_site",
+        title: "공식 운영 및 편의시설 안내",
+        summary: "공식 페이지가 운영시간, 수유실, 유모차 동선, 예약 정보를 안내한다.",
+        checked_at: "2026-05-22T06:30:00.000Z",
+        created_at: "2026-05-22T06:45:00.000Z"
+      }
+    ]);
+    const visit = {
+      reservationRequired: "unknown",
+      walkInAvailable: "yes",
+      sessionBased: "no",
+      sameDayAvailabilityKnown: "unknown"
+    } as const;
+
+    expect(
+      buildStructuredDataGaps(
+        {
+          facilities: {
+            strollerFriendly: "unknown",
+            parkingAvailable: "partial",
+            nursingRoom: "unknown",
+            diaperChangingTable: "unknown",
+            kidsToilet: "unknown",
+            elevator: "yes",
+            babyChair: "unknown",
+            foodAllowed: "no"
+          },
+          visit
+        },
+        sourceSummary,
+        buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)
+      )
+    ).toEqual([
+      "strollerFriendly",
+      "nursingRoom",
+      "diaperChangingTable",
+      "kidsToilet",
+      "babyChair",
+      "reservationRequired",
+      "sameDayAvailabilityKnown",
+      "openingHours"
+    ]);
+
+    expect(
+      buildStructuredDataGaps(
+        {
+          facilities: {
+            strollerFriendly: "unknown",
+            parkingAvailable: "unknown",
+            nursingRoom: "unknown",
+            diaperChangingTable: "unknown",
+            kidsToilet: "unknown",
+            elevator: "unknown",
+            babyChair: "unknown",
+            foodAllowed: "unknown"
+          },
+          visit: {
+            reservationRequired: "unknown",
+            walkInAvailable: "unknown",
+            sessionBased: "unknown",
+            sameDayAvailabilityKnown: "unknown"
+          }
+        },
+        buildSearchSourceSummary([])
+      )
+    ).toEqual([]);
+  });
+
   it("describes search preferences as soft ranking signals", () => {
     expect(
       buildSearchPreferenceSemantics({
@@ -698,6 +770,7 @@ describe("place search helpers", () => {
         negativeSignals: [],
         missingSignals: ["nursingRoom", "diaperChangingTable", "babyChair"]
       },
+      structuredDataGaps: ["nursingRoom", "diaperChangingTable"],
       openingHoursSummary: {
         dataStatus: "structured",
         confidenceLevel: "high",
@@ -708,7 +781,8 @@ describe("place search helpers", () => {
         sourceTypes: ["official_site"],
         latestCheckedAt: "2026-05-22T00:00:00.000Z",
         freshnessStatus: "checked_today",
-        hasStructuredData: true
+        hasStructuredData: true,
+        structuredDataGaps: []
       },
       facilities: {
         indoorType: "indoor",
@@ -771,6 +845,7 @@ describe("place search helpers", () => {
       infantLogistics: {
         supportLevel: "moderate"
       },
+      structuredDataGaps: ["nursingRoom", "diaperChangingTable"],
       openingHoursSummary: {
         confidenceLevel: "high"
       },

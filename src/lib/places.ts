@@ -389,13 +389,15 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
   const relatedPlaces = await getRelatedPlaces(placeId, executor);
   const place = mapPlace(rows[0]);
   const sourceSummary = buildSearchSourceSummary(sourceRows);
+  const openingHoursSummary = buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(place.openingHours), sourceSummary, place.visit);
 
   return {
     ...place,
     ...imageMetadata,
     relatedPlaces,
     sourceSummary,
-    openingHoursSummary: buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(place.openingHours), sourceSummary, place.visit),
+    structuredDataGaps: buildStructuredDataGaps(place, sourceSummary, openingHoursSummary),
+    openingHoursSummary,
     sources,
     versions: latestVersions.map(mapVersionSummary)
   };
@@ -491,13 +493,15 @@ export async function searchPlaces(input: SearchPlacesInput) {
     const imageRows = imageMap.get(item.placeId) ?? [];
     const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
     const { openingHoursData, region: _region, ...publicItem } = item;
+    const openingHoursSummary = buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit);
     void _region;
     return {
       ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
       imageHealth: buildSearchImageHealth(imageRows),
       sourceSummary,
-      openingHoursSummary: buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit)
+      structuredDataGaps: buildStructuredDataGaps(item, sourceSummary, openingHoursSummary),
+      openingHoursSummary
     };
   });
 
@@ -638,6 +642,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     pricing: item.pricing,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
+    structuredDataGaps: item.structuredDataGaps,
     openingHoursSummary: item.openingHoursSummary,
     facilities: {
       indoorType: item.facilities.indoorType,
@@ -3279,6 +3284,48 @@ function openingHoursStructuredDataGaps(dataSignal: OpeningHoursDataSignal, visi
   }
 
   return gaps;
+}
+
+const familyLogisticsStructuredDataGapKeys = [
+  "strollerFriendly",
+  "parkingAvailable",
+  "nursingRoom",
+  "diaperChangingTable",
+  "kidsToilet",
+  "elevator",
+  "babyChair",
+  "foodAllowed"
+] as const;
+
+const visitStructuredDataGapKeys = ["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"] as const;
+
+type StructuredDataGapPlace = {
+  facilities: Pick<SearchFacilities, (typeof familyLogisticsStructuredDataGapKeys)[number]>;
+  visit: Pick<ReturnType<typeof mapPlace>["visit"], (typeof visitStructuredDataGapKeys)[number]>;
+};
+
+export function buildStructuredDataGaps(
+  place: StructuredDataGapPlace,
+  sourceSummary: Pick<SearchSourceSummary, "sourceCount">,
+  openingHoursSummary?: Pick<ReturnType<typeof buildSearchOpeningHoursSummary>, "structuredDataGaps">
+) {
+  if (sourceSummary.sourceCount === 0) return [];
+
+  const gaps = new Set<string>();
+
+  for (const field of familyLogisticsStructuredDataGapKeys) {
+    if (place.facilities[field] === "unknown") gaps.add(field);
+  }
+
+  for (const field of visitStructuredDataGapKeys) {
+    if (place.visit[field] === "unknown") gaps.add(field);
+  }
+
+  for (const field of openingHoursSummary?.structuredDataGaps ?? []) {
+    gaps.add(field);
+  }
+
+  return Array.from(gaps);
 }
 
 function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceEvidence: SearchSourceSummary["openingHoursEvidence"]) {
