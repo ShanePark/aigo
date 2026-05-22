@@ -45,7 +45,7 @@ describe("scorePlace", () => {
 
     expect(result.reasonCodes).toContain("AGE_HINT_PARTIAL");
     expect(result.reasonCodes).toContain("STROLLER_PARTIAL");
-    expect(result.score).toBeGreaterThan(70);
+    expect(result.score).toBeGreaterThan(45);
   });
 
   it("does not zero out places when age mismatches and facilities are unknown", () => {
@@ -121,6 +121,71 @@ describe("scorePlace", () => {
     expect(destination.score).toBeGreaterThan(nearby.score);
     expect(destination.reasonCodes).toContain("CONTEXT_DAY_TRIP_DISTANCE");
     expect(nearby.reasonCodes).toContain("CONTEXT_DAY_TRIP_TOO_CLOSE");
+  });
+
+  it("does not let nearby public indoor facilities dominate day-trip nature intent", () => {
+    const nearbyPublicFacility = scorePlace(
+      {
+        primaryCategory: "experience_center",
+        tags: ["children_experience"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "yes",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 10,
+        scoring: {
+          placeScore: 8.5,
+          placeScoreRationale: "강한 공공 실내시설이지만 근교 자연 나들이 목적지는 아님.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 8.8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T13:50:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "dayTrip" }
+    );
+    const fartherPark = scorePlace(
+      {
+        primaryCategory: "park",
+        tags: ["주말당일"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 24,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "outdoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 30,
+        scoring: {
+          placeScore: 7.2,
+          placeScoreRationale: "근교 자연 나들이 목적지.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 7.4,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T13:50:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "dayTrip" }
+    );
+
+    expect(fartherPark.score).toBeGreaterThan(nearbyPublicFacility.score);
+    expect(nearbyPublicFacility.reasonCodes).toContain("CONTEXT_DAY_TRIP_TOO_CLOSE");
+    expect(fartherPark.reasonCodes).toContain("CONTEXT_DAY_TRIP_DISTANCE");
   });
 
   it("treats playroom restaurants as useful after-daycare and half-day meal support", () => {
@@ -322,6 +387,53 @@ describe("scorePlace", () => {
     expect(high.scoreBreakdown.externalEvidence).toBeGreaterThan(0);
   });
 
+  it("prevents unscored places from saturating the ranking", () => {
+    const strongLogistics = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "yes",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 1,
+      visit: {
+        averageStayMinutes: 90,
+        parentEffortLevel: 1,
+        childEngagementLevel: 5,
+        rainyDayScore: 5,
+        hotDayScore: 5,
+        coldDayScore: 5
+      }
+    };
+    const unscored = scorePlace(strongLogistics, { ...baseInput, visitContext: "afterDaycare" });
+    const scored = scorePlace(
+      {
+        ...strongLogistics,
+        scoring: {
+          placeScore: 9,
+          placeScoreRationale: "강한 출처 기반 장소 점수.",
+          externalRatingScore: 8.5,
+          externalReviewCount: 200,
+          searchEvidenceScore: 8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "afterDaycare" }
+    );
+
+    expect(unscored.score).toBeLessThanOrEqual(88);
+    expect(scored.score).toBeGreaterThan(unscored.score);
+  });
+
   it("penalizes closed places strongly for nearby-now searches", () => {
     const shared = {
       primaryCategory: "kids_cafe",
@@ -347,5 +459,100 @@ describe("scorePlace", () => {
     expect(open.reasonCodes).toContain("OPEN_NOW");
     expect(closed.reasonCodes).toContain("CLOSED_NOW");
     expect(closed.scoreBreakdown.openingHours).toBeLessThan(0);
+  });
+
+  it("penalizes unknown hours for immediate visit searches", () => {
+    const shared = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 2
+    };
+    const open = scorePlace({ ...shared, openingHours: { openNow: true } }, { ...baseInput, visitContext: "nearbyNow" });
+    const unknown = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" });
+
+    expect(open.score).toBeGreaterThan(unknown.score);
+    expect(unknown.reasonCodes).toContain("OPENING_HOURS_UNKNOWN");
+    expect(unknown.scoreBreakdown.openingHours).toBeLessThan(0);
+    expect(unknown.score).toBeLessThanOrEqual(82);
+  });
+
+  it("prefers child-primary places for immediate kids intent", () => {
+    const input = {
+      ...baseInput,
+      query: "kids",
+      visitContext: "nearbyNow" as const,
+      preferences: {
+        indoorTypes: ["indoor" as const],
+        strollerFriendly: true,
+        nursingRoom: true,
+        diaperChangingTable: true,
+        elevator: true
+      }
+    };
+    const kidsCafe = scorePlace(
+      {
+        primaryCategory: "kids_cafe",
+        tags: ["kids"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 84,
+        indoorType: "indoor",
+        parkingAvailable: "unknown",
+        strollerFriendly: "yes",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 2
+      },
+      input
+    );
+    const genericLibrary = scorePlace(
+      {
+        primaryCategory: "library",
+        tags: ["library"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "yes",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 2,
+        scoring: {
+          placeScore: 8.8,
+          placeScoreRationale: "객관적 가족 편의는 좋지만 즉시 아이 활동 목적지는 아님.",
+          externalRatingScore: 8.2,
+          externalReviewCount: 250,
+          searchEvidenceScore: 8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      input
+    );
+
+    expect(kidsCafe.score).toBeGreaterThan(genericLibrary.score);
+    expect(kidsCafe.reasonCodes).toContain("CONTEXT_NEARBY_NOW_KID_PRIMARY");
+    expect(genericLibrary.reasonCodes).toContain("CONTEXT_NEARBY_NOW_GENERIC_FAMILY_SPACE");
   });
 });

@@ -94,6 +94,8 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   CONTEXT_AFTER_DAYCARE_GENERIC_FAMILY_SPACE: { labelKo: "아이 활동은 약함", group: "context", tone: "partial", basePriority: 28 },
   CONTEXT_NEARBY_NOW_CLOSE: { labelKo: "지금 가까움", group: "context", tone: "positive", basePriority: 30 },
   CONTEXT_NEARBY_NOW_FAR: { labelKo: "지금 가기엔 멂", group: "context", tone: "negative", basePriority: 15 },
+  CONTEXT_NEARBY_NOW_KID_PRIMARY: { labelKo: "지금 아이 활동 중심", group: "context", tone: "positive", basePriority: 24 },
+  CONTEXT_NEARBY_NOW_GENERIC_FAMILY_SPACE: { labelKo: "즉시 아이 활동은 약함", group: "context", tone: "partial", basePriority: 28 },
   CONTEXT_RAINY_DAY_INDOOR: { labelKo: "비 오는 날 실내", group: "context", tone: "positive", basePriority: 25 },
   CONTEXT_RAINY_DAY_MIXED: { labelKo: "실내외 혼합", group: "context", tone: "partial", basePriority: 27 },
   CONTEXT_RAINY_DAY_OUTDOOR: { labelKo: "비에는 불리", group: "context", tone: "negative", basePriority: 14 },

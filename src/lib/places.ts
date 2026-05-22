@@ -325,6 +325,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput);
     const querySignal = queryMatchSignal(place, normalizedInput.query);
+    const score = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
 
     return {
       placeId: place.id,
@@ -337,11 +338,11 @@ export async function searchPlaces(input: SearchPlacesInput) {
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
-      score: clampScore(scoredPlace.score + querySignal.delta),
+      score,
       scoreBreakdown: {
         ...scoredPlace.scoreBreakdown,
         queryMatch: querySignal.delta,
-        total: clampScore(scoredPlace.score + querySignal.delta)
+        total: score
       },
       reasonCodes: mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes),
       reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), normalizedInput),
@@ -396,6 +397,13 @@ export async function searchPlaces(input: SearchPlacesInput) {
       }
     }
   };
+}
+
+function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPlace>["scoring"]) {
+  if (scoring.placeScore === null && scoring.externalRatingScore === null && scoring.searchEvidenceScore === null) return Math.min(value, 88);
+  if (scoring.placeScore === null) return Math.min(value, 92);
+  if (scoring.externalRatingScore === null) return Math.min(value, 96);
+  return value;
 }
 
 export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {

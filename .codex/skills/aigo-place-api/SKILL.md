@@ -162,6 +162,8 @@ Suggested `placeScore` rubric for the current family context:
 
 Apply caps before assigning a high score: closed places should stay very low; temporarily closed places should stay conservative; places that fail the Family-Fit Gate should not score high unless the user-signal exception is explicit; severe unresolved safety concerns should cap the score even when reviews are positive.
 
+After changing scoring logic or scoring data, run `pnpm tsx scripts/audit-scoring.ts --limit=5`. Compare the ranked places, `scoreBreakdown`, and `Gaps` column against the intended family scenario. If many unscored places saturate near the top, tune weights or add source-backed `placeScore` evidence before treating the score as reliable.
+
 ## Review Link Enrichment
 
 For lodging and other review-sensitive categories, collect public review entry points that parents can click from the detail page. Store them in `externalRefs.reviewLinks` as an array of objects:

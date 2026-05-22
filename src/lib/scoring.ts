@@ -64,15 +64,15 @@ type ScoreOptions = {
   now?: Date;
 };
 
-const baselineScore = 34;
+const baselineScore = 24;
 
 const confidenceScore: Record<string, number> = {
-  official_verified: 4,
-  operator_curated: 3,
-  agent_collected: 2,
-  user_reported: 1,
-  unknown: 0,
-  needs_check: -3
+  official_verified: 3,
+  operator_curated: 2,
+  agent_collected: 1,
+  user_reported: 0,
+  unknown: -1,
+  needs_check: -4
 };
 
 export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, options: ScoreOptions = {}) {
@@ -91,19 +91,19 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
 
   if (input.origin && typeof place.distanceKm === "number") {
     if (place.distanceKm <= 3) {
-      addScore("distance", 14);
-      reasonCodes.add("DISTANCE_NEAR");
-    } else if (place.distanceKm <= 8) {
       addScore("distance", 11);
       reasonCodes.add("DISTANCE_NEAR");
-    } else if (place.distanceKm <= 15) {
+    } else if (place.distanceKm <= 8) {
       addScore("distance", 8);
+      reasonCodes.add("DISTANCE_NEAR");
+    } else if (place.distanceKm <= 15) {
+      addScore("distance", 5);
       reasonCodes.add("DISTANCE_REASONABLE");
     } else if (place.distanceKm <= 50) {
-      addScore("distance", 4);
+      addScore("distance", 2);
       reasonCodes.add("DISTANCE_DAY_TRIP");
     } else {
-      addScore("distance", -8);
+      addScore("distance", -10);
       reasonCodes.add("DISTANCE_FAR");
     }
   }
@@ -111,14 +111,14 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
   applyVisitContextSignal(place, input, reasonCodes, (delta) => addScore("context", delta));
 
   if (input.primaryCategories?.includes(place.primaryCategory)) {
-    addScore("match", 8);
+    addScore("match", 6);
     reasonCodes.add("CATEGORY_MATCH");
   }
 
   const requestedTags = new Set(input.tags ?? []);
   const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
   if (matchedTags.length > 0) {
-    addScore("match", Math.min(6, matchedTags.length * 2));
+    addScore("match", Math.min(4, matchedTags.length * 1.5));
     reasonCodes.add("TAG_MATCH");
   }
 
@@ -127,12 +127,12 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
   const indoorTypes = input.preferences?.indoorTypes;
   if (indoorTypes?.length) {
     if (indoorTypes.includes(place.indoorType as never)) {
-      addScore("preferences", 8);
+      addScore("preferences", 5);
       reasonCodes.add("INDOOR_TYPE_MATCH");
     } else if (place.indoorType === "unknown") {
       reasonCodes.add("INDOOR_TYPE_UNKNOWN");
     } else {
-      addScore("preferences", -3);
+      addScore("preferences", -4);
       reasonCodes.add("INDOOR_TYPE_MISMATCH");
     }
   }
@@ -156,7 +156,7 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
   if (confidenceDelta > 0) reasonCodes.add("DATA_CONFIDENCE_POSITIVE");
   if (confidenceDelta < 0) reasonCodes.add("DATA_CONFIDENCE_LOW");
 
-  const finalScore = clampScore(score);
+  const finalScore = clampScore(applyEvidenceCaps(score, place, input, options.now ?? new Date()));
   return {
     score: finalScore,
     reasonCodes: Array.from(reasonCodes).sort(),
@@ -205,7 +205,7 @@ function applyPlaceQualitySignal(
 ) {
   const placeScore = normalizeZeroToTen(place.scoring?.placeScore);
   if (placeScore !== null) {
-    addPlaceQuality((placeScore - 5) * 4);
+    addPlaceQuality((placeScore - 5) * 3.2);
     if (placeScore >= 8) reasonCodes.add("PLACE_SCORE_HIGH");
     else if (placeScore >= 6.5) reasonCodes.add("PLACE_SCORE_GOOD");
     else if (placeScore <= 3.5) reasonCodes.add("PLACE_SCORE_LOW");
@@ -214,14 +214,14 @@ function applyPlaceQualitySignal(
   const externalRatingScore = normalizeZeroToTen(place.scoring?.externalRatingScore);
   if (externalRatingScore !== null) {
     const reviewWeight = reviewCountWeight(place.scoring?.externalReviewCount);
-    addExternalEvidence((externalRatingScore - 5) * 2.2 * reviewWeight);
+    addExternalEvidence((externalRatingScore - 5) * 1.8 * reviewWeight);
     if (externalRatingScore >= 7.5) reasonCodes.add("EXTERNAL_REVIEW_POSITIVE");
     else if (externalRatingScore <= 4) reasonCodes.add("EXTERNAL_REVIEW_NEGATIVE");
   }
 
   const searchEvidenceScore = normalizeZeroToTen(place.scoring?.searchEvidenceScore);
   if (searchEvidenceScore !== null) {
-    addExternalEvidence((searchEvidenceScore - 5) * 1.6);
+    addExternalEvidence((searchEvidenceScore - 5) * 1.1);
     if (searchEvidenceScore >= 7.5) reasonCodes.add("SEARCH_EVIDENCE_STRONG");
     else if (searchEvidenceScore <= 4) reasonCodes.add("SEARCH_EVIDENCE_WEAK");
   }
@@ -235,6 +235,27 @@ function reviewCountWeight(reviewCount: number | null | undefined) {
 function normalizeZeroToTen(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return Math.max(0, Math.min(10, value));
+}
+
+function applyEvidenceCaps(value: number, place: ScoreablePlace, input: SearchPlacesInput, now: Date) {
+  const placeScore = normalizeZeroToTen(place.scoring?.placeScore);
+  const externalRatingScore = normalizeZeroToTen(place.scoring?.externalRatingScore);
+  const searchEvidenceScore = normalizeZeroToTen(place.scoring?.searchEvidenceScore);
+  let cap = Number.POSITIVE_INFINITY;
+
+  if (placeScore === null && externalRatingScore === null && searchEvidenceScore === null) cap = Math.min(cap, 88);
+  else if (placeScore === null) cap = Math.min(cap, 92);
+  else if (externalRatingScore === null) cap = Math.min(cap, 96);
+
+  if (isImmediateVisitContext(input) && openingHoursStatus(place.openingHours, now).state === "unknown") {
+    cap = Math.min(cap, input.visitContext === "nearbyNow" ? 82 : 92);
+  }
+
+  if (isImmediateKidActivityIntent(input) && isGenericFamilySpace(place.primaryCategory) && !isKidPrimaryPlace(place.primaryCategory, new Set(place.tags))) {
+    cap = Math.min(cap, 69);
+  }
+
+  return Number.isFinite(cap) ? Math.min(value, cap) : value;
 }
 
 function applyVisitContextSignal(
@@ -252,19 +273,19 @@ function applyVisitContextSignal(
 
   if (input.visitContext === "afterDaycare") {
     if (distance <= 8) {
-      addScore(8);
+      addScore(5);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_NEAR");
     }
     if (indoor === "indoor" || indoor === "mixed") {
-      addScore(4);
+      addScore(3);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
     if (["kids_cafe", "indoor_playground", "toy_library", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
-      addScore(5);
+      addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
     if (isKidPrimaryPlace(category, tags)) {
-      addScore(4);
+      addScore(3);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_KID_PRIMARY");
     } else if (category === "family_cafe") {
       addScore(-3);
@@ -274,72 +295,82 @@ function applyVisitContextSignal(
 
   if (input.visitContext === "nearbyNow") {
     if (distance <= 5) {
-      addScore(10);
+      addScore(7);
       reasonCodes.add("CONTEXT_NEARBY_NOW_CLOSE");
     } else if (distance > 15) {
       addScore(-8);
       reasonCodes.add("CONTEXT_NEARBY_NOW_FAR");
     }
+
+    if (isImmediateKidActivityIntent(input)) {
+      if (isKidPrimaryPlace(category, tags)) {
+        addScore(8);
+        reasonCodes.add("CONTEXT_NEARBY_NOW_KID_PRIMARY");
+      } else if (isGenericFamilySpace(category)) {
+        addScore(-8);
+        reasonCodes.add("CONTEXT_NEARBY_NOW_GENERIC_FAMILY_SPACE");
+      }
+    }
   }
 
   if (input.visitContext === "rainyDay") {
     if (indoor === "indoor") {
-      addScore(10);
+      addScore(7);
       reasonCodes.add("CONTEXT_RAINY_DAY_INDOOR");
     } else if (indoor === "mixed") {
-      addScore(5);
+      addScore(3);
       reasonCodes.add("CONTEXT_RAINY_DAY_MIXED");
     } else if (indoor === "outdoor") {
-      addScore(-9);
+      addScore(-10);
       reasonCodes.add("CONTEXT_RAINY_DAY_OUTDOOR");
     }
     if (distance > 20) {
-      addScore(-4);
+      addScore(-5);
       reasonCodes.add("CONTEXT_RAINY_DAY_FAR");
     }
     if (isKidPrimaryPlace(category, tags) && (indoor === "indoor" || indoor === "mixed")) {
-      addScore(3);
+      addScore(2);
       reasonCodes.add("CONTEXT_RAINY_DAY_KID_PRIMARY");
     }
   }
 
   if (input.visitContext === "weekendHalfDay") {
-    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "shopping_mall"].includes(category)) {
-      addScore(7);
+    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "shopping_mall", "accommodation"].includes(category)) {
+      addScore(5);
       reasonCodes.add("CONTEXT_HALFDAY_DESTINATION");
     }
     if (category === "family_restaurant" && tags.has("놀이방식당")) {
-      addScore(4);
+      addScore(3);
       reasonCodes.add("CONTEXT_HALFDAY_MEAL_SUPPORT");
     }
     if (isKidPrimaryPlace(category, tags)) {
-      addScore(4);
+      addScore(3);
       reasonCodes.add("CONTEXT_HALFDAY_KID_PRIMARY");
     }
     if (category === "park" && indoor === "outdoor" && (place.nursingRoom === "unknown" || place.diaperChangingTable === "unknown")) {
-      addScore(-3);
+      addScore(-5);
       reasonCodes.add("CONTEXT_HALFDAY_INFANT_AMENITY_GAP");
     }
     if (distance >= 5 && distance <= 45) {
-      addScore(4);
+      addScore(3);
       reasonCodes.add("CONTEXT_HALFDAY_DISTANCE");
     }
   }
 
   if (input.visitContext === "dayTrip") {
     if (distance >= 15 && distance <= 80) {
-      addScore(12);
+      addScore(8);
       reasonCodes.add("CONTEXT_DAY_TRIP_DISTANCE");
-    } else if (distance < 8) {
-      addScore(-9);
+    } else if (distance < 15) {
+      addScore(-18);
       reasonCodes.add("CONTEXT_DAY_TRIP_TOO_CLOSE");
     }
-    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park"].includes(category)) {
-      addScore(7);
+    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "accommodation"].includes(category)) {
+      addScore(5);
       reasonCodes.add("CONTEXT_DAY_TRIP_DESTINATION");
     }
     if (tags.has("주말당일") || tags.has("세종") || tags.has("청주") || tags.has("공주")) {
-      addScore(6);
+      addScore(4);
       reasonCodes.add("CONTEXT_DAY_TRIP_TAG");
     }
   }
@@ -355,6 +386,24 @@ function isKidPrimaryPlace(category: string, tags: Set<string>) {
     tags.has("어린이") ||
     tags.has("kids")
   );
+}
+
+function isGenericFamilySpace(category: string) {
+  return ["family_cafe", "library", "shopping_mall"].includes(category);
+}
+
+function isImmediateVisitContext(input: SearchPlacesInput) {
+  return input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare";
+}
+
+function isImmediateKidActivityIntent(input: SearchPlacesInput) {
+  if (input.visitContext !== "nearbyNow") return false;
+
+  const categories = new Set(input.primaryCategories ?? []);
+  if (categories.has("kids_cafe") || categories.has("indoor_playground") || categories.has("toy_library")) return true;
+
+  const query = (input.query ?? "").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
+  return ["kids", "kid", "키즈", "키즈카페", "어린이", "아이", "실내놀이터", "놀이터"].some((token) => query.includes(token));
 }
 
 function applyAgeSignal(
@@ -375,13 +424,13 @@ function applyAgeSignal(
 
   const matchingCount = childAgeMonths.filter((age) => age >= min && age <= max).length;
   if (matchingCount === childAgeMonths.length) {
-    addScore(10);
+    addScore(8);
     reasonCodes.add("AGE_HINT_MATCH");
   } else if (matchingCount > 0) {
-    addScore(6);
+    addScore(5);
     reasonCodes.add("AGE_HINT_PARTIAL");
   } else {
-    addScore(-4);
+    addScore(-6);
     reasonCodes.add("AGE_HINT_MISMATCH");
   }
 }
@@ -397,13 +446,13 @@ function applyTriStatePreference(
   if (!input.preferences?.[key]) return;
 
   if (value === "yes") {
-    addScore(5);
+    addScore(3);
     reasonCodes.add(`${codePrefix}_YES`);
   } else if (value === "partial") {
-    addScore(3);
+    addScore(1.5);
     reasonCodes.add(`${codePrefix}_PARTIAL`);
   } else if (value === "no") {
-    addScore(-3);
+    addScore(-4);
     reasonCodes.add(`${codePrefix}_NO`);
   } else {
     reasonCodes.add(`${codePrefix}_UNKNOWN`);
@@ -415,14 +464,14 @@ function applyVisitFitSignal(visit: VisitScores | undefined, input: SearchPlaces
 
   const childEngagement = normalizeOneToFive(visit.childEngagementLevel);
   if (childEngagement !== null) {
-    addScore((childEngagement - 3) * 3);
+    addScore((childEngagement - 3) * 2);
     if (childEngagement >= 4) reasonCodes.add("CHILD_ENGAGEMENT_HIGH");
     if (childEngagement <= 2) reasonCodes.add("CHILD_ENGAGEMENT_LOW");
   }
 
   const parentEffort = normalizeOneToFive(visit.parentEffortLevel);
   if (parentEffort !== null) {
-    addScore((3 - parentEffort) * 2);
+    addScore((3 - parentEffort) * 1.5);
     if (parentEffort <= 2) reasonCodes.add("PARENT_EFFORT_LOW");
     if (parentEffort >= 4) reasonCodes.add("PARENT_EFFORT_HIGH");
   }
@@ -430,7 +479,7 @@ function applyVisitFitSignal(visit: VisitScores | undefined, input: SearchPlaces
   if (input.visitContext === "rainyDay") {
     const rainyDayScore = normalizeOneToFive(visit.rainyDayScore);
     if (rainyDayScore !== null) {
-      addScore((rainyDayScore - 3) * 3);
+      addScore((rainyDayScore - 3) * 2);
       if (rainyDayScore >= 4) reasonCodes.add("RAINY_DAY_SCORE_HIGH");
       if (rainyDayScore <= 2) reasonCodes.add("RAINY_DAY_SCORE_LOW");
     }
@@ -438,10 +487,10 @@ function applyVisitFitSignal(visit: VisitScores | undefined, input: SearchPlaces
 
   if (input.visitContext === "afterDaycare" && typeof visit.averageStayMinutes === "number") {
     if (visit.averageStayMinutes > 0 && visit.averageStayMinutes <= 120) {
-      addScore(2);
+      addScore(1.5);
       reasonCodes.add("STAY_SHORT_FIT");
     } else if (visit.averageStayMinutes >= 240) {
-      addScore(-3);
+      addScore(-4);
       reasonCodes.add("STAY_TOO_LONG");
     }
   }
@@ -459,13 +508,19 @@ function applyOpeningHoursSignal(
   addScore: (delta: number) => void,
   now: Date
 ) {
-  if (!hasOpeningHoursData(openingHours)) return;
+  const immediateContext = input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare";
+  const unknownPenalty = input.visitContext === "nearbyNow" ? -8 : input.visitContext === "afterDaycare" ? -6 : 0;
+
+  if (!hasOpeningHoursData(openingHours)) {
+    if (unknownPenalty !== 0) addScore(unknownPenalty);
+    reasonCodes.add("OPENING_HOURS_UNKNOWN");
+    return;
+  }
 
   const status = openingHoursStatus(openingHours, now);
-  const immediateContext = input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare";
 
   if (status.state === "open") {
-    addScore(immediateContext ? 5 : 3);
+    addScore(immediateContext ? 4 : 2);
     reasonCodes.add("OPEN_NOW");
     if (typeof status.closesInMinutes === "number" && status.closesInMinutes <= 45) {
       addScore(-4);
@@ -475,6 +530,7 @@ function applyOpeningHoursSignal(
     addScore(immediateContext ? -22 : -10);
     reasonCodes.add("CLOSED_NOW");
   } else {
+    if (unknownPenalty !== 0) addScore(unknownPenalty);
     reasonCodes.add("OPENING_HOURS_UNKNOWN");
   }
 }
