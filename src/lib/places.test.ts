@@ -7,6 +7,7 @@ import {
   buildSearchPreferenceSemantics,
   buildSearchSourceSummary,
   categoryClauseForKeywordTerm,
+  compactSearchPlaceItem,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -277,6 +278,83 @@ describe("place search helpers", () => {
       mismatchesRemainEligible: true,
       hardFilteringSupported: false
     });
+  });
+
+  it("builds compact search items without full image and scoring payloads", () => {
+    const compact = compactSearchPlaceItem({
+      id: "place-1",
+      name: "대전 어린이 시설",
+      primaryCategory: "museum",
+      tags: ["어린이", "공공"],
+      address: "대전광역시 중구",
+      lat: 36.33,
+      lng: 127.43,
+      distanceKm: 2.4,
+      score: 82,
+      reasonCodes: ["DIAPER_TABLE_UNKNOWN"],
+      reasons: [],
+      dataConfidence: "agent_collected",
+      recommendedAgeMonths: { min: 24, max: 96 },
+      facilities: {
+        indoorType: "indoor",
+        strollerFriendly: "yes",
+        parkingAvailable: "yes",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "unknown",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "unknown"
+      },
+      visit: {
+        averageStayMinutes: 90,
+        parentEffortLevel: 2,
+        childEngagementLevel: 4,
+        rainyDayScore: 4,
+        hotDayScore: 3,
+        coldDayScore: 4
+      },
+      notes: { safety: null, parent: "시설 확인 필요" },
+      primaryImage: { url: "https://example.com/place.jpg" },
+      imageHealth: {
+        primaryImageUrl: "https://example.com/fallback.jpg",
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        activeCount: 1,
+        approvedCount: 1,
+        needsReviewCount: 0,
+        pendingReviewCount: 0,
+        hasPrimary: true,
+        primaryReviewStatus: "approved",
+        latestImageCheckedAt: null,
+        latestImageUpdatedAt: null
+      },
+      sourceSummary: {
+        sourceCount: 1,
+        sourceTypes: ["official_site"],
+        bestSourceType: "official_site",
+        bestSourceTier: "official",
+        latestSourceType: "official_site",
+        latestCheckedAt: "2026-05-22T00:00:00.000Z",
+        latestCreatedAt: "2026-05-22T00:00:00.000Z",
+        freshnessStatus: "checked_today"
+      }
+    } as unknown as Parameters<typeof compactSearchPlaceItem>[0]);
+
+    expect(compact).toMatchObject({
+      id: "place-1",
+      name: "대전 어린이 시설",
+      primaryImageUrl: "https://example.com/place.jpg",
+      visit: {
+        averageStayMinutes: 90,
+        parentEffortLevel: 2,
+        childEngagementLevel: 4
+      }
+    });
+    expect(compact).not.toHaveProperty("images");
+    expect(compact).not.toHaveProperty("playFeatures");
+    expect(compact).not.toHaveProperty("scoring");
   });
 
   it("turns facility words in ordinary keyword queries into soft preferences", () => {

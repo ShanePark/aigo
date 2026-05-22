@@ -227,6 +227,7 @@ const searchPlacesBaseSchema = z.object({
     })
     .optional(),
   sort: z.enum(["recommended", "distance", "updatedAt"]).default("recommended"),
+  projection: z.enum(["full", "compact"]).optional(),
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).max(1000).default(0)
 }).refine((input) => input.visitStartTime === undefined || input.visitDate !== undefined, {

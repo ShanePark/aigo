@@ -620,6 +620,11 @@ components:
           type: string
           enum: [recommended, distance, updatedAt]
           default: recommended
+        projection:
+          type: string
+          enum: [full, compact]
+          default: full
+          description: Use `compact` to return lightweight search items for planning and agent calls. Default `full` preserves the complete card/detail-oriented item shape.
         limit:
           type: integer
           minimum: 1
@@ -1145,6 +1150,99 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CompactSearchPlaceItem:
+      type: object
+      description: Lightweight search item returned when `projection` is `compact`; omits full image rows, play feature JSON, scoring payloads, and version metadata.
+      required:
+        - id
+        - name
+        - primaryCategory
+        - tags
+        - address
+        - lat
+        - lng
+        - distanceKm
+        - score
+        - reasonCodes
+        - reasons
+        - dataConfidence
+        - recommendedAgeMonths
+        - facilities
+        - visit
+        - notes
+        - primaryImageUrl
+        - imageHealth
+        - sourceSummary
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        primaryCategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        address:
+          type:
+            - string
+            - "null"
+        lat:
+          type: number
+        lng:
+          type: number
+        distanceKm:
+          type:
+            - number
+            - "null"
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        reasonCodes:
+          type: array
+          items:
+            type: string
+        reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchReason"
+        dataConfidence:
+          type: string
+        recommendedAgeMonths:
+          $ref: "#/components/schemas/RecommendedAgeMonths"
+        facilities:
+          $ref: "#/components/schemas/Facilities"
+        visit:
+          type: object
+          required: [averageStayMinutes, parentEffortLevel, childEngagementLevel]
+          properties:
+            averageStayMinutes:
+              type:
+                - integer
+                - "null"
+            parentEffortLevel:
+              type:
+                - integer
+                - "null"
+            childEngagementLevel:
+              type:
+                - integer
+                - "null"
+        notes:
+          $ref: "#/components/schemas/PlaceNotes"
+        primaryImageUrl:
+          type:
+            - string
+            - "null"
+          format: uri
+        imageHealth:
+          type: object
+          additionalProperties: true
+        sourceSummary:
+          $ref: "#/components/schemas/SearchSourceSummary"
     SearchSourceSummary:
       type: object
       description: Compact source provenance and freshness summary for search cards and agent planning.
@@ -1213,10 +1311,12 @@ components:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/SearchPlaceItem"
+            oneOf:
+              - $ref: "#/components/schemas/SearchPlaceItem"
+              - $ref: "#/components/schemas/CompactSearchPlaceItem"
         meta:
           type: object
-          required: [count, total, limit, offset, origin, search]
+          required: [count, total, limit, offset, projection, origin, search]
           properties:
             count:
               type: integer
@@ -1226,6 +1326,9 @@ components:
               type: integer
             offset:
               type: integer
+            projection:
+              type: string
+              enum: [full, compact]
             origin:
               anyOf:
                 - $ref: "#/components/schemas/Origin"

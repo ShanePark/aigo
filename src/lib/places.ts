@@ -438,6 +438,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       total: scored.length,
       limit: input.limit,
       offset: input.offset,
+      projection: normalizedInput.projection ?? "full",
       origin: input.origin ?? null,
       search: {
         originalQuery: input.query ?? null,
@@ -451,6 +452,58 @@ export async function searchPlaces(input: SearchPlacesInput) {
           JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null)
       }
     }
+  };
+}
+
+type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
+type FullSearchItem = FullSearchResponse["items"][number];
+
+export function compactSearchPlacesResponse(response: FullSearchResponse) {
+  return {
+    ...response,
+    items: response.items.map(compactSearchPlaceItem),
+    meta: {
+      ...response.meta,
+      projection: "compact" as const
+    }
+  };
+}
+
+export function compactSearchPlaceItem(item: FullSearchItem) {
+  return {
+    id: item.id,
+    name: item.name,
+    primaryCategory: item.primaryCategory,
+    tags: item.tags,
+    address: item.address,
+    lat: item.lat,
+    lng: item.lng,
+    distanceKm: item.distanceKm,
+    score: item.score,
+    reasonCodes: item.reasonCodes,
+    reasons: item.reasons,
+    dataConfidence: item.dataConfidence,
+    recommendedAgeMonths: item.recommendedAgeMonths,
+    facilities: {
+      indoorType: item.facilities.indoorType,
+      strollerFriendly: item.facilities.strollerFriendly,
+      parkingAvailable: item.facilities.parkingAvailable,
+      nursingRoom: item.facilities.nursingRoom,
+      diaperChangingTable: item.facilities.diaperChangingTable,
+      kidsToilet: item.facilities.kidsToilet,
+      elevator: item.facilities.elevator,
+      babyChair: item.facilities.babyChair,
+      foodAllowed: item.facilities.foodAllowed
+    },
+    visit: {
+      averageStayMinutes: item.visit.averageStayMinutes,
+      parentEffortLevel: item.visit.parentEffortLevel,
+      childEngagementLevel: item.visit.childEngagementLevel
+    },
+    notes: item.notes,
+    primaryImageUrl: item.primaryImage?.url ?? item.imageHealth.primaryImageUrl,
+    imageHealth: item.imageHealth,
+    sourceSummary: item.sourceSummary
   };
 }
 

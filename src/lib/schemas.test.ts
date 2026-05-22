@@ -53,6 +53,17 @@ describe("place schemas", () => {
     expect(result.filterByRadius).toBe(false);
   });
 
+  it("accepts compact search projection for agent planning calls", () => {
+    const result = searchPlacesSchema.parse({
+      query: "공공 어린이 체험",
+      projection: "compact"
+    });
+    const invalid = searchPlacesSchema.safeParse({ projection: "tiny" });
+
+    expect(result.projection).toBe("compact");
+    expect(invalid.success).toBe(false);
+  });
+
   it("accepts common agent aliases for search location and child ages", () => {
     const result = searchPlacesSchema.parse({
       location: { lat: 36.35, lng: 127.38, label: "대전역" },

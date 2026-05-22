@@ -13,7 +13,6 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 ## Backlog
 
-- [대기] Add a compact/projection mode to `/v1/places/search` for planning and agent use. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Propagate official opening-hours confidence into search results; 대전신세계 had official hours sources but search still emitted `OPENING_HOURS_UNKNOWN`. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add reservation/session/friction flags such as `reservationRequired`, `walkInAvailable`, `sessionBased`, and `sameDayAvailabilityKnown` for places like 대전광역시어린이회관. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
 - [대기] Add structured parking friction fields such as `parkingFrictionLevel`, `peakParkingWindow`, and `parkingWaitNote`, especially for large public facilities. Source: `agent-research/weekend-outing-aigo-api-20260522-1440.md`.
