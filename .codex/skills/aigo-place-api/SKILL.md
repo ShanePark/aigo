@@ -61,6 +61,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For each place, record suggested action (`create`, `update`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
+   - When API or product usage reveals a durable improvement, copy or summarize it into `docs/aigo-improvements.md`. Use `[대기]` for not-started items, mark the one being worked on as `[개선 중]` before changing code/data/docs, and change it to `[완료]` only after verification.
 
 4. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.

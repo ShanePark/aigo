@@ -78,6 +78,20 @@ Each researched place should include:
 
 Research files are staging material only. Actual DB changes must go through AiGo API flow.
 
+## AiGo Improvement Backlog
+
+When AiGo service/API usage reveals friction, bugs, unclear behavior, or future product improvements, record the durable improvement backlog in `docs/aigo-improvements.md`. `agent-research/*.md` files may contain task-local observations and raw notes, but any improvement that should be fixable later must be copied or summarized into `docs/aigo-improvements.md`.
+
+Use a simple checklist format with one improvement per item. Keep each item actionable, include the source task or research file when useful, and preserve enough API payload/result context for a future agent to reproduce the issue.
+
+Use these Korean status labels at the start of each item:
+
+- `[대기]` for an improvement that has not started.
+- `[개선 중]` for the single improvement currently being worked on.
+- `[완료]` for a fixed and verified improvement.
+
+When starting work on an existing improvement, first update that item from `[대기]` to `[개선 중]`, then implement and verify the fix. When finishing, update it to `[완료]` with a short note about the relevant commit, PR, test, or verification. Do not leave multiple unrelated items marked `[개선 중]` unless they are intentionally part of the same active change.
+
 ## API Data Mutation Rules
 
 All real place data creation or enrichment must use the AiGo API, not direct DB writes:
