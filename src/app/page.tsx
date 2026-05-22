@@ -73,10 +73,25 @@ const TAG_LABELS: Record<string, string> = {
   science: "과학",
   shoppingMall: "쇼핑몰",
   slide: "미끄럼틀",
+  swing: "그네",
+  seesaw: "시소",
   stroller: "유모차",
   toyLibrary: "장난감도서관",
   toyStore: "장난감가게",
   waterPlayground: "물놀이터"
+};
+
+const RESULT_CARD_PLAY_FEATURE_LABELS: Record<string, string> = {
+  slide: "미끄럼틀",
+  swing: "그네",
+  seesaw: "시소",
+  babySwing: "영아그네",
+  sandPlay: "모래놀이",
+  waterPlayground: "물놀이터",
+  climbing: "클라이밍",
+  trampoline: "트램폴린",
+  rideOnToys: "승용완구",
+  playHouse: "놀이집"
 };
 
 type HomeProps = {
@@ -655,11 +670,22 @@ function resultKeywordChips(place: SearchItem) {
   const keywords = [
     categoryLabel(place.primaryCategory),
     indoorLabel(place.facilities.indoorType),
+    ...positivePlayFeatureKeywords(place),
     ...place.tags.map(formatKeyword),
     ...positiveFacilityKeywords(place)
   ];
 
   return Array.from(new Set(keywords.filter(Boolean))).slice(0, 5);
+}
+
+function positivePlayFeatureKeywords(place: SearchItem) {
+  return Object.entries(RESULT_CARD_PLAY_FEATURE_LABELS)
+    .filter(([key]) => positivePlayFeatureValue(place.playFeatures?.[key]))
+    .map(([, label]) => label);
+}
+
+function positivePlayFeatureValue(value: unknown) {
+  return value === "yes" || value === "partial" || value === true;
 }
 
 function positiveFacilityKeywords(place: SearchItem) {
