@@ -109,13 +109,14 @@ export default async function Home({ searchParams }: HomeProps) {
     <div className="page">
       <section className="search-shell">
         <div className="search-copy">
-          <p className="eyebrow">Daejeon family picks</p>
-          <h1>지도에서 고르는 오늘의 외출</h1>
-          <p className="lede">현재 위치나 대전역 기준으로 주변을 보고, 큰 분류만 톡톡 골라 빠르게 좁혀보세요.</p>
+          <h1>오늘 갈 곳 찾기</h1>
+          <p className="lede">위치와 큰 분류만 고르면 지도와 목록에서 바로 비교할 수 있어요.</p>
         </div>
 
         <form className="search-form" action="/">
           <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
+          <input name="sort" type="hidden" value={activeSort} />
+          <input name="limit" type="hidden" value={resultLimitParam(effectiveParams)} />
           {textParam(effectiveParams.nearby) === "1" ? <input name="nearby" type="hidden" value="1" /> : null}
           <div className="search-bar">
             <label className="query-field">
@@ -151,30 +152,6 @@ export default async function Home({ searchParams }: HomeProps) {
                 </Link>
               );
             })}
-          </div>
-
-          <div className="filter-grid">
-            <label>
-              <span>상황</span>
-              <select name="visitContext" defaultValue={textParam(effectiveParams.visitContext) || ""}>
-                <option value="">기본 추천</option>
-                <option value="afterDaycare">하원 후</option>
-                <option value="nearbyNow">당장 근처</option>
-                <option value="rainyDay">비 오는 날</option>
-                <option value="weekendHalfDay">주말 반나절</option>
-                <option value="dayTrip">주말 당일치기</option>
-              </select>
-            </label>
-            <label>
-              <span>한 페이지</span>
-              <select name="limit" defaultValue={String(resultLimitParam(effectiveParams))}>
-                {RESULT_LIMIT_OPTIONS.map((limit) => (
-                  <option value={limit} key={limit}>
-                    {limit}개
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
 
           <details className="advanced-search">
@@ -251,6 +228,7 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
               <div className="result-actions">
                 <SortControls activeSort={activeSort} params={effectiveParams} />
+                <LimitControls activeLimit={resultLimitParam(effectiveParams)} params={effectiveParams} />
                 {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
               </div>
             </section>
@@ -262,8 +240,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 ))}
                 {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
               </div>
-              <Pagination meta={result.meta} params={effectiveParams} />
             </div>
+            <Pagination meta={result.meta} params={effectiveParams} />
           </div>
         </section>
       )}
@@ -317,6 +295,19 @@ function SortControls({
       <Link className={`sort-option ${activeSort === "distance" ? "is-active" : ""}`} href={sortHref(params, "distance")}>
         거리순
       </Link>
+    </nav>
+  );
+}
+
+function LimitControls({ activeLimit, params }: { activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number]; params: Record<string, string | string[] | undefined> }) {
+  return (
+    <nav className="limit-control" aria-label="한 페이지 표시 개수">
+      <span>표시</span>
+      {RESULT_LIMIT_OPTIONS.map((limit) => (
+        <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit)} key={limit}>
+          {limit}개
+        </Link>
+      ))}
     </nav>
   );
 }
@@ -407,7 +398,7 @@ function withoutCategoryParams(params: Record<string, string | string[] | undefi
 
 function resultLimitParam(params: Record<string, string | string[] | undefined>) {
   const requested = Number(textParam(params.limit) || DEFAULT_RESULT_LIMIT);
-  return RESULT_LIMIT_OPTIONS.includes(requested as (typeof RESULT_LIMIT_OPTIONS)[number]) ? requested : DEFAULT_RESULT_LIMIT;
+  return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? DEFAULT_RESULT_LIMIT;
 }
 
 function currentPageParam(params: Record<string, string | string[] | undefined>) {
@@ -522,7 +513,7 @@ function pageHref(params: Record<string, string | string[] | undefined>, page: n
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key === "offset") continue;
+    if (key === "page" || key === "offset" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       const values = value.filter(Boolean);
       if (values.length === 1) {
@@ -547,7 +538,7 @@ function categoryGroupHref(params: Record<string, string | string[] | undefined>
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup") continue;
+    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       const values = value.filter(Boolean);
       if (values.length === 1) {
@@ -571,7 +562,7 @@ function sortHref(params: Record<string, string | string[] | undefined>, sort: E
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key === "offset" || key === "sort") continue;
+    if (key === "page" || key === "offset" || key === "sort" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       const values = value.filter(Boolean);
       if (values.length === 1) {
@@ -588,11 +579,32 @@ function sortHref(params: Record<string, string | string[] | undefined>, sort: E
   return { pathname: "/", query };
 }
 
+function limitHref(params: Record<string, string | string[] | undefined>, limit: (typeof RESULT_LIMIT_OPTIONS)[number]): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page" || key === "offset" || key === "limit" || key === "visitContext") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  query.limit = String(limit);
+  return { pathname: "/", query };
+}
+
 function currentSearchHref(params: Record<string, string | string[] | undefined>) {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "offset" || key === "returnTo") continue;
+    if (key === "offset" || key === "returnTo" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       value.filter(Boolean).forEach((item) => query.append(key, item));
       continue;
