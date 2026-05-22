@@ -19,7 +19,7 @@ Do not use direct database writes for real place data. Real mutations go through
 - Prefer broad public internet research: official facility/operator pages, public agency pages, library/tourism/mall pages, and public local listings or blogs only as support.
 - Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
 - Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
-- Subagents may research and write `agent-research/*.md`; they must not mutate data. The main agent, or one explicitly assigned API mutation agent, consolidates findings and calls the API to avoid conflicting creates/updates.
+- Subagents may research and write `agent-research/*.md`; they must not mutate data. For broad discovery work, assigned subagents may use read-only AiGo API checks such as `POST /v1/places/search`, `POST /v1/places/duplicates`, and `GET /v1/places/{placeId}` before deep research so they do not spend tokens on already-registered places. The main agent, or one explicitly assigned API mutation agent, consolidates findings and calls create/update/delete APIs to avoid conflicting writes.
 - For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; do not use `status: "needs_review"`, `dataConfidence: "needs_check"`, or image `reviewStatus: "needs_review"` in API payloads. Capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
 
 ## Family-Fit Gate
@@ -54,24 +54,30 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Split broad Daejeon collection work by district and category so reports stay comparable and dedupe-friendly. Useful district slices include Jung-gu, Dong-gu, Seo-gu, Yuseong-gu, Daedeok-gu, and nearby one-hour day-trip areas such as Sejong, Gongju, Geumsan, Okcheon, Cheongju, Gyeryong, Nonsan, and Cheongyang.
    - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; route-break rest areas and day-trip support stops.
    - Give each subagent clear ownership of one district/category slice, concrete search terms, and a unique report filename under `agent-research/`.
-   - Tell subagents not to mutate data or call the AiGo API. Their deliverable is a structured Markdown file under `agent-research/`.
+   - Tell subagents not to mutate data. For broad candidate discovery, have them do a cheap read-only dedupe pass before opening many source pages: use exact-name `/v1/places/search` when coordinates are unknown, `/v1/places/duplicates` when name and coordinates are known, and `GET /v1/places/{placeId}` only for likely matches that need comparison. Their deliverable is a structured Markdown file under `agent-research/`.
    - Use only one API mutation executor after research reports are available. That executor performs duplicate checks, compares existing records, creates missing places, patches enrichments, and verifies versions.
 
-3. Research with source notes.
+3. Run shallow discovery before deep research.
+   - Start with search-result snippets, official directory/list pages, public facility lists, or category roundup pages to collect only place names, branch names, rough area, and one likely source URL.
+   - Before opening many pages for a candidate, query AiGo for duplicates and exact-name matches. If a strong existing record is found, stage it as `update` only when the shallow source shows a real data gap; otherwise record `skip_existing`.
+   - Deep-dive only candidates that are likely missing, likely stale, or have high-value missing family logistics. Deep research should collect address, coordinates, family signals, source summaries, and image provenance.
+   - Maintain a visited-page ledger in the active `agent-research/` context or slice file. Record source URLs and search queries already used so later agents avoid repeating the same page unless they are resolving a specific conflict or checking freshness.
+
+4. Research with source notes.
    - Use one staging file per slice: `agent-research/<topic>-YYYYMMDD-HHMM.md`.
-   - For each place, record suggested action (`create`, `update`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
+   - For each place, record suggested action (`create`, `update`, `skip_existing`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
    - When API or product usage reveals a durable improvement, copy or summarize it into `docs/aigo-improvements.md`. Use `[대기]` for not-started items, mark the one being worked on as `[개선 중]` before changing code/data/docs, and remove the item after verification instead of changing it to `[완료]`.
 
-4. Check duplicates before mutation.
+5. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
    - If evidence is weak or identity is uncertain for a user-requested registration, still keep the place searchable with `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; make the uncertainty explicit in `parentNotes`, `safetyNotes`, tags, or structured `unknown` fields.
    - If an existing active record fails the Family-Fit Gate, do not enrich it as if it were a good recommendation. Prefer a source-backed `PATCH` with cautionary notes, or propose deletion/closure only after confirming it has no route-break, baby-logistics, child-primary, or user-signal value.
 
-5. Mutate through the API.
+6. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
    - The default development key `change-me` is local-only. When `NODE_ENV=production` or `AIGO_REQUIRE_STRONG_API_KEY=true`, configure a non-default `AIGO_API_KEY` before calling the API.
    - Base URL is normally `http://localhost:3000`.
@@ -80,7 +86,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. The endpoint performs a source-backed soft delete by setting `status: "closed"` and preserving sources, images, and version history. Requests must include `confirmation: "close_place"`, the exact `confirmName`, at least one source, and a `changeSummary`.
    - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
 
-6. Verify after meaningful changes.
+7. Verify after meaningful changes.
    - Call `GET /v1/places/{placeId}`.
    - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list. A 404 means the parent place id is invalid; an empty version list should only be treated as "no versions yet" after the place itself exists.
    - For soft deletes, confirm `GET /v1/places/{placeId}` returns the place with `status: "closed"`, exact-name search no longer returns it, and `GET /v1/places/{placeId}/versions` includes the delete audit `changeSummary`.

@@ -54,6 +54,8 @@ Use broad public internet research first:
 - For data discovery, prefer general internet search and source pages over typing repeated searches into map products.
 - Subagents should not call map/vendor APIs in bulk. If they need coordinates, prefer official pages, public address/coordinate pages, public facility datasets, or a small number of source-backed public pages.
 
+For broad place expansion, use a duplicate-first discovery loop. Gather shallow candidate names and rough areas from search results or directory pages, check AiGo with read-only search/duplicate endpoints before deep research, and only spend deeper source-reading effort on places that appear missing, stale, or valuable to enrich. Keep a visited-query/source ledger in the active `agent-research/` context or slice file so later agents do not keep reopening the same pages.
+
 Avoid high-volume map service/API use. Do not make repeated automated Kakao Map/API calls or loops. If a map search URL is used as a source, keep it sparse and manual-style, and record only URL/external ID/summary, never copied source text.
 
 Do not add committed documentation or code comments that imply AiGo depends on aggressive Kakao Map usage or scraping. Operational collection limits and sensitive collection notes belong only in ignored planning/worklog/spec files.
@@ -112,6 +114,8 @@ Every create/update must include at least one source and at least one citeable, 
 Do not create real data seed/export files. Real place data belongs in the development DB only.
 
 The main agent is responsible for applying mutations. Research subagents should normally stop at structured Markdown findings under `agent-research/`, including possible payload fragments and source evidence, so updates can be consolidated without conflicting writes.
+
+For large discovery waves, assigned subagents may call read-only AiGo endpoints such as `/v1/places/search`, `/v1/places/duplicates`, and place detail reads for dedupe and gap checks. They must not create, patch, delete, or otherwise mutate real place data unless explicitly assigned as the single API mutation executor.
 
 ## Image URL Enrichment
 
