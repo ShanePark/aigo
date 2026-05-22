@@ -4,6 +4,12 @@
 
 This repository should be handled with a bias toward active investigation, small focused changes, and frequent verification. Read the surrounding code before editing, follow existing conventions, and keep changes scoped to the user's request.
 
+## Git Commit Skill
+
+For commit-related work in this repository, read and follow the committed repo skill at `.codex/skills/git-commit/SKILL.md` before inspecting, staging, committing, or reporting git changes. This project-local skill should be used instead of relying on a personal local skill path such as `/Users/shane/.codex/skills/git-commit/SKILL.md`.
+
+Keep commit guidance synchronized with the project skill. When commit workflow behavior changes, update `.codex/skills/git-commit/SKILL.md` and `AGENTS.md` in the same commit.
+
 ## Codex Place Data Skill
 
 For AiGo place-data work, read and follow the committed repo skill at `.codex/skills/aigo-place-api/SKILL.md` before researching places, preparing payloads, delegating data research, or calling the AiGo API.
@@ -186,7 +192,7 @@ Generated AiGo visual assets should be readable at real UI sizes, warm and famil
 
 ## Commit Workflow
 
-When a task is complete, the changes are cohesive enough to commit, and review/verification finds no blocking issues, proactively create a git commit for only the changes made in the current session or task. Commit at sensible, focused boundaries rather than batching unrelated work together.
+When a task is complete, the changes are cohesive enough to commit, and review/verification finds no blocking issues, proactively create a git commit for only the changes made in the current session or task. Before committing, use `.codex/skills/git-commit/SKILL.md` and commit at sensible, focused boundaries rather than batching unrelated work together.
 
 Before committing:
 
