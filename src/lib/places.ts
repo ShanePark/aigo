@@ -1537,10 +1537,14 @@ export function buildSearchQuery(input: SearchPlacesInput) {
   }
 
   if (input.query) {
-    const clauses = keywordSearchClauses(input.query, add);
-    if (clauses.length > 0) {
-      const joiner = shouldUseAnyKeywordMatch(input.query) ? " or " : " and ";
-      where.push(`(${clauses.join(joiner)})`);
+    if (input.matchMode === "exactName") {
+      where.push(exactNameSearchClause(input.query, add));
+    } else {
+      const clauses = keywordSearchClauses(input.query, add);
+      if (clauses.length > 0) {
+        const joiner = shouldUseAnyKeywordMatch(input.query) ? " or " : " and ";
+        where.push(`(${clauses.join(joiner)})`);
+      }
     }
   }
 
@@ -1574,7 +1578,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     preferences.indoorTypes = inferred.indoorTypes;
   }
 
-  if (shouldKeepLiteralQuery(input.query)) {
+  if (input.matchMode === "exactName" || shouldKeepLiteralQuery(input.query)) {
     return {
       ...input,
       visitContext,
@@ -1641,6 +1645,12 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 
     return `(${columns.join(" or ")})`;
   });
+}
+
+function exactNameSearchClause(query: string, add: (value: unknown) => string) {
+  const exactParam = add(normalizeSearchText(query));
+  const compactParam = add(compactSearchText(query));
+  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam})`;
 }
 
 export function shouldUseAnyKeywordMatch(query: string) {

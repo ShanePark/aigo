@@ -95,6 +95,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For outside-city or farther day-trip planning, include `origin` with `minDistanceKm` and/or `maxDistanceKm` so distance bands are applied server-side; pair with `filterByRadius: false` when the explicit band should replace the default radius filter.
    - For broader planning lists that should not over-concentrate in one area or category, include `diversity: { maxPerRegion, maxPerCategory }`; diversity caps are applied after ranking and before pagination.
    - For future planning, include `visitDate` and optional `visitStartTime` so opening-hours scoring evaluates the planned local wall-clock time instead of the current moment.
+   - For deterministic place lookup by full name, send `matchMode: "exactName"` with `query`; this restricts candidates to exact or whitespace-compacted name matches instead of broad keyword/tag matches.
    - In search results, prefer `item.id` as the canonical place id. `item.placeId` remains a backward-compatible alias; detail responses use `id`, and duplicate candidates expose the nested candidate as `place.id`.
 
 ## API Payload Rules
@@ -215,6 +216,7 @@ AiGo has two score layers:
 - Use `coursePlan: true` when a ranked list should also be grouped into practical course roles; each role candidate includes `imageHealth` so missing, pending, or review-needed images remain visible. Treat the returned roles as a starting scaffold and still inspect sources, opening-hours confidence, and parent notes before presenting a final itinerary.
 - Broad public-child-facility Korean queries such as `공공 어린이 체험 박물관 과학관` should expand to public categories instead of requiring every literal token to match one row.
 - Exact compact name matches should receive a stronger query boost than partial name or tag-only matches so a full place-name query ranks the intended record above similarly named alternatives.
+- When a user or agent needs a deterministic exact-place lookup, use search `matchMode: "exactName"` rather than relying on ranking alone.
 
 When creating or meaningfully refreshing a place, score it when the evidence is strong enough:
 

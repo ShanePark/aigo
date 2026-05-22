@@ -621,6 +621,11 @@ components:
               description: Maximum number of results per primary category before pagination.
         query:
           type: string
+        matchMode:
+          type: string
+          enum: [keyword, exactName]
+          default: keyword
+          description: Use `exactName` for deterministic place-name lookup; it matches exact or whitespace-compacted place names instead of broad keyword/tag text.
         primaryCategories:
           type: array
           items:

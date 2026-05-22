@@ -137,6 +137,28 @@ describe("place search helpers", () => {
     expect(searchTermPatterns("  대청호   명상정원  ")).toEqual(["%대청호%", "%명상정원%"]);
   });
 
+  it("can restrict a place query to exact compact name matches", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "국립부여박물관 어린이박물관",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("lower(name) = ");
+    expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g')");
+    expect(query.sql).not.toContain("description ilike");
+    expect(query.sql).not.toContain("exists (select 1 from unnest(tags)");
+    expect(query.params).toEqual(["국립부여박물관 어린이박물관", "국립부여박물관어린이박물관"]);
+  });
+
+  it("preserves literal exact-name queries during preference inference", () => {
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "실내 어린이 도서관", matchMode: "exactName" })).toMatchObject({
+      query: "실내 어린이 도서관",
+      matchMode: "exactName",
+      preferences: { indoorTypes: ["indoor", "mixed"] }
+    });
+  });
+
   it("builds planned visit wall-clock dates for opening-hours scoring", () => {
     const planned = searchEvaluationDate({ visitDate: "2026-05-23", visitStartTime: "10:30" });
     const defaultNoon = searchEvaluationDate({ visitDate: "2026-05-23" });
