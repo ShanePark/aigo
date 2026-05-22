@@ -57,7 +57,9 @@ describe("place search helpers", () => {
     expect(shouldUseAnyKeywordMatch("과학관 체험 창의나래 넥스페리움")).toBe(true);
     expect(shouldUseAnyKeywordMatch("물놀이터 용수골 동산 판암")).toBe(true);
     expect(shouldUseAnyKeywordMatch("미끄럼틀 가오솔 범골 가오들")).toBe(true);
+    expect(shouldUseAnyKeywordMatch("가팔 진등 용전 매봉 성남 선암 대동")).toBe(true);
     expect(shouldUseAnyKeywordMatch("대전 키즈카페")).toBe(false);
+    expect(shouldUseAnyKeywordMatch("대전 서구 키즈카페")).toBe(false);
     expect(shouldUseAnyKeywordMatch("판암 동네놀이터")).toBe(false);
   });
 

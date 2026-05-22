@@ -1169,11 +1169,15 @@ export function shouldUseAnyKeywordMatch(query: string) {
   if (terms.length < 2) return false;
   if (isPlayFeatureListedPlaceQuery(terms)) return true;
   const placeLikeTerms = terms.filter((term) => isLikelyPlaceNameTerm(term));
+  const shortListedPlaceTerms = terms.filter((term) => isPotentialListedPlaceTerm(term));
   const alternativeTerms = terms.filter((term) => isAlternativeKeywordTerm(term) || isLikelyPlaceNameTerm(term));
   if (alternativeTerms.length === terms.length && terms.some((term) => isAlternativeKeywordTerm(term))) {
     return true;
   }
   if (terms.length < 3) return false;
+  if (shortListedPlaceTerms.length >= 3 && shortListedPlaceTerms.length === terms.length) {
+    return true;
+  }
   return placeLikeTerms.length >= 3 && placeLikeTerms.length === terms.length;
 }
 
@@ -1183,7 +1187,8 @@ function isLikelyPlaceNameTerm(term: string) {
     !isQueryStopTerm(term) &&
     !isQueryPreferenceTerm(term) &&
     !broadParentIntentTerms.has(term) &&
-    !broadPlaygroundIntentTerms.has(term)
+    !broadPlaygroundIntentTerms.has(term) &&
+    !categoryKeywordMap[term]
   );
 }
 
@@ -1204,7 +1209,8 @@ function isPotentialListedPlaceTerm(term: string) {
     !isQueryStopTerm(term) &&
     !isQueryPreferenceTerm(term) &&
     !broadParentIntentTerms.has(term) &&
-    !broadPlaygroundIntentTerms.has(term)
+    !broadPlaygroundIntentTerms.has(term) &&
+    !categoryKeywordMap[term]
   );
 }
 
