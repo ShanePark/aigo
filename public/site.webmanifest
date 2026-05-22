@@ -1,0 +1,25 @@
+{
+  "name": "AiGo",
+  "short_name": "AiGo",
+  "description": "Kid-friendly Daejeon family outing search and place data.",
+  "lang": "ko-KR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6fbf8",
+  "theme_color": "#1f8a63",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
