@@ -171,6 +171,8 @@ Common writable fields:
 
 Search taxonomy facets use the same canonical families: `familyFitGates`, `activityTypes`, `visitUseCases`, `ageBands`, `logisticsTags`, and `riskTags`. Prefer `soft` mode for planning and discovery so unknown records remain eligible with `TAXONOMY_UNKNOWN`; use `required` only when the caller truly wants a hard facet gate.
 
+For taxonomy cleanup, run `pnpm tsx scripts/audit-taxonomy.ts --json` for a read-only DB scan of category, tag, source-type, region, and taxonomy facet drift. Run `pnpm tsx scripts/apply-taxonomy-migration.ts --limit=<n>` first for dry-run planning; only add `--apply` after reviewing the planned changes. The apply script reads place details through the API and performs real mutations only through `PATCH /v1/places/{placeId}` with `sourceMode: "replace"` and the taxonomy v1 migration audit source; it must not directly update real place rows in the database.
+
 Use these enum values:
 
 - Tri-state fields: `yes`, `no`, `partial`, `unknown`.
