@@ -14,6 +14,7 @@ Do not use direct database writes for real place data. Real mutations go through
 ## Ground Rules
 
 - Treat source evidence as part of the data, not an afterthought. Every create/update requires at least one `sources` item.
+- Treat image evidence as required for place registration. Every new place create, and every meaningful enrichment when the place has no usable image, must include at least one structured `images` item with citeable provenance.
 - Unknown is acceptable. Do not invent amenities, ages, coordinates, opening hours, or image provenance.
 - Prefer broad public internet research: official facility/operator pages, public agency pages, library/tourism/mall pages, and public local listings or blogs only as support.
 - Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
@@ -65,11 +66,13 @@ Create requires:
 - `lng`
 - `address` or `regionSido`
 - `sources` with at least one source
+- `images` with at least one source-backed image
 
 Update requires:
 
 - `sources` with at least one source
 - Any writable fields that actually changed
+- `images` with at least one source-backed image when the place has no usable image or when the update is image enrichment
 
 Source objects:
 
@@ -200,6 +203,8 @@ Image display tiers: `official`, `public_agency`, `public_listing`, `rights_uncl
 
 Image review statuses: `pending_review`, `approved`, `needs_review`, `rejected`.
 
+Do not create a place until at least one branch/place-specific image candidate is available. If only logos, favicons, generic thumbnails, unrelated branch images, or rights-unclear personal photos are available, stage the place as `needs_review` instead of creating it.
+
 ## Curl Patterns
 
 Duplicate check:
@@ -248,6 +253,20 @@ curl -sS http://localhost:3000/v1/places \
         "summary": "Official page confirms address and parking.",
         "checkedAt": "<ISO datetime with timezone>"
       }
+    ],
+    "images": [
+      {
+        "url": "https://example.com/images/place-representative.jpg",
+        "sourceUrl": "https://example.com/place",
+        "sourceType": "official_image_source",
+        "sourceTitle": "Official representative image",
+        "altText": "Representative image of Example Kids Cafe",
+        "description": "Source-backed representative image that helps parents identify the exact place.",
+        "displayTier": "official",
+        "reviewStatus": "approved",
+        "isPrimary": true,
+        "checkedAt": "<ISO datetime with timezone>"
+      }
     ]
   }'
 ```
@@ -292,6 +311,7 @@ curl -sS http://localhost:3000/v1/places/<placeId>/versions \
 - Confirm `agent-research/` is ignored before writing staging files: `git check-ignore -q agent-research/`.
 - Confirm staged research files under `agent-research/` are not committed.
 - Confirm every created/updated place has source-backed summaries.
+- Confirm every created place has at least one structured `images` entry with `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus`, and useful `altText` or `description`.
 - Confirm unknown or weak evidence stays `unknown`, `needs_check`, or in notes.
 - Confirm duplicate handling decision is documented in the work summary.
 - If API schemas, OpenAPI, source/image rules, categories, or AGENTS data policy changed during the task, update this skill in the same commit.
