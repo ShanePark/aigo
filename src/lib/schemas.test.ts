@@ -106,6 +106,31 @@ describe("place schemas", () => {
     expect(replace.sourceMode).toBe("replace");
   });
 
+  it("accepts reservation and session planning flags", () => {
+    const result = createPlaceSchema.parse({
+      name: "예약제 어린이 시설",
+      primaryCategory: "experience_center",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      reservationRequired: "yes",
+      walkInAvailable: "partial",
+      sessionBased: "yes",
+      sameDayAvailabilityKnown: "unknown",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const invalid = updatePlaceSchema.safeParse({
+      reservationRequired: "required",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.reservationRequired).toBe("yes");
+    expect(result.walkInAvailable).toBe("partial");
+    expect(result.sessionBased).toBe("yes");
+    expect(result.sameDayAvailabilityKnown).toBe("unknown");
+    expect(invalid.success).toBe(false);
+  });
+
   it("accepts related-place updates with relation metadata", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "agent_observation", externalId: "related-place-audit-20260522" }],

@@ -56,6 +56,10 @@ type PlaceRow = {
   elevator: string;
   baby_chair: string;
   food_allowed: string;
+  reservation_required: string;
+  walk_in_available: string;
+  session_based: string;
+  same_day_availability_known: string;
   average_stay_minutes: number | null;
   parent_effort_level: number | null;
   child_engagement_level: number | null;
@@ -219,6 +223,10 @@ const columnMap = {
   elevator: "elevator",
   babyChair: "baby_chair",
   foodAllowed: "food_allowed",
+  reservationRequired: "reservation_required",
+  walkInAvailable: "walk_in_available",
+  sessionBased: "session_based",
+  sameDayAvailabilityKnown: "same_day_availability_known",
   averageStayMinutes: "average_stay_minutes",
   parentEffortLevel: "parent_effort_level",
   childEngagementLevel: "child_engagement_level",
@@ -504,6 +512,10 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
       foodAllowed: item.facilities.foodAllowed
     },
     visit: {
+      reservationRequired: item.visit.reservationRequired,
+      walkInAvailable: item.visit.walkInAvailable,
+      sessionBased: item.visit.sessionBased,
+      sameDayAvailabilityKnown: item.visit.sameDayAvailabilityKnown,
       averageStayMinutes: item.visit.averageStayMinutes,
       parentEffortLevel: item.visit.parentEffortLevel,
       childEngagementLevel: item.visit.childEngagementLevel
@@ -2388,6 +2400,10 @@ function mapPlace(row: PlaceRow) {
       foodAllowed: row.food_allowed
     },
     visit: {
+      reservationRequired: row.reservation_required,
+      walkInAvailable: row.walk_in_available,
+      sessionBased: row.session_based,
+      sameDayAvailabilityKnown: row.same_day_availability_known,
       averageStayMinutes: row.average_stay_minutes,
       parentEffortLevel: row.parent_effort_level,
       childEngagementLevel: row.child_engagement_level,

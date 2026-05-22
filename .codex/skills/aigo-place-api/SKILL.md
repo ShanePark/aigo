@@ -146,7 +146,7 @@ Common writable fields:
 
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
 - Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
-- Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
+- Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `reservationRequired`, `walkInAvailable`, `sessionBased`, `sameDayAvailabilityKnown`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
 - Related places: `relatedPlaces` accepts existing place IDs with `relationType`, `note`, and optional `evidence`; use `relatedPlaceMode: "append"` by default or `"replace"` only when deliberately rewriting the current relation set.
@@ -254,6 +254,7 @@ Capture the practical parent tradeoffs in structured fields and notes:
 - Fit for current family: toddler born 2023-09 plus twin infants born 2025-10.
 - Stroller route/elevator/floor changes, nursing room, diaper table, kids toilet, baby chair.
 - Parking entry friction, validation, elevator connection, and whether one building solves food/rest/play.
+- Reservation/session friction, same-day availability, walk-in fallback, and whether parent timing must be planned before departure.
 - Snack/meal handling: outside food, food court, cafe, family restaurant playroom, baby chair.
 - Stay duration, parent effort level, child engagement level, rainy/hot/cold day suitability.
 - Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.

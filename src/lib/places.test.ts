@@ -418,6 +418,10 @@ describe("place search helpers", () => {
         foodAllowed: "unknown"
       },
       visit: {
+        reservationRequired: "yes",
+        walkInAvailable: "partial",
+        sessionBased: "yes",
+        sameDayAvailabilityKnown: "unknown",
         averageStayMinutes: 90,
         parentEffortLevel: 2,
         childEngagementLevel: 4,
@@ -464,6 +468,10 @@ describe("place search helpers", () => {
         confidenceLevel: "high"
       },
       visit: {
+        reservationRequired: "yes",
+        walkInAvailable: "partial",
+        sessionBased: "yes",
+        sameDayAvailabilityKnown: "unknown",
         averageStayMinutes: 90,
         parentEffortLevel: 2,
         childEngagementLevel: 4

@@ -463,6 +463,18 @@ components:
           $ref: "#/components/schemas/TriState"
         foodAllowed:
           $ref: "#/components/schemas/TriState"
+        reservationRequired:
+          $ref: "#/components/schemas/TriState"
+          description: Whether advance reservation is required for a normal family visit.
+        walkInAvailable:
+          $ref: "#/components/schemas/TriState"
+          description: Whether same-day walk-in entry is normally possible.
+        sessionBased:
+          $ref: "#/components/schemas/TriState"
+          description: Whether visits are organized into fixed sessions or entry windows.
+        sameDayAvailabilityKnown:
+          $ref: "#/components/schemas/TriState"
+          description: Whether same-day availability can be checked from source-backed public information.
         averageStayMinutes:
           type: integer
         parentEffortLevel:
@@ -1762,6 +1774,10 @@ components:
         - rainyDayScore
         - hotDayScore
         - coldDayScore
+        - reservationRequired
+        - walkInAvailable
+        - sessionBased
+        - sameDayAvailabilityKnown
       properties:
         averageStayMinutes:
           type: integer
@@ -1791,6 +1807,14 @@ components:
           nullable: true
           minimum: 1
           maximum: 5
+        reservationRequired:
+          $ref: "#/components/schemas/TriState"
+        walkInAvailable:
+          $ref: "#/components/schemas/TriState"
+        sessionBased:
+          $ref: "#/components/schemas/TriState"
+        sameDayAvailabilityKnown:
+          $ref: "#/components/schemas/TriState"
     PlaceNotes:
       type: object
       required: [safety, parent]
