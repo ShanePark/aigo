@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildInfantLogisticsSignal,
   buildImageMetadata,
+  buildOpeningHoursDataSignal,
+  buildSearchOpeningHoursSummary,
   buildSearchQuery,
   buildSearchImageHealth,
   buildSearchPreferenceSemantics,
@@ -262,6 +264,66 @@ describe("place search helpers", () => {
       latestCreatedAt: "2026-05-22T06:45:00.000Z",
       freshnessStatus: "checked_today"
     });
+
+    expect(
+      buildSearchSourceSummary(
+        [
+          {
+            source_type: "operator_page",
+            title: "Operator opening hours",
+            summary: "Operator page confirms opening hours.",
+            checked_at: "2026-05-21T07:00:00.000Z",
+            created_at: "2026-05-20T07:00:00.000Z"
+          }
+        ],
+        { now }
+      )
+    ).toMatchObject({
+      sourceCount: 1,
+      bestSourceType: "operator_page",
+      latestCheckedAt: "2026-05-21T07:00:00.000Z",
+      freshnessStatus: "recent",
+      openingHoursEvidence: {
+        sourceCount: 1,
+        bestSourceTier: "operator",
+        latestCheckedAt: "2026-05-21T07:00:00.000Z",
+        freshnessStatus: "recent"
+      }
+    });
+  });
+
+  it("separates opening-hours source confidence from runtime open status", () => {
+    const sourceSummary = buildSearchSourceSummary(
+      [
+        {
+          source_type: "official_site",
+          title: "대전신세계 공식 영업시간",
+          summary: "Official page confirms operating hours.",
+          checked_at: new Date("2026-05-22T06:30:00.000Z"),
+          created_at: new Date("2026-05-22T06:45:00.000Z")
+        }
+      ],
+      { now: new Date("2026-05-22T07:00:00.000Z") }
+    );
+
+    expect(buildOpeningHoursDataSignal({ note: "공식 페이지 확인 필요" })).toEqual({
+      dataStatus: "unstructured",
+      hasData: true,
+      hasStructuredData: false
+    });
+    expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary)).toMatchObject({
+      dataStatus: "missing",
+      confidenceLevel: "source_backed",
+      sourceBacked: true,
+      bestSourceTier: "official",
+      latestCheckedAt: "2026-05-22T06:30:00.000Z",
+      hasStructuredData: false
+    });
+    expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal({ openNow: true }), sourceSummary)).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "high",
+      hasStructuredData: true
+    });
   });
 
   it("describes search preferences as soft ranking signals", () => {
@@ -332,6 +394,18 @@ describe("place search helpers", () => {
         negativeSignals: [],
         missingSignals: ["nursingRoom", "diaperChangingTable", "babyChair"]
       },
+      openingHoursSummary: {
+        dataStatus: "structured",
+        confidenceLevel: "high",
+        sourceBacked: true,
+        bestSourceType: "official_site",
+        bestSourceTier: "official",
+        sourceCount: 1,
+        sourceTypes: ["official_site"],
+        latestCheckedAt: "2026-05-22T00:00:00.000Z",
+        freshnessStatus: "checked_today",
+        hasStructuredData: true
+      },
       facilities: {
         indoorType: "indoor",
         strollerFriendly: "yes",
@@ -385,6 +459,9 @@ describe("place search helpers", () => {
       primaryImageUrl: "https://example.com/place.jpg",
       infantLogistics: {
         supportLevel: "moderate"
+      },
+      openingHoursSummary: {
+        confidenceLevel: "high"
       },
       visit: {
         averageStayMinutes: 90,

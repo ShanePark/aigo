@@ -1009,6 +1009,7 @@ components:
         - scoring
         - recommendedAgeMonths
         - infantLogistics
+        - openingHoursSummary
         - facilities
         - visit
         - notes
@@ -1142,6 +1143,8 @@ components:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         infantLogistics:
           $ref: "#/components/schemas/InfantLogisticsSignal"
+        openingHoursSummary:
+          $ref: "#/components/schemas/OpeningHoursSummary"
         facilities:
           $ref: "#/components/schemas/Facilities"
         visit:
@@ -1170,6 +1173,7 @@ components:
         - dataConfidence
         - recommendedAgeMonths
         - infantLogistics
+        - openingHoursSummary
         - facilities
         - visit
         - notes
@@ -1218,6 +1222,8 @@ components:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         infantLogistics:
           $ref: "#/components/schemas/InfantLogisticsSignal"
+        openingHoursSummary:
+          $ref: "#/components/schemas/OpeningHoursSummary"
         facilities:
           $ref: "#/components/schemas/Facilities"
         visit:
@@ -1311,6 +1317,7 @@ components:
         - latestCheckedAt
         - latestCreatedAt
         - freshnessStatus
+        - openingHoursEvidence
       properties:
         sourceCount:
           type: integer
@@ -1337,6 +1344,81 @@ components:
             - "null"
           format: date-time
         latestCreatedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        freshnessStatus:
+          type: string
+          enum: [checked_today, recent, aging, stale, unchecked]
+        openingHoursEvidence:
+          $ref: "#/components/schemas/OpeningHoursEvidenceSummary"
+    OpeningHoursSummary:
+      type: object
+      description: Search-time operating-hours confidence summary. This is separate from `OPEN_NOW`/`OPENING_HOURS_UNKNOWN` reason codes so source-backed but unstructured hours are still visible.
+      required:
+        - dataStatus
+        - confidenceLevel
+        - sourceBacked
+        - bestSourceType
+        - bestSourceTier
+        - sourceCount
+        - sourceTypes
+        - latestCheckedAt
+        - freshnessStatus
+        - hasStructuredData
+      properties:
+        dataStatus:
+          type: string
+          enum: [structured, unstructured, missing]
+        confidenceLevel:
+          type: string
+          enum: [high, medium, source_backed, low, unknown]
+        sourceBacked:
+          type: boolean
+        bestSourceType:
+          type:
+            - string
+            - "null"
+        bestSourceTier:
+          type: string
+          enum: [official, public_agency, operator, public_listing, other, none]
+        sourceCount:
+          type: integer
+          minimum: 0
+        sourceTypes:
+          type: array
+          items:
+            type: string
+        latestCheckedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        freshnessStatus:
+          type: string
+          enum: [checked_today, recent, aging, stale, unchecked]
+        hasStructuredData:
+          type: boolean
+    OpeningHoursEvidenceSummary:
+      type: object
+      required: [sourceCount, sourceTypes, bestSourceType, bestSourceTier, latestCheckedAt, freshnessStatus]
+      properties:
+        sourceCount:
+          type: integer
+          minimum: 0
+        sourceTypes:
+          type: array
+          items:
+            type: string
+        bestSourceType:
+          type:
+            - string
+            - "null"
+        bestSourceTier:
+          type: string
+          enum: [official, public_agency, operator, public_listing, other, none]
+        latestCheckedAt:
           type:
             - string
             - "null"

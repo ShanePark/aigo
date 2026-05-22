@@ -128,7 +128,7 @@ type SourceRow = {
   created_at: Date;
 };
 
-type SearchSourceSummaryRow = Pick<SourceRow, "place_id" | "source_type" | "checked_at" | "created_at">;
+type SearchSourceSummaryRow = Pick<SourceRow, "place_id" | "source_type" | "title" | "summary" | "checked_at" | "created_at">;
 
 type VersionRow = {
   id: string;
@@ -398,6 +398,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       scoring: place.scoring,
       recommendedAgeMonths: place.recommendedAgeMonths,
       infantLogistics: buildInfantLogisticsSignal(place.facilities),
+      openingHoursData: buildOpeningHoursDataSignal(place.openingHours),
       facilities: place.facilities,
       visit: place.visit,
       notes: place.notes,
@@ -424,11 +425,14 @@ export async function searchPlaces(input: SearchPlacesInput) {
   const [imageMap, sourceSummaryMap] = await Promise.all([getImageMapForPlaces(itemPlaceIds), getSourceSummaryMapForPlaces(itemPlaceIds)]);
   const enrichedItems = items.map((item) => {
     const imageRows = imageMap.get(item.placeId) ?? [];
+    const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
+    const { openingHoursData, ...publicItem } = item;
     return {
-      ...item,
+      ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
       imageHealth: buildSearchImageHealth(imageRows),
-      sourceSummary: sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([])
+      sourceSummary,
+      openingHoursSummary: buildSearchOpeningHoursSummary(openingHoursData, sourceSummary)
     };
   });
 
@@ -487,6 +491,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     dataConfidence: item.dataConfidence,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
+    openingHoursSummary: item.openingHoursSummary,
     facilities: {
       indoorType: item.facilities.indoorType,
       strollerFriendly: item.facilities.strollerFriendly,
@@ -784,7 +789,7 @@ async function getSourceSummaryMapForPlaces(placeIds: string[]) {
   if (placeIds.length === 0) return new Map<string, ReturnType<typeof buildSearchSourceSummary>>();
 
   const sourceRows = await pg<SearchSourceSummaryRow[]>`
-    select place_id, source_type, checked_at, created_at from place_sources
+    select place_id, source_type, title, summary, checked_at, created_at from place_sources
     where place_id = any(${placeIds}::uuid[])
     order by place_id, checked_at desc nulls last, created_at desc
   `;
@@ -2460,17 +2465,18 @@ export function buildSearchImageHealth(imageRows: Pick<PlaceImageRow, "url" | "i
 }
 
 export function buildSearchSourceSummary(
-  sourceRows: Pick<SourceRow, "source_type" | "checked_at" | "created_at">[],
+  sourceRows: Array<Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">> & { checked_at: Date | string | null; created_at: Date | string }>,
   options: { now?: Date } = {}
 ) {
   const sourceTypes = Array.from(new Set(sourceRows.map((row) => row.source_type))).sort(compareSourceTypes);
+  const openingHoursSources = sourceRows.filter(isOpeningHoursEvidenceSource);
   const strongestSource = sourceRows
     .slice()
     .sort((a, b) => sourceTierRank(sourceTrustTier(b.source_type)) - sourceTierRank(sourceTrustTier(a.source_type)) || a.source_type.localeCompare(b.source_type))[0];
   const latestChecked = sourceRows
-    .filter((row): row is typeof row & { checked_at: Date } => Boolean(row.checked_at))
-    .sort((a, b) => b.checked_at.getTime() - a.checked_at.getTime())[0];
-  const latestCreated = sourceRows.slice().sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
+    .filter((row): row is typeof row & { checked_at: Date | string } => Boolean(row.checked_at))
+    .sort((a, b) => dateMillis(b.checked_at) - dateMillis(a.checked_at))[0];
+  const latestCreated = sourceRows.slice().sort((a, b) => dateMillis(b.created_at) - dateMillis(a.created_at))[0];
 
   return {
     sourceCount: sourceRows.length,
@@ -2480,8 +2486,105 @@ export function buildSearchSourceSummary(
     latestSourceType: latestChecked?.source_type ?? latestCreated?.source_type ?? null,
     latestCheckedAt: latestChecked ? toIso(latestChecked.checked_at) : null,
     latestCreatedAt: latestCreated ? toIso(latestCreated.created_at) : null,
-    freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, options.now ?? new Date())
+    freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, options.now ?? new Date()),
+    openingHoursEvidence: buildOpeningHoursEvidenceSummary(openingHoursSources, options.now ?? new Date())
   };
+}
+
+function buildOpeningHoursEvidenceSummary(
+  sourceRows: Array<Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">> & { checked_at: Date | string | null; created_at: Date | string }>,
+  now: Date
+) {
+  const strongestSource = sourceRows
+    .slice()
+    .sort((a, b) => sourceTierRank(sourceTrustTier(b.source_type)) - sourceTierRank(sourceTrustTier(a.source_type)) || a.source_type.localeCompare(b.source_type))[0];
+  const latestChecked = sourceRows
+    .filter((row): row is typeof row & { checked_at: Date | string } => Boolean(row.checked_at))
+    .sort((a, b) => dateMillis(b.checked_at) - dateMillis(a.checked_at))[0];
+
+  return {
+    sourceCount: sourceRows.length,
+    sourceTypes: Array.from(new Set(sourceRows.map((row) => row.source_type))).sort(compareSourceTypes),
+    bestSourceType: strongestSource?.source_type ?? null,
+    bestSourceTier: strongestSource ? sourceTrustTier(strongestSource.source_type) : "none",
+    latestCheckedAt: latestChecked ? toIso(latestChecked.checked_at) : null,
+    freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, now)
+  };
+}
+
+function isOpeningHoursEvidenceSource(source: Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">>) {
+  const text = `${source.source_type} ${source.title ?? ""} ${source.summary ?? ""}`.toLocaleLowerCase("ko-KR");
+  return openingHoursEvidenceTerms.some((term) => text.includes(term));
+}
+
+const openingHoursEvidenceTerms = [
+  "opening",
+  "hours",
+  "operating",
+  "business hour",
+  "영업시간",
+  "운영시간",
+  "이용시간",
+  "운영",
+  "영업",
+  "휴무",
+  "휴관"
+];
+
+type OpeningHoursDataSignal = ReturnType<typeof buildOpeningHoursDataSignal>;
+type SearchSourceSummary = ReturnType<typeof buildSearchSourceSummary>;
+
+export function buildOpeningHoursDataSignal(openingHours: unknown) {
+  if (!isPlainRecord(openingHours) || Object.keys(openingHours).length === 0) {
+    return {
+      dataStatus: "missing",
+      hasData: false,
+      hasStructuredData: false
+    };
+  }
+
+  const hasStructuredData = hasStructuredOpeningHoursData(openingHours);
+  return {
+    dataStatus: hasStructuredData ? "structured" : "unstructured",
+    hasData: true,
+    hasStructuredData
+  };
+}
+
+export function buildSearchOpeningHoursSummary(dataSignal: OpeningHoursDataSignal, sourceSummary: SearchSourceSummary) {
+  const sourceEvidence = sourceSummary.openingHoursEvidence;
+  const sourceBacked = sourceEvidence.sourceCount > 0;
+  const confidenceLevel = openingHoursConfidenceLevel(dataSignal, sourceEvidence);
+
+  return {
+    dataStatus: dataSignal.dataStatus,
+    confidenceLevel,
+    sourceBacked,
+    bestSourceType: sourceEvidence.bestSourceType,
+    bestSourceTier: sourceEvidence.bestSourceTier,
+    sourceCount: sourceEvidence.sourceCount,
+    sourceTypes: sourceEvidence.sourceTypes,
+    latestCheckedAt: sourceEvidence.latestCheckedAt,
+    freshnessStatus: sourceEvidence.freshnessStatus,
+    hasStructuredData: dataSignal.hasStructuredData
+  };
+}
+
+function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceEvidence: SearchSourceSummary["openingHoursEvidence"]) {
+  if (dataSignal.hasStructuredData && ["official", "public_agency", "operator"].includes(sourceEvidence.bestSourceTier)) return "high";
+  if (dataSignal.hasStructuredData) return "medium";
+  if (sourceEvidence.sourceCount > 0 && ["official", "public_agency", "operator"].includes(sourceEvidence.bestSourceTier)) return "source_backed";
+  if (sourceEvidence.sourceCount > 0) return "low";
+  return "unknown";
+}
+
+function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
+  if (typeof openingHours.openNow === "boolean" || typeof openingHours.isOpen === "boolean") return true;
+  if ([openingHours.status, openingHours.openStatus, openingHours.businessStatus].some((value) => typeof value === "string")) return true;
+  if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
+  if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
+  if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
+  return false;
 }
 
 export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {
@@ -2574,10 +2677,10 @@ function sourceTierRank(tier: string) {
   }
 }
 
-function sourceFreshnessStatus(latestCheckedAt: Date | null, now: Date) {
+function sourceFreshnessStatus(latestCheckedAt: Date | string | null, now: Date) {
   if (!latestCheckedAt) return "unchecked";
 
-  const ageDays = Math.max(0, Math.floor((now.getTime() - latestCheckedAt.getTime()) / (24 * 60 * 60 * 1000)));
+  const ageDays = Math.max(0, Math.floor((now.getTime() - dateMillis(latestCheckedAt)) / (24 * 60 * 60 * 1000)));
   if (ageDays === 0) return "checked_today";
   if (ageDays <= 30) return "recent";
   if (ageDays <= 180) return "aging";
@@ -2738,4 +2841,12 @@ function mapVersion(row: VersionRow) {
 
 function toIso(value: Date | string) {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function dateMillis(value: Date | string) {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
