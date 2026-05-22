@@ -1245,6 +1245,14 @@ h3 {
   position: relative;
 }
 
+.detail-hero-image.is-fallback-source {
+  aspect-ratio: 1 / 1;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 560px;
+  width: min(100%, 560px);
+}
+
 .image-credit {
   color: var(--muted);
   font-size: 12px;
@@ -1398,6 +1406,10 @@ h3 {
 .image-audit-card .result-image {
   aspect-ratio: 16 / 9;
   border-radius: 6px;
+}
+
+.image-audit-card .result-image.is-fallback-source {
+  aspect-ratio: 1 / 1;
 }
 
 .image-audit-card p {

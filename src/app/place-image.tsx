@@ -41,6 +41,7 @@ export function PlaceImage({ alt, category, src, variant }: PlaceImageProps) {
   const [loaded, setLoaded] = useState(false);
   const fallbackSrc = fallbackPlaceImageForCategory(category);
   const imageSrc = src && !failedSources.includes(src) ? src : !failedSources.includes(fallbackSrc) ? fallbackSrc : null;
+  const isFallbackSource = Boolean(imageSrc && imageSrc === fallbackSrc && imageSrc !== src);
 
   useEffect(() => {
     setFailedSources([]);
@@ -59,9 +60,10 @@ export function PlaceImage({ alt, category, src, variant }: PlaceImageProps) {
 
   const wrapperClass = variant === "detail" ? "detail-hero-image" : "result-image";
   const stateClass = !imageSrc ? "is-missing" : loaded ? "is-loaded" : "is-loading";
+  const sourceClass = isFallbackSource ? "is-fallback-source" : "is-original-source";
 
   return (
-    <div className={`${wrapperClass} ${stateClass}`} aria-label={!imageSrc ? alt : undefined}>
+    <div className={`${wrapperClass} ${stateClass} ${sourceClass}`} aria-label={!imageSrc ? alt : undefined}>
       {!imageSrc || !loaded ? <ImageIcon className="place-image-placeholder" size={28} aria-hidden="true" /> : null}
       {imageSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
