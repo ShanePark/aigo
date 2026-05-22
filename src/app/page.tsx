@@ -20,6 +20,7 @@ import { NearbySearchButton } from "@/app/nearby-search-button";
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
 import { searchPlaces } from "@/lib/places";
+import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
 const DEFAULT_ORIGIN = {
@@ -81,13 +82,27 @@ type CategoryGroupId = keyof typeof CATEGORY_GROUPS;
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const input = searchPlacesSchema.parse(buildSearchInput(params));
-  const result = await safeSearch(input);
-  const activeCategoryGroup = categoryGroupParam(params);
-  const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, params);
-  const activeSort = sortParam(params);
+  let effectiveParams = params;
+  let activeCategoryGroup = categoryGroupParam(params);
+  let input = searchPlacesSchema.parse(buildSearchInput(params));
+  let result = await safeSearch(input);
+
+  if (result.meta.total === 0 && shouldFallbackToAllCategoriesForQuery(textParam(params.query), activeCategoryGroup)) {
+    const fallbackParams = withoutCategoryParams(params);
+    const fallbackInput = searchPlacesSchema.parse(buildSearchInput(fallbackParams));
+    const fallbackResult = await safeSearch(fallbackInput);
+    if (fallbackResult.meta.total > 0) {
+      effectiveParams = fallbackParams;
+      activeCategoryGroup = "all";
+      input = fallbackInput;
+      result = fallbackResult;
+    }
+  }
+
+  const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, effectiveParams);
+  const activeSort = sortParam(effectiveParams);
   const mapOrigin = mapOriginFromMeta(result.meta);
-  const searchReturnHref = currentSearchHref(params);
+  const searchReturnHref = currentSearchHref(effectiveParams);
   const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
 
   return (
@@ -101,11 +116,11 @@ export default async function Home({ searchParams }: HomeProps) {
 
         <form className="search-form" action="/">
           <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
-          {textParam(params.nearby) === "1" ? <input name="nearby" type="hidden" value="1" /> : null}
+          {textParam(effectiveParams.nearby) === "1" ? <input name="nearby" type="hidden" value="1" /> : null}
           <div className="search-bar">
             <label className="query-field">
               <span>검색어</span>
-              <input name="query" defaultValue={textParam(params.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
+              <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
             </label>
             <button type="submit" className="primary-button">
               <Search size={17} aria-hidden="true" />
@@ -128,7 +143,7 @@ export default async function Home({ searchParams }: HomeProps) {
               return (
                 <Link
                   className={`category-tab ${activeCategoryGroup === groupId ? "is-active" : ""}`}
-                  href={categoryGroupHref(params, groupId as CategoryGroupId)}
+                  href={categoryGroupHref(effectiveParams, groupId as CategoryGroupId)}
                   key={groupId}
                 >
                   <Icon size={17} aria-hidden="true" />
@@ -141,7 +156,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="filter-grid">
             <label>
               <span>상황</span>
-              <select name="visitContext" defaultValue={textParam(params.visitContext) || ""}>
+              <select name="visitContext" defaultValue={textParam(effectiveParams.visitContext) || ""}>
                 <option value="">기본 추천</option>
                 <option value="afterDaycare">하원 후</option>
                 <option value="nearbyNow">당장 근처</option>
@@ -152,7 +167,7 @@ export default async function Home({ searchParams }: HomeProps) {
             </label>
             <label>
               <span>한 페이지</span>
-              <select name="limit" defaultValue={String(resultLimitParam(params))}>
+              <select name="limit" defaultValue={String(resultLimitParam(effectiveParams))}>
                 {RESULT_LIMIT_OPTIONS.map((limit) => (
                   <option value={limit} key={limit}>
                     {limit}개
@@ -169,54 +184,54 @@ export default async function Home({ searchParams }: HomeProps) {
             </summary>
             <div className="advanced-checks" aria-label="선호 조건">
               <label className="check">
-                <input name="indoor" type="checkbox" defaultChecked={params.indoor === "on"} />
+                <input name="indoor" type="checkbox" defaultChecked={effectiveParams.indoor === "on"} />
                 <span>실내</span>
               </label>
               <label className="check">
-                <input name="parking" type="checkbox" defaultChecked={params.parking === "on"} />
+                <input name="parking" type="checkbox" defaultChecked={effectiveParams.parking === "on"} />
                 <span>주차</span>
               </label>
               <label className="check">
-                <input name="stroller" type="checkbox" defaultChecked={params.stroller === "on"} />
+                <input name="stroller" type="checkbox" defaultChecked={effectiveParams.stroller === "on"} />
                 <span>유모차</span>
               </label>
               <label className="check">
-                <input name="nursing" type="checkbox" defaultChecked={params.nursing === "on"} />
+                <input name="nursing" type="checkbox" defaultChecked={effectiveParams.nursing === "on"} />
                 <span>수유실</span>
               </label>
               <label className="check">
-                <input name="diaper" type="checkbox" defaultChecked={params.diaper === "on"} />
+                <input name="diaper" type="checkbox" defaultChecked={effectiveParams.diaper === "on"} />
                 <span>기저귀</span>
               </label>
               <label className="check">
-                <input name="food" type="checkbox" defaultChecked={params.food === "on"} />
+                <input name="food" type="checkbox" defaultChecked={effectiveParams.food === "on"} />
                 <span>간식</span>
               </label>
               <label className="check">
-                <input name="babyChair" type="checkbox" defaultChecked={params.babyChair === "on"} />
+                <input name="babyChair" type="checkbox" defaultChecked={effectiveParams.babyChair === "on"} />
                 <span>아기의자</span>
               </label>
               <label className="check">
-                <input name="elevator" type="checkbox" defaultChecked={params.elevator === "on"} />
+                <input name="elevator" type="checkbox" defaultChecked={effectiveParams.elevator === "on"} />
                 <span>엘리베이터</span>
               </label>
             </div>
             <div className="advanced-grid">
               <label>
                 <span>아이 월령</span>
-                <input name="ages" defaultValue={textParam(params.ages) || "32,7,7"} placeholder="32,7,7" />
+                <input name="ages" defaultValue={textParam(effectiveParams.ages) || "32,7,7"} placeholder="32,7,7" />
               </label>
               <label>
                 <span>반경 km</span>
-                <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(params.radiusKm) ?? (nationwideStaySearch ? "" : "80")} />
+                <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(effectiveParams.radiusKm) ?? (nationwideStaySearch ? "" : "80")} />
               </label>
               <label>
                 <span>위도</span>
-                <input name="lat" type="number" step="0.000001" defaultValue={textParam(params.lat) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lat))} />
+                <input name="lat" type="number" step="0.000001" defaultValue={textParam(effectiveParams.lat) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lat))} />
               </label>
               <label>
                 <span>경도</span>
-                <input name="lng" type="number" step="0.000001" defaultValue={textParam(params.lng) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lng))} />
+                <input name="lng" type="number" step="0.000001" defaultValue={textParam(effectiveParams.lng) ?? (nationwideStaySearch ? "" : String(DEFAULT_ORIGIN.lng))} />
               </label>
             </div>
           </details>
@@ -235,7 +250,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <p>{resultCountLabel(result.meta)}</p>
               </div>
               <div className="result-actions">
-                <SortControls activeSort={activeSort} params={params} />
+                <SortControls activeSort={activeSort} params={effectiveParams} />
                 {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
               </div>
             </section>
@@ -246,7 +261,7 @@ export default async function Home({ searchParams }: HomeProps) {
               ))}
               {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
             </div>
-            <Pagination meta={result.meta} params={params} />
+            <Pagination meta={result.meta} params={effectiveParams} />
           </div>
         </section>
       )}
@@ -377,6 +392,15 @@ async function safeSearch(input: SearchPlacesInput) {
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function withoutCategoryParams(params: Record<string, string | string[] | undefined>) {
+  const next = { ...params };
+  delete next.category;
+  delete next.categoryGroup;
+  delete next.offset;
+  delete next.page;
+  return next;
 }
 
 function resultLimitParam(params: Record<string, string | string[] | undefined>) {

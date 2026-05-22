@@ -147,9 +147,6 @@ export const createPlaceSchema = z
   .refine((place) => Boolean(place.address || place.regionSido), {
     message: "place requires either address or regionSido"
   })
-  .refine((place) => place.primaryCategory !== "accommodation", {
-    message: "accommodation is excluded from MVP"
-  })
   .refine(
     (place) =>
       place.minRecommendedAgeMonths === undefined ||
@@ -168,9 +165,6 @@ export const updatePlaceSchema = z
     imageMode: z.enum(["append", "replace"]).default("append"),
     actor: z.string().trim().default("agent"),
     changeSummary: z.string().trim().max(2000).optional()
-  })
-  .refine((place) => place.primaryCategory === undefined || place.primaryCategory !== "accommodation", {
-    message: "accommodation is excluded from MVP"
   })
   .refine((place) => (place.lat === undefined && place.lng === undefined) || (place.lat !== undefined && place.lng !== undefined), {
     message: "lat and lng must be updated together"

@@ -1,4 +1,5 @@
-import { Clock, ExternalLink, History, MapPin, ShieldCheck } from "lucide-react";
+import { Clock, ExternalLink, History, MapPin, MessageSquareText, ShieldCheck } from "lucide-react";
+import type { Route } from "next";
 import { notFound } from "next/navigation";
 
 import { PlaceImage } from "@/app/place-image";
@@ -13,11 +14,25 @@ type PlaceDetailProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function searchBackHref(value: string | string[] | undefined): Route {
+  const candidate = textParam(value);
+  if (!candidate || candidate.startsWith("//") || !candidate.startsWith("/")) return "/";
+
+  try {
+    const url = new URL(candidate, "https://aigo.local");
+    if (url.origin !== "https://aigo.local" || url.pathname !== "/") return "/";
+    return `${url.pathname}${url.search}${url.hash}` as Route;
+  } catch {
+    return "/";
+  }
+}
+
 export default async function PlaceDetailPage({ params, searchParams }: PlaceDetailProps) {
   const { placeId } = await params;
   const query = await searchParams;
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
+  const reviewLinks = buildReviewLinks(place);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
   const backHref = searchBackHref(query.returnTo);
@@ -97,6 +112,8 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             </dd>
             <dt>신뢰도</dt>
             <dd>{confidenceLabel(place.dataConfidence)}</dd>
+            <dt>장소 평가</dt>
+            <dd>{tenPointScoreLabel(place.scoring.placeScore)}</dd>
             <dt>태그</dt>
             <dd>{place.tags.join(", ") || "없음"}</dd>
           </dl>
@@ -185,6 +202,27 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </section>
       ) : null}
 
+      {reviewLinks.length > 0 ? (
+        <section className="info-block full">
+          <h2>
+            <MessageSquareText size={18} aria-hidden="true" />
+            후기 살펴보기
+          </h2>
+          <div className="source-list">
+            {reviewLinks.map((reviewLink) => (
+              <a className="source-row review-link-row" href={reviewLink.url} target="_blank" rel="noreferrer" key={reviewLink.key}>
+                <span>{reviewLink.provider}</span>
+                <small>
+                  <strong>{reviewLink.label}</strong>
+                  {reviewLink.note ? ` - ${reviewLink.note}` : null}
+                </small>
+                <ExternalLink size={14} aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="info-block full">
         <h2>출처</h2>
         <div className="source-list">
@@ -244,6 +282,14 @@ async function loadPlace(placeId: string) {
 type PlaceDetail = Awaited<ReturnType<typeof getPlaceDetail>>;
 type Source = PlaceDetail["sources"][number];
 
+type ReviewLink = {
+  key: string;
+  label: string;
+  note?: string;
+  provider: string;
+  url: string;
+};
+
 function uniqueDisplaySources(sources: Source[]) {
   const grouped = new Map<string, Source & { key: string; count: number }>();
 
@@ -261,21 +307,102 @@ function uniqueDisplaySources(sources: Source[]) {
   return Array.from(grouped.values());
 }
 
-function normalizeSourceValue(value: string | null | undefined) {
-  return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
+function buildReviewLinks(place: PlaceDetail) {
+  const links = [...reviewLinksFromExternalRefs(place.externalRefs), ...reviewLinksFromSources(place.sources)];
+  const deduped = new Map<string, ReviewLink>();
+
+  for (const link of links) {
+    const key = normalizeSourceValue(link.url);
+    if (!key || deduped.has(key)) continue;
+    deduped.set(key, { ...link, key });
+  }
+
+  return Array.from(deduped.values());
 }
 
-function searchBackHref(value: string | string[] | undefined) {
-  const candidate = textParam(value);
-  if (!candidate || candidate.startsWith("//") || !candidate.startsWith("/")) return "/";
+function reviewLinksFromExternalRefs(externalRefs: PlaceDetail["externalRefs"]) {
+  if (!isRecord(externalRefs) || !Array.isArray(externalRefs.reviewLinks)) return [];
 
+  return externalRefs.reviewLinks.flatMap((item, index): ReviewLink[] => {
+    if (typeof item === "string" && isHttpUrl(item)) {
+      return [
+        {
+          key: item,
+          label: reviewProviderLabel(item),
+          provider: reviewProviderLabel(item),
+          url: item
+        }
+      ];
+    }
+
+    if (!isRecord(item) || typeof item.url !== "string" || !isHttpUrl(item.url)) return [];
+    const provider = stringValue(item.provider) ?? reviewProviderLabel(item.url);
+    const label = stringValue(item.label) ?? stringValue(item.title) ?? provider;
+    const note = stringValue(item.note) ?? stringValue(item.summary);
+
+    return [{ key: `${item.url}-${index}`, label, note, provider, url: item.url }];
+  });
+}
+
+function reviewLinksFromSources(sources: Source[]) {
+  return sources.flatMap((source): ReviewLink[] => {
+    if (!source.url || !isReviewSource(source)) return [];
+    const provider = source.title ?? reviewProviderLabel(source.url);
+
+    return [
+      {
+        key: source.url,
+        label: provider,
+        note: source.summary ?? undefined,
+        provider: reviewProviderLabel(source.url),
+        url: source.url
+      }
+    ];
+  });
+}
+
+function isReviewSource(source: Source) {
+  const searchable = [source.sourceType, source.title, source.summary, source.url].filter(Boolean).join(" ").toLocaleLowerCase("ko-KR");
+  return /review|리뷰|후기|blog|블로그|listing|place|naver|kakao|google|tripadvisor|booking|agoda|yanolja|yeogi/.test(searchable);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isHttpUrl(value: string) {
   try {
-    const url = new URL(candidate, "https://aigo.local");
-    if (url.origin !== "https://aigo.local" || url.pathname !== "/") return "/";
-    return `${url.pathname}${url.search}${url.hash}`;
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
-    return "/";
+    return false;
   }
+}
+
+function reviewProviderLabel(url: string) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes("blog.naver")) return "네이버 블로그";
+    if (hostname.includes("naver")) return "네이버";
+    if (hostname.includes("kakao")) return "카카오";
+    if (hostname.includes("google")) return "Google";
+    if (hostname.includes("tripadvisor")) return "Tripadvisor";
+    if (hostname.includes("booking")) return "Booking";
+    if (hostname.includes("agoda")) return "Agoda";
+    if (hostname.includes("yanolja")) return "야놀자";
+    if (hostname.includes("yeogi")) return "여기어때";
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return "후기 링크";
+  }
+}
+
+function normalizeSourceValue(value: string | null | undefined) {
+  return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
 }
 
 function textParam(value: string | string[] | undefined) {
@@ -310,6 +437,10 @@ function scoreLabel(value: number | null) {
   return value === null ? "미확인" : `${value}/5`;
 }
 
+function tenPointScoreLabel(value: number | null) {
+  return value === null ? "미평가" : `${value}/10`;
+}
+
 function categoryLabel(value: string) {
   const labels: Record<string, string> = {
     kids_cafe: "키즈카페",
@@ -325,7 +456,8 @@ function categoryLabel(value: string) {
     family_restaurant: "놀이방/가족 식당",
     sports_venue: "스포츠/야구장",
     shopping_mall: "쇼핑/몰",
-    rest_area: "휴게소/쉼터"
+    rest_area: "휴게소/쉼터",
+    accommodation: "키즈 숙소"
   };
   return labels[value] ?? value;
 }

@@ -14,44 +14,73 @@ Do not use direct database writes for real place data. Real mutations go through
 ## Ground Rules
 
 - Treat source evidence as part of the data, not an afterthought. Every create/update requires at least one `sources` item.
-- Treat image evidence as required for place registration. Every new place create, and every meaningful enrichment when the place has no usable image, must include at least one structured `images` item with citeable provenance.
+- Treat image evidence as required metadata for this workflow. For user-requested AiGo registrations, every create/update that registers or enriches a place through the API must include at least one citeable, place-specific structured `images` item unless the user explicitly overrides the requirement for that single operation.
 - Unknown is acceptable. Do not invent amenities, ages, coordinates, opening hours, or image provenance.
 - Prefer broad public internet research: official facility/operator pages, public agency pages, library/tourism/mall pages, and public local listings or blogs only as support.
 - Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
 - Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
-- Subagents may research and write `agent-research/*.md`; the main agent consolidates and calls the API.
-- For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and avoid `dataConfidence: "needs_check"`; capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
+- Subagents may research and write `agent-research/*.md`; they must not mutate data. The main agent, or one explicitly assigned API mutation agent, consolidates findings and calls the API to avoid conflicting creates/updates.
+- For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; do not use `status: "needs_review"`, `dataConfidence: "needs_check"`, or image `reviewStatus: "needs_review"` in API payloads. Capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
+
+## Family-Fit Gate
+
+Before recommending `create` for a real place, explicitly record why it belongs in a toddler plus twin-infant family outing database. A place should normally pass at least one of these gates:
+
+- Child-primary destination: kids cafe, indoor playground, children's museum, toy library, children's room/library, playground, water/sand/sensory play, or an official child/family program.
+- Baby-logistics destination: source-backed nursing room, diaper-changing table, stroller/elevator route, baby chair, food/snack handling, or a mall/public facility where first-child activity and infant care can be solved together.
+- Route-break utility: highway rest area, public facility, or route stop with source-backed toilets, nursing/diaper support, parking, and a clear route context such as Daecheong Lake, Cheongnamdae, or one-hour day trips.
+- User-signal exception: the user explicitly mentioned or visited the place, but weak family fit must still be documented with cautionary notes and conservative scores.
+
+Do not create or keep an active recommendation just because a place is indoor, free, official, near Daejeon Station, or has tourism/culture value. Tourist information centers, travel lounges, adult-oriented galleries, generic historic exhibits, scenic viewpoints, large cafes, and general rest spaces should be skipped or held in research notes unless they pass one of the gates above or the user explicitly asks to register them.
+
+Do not force a weak candidate into `family_cafe` only because no better category exists. Use `family_cafe` for a cafe/restaurant-style place with source-backed family logistics or child value. Use `rest_area` only for route-break stops, and make the route-break purpose explicit in tags and `parentNotes`; it is not a standalone outing destination.
+
+When a candidate is useful only as a short add-on or fallback, encode that honestly:
+
+- Set `childEngagementLevel` low and `averageStayMinutes` short.
+- Use conservative `minRecommendedAgeMonths` and avoid broad `0-144` ranges unless all ages are genuinely supported.
+- Add `parentNotes` that say it is not a primary kids play venue.
+- For user-requested registrations, keep `status: "active"` and use `dataConfidence: "agent_collected"` or `dataConfidence: "user_reported"`; put current-operation, baby-logistics, or child-value caveats in notes.
 
 ## Workflow
 
 1. Scope the research slice.
    - Prioritize Daejeon Station / old downtown, Daejeon, and roughly one-hour driving range.
    - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
+   - Apply the Family-Fit Gate before staging a create candidate. If the only positive evidence is "official/indoor/free/nearby/tourism", stage as `skip` or hold it in research notes, not `create`, unless the user explicitly asked to register it.
 
 2. Delegate independent research.
-   - Give each subagent a bounded slice such as indoor playgrounds, libraries/toy libraries, parks/day trips, family restaurants, or image candidates.
-   - Tell subagents not to mutate data. Their deliverable is a structured Markdown file under `agent-research/`.
+   - Split broad Daejeon collection work by district and category so reports stay comparable and dedupe-friendly. Useful district slices include Jung-gu, Dong-gu, Seo-gu, Yuseong-gu, Daedeok-gu, and nearby one-hour day-trip areas such as Sejong, Gongju, Geumsan, Okcheon, Cheongju, Gyeryong, Nonsan, and Cheongyang.
+   - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; route-break rest areas and day-trip support stops.
+   - Give each subagent clear ownership of one district/category slice, concrete search terms, and a unique report filename under `agent-research/`.
+   - Tell subagents not to mutate data or call the AiGo API. Their deliverable is a structured Markdown file under `agent-research/`.
+   - Use only one API mutation executor after research reports are available. That executor performs duplicate checks, compares existing records, creates missing places, patches enrichments, and verifies versions.
 
 3. Research with source notes.
    - Use one staging file per slice: `agent-research/<topic>-YYYYMMDD-HHMM.md`.
-   - For each place, record suggested action (`create`, `update`, `skip`, `needs_review`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields.
+   - For each place, record suggested action (`create`, `update`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
+   - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
+   - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
 
 4. Check duplicates before mutation.
    - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
    - If evidence is weak or identity is uncertain for a user-requested registration, still keep the place searchable with `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; make the uncertainty explicit in `parentNotes`, `safetyNotes`, tags, or structured `unknown` fields.
+   - If an existing active record fails the Family-Fit Gate, do not enrich it as if it were a good recommendation. Prefer a source-backed `PATCH` with cautionary notes, or propose deletion/closure only after confirming it has no route-break, baby-logistics, child-primary, or user-signal value.
 
 5. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
    - Base URL is normally `http://localhost:3000`.
    - Creates use `POST /v1/places`.
    - Updates use `PATCH /v1/places/{placeId}`.
+   - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. This is a hard delete and cascades sources, images, and version history.
    - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
 
 6. Verify after meaningful changes.
    - Call `GET /v1/places/{placeId}`.
    - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list.
+   - For hard deletes, confirm `GET /v1/places/{placeId}` returns 404 and exact-name search no longer returns the place.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
 
@@ -67,13 +96,22 @@ Create requires:
 - `lng`
 - `address` or `regionSido`
 - `sources` with at least one source
-- `images` with at least one source-backed image
+
+Images are optional by the raw API contract, but required by this skill for user-requested place registration:
+
+- Include structured `images` with at least one citeable, place-specific image.
+- Use source-backed `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus: "approved"`, and useful `altText` or `description`.
+- If no usable image can be found after reasonable searching, keep the candidate in `agent-research/` as `hold_for_later` with `noImageFoundReason`; do not create/update it unless the user explicitly approves a no-image exception.
 
 Update requires:
 
 - `sources` with at least one source
 - Any writable fields that actually changed
-- `images` with at least one source-backed image when the place has no usable image or when the update is image enrichment
+
+Image enrichment updates require:
+
+- `images` with at least one source-backed image when adding or replacing images.
+- For user-requested registration/enrichment work, include at least one source-backed `images` item in the same API mutation. If no usable image is found, hold the candidate in research notes unless the user explicitly approves a no-image exception.
 
 Source objects:
 
@@ -107,8 +145,8 @@ Use these enum values:
 
 - Tri-state fields: `yes`, `no`, `partial`, `unknown`.
 - `indoorType`: `indoor`, `outdoor`, `mixed`, `unknown`.
-- `status`: `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`.
-- `dataConfidence`: `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`.
+- `status`: API accepts `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`.
+- `dataConfidence`: API accepts `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`; user-requested registrations from this skill should use `agent_collected`, `user_reported`, or `official_verified`.
 
 Common `primaryCategory` values used by the UI/search:
 
@@ -126,8 +164,9 @@ Common `primaryCategory` values used by the UI/search:
 - `sports_venue`
 - `shopping_mall`
 - `rest_area`
+- `accommodation`
 
-`accommodation` is excluded from MVP and will be rejected.
+Use `accommodation` for kid-primary lodging such as hotels, resorts, pensions, pool villas, or family suites where children's rooms, play rooms, water play, kids programs, or child-centered facilities are a core reason to visit. Do not register ordinary kid-friendly lodging unless the user explicitly asks or the child-primary evidence is strong.
 
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `kids`, `어린이`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
 
@@ -228,6 +267,8 @@ Store remote image URLs only when they help identify or compare the exact place 
 
 Prefer official/operator/public-agency images. Public listing images are acceptable only when they clearly match the exact branch/place and better sources are unavailable. Avoid logos, favicons, generic share thumbnails, tiny icons, unrelated multi-branch graphics, and personal blog/SNS photos unless clearly labeled low confidence.
 
+Images are a hard prerequisite for user-requested place registration in this workflow. Make a serious attempt to find place-specific official, public-agency, operator, tourism, or public-listing images; if none is citeable, hold the candidate in `agent-research/` for a later image pass instead of creating or updating it.
+
 Use `images`, not deprecated `imageUrls`, for new work:
 
 ```json
@@ -249,9 +290,9 @@ Use `images`, not deprecated `imageUrls`, for new work:
 
 Image display tiers: `official`, `public_agency`, `public_listing`, `rights_unclear`, `unknown`.
 
-Image review statuses: `pending_review`, `approved`, `needs_review`, `rejected`.
+Image review statuses accepted by the API are `pending_review`, `approved`, `needs_review`, and `rejected`; user-requested registrations from this skill should use `approved`.
 
-Do not create a place until at least one branch/place-specific image candidate is available. If only logos, favicons, generic thumbnails, unrelated branch images, or rights-unclear personal photos are available, do not set user-requested registrations to `needs_review` solely because image evidence is incomplete; capture uncertainty in notes instead.
+If only logos, favicons, generic thumbnails, unrelated branch images, or rights-unclear personal photos are available, hold the candidate in research notes and explain the rejected candidates. Do not set user-requested registrations to review/check states solely because image or amenity evidence is incomplete.
 
 ## Curl Patterns
 
@@ -359,7 +400,8 @@ curl -sS http://localhost:3000/v1/places/<placeId>/versions \
 - Confirm `agent-research/` is ignored before writing staging files: `git check-ignore -q agent-research/`.
 - Confirm staged research files under `agent-research/` are not committed.
 - Confirm every created/updated place has source-backed summaries.
-- Confirm every created place has at least one structured `images` entry with `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus`, and useful `altText` or `description`.
+- Confirm every created/updated user-requested place has at least one structured `images` entry with `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus: "approved"`, and useful `altText` or `description`.
+- Confirm every created place passes the Family-Fit Gate; weak tourist/rest/cafe/culture candidates should be skipped unless the user explicitly asked to register them, in which case create them as `active` with conservative notes.
 - Confirm unknown or weak evidence stays `unknown`, `partial`, or in notes, not in `needs_check` for user-requested registrations.
 - Confirm duplicate handling decision is documented in the work summary.
 - If API schemas, OpenAPI, source/image rules, categories, or AGENTS data policy changed during the task, update this skill in the same commit.

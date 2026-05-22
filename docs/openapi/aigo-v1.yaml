@@ -161,6 +161,23 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a place
+      description: Hard-deletes the place and cascades its sources, images, and version history. Use only for deliberate audit cleanup or explicit user removal requests.
+      operationId: deletePlace
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+      responses:
+        "200":
+          description: Deleted place summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletePlaceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /v1/places/{placeId}/versions:
     get:
       summary: List place versions
@@ -299,7 +316,7 @@ components:
           type: string
         primaryCategory:
           type: string
-          description: accommodation is excluded from MVP.
+          description: Primary place category, such as kids_cafe, park, shopping_mall, rest_area, or accommodation.
         tags:
           type: array
           items:
@@ -340,7 +357,7 @@ components:
           type: string
         externalRefs:
           type: object
-          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`.
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `reviewLinks` here.
           additionalProperties: true
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
@@ -1039,7 +1056,7 @@ components:
           type: string
         externalRefs:
           type: object
-          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`.
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `reviewLinks` here.
           additionalProperties: true
         limit:
           type: integer
@@ -1339,6 +1356,17 @@ components:
         createdAt:
           type: string
           format: date-time
+    DeletePlaceResponse:
+      type: object
+      required: [id, name, deleted]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        deleted:
+          type: boolean
     PlaceVersion:
       allOf:
         - $ref: "#/components/schemas/PlaceVersionSummary"
@@ -1441,6 +1469,7 @@ components:
               nullable: true
         externalRefs:
           type: object
+          description: External references and agent-maintained link collections, including optional `reviewLinks` for public review/listing/search pages.
           additionalProperties: true
         imageUrls:
           type: array

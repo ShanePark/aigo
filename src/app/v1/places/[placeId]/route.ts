@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiKey } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/errors";
 import { readJson } from "@/lib/http";
-import { getPlaceDetail, updatePlace } from "@/lib/places";
+import { deletePlace, getPlaceDetail, updatePlace } from "@/lib/places";
 import { updatePlaceSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
@@ -35,3 +35,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 }
 
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  try {
+    requireApiKey(request);
+    const { placeId } = await context.params;
+    return NextResponse.json(await deletePlace(placeId));
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}

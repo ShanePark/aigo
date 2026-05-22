@@ -266,6 +266,23 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   });
 }
 
+export async function deletePlace(placeId: string) {
+  return pg.begin(async (tx) => {
+    const rows = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
+    if (rows.length === 0) {
+      throw new ApiError(404, "Place not found");
+    }
+
+    await tx`delete from places where id = ${placeId}`;
+
+    return {
+      id: rows[0].id,
+      name: rows[0].name,
+      deleted: true
+    };
+  });
+}
+
 export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg) {
   const rows = await executor<PlaceRow[]>`select * from places where id = ${placeId}`;
   if (rows.length === 0) {
@@ -408,7 +425,7 @@ function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPl
 
 export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {
   const params: SqlParam[] = [];
-  const where = ["p.status = 'active'", "p.primary_category <> 'accommodation'"];
+  const where = ["p.status = 'active'"];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
@@ -1074,7 +1091,7 @@ async function updatePlaceRow(executor: SqlExecutor, placeId: string, record: Re
 
 function buildSearchQuery(input: SearchPlacesInput) {
   const params: SqlParam[] = [];
-  const where = ["status = 'active'", "primary_category <> 'accommodation'"];
+  const where = ["status = 'active'"];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
@@ -1795,6 +1812,12 @@ const categoryKeywordMap: Record<string, string[]> = {
   체험관: ["experience_center"],
   수목원: ["park"],
   휴게소: ["rest_area"],
+  숙소: ["accommodation"],
+  키즈숙소: ["accommodation"],
+  호텔: ["accommodation"],
+  리조트: ["accommodation"],
+  펜션: ["accommodation"],
+  풀빌라: ["accommodation"],
   식당: ["family_restaurant"],
   놀이방식당: ["family_restaurant"]
 };

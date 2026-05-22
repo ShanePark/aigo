@@ -14,8 +14,8 @@ describe("place schemas", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects accommodation in MVP", () => {
-    const result = createPlaceSchema.safeParse({
+  it("accepts kid-primary accommodations", () => {
+    const result = createPlaceSchema.parse({
       name: "테스트 숙소",
       primaryCategory: "accommodation",
       regionSido: "대전",
@@ -24,7 +24,7 @@ describe("place schemas", () => {
       sources: [{ sourceType: "official_site", url: "https://example.com" }]
     });
 
-    expect(result.success).toBe(false);
+    expect(result.primaryCategory).toBe("accommodation");
   });
 
   it("defaults search pagination and keeps facility preferences soft", () => {

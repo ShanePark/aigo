@@ -50,8 +50,7 @@ create table if not exists places (
   version integer not null default 1,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  last_verified_at timestamptz,
-  constraint places_not_accommodation check (primary_category <> 'accommodation')
+  last_verified_at timestamptz
 );
 
 create or replace function set_place_derived_fields()

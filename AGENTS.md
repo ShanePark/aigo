@@ -36,7 +36,7 @@ Treat the user's visited/reference places as product-shaping signals, not just a
 - Day-trip nature with practical stops: Daecheong Lake, Cheongnamdae, Gyeryongsan/Sutonggol, Jangtaesan, Sangso-dong, Buso-damak, and rest areas should include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
 - Playroom/family restaurants: these are useful after daycare or for meal+play combinations, but grill/fire risks, playroom line-of-sight, baby chairs, parking, and floor changes should be explicit.
 
-When a source is weak or current operation is uncertain, keep the place but mark `needs_check` or use cautionary parent notes rather than silently removing it from research.
+When a source is weak or current operation is uncertain, keep the place searchable for user-requested registration and use cautionary parent notes, `unknown` fields, and conservative scoring rather than silently removing it from research. Do not use `needs_check` or `needs_review` as registration/review states for places the user asked us to add.
 
 ## Research Source Policy
 
@@ -68,7 +68,7 @@ Use one file per research slice, for example:
 Each researched place should include:
 
 - Place name
-- Suggested action: `create`, `update`, `skip`, or `needs_review`
+- Suggested action: `create`, `update`, `skip`, or `hold_for_later`
 - Category and tags
 - Address/region and coordinates if confidently found
 - Child/family signals: age fit, indoor/outdoor, stroller, parking, nursing room, diaper table, kids toilet, elevator, baby chair, food/snack handling, stay duration, parent effort, safety notes
@@ -88,7 +88,7 @@ All real place data creation or enrichment must use the AiGo API, not direct DB 
 4. `PATCH /v1/places/{placeId}` for updates
 5. Verify version history after meaningful updates
 
-Every create/update must include at least one source. Prefer official/public sources. Use `unknown` instead of guessing.
+Every create/update must include at least one source and at least one citeable, place-specific image entry. Prefer official/public sources. Use `unknown` instead of guessing.
 
 Do not create real data seed/export files. Real place data belongs in the development DB only.
 
