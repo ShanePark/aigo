@@ -382,12 +382,16 @@ async function getImageMapForPlaces(placeIds: string[]) {
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const containsName = `%${input.name}%`;
+  const compactName = compactSearchText(input.name);
+  const containsCompactName = `%${compactName}%`;
+  const genericAliasTerms = duplicateGenericAliasTerms;
   const externalRefsJson =
     input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
   const rows = await pg<
     (PlaceRow & {
       distance_meters: number | null;
       name_similarity: number | null;
+      alias_match: boolean;
       external_refs_match: boolean;
       kakao_place_id_match: boolean;
     })[]
@@ -398,30 +402,80 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
       greatest(
         similarity(name, ${input.name}),
         case when name = ${input.name} then 1 else 0 end,
-        case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end
+        case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end,
+        case
+          when regexp_replace(lower(name), '\\s+', '', 'g') ilike ${containsCompactName}
+            or ${compactName} ilike ('%' || regexp_replace(lower(name), '\\s+', '', 'g') || '%')
+          then 0.65
+          else 0
+        end,
+        case
+          when exists (
+            select 1
+            from unnest(tags) as duplicate_tag
+            where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
+              and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
+              and (
+                regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
+                or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
+              )
+          )
+          then 0.72
+          else 0
+        end,
+        case when regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName} then 0.72 else 0 end
       ) as name_similarity,
+      (
+        exists (
+          select 1
+          from unnest(tags) as duplicate_tag
+          where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
+            and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
+            and (
+              regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
+              or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
+            )
+        )
+        or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
+      ) as alias_match,
       (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
       (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
     from places
     where
-      (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null})
-      or (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb)
-      or (
-        ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography, ${input.radiusMeters})
-        and (
-          name = ${input.name}
-          or name ilike ${containsName}
-          or ${input.name} ilike ('%' || name || '%')
-          or similarity(name, ${input.name}) >= 0.25
+      status <> 'closed'
+      and (
+        (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null})
+        or (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb)
+        or (
+          ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography, ${input.radiusMeters})
+          and (
+            name = ${input.name}
+            or name ilike ${containsName}
+            or ${input.name} ilike ('%' || name || '%')
+            or similarity(name, ${input.name}) >= 0.25
+            or regexp_replace(lower(name), '\\s+', '', 'g') ilike ${containsCompactName}
+            or exists (
+              select 1
+              from unnest(tags) as duplicate_tag
+              where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
+                and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
+                and (
+                  regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
+                  or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
+                )
+            )
+            or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
+          )
         )
       )
-    order by kakao_place_id_match desc, external_refs_match desc, name_similarity desc, distance_meters asc
+    order by kakao_place_id_match desc, external_refs_match desc, alias_match desc, name_similarity desc, distance_meters asc
     limit ${input.limit}
   `;
 
   const items = await Promise.all(
     rows.map(async (row) => {
       const signals = {
+        aliasMatch: row.alias_match,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
         distanceMeters: row.distance_meters,
@@ -442,6 +496,32 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
     items
   };
 }
+
+const duplicateGenericAliasTerms = [
+  "공원",
+  "놀이터",
+  "어린이공원",
+  "동네놀이터",
+  "근린공원",
+  "도시공원",
+  "공공놀이터",
+  "children_playground",
+  "small_playground",
+  "play_equipment",
+  "after_daycare_backup",
+  "short_stop",
+  "outdoor",
+  "실외",
+  "동구",
+  "중구",
+  "서구",
+  "유성구",
+  "대덕구",
+  "원도심",
+  "가오동",
+  "석교동",
+  "판암동"
+];
 
 export async function listPlaceVersions(placeId: string) {
   const versions = await pg<VersionRow[]>`
@@ -860,6 +940,7 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 export function shouldUseAnyKeywordMatch(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
   if (terms.length < 2) return false;
+  if (isPlayFeatureListedPlaceQuery(terms)) return true;
   const placeLikeTerms = terms.filter((term) => isLikelyPlaceNameTerm(term));
   const alternativeTerms = terms.filter((term) => isAlternativeKeywordTerm(term) || isLikelyPlaceNameTerm(term));
   if (alternativeTerms.length === terms.length && terms.some((term) => isAlternativeKeywordTerm(term))) {
@@ -881,6 +962,23 @@ function isLikelyPlaceNameTerm(term: string) {
 
 function isAlternativeKeywordTerm(term: string) {
   return alternativeKeywordTerms.has(term);
+}
+
+function isPlayFeatureListedPlaceQuery(terms: string[]) {
+  if (!terms.some((term) => specificPlayFeatureQueryTerms.has(term))) return false;
+  const placeTerms = terms.filter((term) => isPotentialListedPlaceTerm(term));
+  return placeTerms.length >= 2;
+}
+
+function isPotentialListedPlaceTerm(term: string) {
+  return (
+    term.length >= 2 &&
+    !specificPlayFeatureQueryTerms.has(term) &&
+    !isQueryStopTerm(term) &&
+    !isQueryPreferenceTerm(term) &&
+    !broadParentIntentTerms.has(term) &&
+    !broadPlaygroundIntentTerms.has(term)
+  );
 }
 
 function stripLocalPlaygroundIntentTerms(query: string | undefined) {
@@ -905,6 +1003,20 @@ const removableLocalPlaygroundIntentTerms = new Set(["동네놀이터", "어린�
 const localPlaygroundSandTerms = new Set(["모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 
 const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
+const specificPlayFeatureQueryTerms = new Set([
+  ...broadWaterPlayIntentTerms,
+  "그네",
+  "미끄럼틀",
+  "모래",
+  "모래놀이터",
+  "모래놀이",
+  "모래놀이장",
+  "시소",
+  "암벽",
+  "클라이밍",
+  "트램폴린",
+  "흔들놀이"
+]);
 
 const alternativeKeywordTerms = new Set([
   "아쿠아리움",

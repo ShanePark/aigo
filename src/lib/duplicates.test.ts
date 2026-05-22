@@ -5,6 +5,7 @@ import { duplicateConfidence, duplicateReasonCodes } from "@/lib/duplicates";
 describe("duplicate helpers", () => {
   it("treats kakao place id match as high confidence", () => {
     const signals = {
+      aliasMatch: false,
       externalRefsMatch: false,
       kakaoPlaceIdMatch: true,
       distanceMeters: 2000,
@@ -17,6 +18,7 @@ describe("duplicate helpers", () => {
 
   it("treats external reference matches as high confidence", () => {
     const signals = {
+      aliasMatch: false,
       externalRefsMatch: true,
       kakaoPlaceIdMatch: false,
       distanceMeters: 3000,
@@ -29,6 +31,7 @@ describe("duplicate helpers", () => {
 
   it("does not mark same-name far-away places as high confidence without external id", () => {
     const signals = {
+      aliasMatch: false,
       externalRefsMatch: false,
       kakaoPlaceIdMatch: false,
       distanceMeters: 8000,
@@ -42,6 +45,7 @@ describe("duplicate helpers", () => {
 
   it("keeps same-building substring matches below high confidence", () => {
     const signals = {
+      aliasMatch: false,
       externalRefsMatch: false,
       kakaoPlaceIdMatch: false,
       distanceMeters: 0,
@@ -50,5 +54,31 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateReasonCodes(signals)).toEqual(["GEO_NEAR", "NAME_SIMILAR"]);
+  });
+
+  it("treats nearby alias matches as high confidence", () => {
+    const signals = {
+      aliasMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 420,
+      nameSimilarity: 0.12
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateReasonCodes(signals)).toContain("ALIAS_MATCH");
+  });
+
+  it("does not treat far alias matches as high confidence", () => {
+    const signals = {
+      aliasMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 5000,
+      nameSimilarity: 0.12
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateReasonCodes(signals)).toContain("ALIAS_MATCH");
   });
 });
