@@ -10,6 +10,8 @@ const DEFAULT_ORIGIN = {
   lng: 127.4341,
   label: "대전역/원도심"
 };
+const DEFAULT_RESULT_LIMIT = 30;
+const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -74,6 +76,16 @@ export default async function Home({ searchParams }: HomeProps) {
           <label>
             <span>반경 km</span>
             <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(params.radiusKm) || "80"} />
+          </label>
+          <label>
+            <span>표시 개수</span>
+            <select name="limit" defaultValue={String(resultLimitParam(params))}>
+              {RESULT_LIMIT_OPTIONS.map((limit) => (
+                <option value={limit} key={limit}>
+                  {limit}개
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             <span>위도</span>
@@ -242,7 +254,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
       babyChair: params.babyChair === "on" ? true : undefined,
       elevator: params.elevator === "on" ? true : undefined
     },
-    limit: 30
+    limit: resultLimitParam(params)
   };
 }
 
@@ -273,6 +285,11 @@ async function safeSearch(input: SearchPlacesInput) {
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function resultLimitParam(params: Record<string, string | string[] | undefined>) {
+  const requested = Number(textParam(params.limit) || DEFAULT_RESULT_LIMIT);
+  return RESULT_LIMIT_OPTIONS.includes(requested as (typeof RESULT_LIMIT_OPTIONS)[number]) ? requested : DEFAULT_RESULT_LIMIT;
 }
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
