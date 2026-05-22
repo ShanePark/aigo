@@ -157,6 +157,19 @@ Keep the critical path moving locally while background or delegated work runs.
 - Add comments only when they clarify non-obvious logic.
 - Verify changes with the most relevant available checks.
 
+## Commit Workflow
+
+When a task is complete, the changes are cohesive enough to commit, and review/verification finds no blocking issues, proactively create a git commit for only the changes made in the current session or task. Commit at sensible, focused boundaries rather than batching unrelated work together.
+
+Before committing:
+
+- Inspect `git status` and relevant diffs.
+- Stage only files changed for the current task; never include unrelated user changes or ignored research files.
+- Run or cite the most relevant verification available for the change.
+- Use a clear conventional commit message such as `docs: update agent workflow guidance` or `fix: ...`.
+
+If verification fails, the worktree contains ambiguous unrelated edits, or the commit scope is not clearly separable, do not commit automatically. Explain the blocker and the safest next step instead.
+
 ## Communication
 
 Keep updates concise and useful. Explain what is being investigated, what changed, and what verification was performed. If a blocker appears, state the concrete issue and the best available next step.
