@@ -265,7 +265,10 @@ h3 {
   background: #eef3ef;
   border: 1px solid var(--line);
   border-radius: 6px;
+  display: grid;
   overflow: hidden;
+  place-items: center;
+  position: relative;
 }
 
 .result-image img,
@@ -273,7 +276,20 @@ h3 {
   display: block;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 160ms ease;
   width: 100%;
+}
+
+.result-image.is-loaded img,
+.detail-hero-image.is-loaded img {
+  opacity: 1;
+}
+
+.place-image-placeholder {
+  color: #8aa094;
+  opacity: 0.58;
+  position: absolute;
 }
 
 .result-main {
@@ -458,8 +474,11 @@ h3 {
   background: #eef3ef;
   border: 1px solid var(--line);
   border-radius: 8px;
+  display: grid;
   margin: 0 0 18px;
   overflow: hidden;
+  place-items: center;
+  position: relative;
 }
 
 .version-box {
