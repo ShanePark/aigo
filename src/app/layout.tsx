@@ -3,6 +3,23 @@ import Image from "next/image";
 import Link from "next/link";
 
 import "./globals.css";
+import { ThemeToggle } from "./theme-toggle";
+
+const themeInitScript = `
+(() => {
+  try {
+    const stored = window.localStorage.getItem("aigo-theme");
+    const theme = stored === "light" || stored === "dark"
+      ? stored
+      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  } catch {
+    document.documentElement.dataset.theme = "light";
+    document.documentElement.style.colorScheme = "light";
+  }
+})();
+`;
 
 export const metadata: Metadata = {
   title: "AiGo",
@@ -23,19 +40,25 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1f8a63"
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f8f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1512" }
+  ]
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <header className="topbar">
           <Link className="brand" href="/">
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
             <span>AiGo</span>
           </Link>
-          <span className="topbar-note">대전 + 1시간권 장소 데이터베이스</span>
+          <ThemeToggle />
         </header>
         <main>{children}</main>
       </body>
