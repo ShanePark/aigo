@@ -105,10 +105,7 @@ summary {
 }
 
 .search-shell {
-  align-items: center;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(220px, 0.46fr) minmax(560px, 1.54fr);
+  display: block;
   margin-bottom: 16px;
 }
 
@@ -586,6 +583,21 @@ h3 {
   overflow: hidden;
   position: relative;
   width: 100%;
+}
+
+.map-count-badge {
+  background: var(--mint-soft);
+  border: 1px solid #c7e8d5;
+  border-radius: 999px;
+  color: var(--mint);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 7px 10px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  white-space: nowrap;
+  z-index: 450;
 }
 
 .leaflet-map,

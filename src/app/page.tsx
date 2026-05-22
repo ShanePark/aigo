@@ -111,11 +111,6 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <div className="page">
       <section className="search-shell">
-        <div className="search-copy">
-          <h1>오늘 갈 곳 찾기</h1>
-          <p className="lede">위치와 큰 분류만 고르면 지도와 목록에서 바로 비교할 수 있어요.</p>
-        </div>
-
         <form className="search-form" action="/">
           <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
           <input name="sort" type="hidden" value={activeSort} />
@@ -134,10 +129,6 @@ export default async function Home({ searchParams }: HomeProps) {
 
           <div className="location-row">
             <NearbySearchButton />
-            <span className="origin-pill">
-              <MapPin size={14} aria-hidden="true" />
-              {input.origin?.label ?? (nationwideStaySearch ? "전국" : DEFAULT_ORIGIN.label)}
-            </span>
           </div>
 
           <div className="category-tabs" aria-label="큰 분류">
@@ -266,7 +257,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       id={`place-card-${place.placeId}`}
       href={placeDetailHref(place.placeId, returnHref)}
     >
-      <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
+      <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
       <div className="result-card-body">
         <div className="result-card-topline">
           <span className="rank-badge">{index}</span>

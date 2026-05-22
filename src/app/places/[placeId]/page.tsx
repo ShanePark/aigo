@@ -61,7 +61,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </div>
       </section>
 
-      <PlaceImage src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
+      <PlaceImage category={place.primaryCategory} src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
       {heroImage?.sourceUrl ? (
         <p className="image-credit">
           이미지 {imageTierLabel(heroImage.displayTier)} 출처:{" "}
@@ -98,7 +98,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           <div className="image-audit-grid">
             {galleryImages.map((image) => (
               <article className="image-audit-card" key={image.id}>
-                <PlaceImage src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
+                <PlaceImage category={place.primaryCategory} src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
                 <div>
                   <div className="visit-row">
                     {image.isPrimary ? <span>대표</span> : null}

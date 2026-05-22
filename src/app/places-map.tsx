@@ -174,14 +174,8 @@ export function PlacesMap({ origin, places }: PlacesMapProps) {
 
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
-      <div className="map-card-head">
-        <div>
-          <h2>주변 지도</h2>
-          <p>{origin?.label ?? "전국 결과"}</p>
-        </div>
-        <span>{places.length}곳</span>
-      </div>
       <div className="map-canvas">
+        <span className="map-count-badge">{places.length}곳</span>
         <div className="leaflet-map" ref={mapElementRef} />
       </div>
     </aside>

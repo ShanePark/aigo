@@ -5,46 +5,77 @@ import { useEffect, useRef, useState } from "react";
 
 type PlaceImageProps = {
   alt: string;
+  category?: string | null;
   src?: string | null;
   variant: "detail" | "result";
 };
 
-export function PlaceImage({ alt, src, variant }: PlaceImageProps) {
+const FALLBACK_PLACE_IMAGES: Record<string, string> = {
+  accommodation: "/placeholders/default-accommodation.png",
+  aquarium_zoo: "/placeholders/default-visit.png",
+  experience_center: "/placeholders/default-visit.png",
+  family_cafe: "/placeholders/default-kids-cafe.png",
+  family_restaurant: "/placeholders/default-family-restaurant.png",
+  indoor_playground: "/placeholders/default-playground.png",
+  kids_cafe: "/placeholders/default-kids-cafe.png",
+  library: "/placeholders/default-visit.png",
+  museum: "/placeholders/default-visit.png",
+  park: "/placeholders/default-playground.png",
+  rest_area: "/placeholders/default-visit.png",
+  science_museum: "/placeholders/default-visit.png",
+  shopping_mall: "/placeholders/default-visit.png",
+  sports_venue: "/placeholders/default-visit.png",
+  toy_library: "/placeholders/default-toy-store.png",
+  toy_store: "/placeholders/default-toy-store.png"
+};
+
+const GENERIC_FALLBACK_PLACE_IMAGE = "/placeholders/default-visit.png";
+
+export function fallbackPlaceImageForCategory(category: string | null | undefined) {
+  return category ? (FALLBACK_PLACE_IMAGES[category] ?? GENERIC_FALLBACK_PLACE_IMAGE) : GENERIC_FALLBACK_PLACE_IMAGE;
+}
+
+export function PlaceImage({ alt, category, src, variant }: PlaceImageProps) {
   const imageRef = useRef<HTMLImageElement>(null);
-  const [failed, setFailed] = useState(false);
+  const [failedSources, setFailedSources] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const fallbackSrc = fallbackPlaceImageForCategory(category);
+  const imageSrc = src && !failedSources.includes(src) ? src : !failedSources.includes(fallbackSrc) ? fallbackSrc : null;
 
   useEffect(() => {
-    setFailed(false);
+    setFailedSources([]);
     setLoaded(false);
-  }, [src]);
+  }, [fallbackSrc, src]);
 
   useEffect(() => {
     const image = imageRef.current;
-    if (!src || !image?.complete) return;
+    if (!imageSrc || !image?.complete) return;
     if (image.naturalWidth > 0) {
       setLoaded(true);
     } else {
-      setFailed(true);
+      setFailedSources((current) => (current.includes(imageSrc) ? current : [...current, imageSrc]));
     }
-  }, [src]);
+  }, [imageSrc]);
 
   const wrapperClass = variant === "detail" ? "detail-hero-image" : "result-image";
-  const stateClass = !src || failed ? "is-missing" : loaded ? "is-loaded" : "is-loading";
+  const stateClass = !imageSrc ? "is-missing" : loaded ? "is-loaded" : "is-loading";
 
   return (
-    <div className={`${wrapperClass} ${stateClass}`} aria-label={!src || failed ? alt : undefined}>
-      {!loaded || failed ? <ImageIcon className="place-image-placeholder" size={28} aria-hidden="true" /> : null}
-      {src && !failed ? (
+    <div className={`${wrapperClass} ${stateClass}`} aria-label={!imageSrc ? alt : undefined}>
+      {!imageSrc || !loaded ? <ImageIcon className="place-image-placeholder" size={28} aria-hidden="true" /> : null}
+      {imageSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={imageRef}
-          src={src}
+          src={imageSrc}
           alt={alt}
           loading={variant === "result" ? "lazy" : "eager"}
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          onError={() => {
+            setLoaded(false);
+            setFailedSources((current) => (current.includes(imageSrc) ? current : [...current, imageSrc]));
+          }}
         />
       ) : null}
     </div>
