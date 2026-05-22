@@ -123,6 +123,37 @@ describe("place schemas", () => {
     });
   });
 
+  it("accepts source-backed objective score fields", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "public_listing", url: "https://example.com/place" }],
+      placeScore: 8.4,
+      placeScoreRationale: "아이 활동성, 영아 편의, 운영 신뢰도가 모두 좋아 높은 점수.",
+      externalRatingScore: 7.8,
+      externalReviewCount: 42,
+      searchEvidenceScore: 8.1,
+      scoreSignals: {
+        external: [{ provider: "public_listing", rating: 3.9, scale: 5, reviewCount: 42 }],
+        caps: []
+      },
+      scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+    });
+
+    expect(result.placeScore).toBe(8.4);
+    expect(result.externalReviewCount).toBe(42);
+    expect(result.scoreSignals).toMatchObject({
+      caps: []
+    });
+  });
+
+  it("rejects out-of-range score fields", () => {
+    const result = updatePlaceSchema.safeParse({
+      sources: [{ sourceType: "public_listing", url: "https://example.com/place" }],
+      placeScore: 10.5
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("parses image health query strings for agent queues", () => {
     const result = placeImageHealthQuerySchema.parse({
       primaryCategory: "family_restaurant",

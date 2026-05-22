@@ -363,6 +363,36 @@ components:
         dataConfidence:
           type: string
           enum: [official_verified, operator_curated, agent_collected, user_reported, needs_check, unknown]
+        placeScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Source-backed objective 0-10 place score assigned by agents for the family outing use case. This is not an AiGo user rating.
+        placeScoreRationale:
+          type: string
+          description: Concise agent-written rationale for the objective place score.
+        externalRatingScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Normalized 0-10 third-party review/rating signal when citeable evidence exists.
+        externalReviewCount:
+          type: integer
+          minimum: 0
+          description: Approximate source-backed external review count used to weight rating confidence.
+        searchEvidenceScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Normalized 0-10 evidence/prominence score derived from public search results, listings, official pages, and corroborating sources.
+        scoreSignals:
+          type: object
+          description: Structured source-backed scoring evidence, such as provider ratings, search-result observations, caps, conflicts, and freshness notes.
+          additionalProperties: true
+        scoreUpdatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the score fields were last reviewed or recomputed.
         minRecommendedAgeMonths:
           type: integer
           minimum: 0
@@ -840,9 +870,11 @@ components:
         - images
         - playFeatures
         - score
+        - scoreBreakdown
         - reasonCodes
         - reasons
         - dataConfidence
+        - scoring
         - recommendedAgeMonths
         - facilities
         - visit
@@ -896,6 +928,8 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        scoreBreakdown:
+          $ref: "#/components/schemas/ScoreBreakdown"
         reasonCodes:
           type: array
           items:
@@ -907,6 +941,8 @@ components:
             $ref: "#/components/schemas/SearchReason"
         dataConfidence:
           type: string
+        scoring:
+          $ref: "#/components/schemas/PlaceScoring"
         recommendedAgeMonths:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         facilities:
@@ -1044,6 +1080,91 @@ components:
         max:
           type: integer
           nullable: true
+    PlaceScoring:
+      type: object
+      required:
+        - placeScore
+        - placeScoreRationale
+        - externalRatingScore
+        - externalReviewCount
+        - searchEvidenceScore
+        - scoreSignals
+        - scoreUpdatedAt
+      properties:
+        placeScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+        placeScoreRationale:
+          type: string
+          nullable: true
+        externalRatingScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+        externalReviewCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        searchEvidenceScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+        scoreSignals:
+          type: object
+          additionalProperties: true
+        scoreUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ScoreBreakdown:
+      type: object
+      required:
+        - baseline
+        - placeQuality
+        - externalEvidence
+        - distance
+        - context
+        - match
+        - age
+        - preferences
+        - openingHours
+        - visitFit
+        - confidence
+        - queryMatch
+        - total
+      properties:
+        baseline:
+          type: number
+        placeQuality:
+          type: number
+        externalEvidence:
+          type: number
+        distance:
+          type: number
+        context:
+          type: number
+        match:
+          type: number
+        age:
+          type: number
+        preferences:
+          type: number
+        openingHours:
+          type: number
+        visitFit:
+          type: number
+        confidence:
+          type: number
+        queryMatch:
+          type: number
+        total:
+          type: integer
+          minimum: 0
+          maximum: 100
     PlayFeatures:
       type: object
       description: Place-level playground and physical play signals. These describe the place as a whole; image-level `visualFeatures` only describe what was visible in one image.
@@ -1249,6 +1370,7 @@ components:
         - playFeatures
         - status
         - dataConfidence
+        - scoring
         - recommendedAgeMonths
         - facilities
         - visit
@@ -1342,6 +1464,8 @@ components:
           type: string
         dataConfidence:
           type: string
+        scoring:
+          $ref: "#/components/schemas/PlaceScoring"
         recommendedAgeMonths:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         facilities:

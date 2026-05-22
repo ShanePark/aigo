@@ -8,6 +8,7 @@ export const imageReviewStatusSchema = z.enum(["pending_review", "approved", "ne
 
 const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
+const zeroToTenScore = z.number().min(0).max(10);
 
 export const playFeaturesSchema = z
   .object({
@@ -103,6 +104,13 @@ const writablePlaceFields = {
   dataConfidence: z
     .enum(["official_verified", "operator_curated", "agent_collected", "user_reported", "needs_check", "unknown"])
     .optional(),
+  placeScore: zeroToTenScore.optional(),
+  placeScoreRationale: z.string().trim().max(5000).optional(),
+  externalRatingScore: zeroToTenScore.optional(),
+  externalReviewCount: z.number().int().min(0).max(1_000_000).optional(),
+  searchEvidenceScore: zeroToTenScore.optional(),
+  scoreSignals: z.record(z.string(), z.unknown()).optional(),
+  scoreUpdatedAt: z.string().datetime({ offset: true }).optional(),
   minRecommendedAgeMonths: z.number().int().min(0).max(240).optional(),
   maxRecommendedAgeMonths: z.number().int().min(0).max(240).optional(),
   indoorType: indoorTypeSchema.optional(),

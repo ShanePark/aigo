@@ -49,6 +49,16 @@ export const places = pgTable(
       .default(sql`'{}'::jsonb`),
     status: text("status").notNull().default("active"),
     dataConfidence: text("data_confidence").notNull().default("unknown"),
+    placeScore: doublePrecision("place_score"),
+    placeScoreRationale: text("place_score_rationale"),
+    externalRatingScore: doublePrecision("external_rating_score"),
+    externalReviewCount: integer("external_review_count"),
+    searchEvidenceScore: doublePrecision("search_evidence_score"),
+    scoreSignals: jsonb("score_signals")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    scoreUpdatedAt: timestamp("score_updated_at", { withTimezone: true }),
     minRecommendedAgeMonths: integer("min_recommended_age_months"),
     maxRecommendedAgeMonths: integer("max_recommended_age_months"),
     indoorType: text("indoor_type").notNull().default("unknown"),

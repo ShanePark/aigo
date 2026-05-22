@@ -43,7 +43,7 @@ describe("scorePlace", () => {
       baseInput
     );
 
-    expect(result.reasonCodes).toContain("AGE_HINT_MATCH");
+    expect(result.reasonCodes).toContain("AGE_HINT_PARTIAL");
     expect(result.reasonCodes).toContain("STROLLER_PARTIAL");
     expect(result.score).toBeGreaterThan(70);
   });
@@ -261,5 +261,91 @@ describe("scorePlace", () => {
     expect(publicChildFacility.score).toBeGreaterThan(outdoorPark.score);
     expect(outdoorPark.reasonCodes).toContain("CONTEXT_HALFDAY_INFANT_AMENITY_GAP");
     expect(publicChildFacility.reasonCodes).toContain("CONTEXT_HALFDAY_KID_PRIMARY");
+  });
+
+  it("uses stored objective and external evidence scores as ranking signals", () => {
+    const shared = {
+      primaryCategory: "indoor_playground",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "partial",
+      distanceKm: 6
+    };
+    const high = scorePlace(
+      {
+        ...shared,
+        scoring: {
+          placeScore: 9,
+          placeScoreRationale: "공식 시설 정보와 외부 평가가 모두 강한 실내 놀이 목적지.",
+          externalRatingScore: 8.6,
+          externalReviewCount: 180,
+          searchEvidenceScore: 8.4,
+          scoreSignals: { providers: ["public_listing"] },
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      baseInput
+    );
+    const low = scorePlace(
+      {
+        ...shared,
+        scoring: {
+          placeScore: 3.2,
+          placeScoreRationale: "가족 편의 근거가 약하고 외부 평가도 낮음.",
+          externalRatingScore: 4,
+          externalReviewCount: 12,
+          searchEvidenceScore: 3.5,
+          scoreSignals: { providers: ["public_listing"] },
+          scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+        }
+      },
+      baseInput
+    );
+
+    expect(high.score).toBeGreaterThan(low.score);
+    expect(high.reasonCodes).toContain("PLACE_SCORE_HIGH");
+    expect(high.reasonCodes).toContain("EXTERNAL_REVIEW_POSITIVE");
+    expect(high.reasonCodes).toContain("SEARCH_EVIDENCE_STRONG");
+    expect(low.reasonCodes).toContain("PLACE_SCORE_LOW");
+    expect(low.reasonCodes).toContain("SEARCH_EVIDENCE_WEAK");
+    expect(high.scoreBreakdown.placeQuality).toBeGreaterThan(0);
+    expect(high.scoreBreakdown.externalEvidence).toBeGreaterThan(0);
+  });
+
+  it("penalizes closed places strongly for nearby-now searches", () => {
+    const shared = {
+      primaryCategory: "kids_cafe",
+      tags: ["kids"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 2
+    };
+    const open = scorePlace({ ...shared, openingHours: { openNow: true } }, { ...baseInput, visitContext: "nearbyNow" });
+    const closed = scorePlace({ ...shared, openingHours: { openNow: false } }, { ...baseInput, visitContext: "nearbyNow" });
+
+    expect(open.score).toBeGreaterThan(closed.score);
+    expect(open.reasonCodes).toContain("OPEN_NOW");
+    expect(closed.reasonCodes).toContain("CLOSED_NOW");
+    expect(closed.scoreBreakdown.openingHours).toBeLessThan(0);
   });
 });

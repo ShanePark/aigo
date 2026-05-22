@@ -37,6 +37,13 @@ type PlaceRow = {
   play_features: Record<string, unknown>;
   status: string;
   data_confidence: string;
+  place_score: number | null;
+  place_score_rationale: string | null;
+  external_rating_score: number | null;
+  external_review_count: number | null;
+  search_evidence_score: number | null;
+  score_signals: Record<string, unknown>;
+  score_updated_at: Date | null;
   min_recommended_age_months: number | null;
   max_recommended_age_months: number | null;
   indoor_type: string;
@@ -172,6 +179,13 @@ const columnMap = {
   playFeatures: "play_features",
   status: "status",
   dataConfidence: "data_confidence",
+  placeScore: "place_score",
+  placeScoreRationale: "place_score_rationale",
+  externalRatingScore: "external_rating_score",
+  externalReviewCount: "external_review_count",
+  searchEvidenceScore: "search_evidence_score",
+  scoreSignals: "score_signals",
+  scoreUpdatedAt: "score_updated_at",
   minRecommendedAgeMonths: "min_recommended_age_months",
   maxRecommendedAgeMonths: "max_recommended_age_months",
   indoorType: "indoor_type",
@@ -293,6 +307,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       primaryCategory: place.primaryCategory,
       tags: place.tags,
       dataConfidence: place.dataConfidence,
+      scoring: place.scoring,
       minRecommendedAgeMonths: place.recommendedAgeMonths.min,
       maxRecommendedAgeMonths: place.recommendedAgeMonths.max,
       indoorType: place.facilities.indoorType,
@@ -304,6 +319,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
       elevator: place.facilities.elevator,
       babyChair: place.facilities.babyChair,
       foodAllowed: place.facilities.foodAllowed,
+      openingHours: place.openingHours,
+      visit: place.visit,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput);
@@ -321,9 +338,15 @@ export async function searchPlaces(input: SearchPlacesInput) {
       lng: place.lng,
       distanceKm: place.distanceKm,
       score: clampScore(scoredPlace.score + querySignal.delta),
+      scoreBreakdown: {
+        ...scoredPlace.scoreBreakdown,
+        queryMatch: querySignal.delta,
+        total: clampScore(scoredPlace.score + querySignal.delta)
+      },
       reasonCodes: mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes),
       reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), normalizedInput),
       dataConfidence: place.dataConfidence,
+      scoring: place.scoring,
       recommendedAgeMonths: place.recommendedAgeMonths,
       facilities: place.facilities,
       visit: place.visit,
@@ -1074,7 +1097,7 @@ function buildSearchQuery(input: SearchPlacesInput) {
   }
 
   return {
-    sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by updated_at desc limit 500`,
+    sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by coalesce(place_score, 5) desc, updated_at desc limit 750`,
     params
   };
 }
@@ -1977,7 +2000,7 @@ function quoteIdentifier(identifier: string) {
 }
 
 function placeholderFor(column: string, index: number) {
-  if (column === "external_refs" || column === "opening_hours") {
+  if (column === "external_refs" || column === "opening_hours" || column === "score_signals") {
     return `$${index}::jsonb`;
   }
   if (column === "play_features") {
@@ -1987,7 +2010,7 @@ function placeholderFor(column: string, index: number) {
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours" || column === "play_features") {
+  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "score_signals") {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -2022,6 +2045,15 @@ function mapPlace(row: PlaceRow) {
     playFeatures: row.play_features ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,
+    scoring: {
+      placeScore: row.place_score,
+      placeScoreRationale: row.place_score_rationale,
+      externalRatingScore: row.external_rating_score,
+      externalReviewCount: row.external_review_count,
+      searchEvidenceScore: row.search_evidence_score,
+      scoreSignals: row.score_signals ?? {},
+      scoreUpdatedAt: row.score_updated_at ? toIso(row.score_updated_at) : null
+    },
     recommendedAgeMonths: {
       min: row.min_recommended_age_months,
       max: row.max_recommended_age_months

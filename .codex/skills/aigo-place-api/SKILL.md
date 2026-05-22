@@ -99,6 +99,7 @@ Common writable fields:
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
 - Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
 - Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
+- Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
 - Play/image data: `playFeatures`, `images`.
 
@@ -131,6 +132,50 @@ Common `primaryCategory` values used by the UI/search:
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `kids`, `어린이`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
 
 Do not put `needs_check` into tri-state fields. Use `unknown` for missing evidence and `partial` for limited or conditional availability. For user-requested registrations, do not use `needs_check` in `dataConfidence`; use `agent_collected` or `user_reported` and describe weak freshness/provenance in notes.
+
+## Source-Backed Scoring
+
+AiGo has two score layers:
+
+- Stored objective place score: `placeScore` is a 0-10 agent-assigned family outing quality score. It is not an AiGo user rating.
+- Runtime search score: `/v1/places/search` combines stored score fields with distance, query match, child ages, preferences, visit context, opening hours, visit-fit fields, and data confidence to produce a 0-100 `score` plus `scoreBreakdown` and `reasonCodes`.
+
+When creating or meaningfully refreshing a place, score it when the evidence is strong enough:
+
+- `placeScore`: 0-10, one decimal is enough. Keep weak/uncertain places conservative instead of guessing high.
+- `placeScoreRationale`: short original explanation for the score, including family fit, logistics, safety, source freshness, and known caveats.
+- `externalRatingScore`: normalized 0-10 public rating/review signal when a citeable listing or official review aggregate exists.
+- `externalReviewCount`: approximate public review count used only as confidence weight.
+- `searchEvidenceScore`: normalized 0-10 public search/prominence signal from official pages, public listings, public articles/blogs, and corroboration quality.
+- `scoreSignals`: structured evidence such as provider, rating, review count, observed search/listing position, source URLs, conflicts, caps, and freshness notes.
+- `scoreUpdatedAt`: ISO datetime with timezone for the last score review.
+
+Suggested `placeScore` rubric for the current family context:
+
+- Family purpose and child value: child-primary, baby-logistics, route-break utility, or explicit user signal.
+- Age fit: toddler engagement plus infant-safe logistics; partial age fit should not be treated as a full match.
+- Practical logistics: stroller, elevator, parking, nursing room, diaper table, kids toilet, baby chair, food/snack handling.
+- Parent effort and safety: line-of-sight, water/road/fire/steepness risk, crowding, floor changes, shade/toilets.
+- Operating reliability: active status, structured hours, recent hours/source check, special-day caveats.
+- Source confidence: official/public/operator sources, corroboration, freshness, and no unresolved source conflicts.
+- External/public evidence: review rating/count and public search/listing prominence, capped so popularity cannot overpower family fit.
+
+Apply caps before assigning a high score: closed places should stay very low; temporarily closed places should stay conservative; places that fail the Family-Fit Gate should not score high unless the user-signal exception is explicit; severe unresolved safety concerns should cap the score even when reviews are positive.
+
+## Review Link Enrichment
+
+For lodging and other review-sensitive categories, collect public review entry points that parents can click from the detail page. Store them in `externalRefs.reviewLinks` as an array of objects:
+
+```json
+{
+  "provider": "Naver Blog",
+  "label": "Naver Blog search for Example Kids Pension reviews",
+  "url": "https://search.naver.com/...",
+  "note": "Public blog-search landing page for parent visit reviews."
+}
+```
+
+Use provider labels such as `Naver`, `Naver Blog`, `Kakao`, `Google`, `Tripadvisor`, `Booking`, `Agoda`, `Yanolja`, `Yeogi`, or the operator/listing name. Review links should be public landing/listing/search pages, not private/login-only pages. Do not scrape private content or copy review text into AiGo; summarize only the evidence type and why the link helps a parent inspect reviews. Also add review/listing sources or `scoreSignals.reviewEvidence` when ratings, counts, or public review prominence are citeable.
 
 ## Family Data Checklist
 
