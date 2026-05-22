@@ -445,10 +445,12 @@ components:
           type: integer
           minimum: 0
           maximum: 240
+          description: Minimum recommended child age in months. When both age bounds are provided, this value must be less than or equal to `maxRecommendedAgeMonths`.
         maxRecommendedAgeMonths:
           type: integer
           minimum: 0
           maximum: 240
+          description: Maximum recommended child age in months. When both age bounds are provided, this value must be greater than or equal to `minRecommendedAgeMonths`.
         indoorType:
           $ref: "#/components/schemas/IndoorType"
         strollerFriendly:
@@ -520,7 +522,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
         - type: object
+          description: Create requires either `address` or `regionSido` so the place can be grouped geographically even when one address form is unavailable.
           required: [name, primaryCategory, lat, lng, sources]
+          anyOf:
+            - required: [address]
+            - required: [regionSido]
           properties:
             sources:
               type: array
@@ -536,7 +542,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
         - type: object
+          description: Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together; when both age bounds are sent, min must be less than or equal to max.
           required: [sources]
+          dependentRequired:
+            lat: [lng]
+            lng: [lat]
           properties:
             sources:
               type: array
