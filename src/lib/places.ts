@@ -397,6 +397,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       dataConfidence: place.dataConfidence,
       scoring: place.scoring,
       recommendedAgeMonths: place.recommendedAgeMonths,
+      infantLogistics: buildInfantLogisticsSignal(place.facilities),
       facilities: place.facilities,
       visit: place.visit,
       notes: place.notes,
@@ -457,6 +458,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
 type FullSearchItem = FullSearchResponse["items"][number];
+type SearchFacilities = ReturnType<typeof mapPlace>["facilities"];
 
 export function compactSearchPlacesResponse(response: FullSearchResponse) {
   return {
@@ -484,6 +486,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     reasons: item.reasons,
     dataConfidence: item.dataConfidence,
     recommendedAgeMonths: item.recommendedAgeMonths,
+    infantLogistics: item.infantLogistics,
     facilities: {
       indoorType: item.facilities.indoorType,
       strollerFriendly: item.facilities.strollerFriendly,
@@ -2489,6 +2492,46 @@ export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["p
     mismatchesRemainEligible: true,
     hardFilteringSupported: false
   };
+}
+
+const infantLogisticsKeys = ["strollerFriendly", "elevator", "nursingRoom", "diaperChangingTable", "babyChair", "parkingAvailable"] as const;
+
+export function buildInfantLogisticsSignal(facilities: Pick<SearchFacilities, (typeof infantLogisticsKeys)[number]>) {
+  const positiveSignals = infantLogisticsKeys.filter((key) => facilities[key] === "yes");
+  const partialSignals = infantLogisticsKeys.filter((key) => facilities[key] === "partial");
+  const negativeSignals = infantLogisticsKeys.filter((key) => facilities[key] === "no");
+  const missingSignals = infantLogisticsKeys.filter((key) => facilities[key] === "unknown");
+  const knownCount = infantLogisticsKeys.length - missingSignals.length;
+  const supportScore = Math.round(((positiveSignals.length * 2 + partialSignals.length) / (infantLogisticsKeys.length * 2)) * 100);
+  const confidenceScore = Math.round((knownCount / infantLogisticsKeys.length) * 100);
+
+  return {
+    confidenceLevel: infantLogisticsConfidenceLevel(knownCount),
+    confidenceScore,
+    supportLevel: infantLogisticsSupportLevel(supportScore, knownCount, negativeSignals.length),
+    supportScore,
+    knownCount,
+    unknownCount: missingSignals.length,
+    positiveSignals,
+    partialSignals,
+    negativeSignals,
+    missingSignals
+  };
+}
+
+function infantLogisticsConfidenceLevel(knownCount: number) {
+  if (knownCount >= 5) return "high";
+  if (knownCount >= 3) return "medium";
+  if (knownCount > 0) return "low";
+  return "unknown";
+}
+
+function infantLogisticsSupportLevel(supportScore: number, knownCount: number, negativeCount: number) {
+  if (knownCount === 0) return "unknown";
+  if (supportScore >= 75 && negativeCount === 0) return "strong";
+  if (supportScore >= 45) return "moderate";
+  if (supportScore > 0) return "limited";
+  return "poor";
 }
 
 function searchPreferenceKeys(preferences: SearchPlacesInput["preferences"] | undefined) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildInfantLogisticsSignal,
   buildImageMetadata,
   buildSearchQuery,
   buildSearchImageHealth,
@@ -280,6 +281,30 @@ describe("place search helpers", () => {
     });
   });
 
+  it("summarizes infant logistics separately from child engagement", () => {
+    expect(
+      buildInfantLogisticsSignal({
+        strollerFriendly: "yes",
+        elevator: "yes",
+        nursingRoom: "partial",
+        diaperChangingTable: "unknown",
+        babyChair: "no",
+        parkingAvailable: "yes"
+      })
+    ).toEqual({
+      confidenceLevel: "high",
+      confidenceScore: 83,
+      supportLevel: "moderate",
+      supportScore: 58,
+      knownCount: 5,
+      unknownCount: 1,
+      positiveSignals: ["strollerFriendly", "elevator", "parkingAvailable"],
+      partialSignals: ["nursingRoom"],
+      negativeSignals: ["babyChair"],
+      missingSignals: ["diaperChangingTable"]
+    });
+  });
+
   it("builds compact search items without full image and scoring payloads", () => {
     const compact = compactSearchPlaceItem({
       id: "place-1",
@@ -295,6 +320,18 @@ describe("place search helpers", () => {
       reasons: [],
       dataConfidence: "agent_collected",
       recommendedAgeMonths: { min: 24, max: 96 },
+      infantLogistics: {
+        confidenceLevel: "medium",
+        confidenceScore: 50,
+        supportLevel: "moderate",
+        supportScore: 50,
+        knownCount: 3,
+        unknownCount: 3,
+        positiveSignals: ["strollerFriendly", "elevator"],
+        partialSignals: ["parkingAvailable"],
+        negativeSignals: [],
+        missingSignals: ["nursingRoom", "diaperChangingTable", "babyChair"]
+      },
       facilities: {
         indoorType: "indoor",
         strollerFriendly: "yes",
@@ -346,6 +383,9 @@ describe("place search helpers", () => {
       id: "place-1",
       name: "대전 어린이 시설",
       primaryImageUrl: "https://example.com/place.jpg",
+      infantLogistics: {
+        supportLevel: "moderate"
+      },
       visit: {
         averageStayMinutes: 90,
         parentEffortLevel: 2,
