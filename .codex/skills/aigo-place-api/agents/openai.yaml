@@ -1,0 +1,4 @@
+interface:
+  display_name: "AiGo Place API"
+  short_description: "Guide AiGo place API data work"
+  default_prompt: "Use $aigo-place-api to research and register a source-backed Daejeon family place through the AiGo API."

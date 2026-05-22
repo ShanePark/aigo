@@ -1,0 +1,297 @@
+---
+name: aigo-place-api
+description: Use when researching, deduplicating, creating, updating, enriching, or verifying AiGo place data through the /v1/places API, including source-backed Daejeon family outing data, agent-research staging notes, image URL provenance, duplicate checks, and version-history verification.
+---
+
+# AiGo Place API
+
+## Use This Skill When
+
+Use this skill for any AiGo task that researches, creates, updates, enriches, reviews, or verifies real place data. This includes new place discovery, user-visited reference places, duplicate resolution, image URL enrichment, source cleanup, and API mutation planning.
+
+Do not use direct database writes for real place data. Real mutations go through the AiGo API.
+
+## Ground Rules
+
+- Treat source evidence as part of the data, not an afterthought. Every create/update requires at least one `sources` item.
+- Unknown is acceptable. Do not invent amenities, ages, coordinates, opening hours, or image provenance.
+- Prefer broad public internet research: official facility/operator pages, public agency pages, library/tourism/mall pages, and public local listings or blogs only as support.
+- Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
+- Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
+- Subagents may research and write `agent-research/*.md`; the main agent consolidates and calls the API.
+
+## Workflow
+
+1. Scope the research slice.
+   - Prioritize Daejeon Station / old downtown, Daejeon, and roughly one-hour driving range.
+   - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
+
+2. Delegate independent research.
+   - Give each subagent a bounded slice such as indoor playgrounds, libraries/toy libraries, parks/day trips, family restaurants, or image candidates.
+   - Tell subagents not to mutate data. Their deliverable is a structured Markdown file under `agent-research/`.
+
+3. Research with source notes.
+   - Use one staging file per slice: `agent-research/<topic>-YYYYMMDD-HHMM.md`.
+   - For each place, record suggested action (`create`, `update`, `skip`, `needs_review`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields.
+
+4. Check duplicates before mutation.
+   - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
+   - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
+   - If no meaningful candidate exists, `POST /v1/places`.
+   - If evidence is weak or identity is uncertain, prefer `needs_review`, `dataConfidence: "needs_check"`, and clear `parentNotes` over a confident mutation.
+
+5. Mutate through the API.
+   - Use `Authorization: Bearer <AIGO_API_KEY>`.
+   - Base URL is normally `http://localhost:3000`.
+   - Creates use `POST /v1/places`.
+   - Updates use `PATCH /v1/places/{placeId}`.
+   - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
+
+6. Verify after meaningful changes.
+   - Call `GET /v1/places/{placeId}`.
+   - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list.
+   - For image work, optionally call `GET /v1/places/image-health?status=attention`.
+   - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
+
+## API Payload Rules
+
+OpenAPI is the contract: `docs/openapi/aigo-v1.yaml`. Zod validation lives in `src/lib/schemas.ts`.
+
+Create requires:
+
+- `name`
+- `primaryCategory`
+- `lat`
+- `lng`
+- `address` or `regionSido`
+- `sources` with at least one source
+
+Update requires:
+
+- `sources` with at least one source
+- Any writable fields that actually changed
+
+Source objects:
+
+```json
+{
+  "sourceType": "official_site",
+  "title": "Facility official page",
+  "url": "https://example.go.kr/place",
+  "summary": "Official page confirms address, operating status, parking, and baby lounge.",
+  "checkedAt": "<ISO datetime with timezone>"
+}
+```
+
+Rules for `sources`:
+
+- `sourceType` is required.
+- Either `url` or `externalId` is required.
+- `summary` must be the agent's own concise summary, not copied source text.
+- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `official_image_source`, or `public_listing_image_source`.
+
+Common writable fields:
+
+- Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
+- Family logistics: `indoorType`, `strollerFriendly`, `parkingAvailable`, `nursingRoom`, `diaperChangingTable`, `kidsToilet`, `elevator`, `babyChair`, `foodAllowed`.
+- Visit fit: `minRecommendedAgeMonths`, `maxRecommendedAgeMonths`, `averageStayMinutes`, `parentEffortLevel`, `childEngagementLevel`, `rainyDayScore`, `hotDayScore`, `coldDayScore`.
+- Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `status`, `dataConfidence`.
+- Play/image data: `playFeatures`, `images`.
+
+Use these enum values:
+
+- Tri-state fields: `yes`, `no`, `partial`, `unknown`.
+- `indoorType`: `indoor`, `outdoor`, `mixed`, `unknown`.
+- `status`: `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`.
+- `dataConfidence`: `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`.
+
+Common `primaryCategory` values used by the UI/search:
+
+- `kids_cafe`
+- `indoor_playground`
+- `toy_library`
+- `library`
+- `museum`
+- `science_museum`
+- `experience_center`
+- `aquarium_zoo`
+- `park`
+- `family_cafe`
+- `family_restaurant`
+- `sports_venue`
+- `shopping_mall`
+- `rest_area`
+
+`accommodation` is excluded from MVP and will be rejected.
+
+Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `kids`, `어린이`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
+
+Do not put `needs_check` into tri-state fields. Use `unknown` for missing evidence, `partial` for limited or conditional availability, and reserve `needs_check` for `status`, `dataConfidence`, image review, or play-feature evidence confidence when freshness/provenance is suspect.
+
+## Family Data Checklist
+
+Capture the practical parent tradeoffs in structured fields and notes:
+
+- Fit for current family: toddler born 2023-09 plus twin infants born 2025-10.
+- Stroller route/elevator/floor changes, nursing room, diaper table, kids toilet, baby chair.
+- Parking entry friction, validation, elevator connection, and whether one building solves food/rest/play.
+- Snack/meal handling: outside food, food court, cafe, family restaurant playroom, baby chair.
+- Stay duration, parent effort level, child engagement level, rainy/hot/cold day suitability.
+- Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.
+- Day-trip fallback: toilets, shade, feeding/change fallback, route/time burden, rest areas.
+
+Use `parentNotes` for practical advice and uncertainty. Use `safetyNotes` for hazards. Use `dataConfidence: "needs_check"` when important operation or amenity evidence is weak.
+
+## Play Features
+
+Use `playFeatures` for place-level physical play signals:
+
+```json
+{
+  "slide": "yes",
+  "swing": "unknown",
+  "waterPlayground": "no",
+  "sandPlay": "partial",
+  "strollerPath": "partial",
+  "toiletNearby": "yes",
+  "notes": "Source-backed summary of equipment and unresolved questions.",
+  "evidence": [
+    {
+      "feature": "slide",
+      "value": "yes",
+      "basis": "Official facility page and public photos show a low slide.",
+      "sourceUrl": "https://example.go.kr/place",
+      "confidence": "official"
+    }
+  ]
+}
+```
+
+Known fields include `slide`, `swing`, `babySwing`, `waterPlayground`, `sandPlay`, `climbing`, `seesaw`, `trampoline`, `rideOnToys`, `playHouse`, `openLawn`, `shade`, `fenced`, `rubberSurface`, `strollerPath`, and `toiletNearby`.
+
+Evidence confidence values: `official`, `visual_confirmed`, `user_reported`, `blog_supported`, `needs_check`, `unknown`.
+
+## Image URL Enrichment
+
+Store remote image URLs only when they help identify or compare the exact place and the source page is citeable.
+
+Prefer official/operator/public-agency images. Public listing images are acceptable only when they clearly match the exact branch/place and better sources are unavailable. Avoid logos, favicons, generic share thumbnails, tiny icons, unrelated multi-branch graphics, and personal blog/SNS photos unless clearly labeled low confidence.
+
+Use `images`, not deprecated `imageUrls`, for new work:
+
+```json
+{
+  "url": "https://example.go.kr/images/place.jpg",
+  "sourceUrl": "https://example.go.kr/place",
+  "sourceType": "official_image_source",
+  "sourceTitle": "Official representative image",
+  "altText": "Indoor toddler play area with low slide",
+  "description": "Indoor toddler play area with low slide and seating visible.",
+  "visualFeatures": ["indoor_play", "slide", "parent_seating"],
+  "childSignals": { "slide": true, "strollerPath": "unknown" },
+  "displayTier": "official",
+  "reviewStatus": "approved",
+  "isPrimary": true,
+  "checkedAt": "<ISO datetime with timezone>"
+}
+```
+
+Image display tiers: `official`, `public_agency`, `public_listing`, `rights_unclear`, `unknown`.
+
+Image review statuses: `pending_review`, `approved`, `needs_review`, `rejected`.
+
+## Curl Patterns
+
+Duplicate check:
+
+```bash
+curl -sS http://localhost:3000/v1/places/duplicates \
+  -H "Authorization: Bearer $AIGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Example Kids Cafe Daejeon",
+    "lat": 36.3504,
+    "lng": 127.3845,
+    "radiusMeters": 800,
+    "limit": 10
+  }'
+```
+
+Create:
+
+```bash
+curl -sS http://localhost:3000/v1/places \
+  -H "Authorization: Bearer $AIGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Example Kids Cafe Daejeon",
+    "primaryCategory": "kids_cafe",
+    "tags": ["indoor", "after_daycare", "parking"],
+    "address": "Daejeon ...",
+    "regionSido": "Daejeon",
+    "regionSigungu": "Dong-gu",
+    "lat": 36.3504,
+    "lng": 127.3845,
+    "indoorType": "indoor",
+    "strollerFriendly": "partial",
+    "parkingAvailable": "yes",
+    "nursingRoom": "unknown",
+    "diaperChangingTable": "unknown",
+    "parentNotes": "Source-backed parent logistics and unresolved checks.",
+    "dataConfidence": "agent_collected",
+    "actor": "codex:aigo-place-api",
+    "changeSummary": "Create source-backed family outing place.",
+    "sources": [
+      {
+        "sourceType": "official_site",
+        "url": "https://example.com/place",
+        "summary": "Official page confirms address and parking.",
+        "checkedAt": "<ISO datetime with timezone>"
+      }
+    ]
+  }'
+```
+
+Update:
+
+```bash
+curl -sS -X PATCH http://localhost:3000/v1/places/<placeId> \
+  -H "Authorization: Bearer $AIGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceMode": "append",
+    "imageMode": "append",
+    "strollerFriendly": "yes",
+    "diaperChangingTable": "partial",
+    "parentNotes": "Updated with official facility guide and current public listing.",
+    "actor": "codex:aigo-place-api",
+    "changeSummary": "Enrich stroller and diaper-changing signals.",
+    "sources": [
+      {
+        "sourceType": "public_agency",
+        "url": "https://example.go.kr/facility",
+        "summary": "Public facility guide lists elevator and diaper-changing space.",
+        "checkedAt": "<ISO datetime with timezone>"
+      }
+    ]
+  }'
+```
+
+Verify:
+
+```bash
+curl -sS http://localhost:3000/v1/places/<placeId> \
+  -H "Authorization: Bearer $AIGO_API_KEY"
+
+curl -sS http://localhost:3000/v1/places/<placeId>/versions \
+  -H "Authorization: Bearer $AIGO_API_KEY"
+```
+
+## Before Finishing
+
+- Confirm `agent-research/` is ignored before writing staging files: `git check-ignore -q agent-research/`.
+- Confirm staged research files under `agent-research/` are not committed.
+- Confirm every created/updated place has source-backed summaries.
+- Confirm unknown or weak evidence stays `unknown`, `needs_check`, or in notes.
+- Confirm duplicate handling decision is documented in the work summary.
+- If API schemas, OpenAPI, source/image rules, categories, or AGENTS data policy changed during the task, update this skill in the same commit.

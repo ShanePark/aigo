@@ -1,0 +1,162 @@
+# AGENTS.md
+
+## Project Guidance
+
+This repository should be handled with a bias toward active investigation, small focused changes, and frequent verification. Read the surrounding code before editing, follow existing conventions, and keep changes scoped to the user's request.
+
+## Codex Place Data Skill
+
+For AiGo place-data work, read and follow the committed repo skill at `.codex/skills/aigo-place-api/SKILL.md` before researching places, preparing payloads, delegating data research, or calling the AiGo API.
+
+Use this skill whenever a task involves Daejeon family outing research, source-backed place creation or enrichment, duplicate review, AiGo API data mutations, image URL provenance, `agent-research/` staging files, or place-data quality review. The skill is also the handoff document for subagents: subagents should use it to understand how to search, what evidence to record, what fields matter for the family context, and where their responsibility ends before the main agent performs API mutations.
+
+Keep detailed, evolving AiGo data workflow instructions in the skill rather than scattering them across code comments or unrelated docs. `AGENTS.md` should state the trigger and repository-wide rules; `.codex/skills/aigo-place-api/SKILL.md` should carry the operational workflow, API request sequence, payload expectations, source/image provenance rules, and verification checklist.
+
+When any change affects the place-data workflow, update the skill in the same commit. This includes changes to `docs/openapi/aigo-v1.yaml`, `src/lib/schemas.ts`, `/v1/places` route behavior, auth requirements, version-history behavior, source or image provenance models, category/tag/search scoring semantics, `agent-research/` workflow, or the family data mission. If implementation and skill disagree, treat the code/OpenAPI contract as source of truth and bring the skill back into sync before finishing.
+
+## AiGo Data Mission
+
+AiGo's most important asset is the breadth and quality of real place data for family outings around Daejeon. Data work should prioritize places that match the user's actual family context:
+
+- Base area: Daejeon Station / old downtown, with Daejeon + roughly one-hour driving range.
+- Children: one toddler born 2023-09 and twin infants born 2025-10.
+- Strong preference signals: indoor options after daycare, nearby kids cafes, stroller practicality, nursing room, diaper changing table, parking, snack/meal handling, public child-friendly facilities, nature/day-trip destinations.
+- User-visited reference places should be treated as strong leads for research and either enriched if already registered or created if missing.
+
+Research and data updates must be source-backed. Do not invent amenities. Unknown is acceptable when evidence is weak.
+
+## User Preference Patterns
+
+Treat the user's visited/reference places as product-shaping signals, not just a checklist. The apparent preference pattern is:
+
+- Low-friction indoor fallback: department stores, outlets, malls, kids cafes inside malls, and facilities where parking/elevator/baby lounge/food can be solved in one building.
+- First-child play value plus twin-infant logistics: active kids cafes and playgrounds matter, but recommendations must still expose stroller, nursing, diaper, safety, and parent-effort tradeoffs.
+- Public child-friendly half-day options: science museums, children's halls, libraries, toy libraries, arboretums, parks, and municipal/national facilities are high value because they are repeatable and often cheaper.
+- Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially when close to old downtown or easy parking.
+- Day-trip nature with practical stops: Daecheong Lake, Cheongnamdae, Gyeryongsan/Sutonggol, Jangtaesan, Sangso-dong, Buso-damak, and rest areas should include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
+- Playroom/family restaurants: these are useful after daycare or for meal+play combinations, but grill/fire risks, playroom line-of-sight, baby chairs, parking, and floor changes should be explicit.
+
+When a source is weak or current operation is uncertain, keep the place but mark `needs_check` or use cautionary parent notes rather than silently removing it from research.
+
+## Research Source Policy
+
+Use broad public internet research first:
+
+- Official facility pages, public agency pages, mall/facility pages, library pages, tourism pages.
+- Public blog posts or public local listings only as supporting evidence, summarized in our own words.
+- Search engine results and web pages are preferred over automated map scraping.
+- For data discovery, prefer general internet search and source pages over typing repeated searches into map products.
+- Subagents should not call map/vendor APIs in bulk. If they need coordinates, prefer official pages, public address/coordinate pages, public facility datasets, or a small number of source-backed public pages.
+
+Avoid high-volume map service/API use. Do not make repeated automated Kakao Map/API calls or loops. If a map search URL is used as a source, keep it sparse and manual-style, and record only URL/external ID/summary, never copied source text.
+
+Do not add committed documentation or code comments that imply AiGo depends on aggressive Kakao Map usage or scraping. Operational collection limits and sensitive collection notes belong only in ignored planning/worklog/spec files.
+
+Never log in, create accounts, bypass access controls, or transmit private user data to third-party sites.
+
+## Research File Workflow
+
+Subagents collecting information should write structured Markdown files under `agent-research/`. This folder is intentionally excluded from git and must not be committed.
+
+Use one file per research slice, for example:
+
+- `agent-research/indoor-playgrounds-YYYYMMDD-HHMM.md`
+- `agent-research/libraries-toy-libraries-YYYYMMDD-HHMM.md`
+- `agent-research/parks-daytrips-YYYYMMDD-HHMM.md`
+- `agent-research/family-restaurants-YYYYMMDD-HHMM.md`
+
+Each researched place should include:
+
+- Place name
+- Suggested action: `create`, `update`, `skip`, or `needs_review`
+- Category and tags
+- Address/region and coordinates if confidently found
+- Child/family signals: age fit, indoor/outdoor, stroller, parking, nursing room, diaper table, kids toilet, elevator, baby chair, food/snack handling, stay duration, parent effort, safety notes
+- Source URLs with short summaries
+- Confidence level and open questions
+- Possible API payload fields, using English camelCase field names
+
+Research files are staging material only. Actual DB changes must go through AiGo API flow.
+
+## API Data Mutation Rules
+
+All real place data creation or enrichment must use the AiGo API, not direct DB writes:
+
+1. `POST /v1/places/duplicates`
+2. `GET /v1/places/{placeId}` if a candidate exists
+3. `POST /v1/places` for new places
+4. `PATCH /v1/places/{placeId}` for updates
+5. Verify version history after meaningful updates
+
+Every create/update must include at least one source. Prefer official/public sources. Use `unknown` instead of guessing.
+
+Do not create real data seed/export files. Real place data belongs in the development DB only.
+
+The main agent is responsible for applying mutations. Research subagents should normally stop at structured Markdown findings under `agent-research/`, including possible payload fragments and source evidence, so updates can be consolidated without conflicting writes.
+
+## Image URL Enrichment
+
+AiGo should use image links as source-backed metadata, not downloaded files. Store remote image URLs only when the source page can be cited and the image helps a parent recognize or compare the place.
+
+Preferred image sources:
+
+- Official facility, public agency, mall, museum, library, tourism, or operator pages.
+- Branch-specific `og:image`, hero images, or embedded representative images from official pages.
+- Public listing images only when official/operator images are unavailable and the listing clearly matches the exact branch/place.
+
+Avoid or mark as low-confidence:
+
+- Logos, favicons, generic share thumbnails, brand-only images, icon-sized branch buttons, or multi-branch ticket graphics.
+- Personal blog/SNS images unless there is no better source and the report clearly labels confidence and rights uncertainty.
+- Direct image URLs without a source page URL.
+
+For each image candidate, research notes should include:
+
+- `imageUrls` candidate list.
+- `imageSourceUrl` and source title.
+- Whether the image is official/public-listing/generic.
+- Confidence and hotlink/rendering caveats.
+- A possible API `PATCH` fragment that appends image URLs and a source entry.
+
+Actual DB image updates must go through the normal AiGo API update flow, with at least one source entry summarizing the image provenance. Keep image collection constraints and operational notes out of committed docs/code.
+
+## Subagent Usage
+
+Use subagents aggressively and frequently. When a task can be decomposed into independent research, implementation, review, testing, or verification work, delegate those pieces to subagents early so useful context and changes can be produced in parallel.
+
+Prefer subagents for:
+
+- Exploring separate areas of the codebase.
+- Investigating independent bugs or failure modes.
+- Implementing clearly separated file or module changes.
+- Reviewing risky changes while implementation continues.
+- Running or analyzing verification tasks that do not block immediate work.
+
+When assigning subagents, give them clear ownership, concrete deliverables, and explicit boundaries. If multiple subagents are working at once, make sure their write scopes do not overlap unless coordination is required.
+
+## Parallel Work
+
+Run tasks in parallel whenever they can be performed independently. Do not serialize unrelated work out of habit. Searches, file reads, test runs, build checks, documentation lookups, and independent code investigations should be batched or delegated when possible.
+
+Use parallel execution especially for:
+
+- Reading multiple files.
+- Searching for related symbols or patterns.
+- Comparing implementations across modules.
+- Running independent test or lint commands.
+- Collecting context while another task is being implemented.
+
+Keep the critical path moving locally while background or delegated work runs.
+
+## Editing Rules
+
+- Preserve existing user changes.
+- Do not revert files unless explicitly asked.
+- Prefer minimal, idiomatic changes over broad refactors.
+- Match the repository's established style and tooling.
+- Add comments only when they clarify non-obvious logic.
+- Verify changes with the most relevant available checks.
+
+## Communication
+
+Keep updates concise and useful. Explain what is being investigated, what changed, and what verification was performed. If a blocker appears, state the concrete issue and the best available next step.

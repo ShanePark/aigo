@@ -7,5 +7,6 @@ coverage/
 dist/
 dev/db/
 data/
+agent-research/
 *.log
 tsconfig.tsbuildinfo
