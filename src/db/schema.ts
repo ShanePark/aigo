@@ -58,6 +58,10 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    routeSupport: jsonb("route_support")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     status: text("status").notNull().default("active"),
     dataConfidence: text("data_confidence").notNull().default("unknown"),
     placeScore: doublePrecision("place_score"),
@@ -105,6 +109,7 @@ export const places = pgTable(
   (table) => ({
     primaryCategoryIdx: index("places_primary_category_idx").on(table.primaryCategory),
     taxonomyIdx: index("places_taxonomy_gin_idx").using("gin", table.taxonomy),
+    routeSupportIdx: index("places_route_support_gin_idx").using("gin", table.routeSupport),
     regionIdx: index("places_region_idx").on(table.regionSido, table.regionSigungu),
     kakaoPlaceIdUnique: uniqueIndex("places_kakao_place_id_unique").on(table.kakaoPlaceId)
   })

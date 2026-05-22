@@ -179,7 +179,7 @@ Common writable fields:
 - Scoring: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`.
 - Notes/status: `safetyNotes`, `parentNotes`, `openingHours`, `pricing`, `status`, `dataConfidence`.
 - Related places: `relatedPlaces` accepts existing place IDs with `relationType`, `note`, and optional `evidence`; use `relatedPlaceMode: "append"` by default or `"replace"` only when deliberately rewriting the current relation set.
-- Classification/play/image data: `taxonomy`, `playFeatures`, `images`.
+- Classification/play/route/image data: `taxonomy`, `playFeatures`, `routeSupport`, `images`.
 
 `taxonomy` is AiGo's controlled facet layer for parent-planning semantics. Keep `sourceBacked` limited to source-supported facts, use `inferred` for agent-derived broad planning labels, and preserve legacy/freeform cleanup context under `migration.legacyTags`, `migration.broadMappedTags`, and `migration.unmappedTags`. `tags` should remain concise search/display slugs; physical equipment such as slides, swings, seesaws, sand play, and water play belongs in `playFeatures`, while broader planning labels such as `baby_logistics`, `after_daycare`, `rainy_day`, or `route_break` belong in `taxonomy`.
 
@@ -338,6 +338,7 @@ Capture the practical parent tradeoffs in structured fields and notes:
 - Reservation/session friction, same-day availability, walk-in fallback, and whether parent timing must be planned before departure.
 - Snack/meal handling: outside food, food court, cafe, family restaurant playroom, baby chair.
 - Paid-entry details: use structured `pricing` only when source-backed. Include a compact `summary`, `basisDate` or `checkedAt`, optional `staleAfterDays`, item rows for child/guardian/time/reservation/free conditions, and a source URL. Do not estimate unknown prices.
+- Transport-terminal and route-break support: use structured `routeSupport` for airports, railway stations, bus terminals, ferry terminals, highway rest areas, service areas, and transit hubs when route logistics matter.
 - Stay duration, parent effort level, child engagement level, rainy/hot/cold day suitability.
 - Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.
 - Day-trip fallback: toilets, shade, feeding/change fallback, route/time burden, rest areas.
@@ -372,6 +373,44 @@ Use `playFeatures` for place-level physical play signals:
 Known fields include `slide`, `swing`, `babySwing`, `waterPlayground`, `sandPlay`, `climbing`, `seesaw`, `trampoline`, `rideOnToys`, `playHouse`, `openLawn`, `shade`, `fenced`, `rubberSurface`, `strollerPath`, and `toiletNearby`.
 
 Evidence confidence values: `official`, `visual_confirmed`, `user_reported`, `blog_supported`, `needs_check`, `unknown`.
+
+## Route Support
+
+Use `routeSupport` when a place is useful because it supports family travel rather than because it is a standalone outing destination. This is for airports, rail stations, bus terminals, ferry terminals, highway rest areas, service areas, and other transit hubs.
+
+```json
+{
+  "terminalType": "airport",
+  "routeSupportRole": "route_break",
+  "accessArea": "both",
+  "babyCareLocations": [
+    {
+      "label": "1F domestic terminal baby-care room",
+      "floor": "1F",
+      "area": "landside",
+      "gate": "Domestic arrivals",
+      "nursingRoom": "yes",
+      "diaperChangingTable": "yes",
+      "strollerFriendly": "partial",
+      "sourceUrl": "https://example.go.kr/airport/baby-care"
+    }
+  ],
+  "strollerRental": {
+    "available": "partial",
+    "locations": ["Information desk"],
+    "notes": "Quantity and hours should be checked before relying on it.",
+    "sourceUrl": "https://example.go.kr/airport/baby-care"
+  },
+  "prioritySupport": {
+    "securityFastTrack": "unknown",
+    "priorityBoarding": "partial",
+    "notes": "Conditions vary by airline or route."
+  },
+  "notes": "Source-backed route-break support summary."
+}
+```
+
+Known fields include `terminalType`, `routeSupportRole`, `accessArea`, `babyCareLocations`, `strollerRental`, `prioritySupport`, and `notes`. Use `unknown` instead of guessing, and keep floor/gate/landside/airside details source-backed. If a terminal has multiple baby-care rooms, keep them as `babyCareLocations` unless one is a named child-primary venue that should be its own searchable place. Search and detail responses expose `routeSupport`, and detail pages show compact route-support chips for parent planning.
 
 ## Image URL Enrichment
 

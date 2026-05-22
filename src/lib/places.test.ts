@@ -854,6 +854,11 @@ describe("place search helpers", () => {
         currency: "KRW",
         basisDate: "2026-05-22"
       },
+      routeSupport: {
+        terminalType: "airport",
+        routeSupportRole: "route_break",
+        babyCareLocations: [{ label: "국내선 유아휴게실", nursingRoom: "yes" }]
+      },
       recommendedAgeMonths: { min: 24, max: 96 },
       infantLogistics: {
         confidenceLevel: "medium",
@@ -949,6 +954,10 @@ describe("place search helpers", () => {
       pricing: {
         summary: "어린이 2시간 15,000원",
         basisDate: "2026-05-22"
+      },
+      routeSupport: {
+        terminalType: "airport",
+        routeSupportRole: "route_break"
       },
       taxonomy: {
         inferred: {
@@ -1430,5 +1439,37 @@ describe("place search helpers", () => {
 
     expect(signal.delta).toBeGreaterThan(0);
     expect(signal.reasonCodes).toContain("QUERY_PLAY_FEATURE_MATCH");
+  });
+
+  it("adds query match signals for route-support metadata", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "청주국제공항",
+        tags: ["route_break"],
+        description: null,
+        address: null,
+        roadAddress: null,
+        routeSupport: {
+          terminalType: "airport",
+          routeSupportRole: "route_break",
+          babyCareLocations: [
+            {
+              label: "국내선 1층 유아휴게실",
+              area: "landside",
+              nursingRoom: "yes",
+              diaperChangingTable: "yes"
+            }
+          ],
+          prioritySupport: {
+            securityFastTrack: "partial",
+            notes: "유아 동반 보안검색 지원 여부 확인 필요"
+          }
+        }
+      },
+      "공항 유아휴게실 보안검색"
+    );
+
+    expect(signal.delta).toBeGreaterThan(0);
+    expect(signal.reasonCodes).toContain("QUERY_ROUTE_SUPPORT_MATCH");
   });
 });

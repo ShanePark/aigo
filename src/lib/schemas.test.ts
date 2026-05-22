@@ -529,6 +529,65 @@ describe("place schemas", () => {
     });
   });
 
+  it("accepts route-support metadata for transport terminals and route breaks", () => {
+    const result = updatePlaceSchema.parse({
+      sources: [{ sourceType: "public_agency", url: "https://example.com/airport/baby-care" }],
+      routeSupport: {
+        terminalType: "airport",
+        routeSupportRole: "primary_terminal",
+        accessArea: "both",
+        babyCareLocations: [
+          {
+            label: "1층 국내선 유아휴게실",
+            floor: "1F",
+            area: "landside",
+            gate: "Domestic arrivals",
+            nursingRoom: "yes",
+            diaperChangingTable: "yes",
+            strollerFriendly: "partial",
+            sourceUrl: "https://example.com/airport/baby-care"
+          }
+        ],
+        strollerRental: {
+          available: "partial",
+          locations: ["안내데스크"],
+          notes: "수량과 운영 시간은 현장 확인 필요.",
+          sourceUrl: "https://example.com/airport/baby-care"
+        },
+        prioritySupport: {
+          securityFastTrack: "unknown",
+          priorityBoarding: "partial",
+          notes: "항공사/노선별 조건 확인 필요."
+        },
+        notes: "공항 route-break용 구조화 기록."
+      }
+    });
+    const invalidArea = updatePlaceSchema.safeParse({
+      sources: [{ sourceType: "public_agency", url: "https://example.com/airport/baby-care" }],
+      routeSupport: {
+        terminalType: "airport",
+        babyCareLocations: [{ label: "미확인 휴게실", area: "before_security" }]
+      }
+    });
+
+    expect(result.routeSupport).toMatchObject({
+      terminalType: "airport",
+      routeSupportRole: "primary_terminal",
+      babyCareLocations: [
+        {
+          label: "1층 국내선 유아휴게실",
+          nursingRoom: "yes",
+          diaperChangingTable: "yes"
+        }
+      ],
+      strollerRental: {
+        available: "partial",
+        locations: ["안내데스크"]
+      }
+    });
+    expect(invalidArea.success).toBe(false);
+  });
+
   it("accepts source-backed objective score fields", () => {
     const result = updatePlaceSchema.parse({
       sources: [{ sourceType: "public_listing", url: "https://example.com/place" }],

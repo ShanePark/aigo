@@ -46,6 +46,8 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const priceEvidence = pricingEvidenceLabel(place.pricing);
   const priceItems = pricingItemLabels(place.pricing);
   const priceNote = pricingNote(place.pricing);
+  const routeSupportChips = routeSupportSummaryChips(place.routeSupport);
+  const routeSupportNotes = routeSupportNotesText(place.routeSupport);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
   const backHref = searchBackHref(query.returnTo);
@@ -220,6 +222,23 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             ))}
           </div>
           {priceNote ? <p className="play-feature-note">{priceNote}</p> : null}
+        </section>
+      ) : null}
+
+      {routeSupportChips.length > 0 || routeSupportNotes ? (
+        <section className="info-block full">
+          <h2>
+            <MapPin size={18} aria-hidden="true" />
+            이동 지원
+          </h2>
+          {routeSupportChips.length > 0 ? (
+            <div className="detail-signal-grid">
+              {routeSupportChips.map((chip) => (
+                <span key={chip}>{chip}</span>
+              ))}
+            </div>
+          ) : null}
+          {routeSupportNotes ? <p className="play-feature-note">{routeSupportNotes}</p> : null}
         </section>
       ) : null}
 
@@ -508,6 +527,101 @@ function triStateLabel(value: string) {
     unknown: "미확인"
   };
   return labels[value] ?? value;
+}
+
+function routeSupportSummaryChips(routeSupport: Record<string, unknown>) {
+  if (!isRecord(routeSupport)) return [];
+
+  const chips: string[] = [];
+  const terminalType = stringValue(routeSupport.terminalType);
+  const role = stringValue(routeSupport.routeSupportRole);
+  const accessArea = stringValue(routeSupport.accessArea);
+  if (terminalType) chips.push(routeSupportTerminalTypeLabel(terminalType));
+  if (role) chips.push(routeSupportRoleLabel(role));
+  if (accessArea && accessArea !== "unknown") chips.push(`동선 ${routeSupportAccessAreaLabel(accessArea)}`);
+
+  const babyCareLocations = Array.isArray(routeSupport.babyCareLocations) ? routeSupport.babyCareLocations.filter(isRecord) : [];
+  for (const location of babyCareLocations.slice(0, 3)) {
+    const label = stringValue(location.label);
+    if (!label) continue;
+    const position = [stringValue(location.floor), routeSupportAccessAreaLabel(stringValue(location.area)), stringValue(location.gate)].filter(Boolean).join(" · ");
+    const signals = [
+      routeSupportTriStateSignal("수유", stringValue(location.nursingRoom)),
+      routeSupportTriStateSignal("기저귀", stringValue(location.diaperChangingTable)),
+      routeSupportTriStateSignal("유모차", stringValue(location.strollerFriendly))
+    ]
+      .filter(Boolean)
+      .join("/");
+    chips.push(`${label}${position ? ` (${position})` : ""}${signals ? ` · ${signals}` : ""}`);
+  }
+
+  if (isRecord(routeSupport.strollerRental)) {
+    const available = stringValue(routeSupport.strollerRental.available);
+    if (available) chips.push(`유모차 대여 ${triStateLabel(available)}`);
+  }
+
+  if (isRecord(routeSupport.prioritySupport)) {
+    const securityFastTrack = stringValue(routeSupport.prioritySupport.securityFastTrack);
+    const priorityBoarding = stringValue(routeSupport.prioritySupport.priorityBoarding);
+    if (securityFastTrack) chips.push(`우선보안검색 ${triStateLabel(securityFastTrack)}`);
+    if (priorityBoarding) chips.push(`우선탑승 ${triStateLabel(priorityBoarding)}`);
+  }
+
+  return Array.from(new Set(chips)).slice(0, 10);
+}
+
+function routeSupportNotesText(routeSupport: Record<string, unknown>) {
+  if (!isRecord(routeSupport)) return undefined;
+
+  const notes = [
+    stringValue(routeSupport.notes),
+    isRecord(routeSupport.strollerRental) ? stringValue(routeSupport.strollerRental.notes) : undefined,
+    isRecord(routeSupport.prioritySupport) ? stringValue(routeSupport.prioritySupport.notes) : undefined
+  ].filter(Boolean);
+
+  return notes.length > 0 ? Array.from(new Set(notes)).join(" ") : undefined;
+}
+
+function routeSupportTerminalTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    airport: "공항",
+    rail_station: "철도역",
+    bus_terminal: "버스터미널",
+    ferry_terminal: "여객터미널",
+    highway_rest_area: "고속도로 휴게소",
+    service_area: "서비스 에어리어",
+    transit_hub: "환승 거점",
+    unknown: "이동 거점"
+  };
+  return labels[value] ?? value;
+}
+
+function routeSupportRoleLabel(value: string) {
+  const labels: Record<string, string> = {
+    primary_terminal: "주요 터미널",
+    route_break: "경로 중 휴식",
+    transfer_stop: "환승 지점",
+    rest_area: "휴게 지점",
+    unknown: "이동 지원"
+  };
+  return labels[value] ?? value;
+}
+
+function routeSupportAccessAreaLabel(value: string | undefined) {
+  if (!value) return undefined;
+  const labels: Record<string, string> = {
+    landside: "보안검색 전",
+    airside: "보안검색 후",
+    both: "보안검색 전/후",
+    not_applicable: "일반 구역",
+    unknown: "위치 미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function routeSupportTriStateSignal(label: string, value: string | undefined) {
+  if (!value || value === "unknown") return undefined;
+  return `${label} ${triStateLabel(value)}`;
 }
 
 function minutesLabel(value: number | null) {

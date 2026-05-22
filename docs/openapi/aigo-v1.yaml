@@ -78,6 +78,7 @@ paths:
                             broadMappedTags: []
                             unmappedTags: []
                         pricing: {}
+                        routeSupport: {}
                         recommendedAgeMonths:
                           min: null
                           max: null
@@ -742,6 +743,8 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        routeSupport:
+          $ref: "#/components/schemas/RouteSupport"
         imageUrls:
           type: array
           deprecated: true
@@ -1444,6 +1447,7 @@ components:
         - playFeatures
         - taxonomy
         - pricing
+        - routeSupport
         - score
         - scoreBreakdown
         - reasonCodes
@@ -1561,6 +1565,8 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        routeSupport:
+          $ref: "#/components/schemas/RouteSupport"
         lat:
           type: number
         lng:
@@ -1627,6 +1633,7 @@ components:
         - structuredDataGaps
         - openingHoursSummary
         - pricing
+        - routeSupport
         - facilities
         - visit
         - notes
@@ -1683,6 +1690,8 @@ components:
           $ref: "#/components/schemas/OpeningHoursSummary"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        routeSupport:
+          $ref: "#/components/schemas/RouteSupport"
         facilities:
           $ref: "#/components/schemas/Facilities"
         visit:
@@ -2260,6 +2269,77 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+    RouteSupport:
+      type: object
+      description: Source-backed support metadata for transport terminals and route-break stops such as airports, stations, bus terminals, ferry terminals, and highway rest areas.
+      properties:
+        terminalType:
+          type: string
+          enum: [airport, rail_station, bus_terminal, ferry_terminal, highway_rest_area, service_area, transit_hub, unknown]
+        routeSupportRole:
+          type: string
+          enum: [primary_terminal, route_break, transfer_stop, rest_area, unknown]
+        accessArea:
+          type: string
+          enum: [landside, airside, both, not_applicable, unknown]
+          description: Whether support is before security, after security, both, not applicable, or unknown.
+        babyCareLocations:
+          type: array
+          maxItems: 30
+          items:
+            type: object
+            required: [label]
+            properties:
+              label:
+                type: string
+              floor:
+                type: string
+              area:
+                type: string
+                enum: [landside, airside, both, not_applicable, unknown]
+              gate:
+                type: string
+              directions:
+                type: string
+              nursingRoom:
+                $ref: "#/components/schemas/TriState"
+              diaperChangingTable:
+                $ref: "#/components/schemas/TriState"
+              strollerFriendly:
+                $ref: "#/components/schemas/TriState"
+              sourceUrl:
+                type: string
+                format: uri
+        strollerRental:
+          type: object
+          properties:
+            available:
+              $ref: "#/components/schemas/TriState"
+            locations:
+              type: array
+              maxItems: 20
+              items:
+                type: string
+            notes:
+              type: string
+            sourceUrl:
+              type: string
+              format: uri
+        prioritySupport:
+          type: object
+          properties:
+            securityFastTrack:
+              $ref: "#/components/schemas/TriState"
+            priorityBoarding:
+              $ref: "#/components/schemas/TriState"
+            notes:
+              type: string
+            sourceUrl:
+              type: string
+              format: uri
+        notes:
+          type: string
+      additionalProperties: true
     PlayFeatures:
       type: object
       description: Place-level playground and physical play signals. These describe the place as a whole; image-level `visualFeatures` only describe what was visible in one image.
@@ -2511,6 +2591,7 @@ components:
         - playFeatures
         - taxonomy
         - pricing
+        - routeSupport
         - status
         - dataConfidence
         - scoring
@@ -2617,6 +2698,8 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        routeSupport:
+          $ref: "#/components/schemas/RouteSupport"
         status:
           type: string
         dataConfidence:

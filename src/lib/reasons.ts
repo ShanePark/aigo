@@ -26,6 +26,7 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   QUERY_NAME_MATCH: { labelKo: "장소명에 검색어 포함", group: "match", tone: "positive", basePriority: 19 },
   QUERY_TAG_MATCH: { labelKo: "태그에 검색어 포함", group: "match", tone: "positive", basePriority: 57 },
   QUERY_PLAY_FEATURE_MATCH: { labelKo: "놀이시설 조건 일치", group: "match", tone: "positive", basePriority: 40 },
+  QUERY_ROUTE_SUPPORT_MATCH: { labelKo: "이동 지원 조건 일치", group: "match", tone: "positive", basePriority: 40 },
   QUERY_TEXT_MATCH: { labelKo: "본문/주소에 검색어 포함", group: "match", tone: "positive", basePriority: 58 },
   TAXONOMY_ACTIVITY_MATCH: { labelKo: "활동 유형 일치", group: "match", tone: "positive", basePriority: 39 },
   TAXONOMY_USE_CASE_MATCH: { labelKo: "외출 목적 일치", group: "match", tone: "positive", basePriority: 41 },

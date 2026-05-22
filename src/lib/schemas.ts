@@ -139,6 +139,52 @@ export const relatedPlaceInputSchema = z.object({
   evidence: z.record(z.string(), z.unknown()).optional()
 });
 
+const routeSupportAccessAreaSchema = z.enum(["landside", "airside", "both", "not_applicable", "unknown"]);
+const routeSupportSourceUrlSchema = urlString.optional();
+
+export const routeSupportSchema = z
+  .object({
+    terminalType: z
+      .enum(["airport", "rail_station", "bus_terminal", "ferry_terminal", "highway_rest_area", "service_area", "transit_hub", "unknown"])
+      .optional(),
+    routeSupportRole: z.enum(["primary_terminal", "route_break", "transfer_stop", "rest_area", "unknown"]).optional(),
+    accessArea: routeSupportAccessAreaSchema.optional(),
+    babyCareLocations: z
+      .array(
+        z.object({
+          label: nonEmptyString,
+          floor: z.string().trim().max(100).optional(),
+          area: routeSupportAccessAreaSchema.optional(),
+          gate: z.string().trim().max(100).optional(),
+          directions: z.string().trim().max(1000).optional(),
+          nursingRoom: triStateSchema.optional(),
+          diaperChangingTable: triStateSchema.optional(),
+          strollerFriendly: triStateSchema.optional(),
+          sourceUrl: routeSupportSourceUrlSchema
+        })
+      )
+      .max(30)
+      .optional(),
+    strollerRental: z
+      .object({
+        available: triStateSchema.optional(),
+        locations: z.array(nonEmptyString).max(20).optional(),
+        notes: z.string().trim().max(1000).optional(),
+        sourceUrl: routeSupportSourceUrlSchema
+      })
+      .optional(),
+    prioritySupport: z
+      .object({
+        securityFastTrack: triStateSchema.optional(),
+        priorityBoarding: triStateSchema.optional(),
+        notes: z.string().trim().max(1000).optional(),
+        sourceUrl: routeSupportSourceUrlSchema
+      })
+      .optional(),
+    notes: z.string().trim().max(3000).optional()
+  })
+  .catchall(z.unknown());
+
 const calendarDateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "date must use YYYY-MM-DD")
@@ -191,6 +237,7 @@ const writablePlaceFields = {
   playFeatures: playFeaturesSchema.optional(),
   taxonomy: taxonomySchema.optional(),
   pricing: pricingSchema.optional(),
+  routeSupport: routeSupportSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
   relatedPlaces: z.array(relatedPlaceInputSchema).max(50).optional(),
@@ -414,6 +461,7 @@ export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
 export type PricingInput = z.infer<typeof pricingSchema>;
 export type PlaceTaxonomyInput = z.infer<typeof taxonomySchema>;
+export type RouteSupportInput = z.infer<typeof routeSupportSchema>;
 export type SearchTaxonomyInput = z.infer<typeof searchTaxonomySchema>;
 
 function normalizeSearchAliases(value: unknown) {

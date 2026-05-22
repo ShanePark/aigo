@@ -52,6 +52,7 @@ type PlaceRow = {
   play_features: Record<string, unknown>;
   taxonomy: PlaceTaxonomy;
   pricing: Record<string, unknown>;
+  route_support: Record<string, unknown>;
   status: string;
   data_confidence: string;
   place_score: number | null;
@@ -224,6 +225,7 @@ const columnMap = {
   playFeatures: "play_features",
   taxonomy: "taxonomy",
   pricing: "pricing",
+  routeSupport: "route_support",
   status: "status",
   dataConfidence: "data_confidence",
   placeScore: "place_score",
@@ -450,6 +452,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       playFeatures: place.playFeatures,
       taxonomy: place.taxonomy,
       pricing: place.pricing,
+      routeSupport: place.routeSupport,
       region: place.region,
       lat: place.lat,
       lng: place.lng,
@@ -643,6 +646,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     dataConfidence: item.dataConfidence,
     taxonomy: item.taxonomy,
     pricing: item.pricing,
+    routeSupport: item.routeSupport,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
     structuredDataGaps: item.structuredDataGaps,
@@ -1961,6 +1965,7 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `region_dong ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
       `play_features::text ilike ${patternParam}`,
+      `route_support::text ilike ${patternParam}`,
       `taxonomy::text ilike ${patternParam}`
     ];
     const categoryClause = categoryClauseForKeywordTerm(term);
@@ -2945,7 +2950,8 @@ function addTextExpansionClauses(clauses: string[], terms: string[], add: (value
       `name ilike ${patternParam}`,
       `description ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
-      `play_features::text ilike ${patternParam}`
+      `play_features::text ilike ${patternParam}`,
+      `route_support::text ilike ${patternParam}`
     );
   }
 }
@@ -2960,6 +2966,7 @@ export function shouldSearchAddressForTerm(query: string, term: string) {
 export function queryMatchSignal(
   place: Pick<ReturnType<typeof mapPlace>, "name" | "tags" | "description" | "address" | "roadAddress"> & {
     playFeatures?: Record<string, unknown>;
+    routeSupport?: Record<string, unknown>;
   },
   query?: string
 ) {
@@ -3023,6 +3030,11 @@ export function queryMatchSignal(
     reasonCodes.add("QUERY_PLAY_FEATURE_MATCH");
   }
 
+  if (routeSupportMatch(place.routeSupport, normalizedQuery, terms)) {
+    delta += reasonCodes.size > 0 ? 2 : 7;
+    reasonCodes.add("QUERY_ROUTE_SUPPORT_MATCH");
+  }
+
   const searchableText = [place.description, place.address, place.roadAddress].filter(Boolean).map((value) => normalizeSearchText(String(value)));
   if (searchableText.some((value) => value.includes(normalizedQuery))) {
     delta += reasonCodes.size > 0 ? 1 : 3;
@@ -3036,8 +3048,16 @@ export function queryMatchSignal(
 }
 
 function playFeaturesMatch(playFeatures: Record<string, unknown> | undefined, normalizedQuery: string, terms: string[]) {
-  if (!playFeatures) return false;
-  const text = normalizeSearchText(JSON.stringify(playFeatures));
+  return structuredJsonMatch(playFeatures, normalizedQuery, terms);
+}
+
+function routeSupportMatch(routeSupport: Record<string, unknown> | undefined, normalizedQuery: string, terms: string[]) {
+  return structuredJsonMatch(routeSupport, normalizedQuery, terms);
+}
+
+function structuredJsonMatch(value: Record<string, unknown> | undefined, normalizedQuery: string, terms: string[]) {
+  if (!value) return false;
+  const text = normalizeSearchText(JSON.stringify(value));
   if (!text || text === "{}") return false;
   return text.includes(normalizedQuery) || terms.some((term) => text.includes(term));
 }
@@ -3119,7 +3139,7 @@ function quoteIdentifier(identifier: string) {
 }
 
 function placeholderFor(column: string, index: number) {
-  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "score_signals" || column === "taxonomy") {
+  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "route_support" || column === "score_signals" || column === "taxonomy") {
     return `$${index}::jsonb`;
   }
   if (column === "play_features") {
@@ -3129,7 +3149,7 @@ function placeholderFor(column: string, index: number) {
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "score_signals" || column === "taxonomy") {
+  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "route_support" || column === "score_signals" || column === "taxonomy") {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -3164,6 +3184,7 @@ function mapPlace(row: PlaceRow) {
     playFeatures: row.play_features ?? {},
     taxonomy: row.taxonomy ?? emptyPlaceTaxonomy(),
     pricing: row.pricing ?? {},
+    routeSupport: row.route_support ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,
     scoring: {
