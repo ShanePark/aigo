@@ -1057,6 +1057,12 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const compactName = compactSearchText(input.name);
   const containsCompactName = `%${compactName}%`;
   const genericAliasTerms = duplicateGenericAliasTerms;
+  const hasCoordinates = input.lat !== undefined && input.lng !== undefined;
+  const lat = input.lat ?? null;
+  const lng = input.lng ?? null;
+  const addressCandidates = Array.from(new Set([input.roadAddress, input.address].filter(isNonEmptyString).map(compactSearchText)));
+  const compactRegionSido = input.regionSido ? compactSearchText(input.regionSido) : null;
+  const compactRegionSigungu = input.regionSigungu ? compactSearchText(input.regionSigungu) : null;
   const externalRefsJson =
     input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
   const rows = await pg<
@@ -1064,69 +1070,35 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
       distance_meters: number | null;
       name_similarity: number | null;
       alias_match: boolean;
+      address_match: boolean;
+      region_match: boolean;
       external_refs_match: boolean;
       kakao_place_id_match: boolean;
     })[]
   >`
-    select
-      *,
-      ST_Distance(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography) as distance_meters,
-      greatest(
-        similarity(name, ${input.name}),
-        case when name = ${input.name} then 1 else 0 end,
-        case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end,
+    with scored as (
+      select
+        *,
         case
-          when regexp_replace(lower(name), '\\s+', '', 'g') ilike ${containsCompactName}
-            or ${compactName} ilike ('%' || regexp_replace(lower(name), '\\s+', '', 'g') || '%')
-          then 0.65
-          else 0
-        end,
+          when ${hasCoordinates} then ST_Distance(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography)
+          else null
+        end as distance_meters,
         case
-          when exists (
-            select 1
-            from unnest(tags) as duplicate_tag
-            where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
-              and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
-              and (
-                regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
-                or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
-              )
-          )
-          then 0.72
-          else 0
-        end,
-        case when regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName} then 0.72 else 0 end
-      ) as name_similarity,
-      (
-        exists (
-          select 1
-          from unnest(tags) as duplicate_tag
-          where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
-            and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
-            and (
-              regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
-              or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
-            )
-        )
-        or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
-      ) as alias_match,
-      (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
-      (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
-    from places
-    where
-      status <> 'closed'
-      and (
-        (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null})
-        or (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb)
-        or (
-          ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography, ${input.radiusMeters})
-          and (
-            name = ${input.name}
-            or name ilike ${containsName}
-            or ${input.name} ilike ('%' || name || '%')
-            or similarity(name, ${input.name}) >= 0.25
-            or regexp_replace(lower(name), '\\s+', '', 'g') ilike ${containsCompactName}
-            or exists (
+          when ${hasCoordinates} then ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${input.radiusMeters})
+          else false
+        end as geo_near,
+        greatest(
+          similarity(name, ${input.name}),
+          case when name = ${input.name} then 1 else 0 end,
+          case when name ilike ${containsName} or ${input.name} ilike ('%' || name || '%') then 0.65 else 0 end,
+          case
+            when regexp_replace(lower(name), '\\s+', '', 'g') ilike ${containsCompactName}
+              or ${compactName} ilike ('%' || regexp_replace(lower(name), '\\s+', '', 'g') || '%')
+            then 0.65
+            else 0
+          end,
+          case
+            when exists (
               select 1
               from unnest(tags) as duplicate_tag
               where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
@@ -1136,11 +1108,56 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
                   or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
                 )
             )
-            or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
+            then 0.72
+            else 0
+          end,
+          case when regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName} then 0.72 else 0 end
+        ) as name_similarity,
+        (
+          exists (
+            select 1
+            from unnest(tags) as duplicate_tag
+            where char_length(regexp_replace(lower(duplicate_tag), '\\s+', '', 'g')) >= 3
+              and regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') <> all(${genericAliasTerms}::text[])
+              and (
+                regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') ilike ${containsCompactName}
+                or ${compactName} ilike ('%' || regexp_replace(lower(duplicate_tag), '\\s+', '', 'g') || '%')
+              )
           )
-        )
-      )
-    order by kakao_place_id_match desc, external_refs_match desc, alias_match desc, name_similarity desc, distance_meters asc
+          or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
+        ) as alias_match,
+        (
+          array_length(${addressCandidates}::text[], 1) is not null
+          and (
+            regexp_replace(lower(coalesce(road_address, '')), '\\s+', '', 'g') = any(${addressCandidates}::text[])
+            or regexp_replace(lower(coalesce(address, '')), '\\s+', '', 'g') = any(${addressCandidates}::text[])
+          )
+        ) as address_match,
+        (
+          (${input.regionSigungu ?? null}::text is not null or ${input.regionSido ?? null}::text is not null)
+          and (
+            (${input.regionSigungu ?? null}::text is not null and region_sigungu = ${input.regionSigungu ?? null})
+            or (${input.regionSido ?? null}::text is not null and region_sido = ${input.regionSido ?? null})
+            or (${compactRegionSigungu}::text is not null and regexp_replace(lower(coalesce(address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSigungu}::text || '%'))
+            or (${compactRegionSigungu}::text is not null and regexp_replace(lower(coalesce(road_address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSigungu}::text || '%'))
+            or (${compactRegionSido}::text is not null and regexp_replace(lower(coalesce(address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSido}::text || '%'))
+            or (${compactRegionSido}::text is not null and regexp_replace(lower(coalesce(road_address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSido}::text || '%'))
+          )
+        ) as region_match,
+        (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
+        (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
+      from places
+      where status <> 'closed'
+    )
+    select *
+    from scored
+    where
+      kakao_place_id_match
+      or external_refs_match
+      or (geo_near and (name_similarity >= 0.25 or alias_match))
+      or (address_match and (name_similarity >= 0.25 or alias_match))
+      or (region_match and (name_similarity >= 0.45 or alias_match))
+    order by kakao_place_id_match desc, external_refs_match desc, address_match desc, region_match desc, alias_match desc, name_similarity desc, distance_meters asc nulls last
     limit ${input.limit}
   `;
 
@@ -1148,6 +1165,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
     rows.map(async (row) => {
       const signals = {
         aliasMatch: row.alias_match,
+        addressMatch: row.address_match,
+        regionMatch: row.region_match,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
         distanceMeters: row.distance_meters,
@@ -3008,6 +3027,10 @@ function normalizeSearchText(value: string) {
 
 function compactSearchText(value: string) {
   return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function mergeReasonCodes(first: string[], second: string[]) {

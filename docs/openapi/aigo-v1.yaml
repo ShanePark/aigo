@@ -2068,14 +2068,39 @@ components:
                   type: boolean
     DuplicatePlaceRequest:
       type: object
-      required: [name, lat, lng]
+      description: Provide coordinates for radius-based duplicate checks, or address/region evidence when source-backed coordinates are unavailable.
+      required: [name]
+      dependentRequired:
+        lat: [lng]
+        lng: [lat]
+      anyOf:
+        - required: [lat, lng]
+        - required: [roadAddress]
+        - required: [address]
+        - required: [regionSigungu]
+        - required: [kakaoPlaceId]
+        - required: [externalRefs]
       properties:
         name:
           type: string
         lat:
           type: number
+          description: Latitude for radius-based duplicate checks. Must be sent with `lng`.
         lng:
           type: number
+          description: Longitude for radius-based duplicate checks. Must be sent with `lat`.
+        address:
+          type: string
+          description: Source-backed 지번/지명 address used for read-only duplicate checks when coordinates are unknown.
+        roadAddress:
+          type: string
+          description: Source-backed road address used for read-only duplicate checks when coordinates are unknown.
+        regionSido:
+          type: string
+          description: Optional normalized province/city hint for address-based duplicate checks.
+        regionSigungu:
+          type: string
+          description: Optional city/district hint for address-based duplicate checks when coordinates are unknown.
         radiusMeters:
           type: number
           default: 500

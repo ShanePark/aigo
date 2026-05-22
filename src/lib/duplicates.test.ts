@@ -81,4 +81,32 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateReasonCodes(signals)).toContain("ALIAS_MATCH");
   });
+
+  it("treats same-address name matches as high confidence without coordinates", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.7
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateReasonCodes(signals)).toContain("ADDRESS_MATCH");
+  });
+
+  it("keeps same-region name matches at medium confidence without address", () => {
+    const signals = {
+      aliasMatch: false,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.7
+    };
+
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateReasonCodes(signals)).toContain("REGION_MATCH");
+  });
 });

@@ -56,7 +56,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Split nationwide collection by region block and category so reports stay comparable and dedupe-friendly. Useful region slices include Seoul/Incheon/Gyeonggi; Busan/Ulsan/Gyeongnam; Daegu/Gyeongbuk; Gwangju/Jeonnam/Jeonbuk; Gangwon; Chungcheong/Daejeon/Sejong; and Jeju.
    - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; family-friendly lodging/resorts; route-break rest areas and travel support stops.
    - Give each subagent clear ownership of one district/category slice, concrete search terms, and a unique report filename under `agent-research/`.
-   - Tell subagents not to mutate data. For broad candidate discovery, have them do a cheap read-only dedupe pass before opening many source pages: use exact-name `/v1/places/search` when coordinates are unknown, `/v1/places/duplicates` when name and coordinates are known, and `GET /v1/places/{placeId}` only for likely matches that need comparison. Their deliverable is a structured Markdown file under `agent-research/`.
+   - Tell subagents not to mutate data. For broad candidate discovery, have them do a cheap read-only dedupe pass before opening many source pages: use exact-name `/v1/places/search` for deterministic name lookup, `/v1/places/duplicates` when name plus coordinates or source-backed address/region are known, and `GET /v1/places/{placeId}` only for likely matches that need comparison. Their deliverable is a structured Markdown file under `agent-research/`.
    - Use only one API mutation executor after research reports are available. That executor performs duplicate checks, compares existing records, creates missing places, patches enrichments, and verifies versions.
 
 3. Run shallow discovery before deep research.
@@ -73,7 +73,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it.
 
 5. Check duplicates before mutation.
-   - Call `POST /v1/places/duplicates` with `name`, `lat`, `lng`, optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters`.
+   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng` or source-backed `roadAddress`/`address`/`regionSigungu`; include optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters` when coordinates are known.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
    - If evidence is weak or identity is uncertain for a user-requested registration, still keep the place searchable with `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; make the uncertainty explicit in `parentNotes`, `safetyNotes`, tags, or structured `unknown` fields.
@@ -406,6 +406,21 @@ curl -sS http://localhost:3000/v1/places/duplicates \
     "lat": 36.3504,
     "lng": 127.3845,
     "radiusMeters": 800,
+    "limit": 10
+  }'
+```
+
+Address-based duplicate check when coordinates are not source-backed:
+
+```bash
+curl -sS http://localhost:3000/v1/places/duplicates \
+  -H "Authorization: Bearer $AIGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Example Toy Library Branch",
+    "roadAddress": "Daejeon ...",
+    "regionSido": "Daejeon",
+    "regionSigungu": "Dong-gu",
     "limit": 10
   }'
 ```

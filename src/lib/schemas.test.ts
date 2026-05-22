@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceSchema, deletePlaceSchema, placeImageHealthQuerySchema, searchPlacesSchema, taxonomySchema, updatePlaceSchema } from "@/lib/schemas";
+import {
+  createPlaceSchema,
+  deletePlaceSchema,
+  duplicatePlaceSchema,
+  placeImageHealthQuerySchema,
+  searchPlacesSchema,
+  taxonomySchema,
+  updatePlaceSchema
+} from "@/lib/schemas";
 
 describe("place schemas", () => {
   it("requires coordinates and at least one source when creating a place", () => {
@@ -58,6 +66,28 @@ describe("place schemas", () => {
     expect(result.sources[0].sourceType).toBe("official_site");
     expect(result.images?.[0]?.sourceType).toBe("official_image_source");
     expect(invalidSource.success).toBe(false);
+  });
+
+  it("accepts duplicate checks with address evidence when coordinates are unknown", () => {
+    const addressOnly = duplicatePlaceSchema.parse({
+      name: "도담도담 장난감월드 검단점",
+      roadAddress: "인천광역시 서구 완정로 123",
+      regionSido: "인천",
+      regionSigungu: "서구"
+    });
+    const missingLocation = duplicatePlaceSchema.safeParse({
+      name: "좌표 없는 장소"
+    });
+    const partialCoordinates = duplicatePlaceSchema.safeParse({
+      name: "위도만 있는 장소",
+      lat: 36.35
+    });
+
+    expect(addressOnly.regionSido).toBe("인천");
+    expect(addressOnly.limit).toBe(10);
+    expect(addressOnly.radiusMeters).toBe(500);
+    expect(missingLocation.success).toBe(false);
+    expect(partialCoordinates.success).toBe(false);
   });
 
   it("accepts taxonomy v1 shape on place writes", () => {

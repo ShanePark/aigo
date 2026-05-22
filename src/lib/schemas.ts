@@ -356,15 +356,35 @@ const searchPlacesBaseSchema = z.object({
 
 export const searchPlacesSchema = z.preprocess(normalizeSearchAliases, searchPlacesBaseSchema);
 
-export const duplicatePlaceSchema = z.object({
-  name: nonEmptyString,
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  radiusMeters: z.number().positive().max(5000).default(500),
-  kakaoPlaceId: z.string().trim().optional(),
-  externalRefs: z.record(z.string(), z.unknown()).optional(),
-  limit: z.number().int().min(1).max(20).default(10)
-});
+export const duplicatePlaceSchema = z
+  .object({
+    name: nonEmptyString,
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+    address: nonEmptyString.optional(),
+    roadAddress: nonEmptyString.optional(),
+    regionSido: regionSidoSchema,
+    regionSigungu: nonEmptyString.optional(),
+    radiusMeters: z.number().positive().max(5000).default(500),
+    kakaoPlaceId: z.string().trim().optional(),
+    externalRefs: z.record(z.string(), z.unknown()).optional(),
+    limit: z.number().int().min(1).max(20).default(10)
+  })
+  .refine((input) => (input.lat === undefined && input.lng === undefined) || (input.lat !== undefined && input.lng !== undefined), {
+    message: "lat and lng must be provided together"
+  })
+  .refine(
+    (input) =>
+      (input.lat !== undefined && input.lng !== undefined) ||
+      input.address !== undefined ||
+      input.roadAddress !== undefined ||
+      input.regionSigungu !== undefined ||
+      input.kakaoPlaceId !== undefined ||
+      (input.externalRefs !== undefined && Object.keys(input.externalRefs).length > 0),
+    {
+      message: "duplicate check requires coordinates, address, regionSigungu, kakaoPlaceId, or externalRefs"
+    }
+  );
 
 export const deletePlaceSchema = z.object({
   confirmation: z.literal("close_place"),
