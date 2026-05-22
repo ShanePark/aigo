@@ -15,19 +15,141 @@ paths:
     post:
       summary: Search places with soft matching
       operationId: searchPlaces
+      description: >-
+        Returns the current search shape as top-level `items` plus `meta`. Agent scripts
+        should not read a `results` array from current responses; use the shared read-only
+        helper in `scripts/lib/aigo-search.ts` when handling cached legacy fixtures.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/SearchPlacesRequest"
+            examples:
+              compactExactName:
+                summary: Compact exact-name lookup
+                value:
+                  query: 국립광주과학관
+                  matchMode: exactName
+                  projection: compact
+                  limit: 5
       responses:
         "200":
-          description: Search results
+          description: Search results with top-level `items` and `meta`
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SearchPlacesResponse"
+              examples:
+                compactExactName:
+                  summary: Compact exact-name response shape
+                  value:
+                    items:
+                      - id: e37846ac-015e-424c-83e9-e6cf2990d65a
+                        name: 국립광주과학관
+                        primaryCategory: science_museum
+                        tags: []
+                        address: 광주광역시 북구 첨단과기로 235
+                        lat: 35.2296
+                        lng: 126.8494
+                        distanceKm: null
+                        score: 80
+                        reasonCodes: [QUERY_NAME_EXACT]
+                        reasons: []
+                        dataConfidence: agent_collected
+                        taxonomy:
+                          schemaVersion: 1
+                          sourceBacked:
+                            familyFitGates: []
+                            activityTypes: []
+                            visitUseCases: []
+                            ageBands: []
+                            logisticsTags: []
+                            riskTags: []
+                          inferred:
+                            familyFitGates: []
+                            activityTypes: []
+                            visitUseCases: []
+                            ageBands: []
+                            logisticsTags: []
+                            riskTags: []
+                          migration:
+                            legacyTags: []
+                            broadMappedTags: []
+                            unmappedTags: []
+                        pricing: {}
+                        recommendedAgeMonths:
+                          min: null
+                          max: null
+                        infantLogistics:
+                          supportLevel: unknown
+                          supportScore: 0
+                          evidence: []
+                          gaps: []
+                        openingHoursSummary:
+                          status: unknown
+                          label: 운영시간 미확인
+                          confidence: unknown
+                          nextChangeAt: null
+                          notes: []
+                          sourceCheckedAt: null
+                        facilities:
+                          indoorType: unknown
+                          strollerFriendly: unknown
+                          parkingAvailable: unknown
+                          parkingFrictionLevel: unknown
+                          peakParkingWindow: null
+                          parkingWaitNote: null
+                          nursingRoom: unknown
+                          diaperChangingTable: unknown
+                          kidsToilet: unknown
+                          elevator: unknown
+                          babyChair: unknown
+                          foodAllowed: unknown
+                        visit:
+                          reservationRequired: unknown
+                          walkInAvailable: unknown
+                          sessionBased: unknown
+                          sameDayAvailabilityKnown: unknown
+                          averageStayMinutes: null
+                          parentEffortLevel: null
+                          childEngagementLevel: null
+                        notes:
+                          safety: null
+                          parent: null
+                        primaryImageUrl: null
+                        imageHealth:
+                          status: no_active_image
+                          activeCount: 0
+                          approvedCount: 0
+                          needsReviewCount: 0
+                          pendingReviewCount: 0
+                          primaryImageUrl: null
+                          primaryReviewStatus: null
+                          latestCheckedAt: null
+                          latestUpdatedAt: null
+                        sourceSummary:
+                          sourceCount: 0
+                          sourceTypes: []
+                          bestSourceType: null
+                          bestSourceTier: none
+                          latestCheckedAt: null
+                          freshnessStatus: unchecked
+                    meta:
+                      count: 1
+                      total: 1
+                      limit: 5
+                      offset: 0
+                      projection: compact
+                      origin: null
+                      coursePlan: null
+                      search:
+                        originalQuery: 국립광주과학관
+                        normalizedQuery: 국립광주과학관
+                        appliedPreferences: null
+                        preferenceSemantics: []
+                        visitContext: null
+                        normalized: false
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":

@@ -107,6 +107,16 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For deterministic place lookup by full name, send `matchMode: "exactName"` with `query`; this restricts candidates to exact or whitespace-compacted name matches instead of broad keyword/tag matches.
    - For controlled facet search, send `taxonomy` with canonical facet arrays. `taxonomy.mode` defaults to `soft`, which boosts matching records without excluding unknowns; use `taxonomy.mode: "required"` when every requested taxonomy facet must appear in either `sourceBacked` or `inferred` taxonomy. Natural Korean queries such as `모래놀이터`, `비오는날`, `쌍둥이 유모차`, `가는 길`, and `놀이방 식당` are also normalized into soft taxonomy facets unless explicit request facets already cover that family.
    - In search results, prefer `item.id` as the canonical place id. `item.placeId` remains a backward-compatible alias; detail responses use `id`, and duplicate candidates expose the nested candidate as `place.id`.
+   - Search responses use top-level `items` and `meta`; do not read a `results` array from current `/v1/places/search` responses. For research scripts, import `searchPlacesReadOnly`, `exactNameSearchReadOnly`, or `readSearchItems` from `scripts/lib/aigo-search.ts` so cached legacy shapes can be handled without silently treating current responses as empty.
+
+Read-only exact-name search helper example for research scripts:
+
+```ts
+import { exactNameSearchReadOnly } from "./lib/aigo-search";
+
+const { items, meta } = await exactNameSearchReadOnly("국립광주과학관");
+console.log({ count: meta?.count, firstId: items[0]?.id });
+```
 
 ## API Payload Rules
 
