@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPlaceInfoLinks } from "@/lib/place-links";
+import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 
 describe("place info links", () => {
   it("prefers direct parent-facing links before source fallbacks", () => {
@@ -64,5 +64,41 @@ describe("place info links", () => {
     expect(sourceLinks).toMatchObject([{ label: "공공시설 안내", provider: "agency.example.go.kr" }]);
     expect(searchFallback).toMatchObject([{ label: "공개 검색", provider: "네이버" }]);
     expect(searchFallback[0].url).toContain(encodeURIComponent("외부 URL 없는 장소 대전광역시 중구"));
+  });
+
+  it("selects a direct Naver map link for the primary detail CTA", () => {
+    const link = buildNaverMapLink({
+      name: "토이빌리지",
+      address: "대전광역시 중구",
+      roadAddress: null,
+      contact: {
+        officialUrl: "https://example.go.kr/place",
+        reservationUrl: null,
+        kakaoPlaceUrl: "https://place.map.kakao.com/123"
+      },
+      externalRefs: {
+        infoLinks: [{ provider: "네이버", label: "네이버 플레이스", url: "https://pcmap.place.naver.com/place/123" }]
+      },
+      sources: [{ sourceType: "public_listing", title: "목록", url: "https://example.com/listing", summary: null }]
+    });
+
+    expect(link).toMatchObject({
+      label: "네이버 플레이스",
+      provider: "네이버",
+      url: "https://pcmap.place.naver.com/place/123"
+    });
+  });
+
+  it("does not treat Naver public search fallback as a map CTA", () => {
+    const link = buildNaverMapLink({
+      name: "외부 URL 없는 장소",
+      address: "대전광역시 중구",
+      roadAddress: null,
+      contact: { officialUrl: null, reservationUrl: null, kakaoPlaceUrl: null },
+      externalRefs: {},
+      sources: [{ sourceType: "user_observation", title: null, url: null, summary: "사용자 관찰만 있는 장소입니다." }]
+    });
+
+    expect(link).toBeUndefined();
   });
 });

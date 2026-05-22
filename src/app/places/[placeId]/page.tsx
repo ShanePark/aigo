@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
-import { buildPlaceInfoLinks } from "@/lib/place-links";
+import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 
 type PlaceDetailProps = {
@@ -39,6 +39,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
   const infoLinks = buildPlaceInfoLinks(place);
+  const naverMapLink = buildNaverMapLink(place);
   const reviewLinks = buildReviewLinks(place);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
@@ -69,6 +70,17 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             {heroImage.sourceTitle ?? heroImage.creditText}
           </a>
         </p>
+      ) : null}
+
+      {naverMapLink ? (
+        <a className="detail-primary-map-cta" href={naverMapLink.url} target="_blank" rel="noreferrer">
+          <span>
+            <MapPin size={20} aria-hidden="true" />
+            <strong>네이버지도에서 보기</strong>
+          </span>
+          <small>{naverMapLink.label}</small>
+          <ExternalLink size={18} aria-hidden="true" />
+        </a>
       ) : null}
 
       <PlaceDetailMap address={place.address ?? place.roadAddress ?? undefined} category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />

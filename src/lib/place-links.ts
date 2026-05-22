@@ -52,7 +52,38 @@ export function buildPlaceInfoLinks(place: PlaceLinkInput) {
 
   return Array.from(deduped.values())
     .sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label))
-    .map(({ rank: _rank, ...link }) => link);
+    .map(stripRank);
+}
+
+export function buildNaverMapLink(place: PlaceLinkInput): PlaceInfoLink | undefined {
+  const links = [
+    ...infoLinksFromContact(place.contact),
+    ...infoLinksFromExternalRefs(place.externalRefs),
+    ...naverMapLinksFromExternalRefs(place.externalRefs),
+    ...infoLinksFromSources(place.sources)
+  ].filter((link) => isNaverMapUrl(link.url));
+  const deduped = new Map<string, RankedPlaceInfoLink>();
+
+  for (const link of links) {
+    const key = normalizeLinkKey(link.url);
+    if (!key) continue;
+    const existing = deduped.get(key);
+    if (!existing || link.rank < existing.rank) deduped.set(key, { ...link, key });
+  }
+
+  const [best] = Array.from(deduped.values()).sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
+  if (!best) return undefined;
+  return stripRank(best);
+}
+
+function stripRank(link: RankedPlaceInfoLink): PlaceInfoLink {
+  return {
+    key: link.key,
+    label: link.label,
+    note: link.note,
+    provider: link.provider,
+    url: link.url
+  };
 }
 
 function infoLinkFromPublicSearch(place: PlaceLinkInput): RankedPlaceInfoLink {
@@ -130,6 +161,45 @@ function infoLinksFromExternalRefs(externalRefs: unknown): RankedPlaceInfoLink[]
   });
 }
 
+function naverMapLinksFromExternalRefs(externalRefs: unknown): RankedPlaceInfoLink[] {
+  if (!isRecord(externalRefs)) return [];
+  const links: RankedPlaceInfoLink[] = [];
+  const directKeys = ["naverMapUrl", "naverPlaceUrl", "naverUrl"];
+
+  directKeys.forEach((key, index) => {
+    const value = externalRefs[key];
+    if (typeof value !== "string" || !isHttpUrl(value)) return;
+    links.push({
+      key: value,
+      label: "네이버지도",
+      note: "네이버 지도 장소 페이지입니다.",
+      provider: "네이버",
+      rank: 2 + index / 100,
+      url: value
+    });
+  });
+
+  for (const collectionKey of ["mapLinks", "reviewLinks"]) {
+    const collection = externalRefs[collectionKey];
+    if (!Array.isArray(collection)) continue;
+    links.push(
+      ...collection.flatMap((item, index): RankedPlaceInfoLink[] => {
+        if (typeof item === "string" && isHttpUrl(item)) {
+          return [{ key: item, label: providerLabel(item), provider: providerLabel(item), rank: 3 + index / 100, url: item }];
+        }
+        if (!isRecord(item) || typeof item.url !== "string" || !isHttpUrl(item.url)) return [];
+        const provider = stringValue(item.provider) ?? providerLabel(item.url);
+        const label = stringValue(item.label) ?? stringValue(item.title) ?? provider;
+        const note = stringValue(item.note) ?? stringValue(item.summary);
+
+        return [{ key: `${item.url}-${collectionKey}-${index}`, label, note, provider, rank: 3 + index / 100, url: item.url }];
+      })
+    );
+  }
+
+  return links;
+}
+
 function infoLinksFromSources(sources: PlaceLinkSource[]): RankedPlaceInfoLink[] {
   return sources.flatMap((source): RankedPlaceInfoLink[] => {
     if (!source.url) return [];
@@ -183,6 +253,22 @@ function providerLabel(url: string) {
 
 function normalizeLinkKey(value: string | null | undefined) {
   return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
+}
+
+function isNaverMapUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return (
+      hostname === "naver.me" ||
+      hostname.endsWith(".naver.me") ||
+      hostname === "map.naver.com" ||
+      hostname.endsWith(".map.naver.com") ||
+      hostname === "place.naver.com" ||
+      hostname.endsWith(".place.naver.com")
+    );
+  } catch {
+    return false;
+  }
 }
 
 function stringValue(value: unknown) {
