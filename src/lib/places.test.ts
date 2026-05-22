@@ -4,6 +4,7 @@ import {
   buildImageMetadata,
   buildSearchQuery,
   buildSearchImageHealth,
+  buildSearchPreferenceSemantics,
   buildSearchSourceSummary,
   categoryClauseForKeywordTerm,
   isBroadNatureIntentQuery,
@@ -258,6 +259,23 @@ describe("place search helpers", () => {
       latestCheckedAt: "2026-05-22T06:30:00.000Z",
       latestCreatedAt: "2026-05-22T06:45:00.000Z",
       freshnessStatus: "checked_today"
+    });
+  });
+
+  it("describes search preferences as soft ranking signals", () => {
+    expect(
+      buildSearchPreferenceSemantics({
+        diaperChangingTable: true,
+        nursingRoom: true,
+        parkingAvailable: false,
+        indoorTypes: ["indoor", "mixed"]
+      })
+    ).toEqual({
+      mode: "soft",
+      requestedKeys: ["diaperChangingTable", "indoorTypes", "nursingRoom"],
+      unknownValuesRemainEligible: true,
+      mismatchesRemainEligible: true,
+      hardFilteringSupported: false
     });
   });
 

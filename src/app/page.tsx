@@ -20,7 +20,7 @@ import {
 import { NearbySearchButton } from "@/app/nearby-search-button";
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace } from "@/app/places-map";
-import { searchPlaces } from "@/lib/places";
+import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
@@ -386,6 +386,7 @@ async function safeSearch(input: SearchPlacesInput) {
           originalQuery: input.query ?? null,
           normalizedQuery: input.query ?? null,
           appliedPreferences: input.preferences ?? null,
+          preferenceSemantics: buildSearchPreferenceSemantics(input.preferences),
           visitContext: input.visitContext ?? null,
           normalized: false
         }

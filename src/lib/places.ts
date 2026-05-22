@@ -443,6 +443,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
         appliedPreferences: normalizedInput.preferences ?? null,
+        preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences),
         visitContext: normalizedInput.visitContext ?? null,
         normalized:
           input.query !== normalizedInput.query ||
@@ -2425,6 +2426,25 @@ export function buildSearchSourceSummary(
     latestCreatedAt: latestCreated ? toIso(latestCreated.created_at) : null,
     freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, options.now ?? new Date())
   };
+}
+
+export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {
+  return {
+    mode: "soft",
+    requestedKeys: searchPreferenceKeys(preferences),
+    unknownValuesRemainEligible: true,
+    mismatchesRemainEligible: true,
+    hardFilteringSupported: false
+  };
+}
+
+function searchPreferenceKeys(preferences: SearchPlacesInput["preferences"] | undefined) {
+  if (!preferences) return [];
+
+  return Object.entries(preferences)
+    .filter(([, value]) => (Array.isArray(value) ? value.length > 0 : value === true))
+    .map(([key]) => key)
+    .sort();
 }
 
 function compareSourceTypes(a: string, b: string) {

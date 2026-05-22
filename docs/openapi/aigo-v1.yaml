@@ -1232,7 +1232,7 @@ components:
                 - type: "null"
             search:
               type: object
-              required: [originalQuery, normalizedQuery, appliedPreferences, visitContext, normalized]
+              required: [originalQuery, normalizedQuery, appliedPreferences, preferenceSemantics, visitContext, normalized]
               description: Query normalization details for agent debugging and zero-result recovery.
               properties:
                 originalQuery:
@@ -1248,6 +1248,29 @@ components:
                     - type: object
                       additionalProperties: true
                     - type: "null"
+                preferenceSemantics:
+                  type: object
+                  description: Explains that facility preferences influence ranking and reason codes but do not exclude unknown or mismatched records.
+                  required:
+                    - mode
+                    - requestedKeys
+                    - unknownValuesRemainEligible
+                    - mismatchesRemainEligible
+                    - hardFilteringSupported
+                  properties:
+                    mode:
+                      type: string
+                      enum: [soft]
+                    requestedKeys:
+                      type: array
+                      items:
+                        type: string
+                    unknownValuesRemainEligible:
+                      type: boolean
+                    mismatchesRemainEligible:
+                      type: boolean
+                    hardFilteringSupported:
+                      type: boolean
                 visitContext:
                   type:
                     - string

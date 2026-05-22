@@ -87,6 +87,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
    - Search results include compact `imageHealth` so agents can notice missing primary images or review-needed images before recommending cards; use `/v1/places/image-health` for the full audit queue.
    - Search results include compact `sourceSummary` so agents and clients can distinguish official/public-agency sources, public-listing-backed records, and recently checked records without fetching each detail page.
+   - Search response meta includes `search.preferenceSemantics` to make clear that facility preferences are soft ranking signals: unknown or mismatched records can still appear, with reason codes explaining the tradeoff.
    - For future planning, include `visitDate` and optional `visitStartTime` so opening-hours scoring evaluates the planned local wall-clock time instead of the current moment.
    - In search results, prefer `item.id` as the canonical place id. `item.placeId` remains a backward-compatible alias; detail responses use `id`, and duplicate candidates expose the nested candidate as `place.id`.
 
