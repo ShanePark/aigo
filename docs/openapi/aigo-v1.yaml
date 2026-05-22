@@ -479,6 +479,52 @@ components:
           minimum: 0
           maximum: 1000
           default: 0
+    PlaceImage:
+      type: object
+      required:
+        - url
+        - sortOrder
+        - sourceId
+        - sourceUrl
+        - sourceType
+        - sourceTitle
+        - displayTier
+        - creditText
+        - checkedAt
+        - status
+      properties:
+        url:
+          type: string
+          format: uri
+        sortOrder:
+          type: integer
+          minimum: 0
+        sourceId:
+          type: string
+          nullable: true
+        sourceUrl:
+          type: string
+          format: uri
+          nullable: true
+        sourceType:
+          type: string
+          nullable: true
+        sourceTitle:
+          type: string
+          nullable: true
+        displayTier:
+          type: string
+          description: Coarse provenance tier for UI and agent trust decisions.
+          enum: [official, public_agency, public_listing, rights_unclear, unknown]
+        creditText:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [active]
     SearchPlaceItem:
       type: object
       required:
@@ -488,6 +534,8 @@ components:
         - tags
         - description
         - imageUrls
+        - primaryImage
+        - images
         - score
         - reasonCodes
         - reasons
@@ -522,6 +570,15 @@ components:
           items:
             type: string
             format: uri
+        primaryImage:
+          anyOf:
+            - $ref: "#/components/schemas/PlaceImage"
+            - type: "null"
+        images:
+          type: array
+          description: Structured image metadata derived from imageUrls plus image-like source rows. `imageUrls` is kept for compatibility.
+          items:
+            $ref: "#/components/schemas/PlaceImage"
         lat:
           type: number
         lng:
@@ -822,6 +879,8 @@ components:
         - contact
         - externalRefs
         - imageUrls
+        - primaryImage
+        - images
         - status
         - dataConfidence
         - recommendedAgeMonths
@@ -901,6 +960,15 @@ components:
           items:
             type: string
             format: uri
+        primaryImage:
+          anyOf:
+            - $ref: "#/components/schemas/PlaceImage"
+            - type: "null"
+        images:
+          type: array
+          description: Structured image metadata derived from imageUrls plus image-like source rows. `imageUrls` is kept for compatibility.
+          items:
+            $ref: "#/components/schemas/PlaceImage"
         status:
           type: string
         dataConfidence:

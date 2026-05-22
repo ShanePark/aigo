@@ -15,8 +15,7 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
   const { placeId } = await params;
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
-  const heroImageUrl = place.imageUrls[0];
-  const heroImageSource = findHeroImageSource(place.sources);
+  const heroImage = place.primaryImage;
 
   return (
     <div className="page detail-page">
@@ -38,12 +37,12 @@ export default async function PlaceDetailPage({ params }: PlaceDetailProps) {
         </div>
       </section>
 
-      <PlaceImage src={heroImageUrl} alt={`${place.name} 대표 이미지`} variant="detail" />
-      {heroImageUrl && heroImageSource?.url ? (
+      <PlaceImage src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
+      {heroImage?.sourceUrl ? (
         <p className="image-credit">
-          이미지 출처:{" "}
-          <a href={heroImageSource.url} target="_blank" rel="noreferrer">
-            {heroImageSource.title ?? heroImageSource.sourceType}
+          이미지 {imageTierLabel(heroImage.displayTier)} 출처:{" "}
+          <a href={heroImage.sourceUrl} target="_blank" rel="noreferrer">
+            {heroImage.sourceTitle ?? heroImage.creditText}
           </a>
         </p>
       ) : null}
@@ -209,14 +208,6 @@ function uniqueDisplaySources(sources: Source[]) {
   return Array.from(grouped.values());
 }
 
-function findHeroImageSource(sources: Source[]) {
-  return sources.find((source) => {
-    if (!source.url) return false;
-    const searchable = [source.sourceType, source.title, source.summary].filter(Boolean).join(" ").toLocaleLowerCase("ko-KR");
-    return /image|visual|이미지|사진|비주얼/.test(searchable);
-  });
-}
-
 function normalizeSourceValue(value: string | null | undefined) {
   return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
 }
@@ -276,6 +267,17 @@ function confidenceLabel(value: string) {
     agent_collected: "에이전트 수집",
     user_reported: "사용자 제보",
     needs_check: "확인 필요",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function imageTierLabel(value: string) {
+  const labels: Record<string, string> = {
+    official: "공식",
+    public_agency: "공공",
+    public_listing: "목록",
+    rights_unclear: "검토",
     unknown: "미확인"
   };
   return labels[value] ?? value;

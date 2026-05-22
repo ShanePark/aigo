@@ -86,6 +86,16 @@ type VersionRow = {
   created_at: Date;
 };
 
+type ImageMetadataSource = {
+  id?: string | null;
+  sourceType: string;
+  title?: string | null;
+  url?: string | null;
+  externalId?: string | null;
+  summary?: string | null;
+  checkedAt?: string | null;
+};
+
 const columnMap = {
   name: "name",
   slug: "slug",
@@ -195,9 +205,12 @@ export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg
     limit 10
   `;
 
+  const sources = sourceRows.map(mapSource);
+
   return {
     ...mapPlace(rows[0]),
-    sources: sourceRows.map(mapSource),
+    ...buildImageMetadata(rows[0].image_urls, sources),
+    sources,
     versions: latestVersions.map(mapVersionSummary)
   };
 }
@@ -267,11 +280,16 @@ export async function searchPlaces(input: SearchPlacesInput) {
   });
 
   const items = scored.slice(input.offset, input.offset + input.limit);
+  const sourceMap = await getSourceMapForPlaces(items.map((item) => item.placeId));
+  const enrichedItems = items.map((item) => ({
+    ...item,
+    ...buildImageMetadata(item.imageUrls, sourceMap.get(item.placeId) ?? [])
+  }));
 
   return {
-    items,
+    items: enrichedItems,
     meta: {
-      count: items.length,
+      count: enrichedItems.length,
       total: scored.length,
       limit: input.limit,
       offset: input.offset,
@@ -288,6 +306,25 @@ export async function searchPlaces(input: SearchPlacesInput) {
       }
     }
   };
+}
+
+async function getSourceMapForPlaces(placeIds: string[]) {
+  const sourceMap = new Map<string, ReturnType<typeof mapSource>[]>();
+  if (placeIds.length === 0) return sourceMap;
+
+  const sourceRows = await pg<SourceRow[]>`
+    select * from place_sources
+    where place_id = any(${placeIds}::uuid[])
+    order by created_at desc
+  `;
+
+  for (const row of sourceRows) {
+    const sources = sourceMap.get(row.place_id) ?? [];
+    sources.push(mapSource(row));
+    sourceMap.set(row.place_id, sources);
+  }
+
+  return sourceMap;
 }
 
 export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
@@ -1354,6 +1391,65 @@ function mapSource(row: SourceRow) {
     checkedAt: row.checked_at ? toIso(row.checked_at) : null,
     createdAt: toIso(row.created_at)
   };
+}
+
+export function buildImageMetadata(imageUrls: string[], sources: ImageMetadataSource[] = []) {
+  const imageSources = sources.filter(isImageLikeSource);
+  const fallbackSource = imageSources[0] ?? sources[0] ?? null;
+  const images = imageUrls.map((url, index) => {
+    const source = imageSources[index] ?? fallbackSource;
+    const displayTier = source ? imageDisplayTier(source) : "unknown";
+
+    return {
+      url,
+      sortOrder: index,
+      sourceId: source?.id ?? null,
+      sourceUrl: source?.url ?? null,
+      sourceType: source?.sourceType ?? null,
+      sourceTitle: source?.title ?? null,
+      displayTier,
+      creditText: imageCreditText(source, displayTier),
+      checkedAt: source?.checkedAt ?? null,
+      status: "active" as const
+    };
+  });
+
+  return {
+    primaryImage: images[0] ?? null,
+    images
+  };
+}
+
+function isImageLikeSource(source: ImageMetadataSource) {
+  const searchable = [source.sourceType, source.title, source.summary].filter(Boolean).join(" ").toLocaleLowerCase("ko-KR");
+  return /image|visual|photo|이미지|사진|비주얼|대표/.test(searchable);
+}
+
+function imageDisplayTier(source: ImageMetadataSource) {
+  const searchable = [source.sourceType, source.title, source.url, source.summary].filter(Boolean).join(" ").toLocaleLowerCase("ko-KR");
+
+  if (/official|공식/.test(searchable)) return "official";
+  if (/news|article|보도|기사/.test(searchable)) return "rights_unclear";
+  if (/public_agency|public_tourism|public_open|gu_|city_|tourism|kto|visitkorea|daejeon|donggu|daedeok|seogu|yuseong|science\.go\.kr|공공|관광|구청|시청/.test(searchable)) {
+    return "public_agency";
+  }
+  if (/operator|booking|tabling|ban-life|peton|diningcode|listing|profile|운영/.test(searchable)) return "public_listing";
+
+  return "unknown";
+}
+
+function imageCreditText(source: ImageMetadataSource | null, displayTier: string) {
+  if (source?.title) return source.title;
+  if (source?.sourceType) return source.sourceType;
+  const labels: Record<string, string> = {
+    official: "공식 이미지",
+    public_agency: "공공 이미지",
+    operator: "운영자 이미지",
+    public_listing: "공개 목록 이미지",
+    rights_unclear: "검토 필요 이미지",
+    unknown: "이미지 출처 미확인"
+  };
+  return labels[displayTier] ?? "이미지 출처 미확인";
 }
 
 function mapVersionSummary(row: VersionRow) {

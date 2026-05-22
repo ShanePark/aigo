@@ -144,11 +144,11 @@ export default async function Home({ searchParams }: HomeProps) {
           {result.items.map((place) => {
             const visibleReasons = place.reasons.slice(0, 8);
             const hiddenReasonCount = Math.max(0, place.reasons.length - visibleReasons.length);
-            const imageUrl = place.imageUrls[0];
+            const primaryImage = place.primaryImage;
 
             return (
               <article className="result-card" key={place.placeId}>
-                <PlaceImage src={imageUrl} alt={`${place.name} 대표 이미지`} variant="result" />
+                <PlaceImage src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
                 <div className="result-main">
                   <div>
                     <p className="category" title={place.primaryCategory}>
@@ -181,6 +181,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <div className="visit-row">
                   <span>v{place.version}</span>
                   <span>신뢰도 {confidenceLabel(place.dataConfidence)}</span>
+                  {primaryImage ? <span>이미지 {imageTierLabel(primaryImage.displayTier)}</span> : null}
                   {place.visit.averageStayMinutes ? <span>체류 {place.visit.averageStayMinutes}분</span> : null}
                   {place.visit.parentEffortLevel ? <span>부모 난이도 {place.visit.parentEffortLevel}/5</span> : null}
                   {place.notes.safety ? <span className="caution">안전 메모 있음</span> : null}
@@ -347,6 +348,17 @@ function confidenceLabel(value: string) {
     agent_collected: "에이전트 수집",
     user_reported: "사용자 제보",
     needs_check: "확인 필요",
+    unknown: "미확인"
+  };
+  return labels[value] ?? value;
+}
+
+function imageTierLabel(value: string) {
+  const labels: Record<string, string> = {
+    official: "공식",
+    public_agency: "공공",
+    public_listing: "목록",
+    rights_unclear: "검토",
     unknown: "미확인"
   };
   return labels[value] ?? value;

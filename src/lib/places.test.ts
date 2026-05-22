@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildImageMetadata,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -55,6 +56,58 @@ describe("place search helpers", () => {
     expect(shouldUseAnyKeywordMatch("과학관 체험 창의나래 넥스페리움")).toBe(true);
     expect(shouldUseAnyKeywordMatch("대전 키즈카페")).toBe(false);
     expect(shouldUseAnyKeywordMatch("판암 동네놀이터")).toBe(false);
+  });
+
+  it("builds image metadata with source provenance and display tiers", () => {
+    const official = buildImageMetadata(["https://example.go.kr/place.jpg"], [
+      {
+        id: "source-1",
+        sourceType: "official_library_image_source",
+        title: "공식 도서관 대표 사진",
+        url: "https://example.go.kr/source",
+        summary: "Official page exposes a representative image.",
+        checkedAt: "2026-05-22T00:00:00.000Z"
+      }
+    ]);
+    const listing = buildImageMetadata(["https://cdn.example.com/restaurant.webp"], [
+      {
+        id: "source-2",
+        sourceType: "public_listing_image_source",
+        title: "DiningCode - 지점 사진",
+        url: "https://listing.example.com/place",
+        summary: "Public listing image candidate.",
+        checkedAt: "2026-05-22T00:00:00.000Z"
+      }
+    ]);
+    const news = buildImageMetadata(["https://daejeon.example.com/news-place.jpg"], [
+      {
+        id: "source-3",
+        sourceType: "public_news_image_source",
+        title: "지역 기사 사진",
+        url: "https://daejeon.example.com/article/123",
+        summary: "Public news article image candidate.",
+        checkedAt: "2026-05-22T00:00:00.000Z"
+      }
+    ]);
+
+    expect(official.primaryImage).toMatchObject({
+      url: "https://example.go.kr/place.jpg",
+      sourceId: "source-1",
+      sourceUrl: "https://example.go.kr/source",
+      displayTier: "official",
+      creditText: "공식 도서관 대표 사진",
+      status: "active"
+    });
+    expect(listing.primaryImage).toMatchObject({
+      sourceId: "source-2",
+      displayTier: "public_listing",
+      creditText: "DiningCode - 지점 사진"
+    });
+    expect(news.primaryImage).toMatchObject({
+      sourceId: "source-3",
+      displayTier: "rights_unclear",
+      creditText: "지역 기사 사진"
+    });
   });
 
   it("turns facility words in ordinary keyword queries into soft preferences", () => {
