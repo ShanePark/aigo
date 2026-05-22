@@ -42,6 +42,22 @@ describe("place schemas", () => {
     expect(result.preferences?.foodAllowed).toBe(true);
   });
 
+  it("accepts required preference search mode", () => {
+    const result = searchPlacesSchema.parse({
+      preferenceMode: "required",
+      preferences: {
+        diaperChangingTable: true,
+        nursingRoom: true
+      }
+    });
+    const invalid = searchPlacesSchema.safeParse({
+      preferenceMode: "strict"
+    });
+
+    expect(result.preferenceMode).toBe("required");
+    expect(invalid.success).toBe(false);
+  });
+
   it("allows searches to calculate distance without applying a radius filter", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

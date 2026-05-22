@@ -233,6 +233,7 @@ const searchPlacesBaseSchema = z.object({
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   tags: z.array(nonEmptyString).max(30).optional(),
   childAgeMonths: z.array(z.number().int().min(0).max(240)).max(10).optional(),
+  preferenceMode: z.enum(["soft", "required"]).optional(),
   preferences: z
     .object({
       indoorTypes: z.array(indoorTypeSchema).optional(),

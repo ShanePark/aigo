@@ -652,7 +652,8 @@ components:
             maximum: 240
         preferences:
           type: object
-          description: Soft matching signals. Facility mismatch does not exclude candidates.
+          description: >-
+            Facility preference signals. Defaults to soft ranking; set `preferenceMode: required` to exclude unknown or mismatched facility values.
           properties:
             indoorTypes:
               type: array
@@ -674,6 +675,11 @@ components:
               type: boolean
             foodAllowed:
               type: boolean
+        preferenceMode:
+          type: string
+          enum: [soft, required]
+          default: soft
+          description: Controls whether `preferences` are soft ranking signals or required filters. In `required` mode, positive facility preferences require `yes` or `partial` evidence and indoorTypes must match.
         sort:
           type: string
           enum: [recommended, distance, updatedAt]
@@ -1623,7 +1629,7 @@ components:
                     - type: "null"
                 preferenceSemantics:
                   type: object
-                  description: Explains that facility preferences influence ranking and reason codes but do not exclude unknown or mismatched records.
+                  description: Explains whether facility preferences are soft ranking signals or required filters for this search.
                   required:
                     - mode
                     - requestedKeys
@@ -1633,7 +1639,7 @@ components:
                   properties:
                     mode:
                       type: string
-                      enum: [soft]
+                      enum: [soft, required]
                     requestedKeys:
                       type: array
                       items:

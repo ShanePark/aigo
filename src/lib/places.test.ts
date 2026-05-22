@@ -159,6 +159,25 @@ describe("place search helpers", () => {
     });
   });
 
+  it("can require source-backed preference matches instead of soft ranking", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      preferenceMode: "required",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        diaperChangingTable: true,
+        nursingRoom: true,
+        parkingAvailable: false
+      }
+    });
+
+    expect(query.sql).toContain("indoor_type = any($1::text[])");
+    expect(query.sql).toContain("diaper_changing_table in ('yes', 'partial')");
+    expect(query.sql).toContain("nursing_room in ('yes', 'partial')");
+    expect(query.sql).not.toContain("parking_available in ('yes', 'partial')");
+    expect(query.params).toEqual([["indoor", "mixed"]]);
+  });
+
   it("builds planned visit wall-clock dates for opening-hours scoring", () => {
     const planned = searchEvaluationDate({ visitDate: "2026-05-23", visitStartTime: "10:30" });
     const defaultNoon = searchEvaluationDate({ visitDate: "2026-05-23" });
@@ -477,7 +496,14 @@ describe("place search helpers", () => {
       requestedKeys: ["diaperChangingTable", "indoorTypes", "nursingRoom"],
       unknownValuesRemainEligible: true,
       mismatchesRemainEligible: true,
-      hardFilteringSupported: false
+      hardFilteringSupported: true
+    });
+    expect(buildSearchPreferenceSemantics({ diaperChangingTable: true }, "required")).toEqual({
+      mode: "required",
+      requestedKeys: ["diaperChangingTable"],
+      unknownValuesRemainEligible: false,
+      mismatchesRemainEligible: false,
+      hardFilteringSupported: true
     });
   });
 

@@ -470,7 +470,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
         appliedPreferences: normalizedInput.preferences ?? null,
-        preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences),
+        preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
         visitContext: normalizedInput.visitContext ?? null,
         normalized:
           input.query !== normalizedInput.query ||
@@ -1548,6 +1548,10 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     }
   }
 
+  if (input.preferenceMode === "required") {
+    where.push(...requiredPreferenceClauses(input.preferences, add));
+  }
+
   return {
     sql: `select *, ${distanceSql} as distance_km from places where ${where.join(" and ")} order by coalesce(place_score, 5) desc, updated_at desc limit 750`,
     params
@@ -1652,6 +1656,34 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const compactParam = add(compactSearchText(query));
   return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam})`;
 }
+
+function requiredPreferenceClauses(preferences: SearchPlacesInput["preferences"] | undefined, add: (value: unknown) => string) {
+  if (!preferences) return [];
+
+  const clauses: string[] = [];
+  if (preferences.indoorTypes?.length) {
+    clauses.push(`indoor_type = any(${add(preferences.indoorTypes)}::text[])`);
+  }
+
+  for (const [key, column] of Object.entries(requiredPreferenceColumnMap)) {
+    if (preferences[key as keyof typeof requiredPreferenceColumnMap] === true) {
+      clauses.push(`${column} in ('yes', 'partial')`);
+    }
+  }
+
+  return clauses;
+}
+
+const requiredPreferenceColumnMap = {
+  parkingAvailable: "parking_available",
+  strollerFriendly: "stroller_friendly",
+  nursingRoom: "nursing_room",
+  diaperChangingTable: "diaper_changing_table",
+  kidsToilet: "kids_toilet",
+  elevator: "elevator",
+  babyChair: "baby_chair",
+  foodAllowed: "food_allowed"
+} as const;
 
 export function shouldUseAnyKeywordMatch(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
@@ -2850,13 +2882,15 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   return false;
 }
 
-export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {
+export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined, preferenceMode: SearchPlacesInput["preferenceMode"] = "soft") {
+  const mode = preferenceMode ?? "soft";
+
   return {
-    mode: "soft",
+    mode,
     requestedKeys: searchPreferenceKeys(preferences),
-    unknownValuesRemainEligible: true,
-    mismatchesRemainEligible: true,
-    hardFilteringSupported: false
+    unknownValuesRemainEligible: mode !== "required",
+    mismatchesRemainEligible: mode !== "required",
+    hardFilteringSupported: true
   };
 }
 
