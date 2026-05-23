@@ -170,7 +170,7 @@ Rules for `sources`:
 - `sourceType` is required.
 - Either `url` or `externalId` is required.
 - `summary` must be the agent's own concise summary, not copied source text.
-- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `official_image_source`, or `public_listing_image_source`.
+- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `official_image_source`, or `public_listing_image_source`.
 
 Common writable fields:
 
@@ -241,7 +241,7 @@ Common `primaryCategory` values used by the UI/search:
 - `rest_area`
 - `accommodation`
 
-`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
+`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
 
 Playground search semantics:
 

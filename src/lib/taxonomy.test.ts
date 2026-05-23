@@ -20,6 +20,7 @@ describe("taxonomy catalog", () => {
   it("canonicalizes source type and region aliases", () => {
     expect(normalizeSourceType("official_page")).toBe("official_site");
     expect(normalizeSourceType("public_data_mirror")).toBe("public_agency");
+    expect(normalizeSourceType("news_article")).toBe("public_news");
     expect(normalizeSourceType("blog")).toBe("public_blog");
     expect(normalizeSourceType("official_library_image_source")).toBe("official_image_source");
     expect(normalizeSourceType("made_up_source")).toBeNull();

@@ -220,7 +220,7 @@ function infoLinksFromSources(sources: PlaceLinkSource[]): RankedPlaceInfoLink[]
 function sourceRank(sourceType: string) {
   if (/official|operator/.test(sourceType)) return 4;
   if (/public_agency|public_tourism/.test(sourceType)) return 5;
-  if (/listing|place|map|kakao|naver|google/.test(sourceType)) return 6;
+  if (/listing|news|place|map|kakao|naver|google/.test(sourceType)) return 6;
   return 7;
 }
 
@@ -231,6 +231,7 @@ function sourceTypeLabel(sourceType: string) {
     public_agency: "공공기관 정보",
     public_tourism: "관광/공공 정보",
     public_listing: "공개 목록 정보",
+    public_news: "공개 기사 정보",
     official_image_source: "공식 이미지 출처",
     public_listing_image_source: "공개 이미지 출처"
   };

@@ -3572,7 +3572,7 @@ function sourceTrustTier(sourceType: string) {
   if (normalized.includes("official")) return "official";
   if (normalized.includes("public_agency") || normalized.includes("public_tourism")) return "public_agency";
   if (normalized.includes("operator")) return "operator";
-  if (normalized.includes("listing") || normalized.includes("blog")) return "public_listing";
+  if (normalized.includes("listing") || normalized.includes("news") || normalized.includes("blog")) return "public_listing";
   return "other";
 }
 

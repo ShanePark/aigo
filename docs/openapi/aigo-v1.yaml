@@ -470,6 +470,7 @@ components:
         - public_tourism
         - operator_page
         - public_listing
+        - public_news
         - public_blog
         - user_observation
         - agent_observation
@@ -479,7 +480,7 @@ components:
         - map_service
         - geocode
         - unknown
-      description: Canonical source provenance type. Common aliases such as `official`, `official_page`, `blog`, `public_data_mirror`, and image-source variants are normalized by the API.
+      description: Canonical source provenance type. Common aliases such as `official`, `official_page`, `news_article`, `blog`, `public_data_mirror`, and image-source variants are normalized by the API.
     TaxonomyFacetSet:
       type: object
       description: Controlled place taxonomy facet set. Canonical values are English snake_case slugs.

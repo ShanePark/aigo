@@ -68,6 +68,19 @@ describe("place schemas", () => {
     expect(invalidSource.success).toBe(false);
   });
 
+  it("accepts public news as a place source type", () => {
+    const result = createPlaceSchema.parse({
+      name: "공개 기사 출처 장소",
+      primaryCategory: "shopping_mall",
+      regionSido: "서울",
+      lat: 37.56,
+      lng: 126.97,
+      sources: [{ sourceType: "news_article", url: "https://example.com/news/place" }]
+    });
+
+    expect(result.sources[0].sourceType).toBe("public_news");
+  });
+
   it("accepts duplicate checks with address evidence when coordinates are unknown", () => {
     const addressOnly = duplicatePlaceSchema.parse({
       name: "도담도담 장난감월드 검단점",
