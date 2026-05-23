@@ -206,7 +206,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
         {isPickerOpen ? (
           <div className="child-profile-picker">
             <div className="child-profile-picker-row">
-              <span className="child-profile-picker-label">성별</span>
+              <span className="child-profile-picker-label">성별 선택</span>
               <div className="child-profile-segmented" role="group" aria-label="아이 성별">
                 {CHILD_GENDERS.map((gender) => {
                   const genderPreviewProfile = { ageBand: draftAgeBand, gender: gender.id };
@@ -220,7 +220,10 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
                       aria-label={gender.label}
                       aria-pressed={draftGender === gender.id}
                     >
-                      <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={38} height={38} />
+                      <span className="child-profile-segmented-icon">
+                        <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={38} height={38} />
+                      </span>
+                      <span className="child-profile-segmented-label">{gender.label}</span>
                     </button>
                   );
                 })}
