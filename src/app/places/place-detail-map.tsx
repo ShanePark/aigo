@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
 import type { Map as LeafletMap, Marker } from "leaflet";
 
-import { LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
+import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
 
 type PlaceDetailMapProps = {
   category: string;
@@ -40,6 +40,7 @@ export function PlaceDetailMap({ category, lat, lng, name }: PlaceDetailMapProps
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19
         }).addTo(map);
+        installSingleStepWheelZoom(L, map, mapElementRef.current);
         mapRef.current = map;
       }
 
