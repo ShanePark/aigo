@@ -138,6 +138,14 @@ Create requires:
 - `address` or `regionSido`
 - `sources` with at least one source
 
+Before registering create payloads copied from `agent-research/`, run the read-only workflow lint:
+
+```bash
+pnpm tsx scripts/validate-research-payloads.ts <payload.json|research.md>
+```
+
+This helper checks the raw API schema plus AiGo collection rules that the schema intentionally leaves flexible: explicit `status: "active"`, `dataConfidence` limited to `agent_collected`, `official_verified`, or `user_reported`, at least one structured `images` item, `images[].reviewStatus: "approved"`, source-backed image provenance, taxonomy v1 shape when supplied, and `externalRefs.coordinateProvenance.level` strong enough for mutation. Fix blocking lint errors before calling `POST /v1/places`.
+
 Images are optional by the raw API contract, but required by this skill for user-requested place registration:
 
 - Include structured `images` with at least one citeable, place-specific image.
