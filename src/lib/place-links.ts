@@ -100,14 +100,14 @@ function infoLinkFromPublicSearch(place: PlaceLinkInput): RankedPlaceInfoLink {
 }
 
 function naverMapSearchLink(place: PlaceLinkInput): PlaceInfoLink | undefined {
-  const query = stringValue(place.roadAddress) ?? stringValue(place.address) ?? stringValue(place.name);
+  const query = stringValue(place.name);
   if (!query) return undefined;
   const url = `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
 
   return {
     key: normalizeLinkKey(url),
     label: "네이버 지도 검색",
-    note: "직접 장소 링크가 없을 때 주소 또는 장소명으로 네이버 지도에서 검색합니다.",
+    note: "직접 장소 링크가 없을 때 장소명으로 네이버 지도에서 검색합니다.",
     provider: "네이버",
     url
   };
