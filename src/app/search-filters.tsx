@@ -20,6 +20,7 @@ import {
   type ChildGender,
   type ChildProfile
 } from "@/lib/child-ages";
+import { searchParamsWithCurrentLocationState } from "@/app/search-url-state";
 
 type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
@@ -61,11 +62,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     const form = rootRef.current?.closest("form");
     if (!form) return;
 
-    const params = new URLSearchParams();
-    for (const [key, value] of new FormData(form).entries()) {
-      const text = String(value).trim();
-      if (text.length > 0) params.append(key, text);
-    }
+    const params = searchParamsWithCurrentLocationState(window.location.search, new FormData(form));
 
     if (overrides.profiles) {
       const nextProfiles = normalizeChildProfiles(overrides.profiles);
@@ -139,11 +136,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     const form = rootRef.current?.closest("form");
     if (!form) return;
 
-    const params = new URLSearchParams();
-    for (const [key, value] of new FormData(form).entries()) {
-      const text = String(value).trim();
-      if (text.length > 0) params.append(key, text);
-    }
+    const params = searchParamsWithCurrentLocationState(window.location.search, new FormData(form));
     params.set("children", serializeChildProfiles(storedProfiles));
     params.set("ages", serializeChildAgeMonths(childProfilesToAgeMonths(storedProfiles)));
     params.delete("page");

@@ -15,6 +15,7 @@ import {
 
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
 import { SearchFilters } from "@/app/search-filters";
+import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
 import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
@@ -85,7 +86,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
           <input name="sort" type="hidden" value={activeSort} />
           <input name="limit" type="hidden" value={resultLimitParam(effectiveParams)} />
-          <ViewportBoundsInputs params={effectiveParams} />
+          <LocationStateInputs params={effectiveParams} />
           <div className="search-bar">
             <label className="query-field">
               <span className="sr-only">검색어</span>
@@ -132,18 +133,24 @@ export default async function Home({ searchParams }: HomeProps) {
   );
 }
 
-function ViewportBoundsInputs({ params }: { params: Record<string, string | string[] | undefined> }) {
-  const viewportBounds = viewportBoundsFromParams(params);
-  if (!viewportBounds) return null;
+function LocationStateInputs({ params }: { params: Record<string, string | string[] | undefined> }) {
+  const locationParams = locationStateParams(params);
+  if (locationParams.length === 0) return null;
 
   return (
     <>
-      <input name="minLat" type="hidden" value={viewportBounds.minLat} />
-      <input name="minLng" type="hidden" value={viewportBounds.minLng} />
-      <input name="maxLat" type="hidden" value={viewportBounds.maxLat} />
-      <input name="maxLng" type="hidden" value={viewportBounds.maxLng} />
+      {locationParams.map(([key, value]) => (
+        <input name={key} type="hidden" value={value} key={key} />
+      ))}
     </>
   );
+}
+
+function locationStateParams(params: Record<string, string | string[] | undefined>) {
+  return MAP_LOCATION_PARAM_KEYS.flatMap((key) => {
+    const value = textParam(params[key]);
+    return value ? ([[key, value]] as const) : [];
+  });
 }
 
 function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {

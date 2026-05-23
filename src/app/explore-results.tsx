@@ -7,6 +7,7 @@ import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, Sear
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
+import { MAP_LOCATION_PARAM_KEYS, searchParamsForViewportSearch, type SearchParamsRecord } from "@/app/search-url-state";
 import {
   SearchResultTrustBadges,
   type SearchResultBadgeOpeningHoursSummary,
@@ -137,18 +138,20 @@ export function ExploreResults({
 }: ExploreResultsProps) {
   const [result, setResult] = useState(initialResult);
   const [activeInput, setActiveInput] = useState(initialInput);
+  const [activeParams, setActiveParams] = useState(initialParams);
   const [isViewportSearchPending, setIsViewportSearchPending] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
-  const searchReturnHref = useMemo(() => currentSearchHref(initialParams), [initialParams]);
+  const searchReturnHref = useMemo(() => currentSearchHref(activeParams), [activeParams]);
 
   useEffect(() => {
     setResult(initialResult);
     setActiveInput(initialInput);
+    setActiveParams(initialParams);
     setClientError(null);
     setIsViewportSearchPending(false);
-  }, [initialInput, initialResult]);
+  }, [initialInput, initialParams, initialResult]);
 
-  const runClientSearch = useCallback(async (input: SearchPlacesInput) => {
+  const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord) => {
     const scrollY = window.scrollY;
     setIsViewportSearchPending(true);
     setClientError(null);
@@ -167,6 +170,11 @@ export function ExploreResults({
       const nextResult = (await response.json()) as SearchResult;
       setActiveInput(input);
       setResult(nextResult);
+      if (nextParams) {
+        setActiveParams(nextParams);
+        replaceCurrentSearchParams(nextParams);
+        syncSearchFormLocationInputs(nextParams);
+      }
       restoreScrollPosition(scrollY);
     } catch (error) {
       setClientError(error instanceof Error ? error.message : "지도 범위 검색 중 오류가 발생했습니다.");
@@ -178,6 +186,7 @@ export function ExploreResults({
 
   const handleViewportSearch = useCallback(
     (request: ViewportSearchRequest) => {
+      const nextParams = searchParamsForViewportSearch(activeParams, request);
       const nextInput = {
         ...activeInput,
         filterByRadius: false,
@@ -190,9 +199,9 @@ export function ExploreResults({
         viewportBounds: request.bounds
       } satisfies SearchPlacesInput;
 
-      void runClientSearch(nextInput);
+      void runClientSearch(nextInput, nextParams);
     },
-    [activeInput, runClientSearch]
+    [activeInput, activeParams, runClientSearch]
   );
 
   const handlePage = useCallback(
@@ -231,8 +240,8 @@ export function ExploreResults({
             {compactResultCountLabel(result.meta)}
           </span>
           <div className="result-actions">
-            <SortControls activeSort={activeSort} params={initialParams} />
-            <LimitControls activeLimit={resultLimitParam(initialParams)} params={initialParams} />
+            <SortControls activeSort={activeSort} params={activeParams} />
+            <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
 
@@ -243,7 +252,7 @@ export function ExploreResults({
               <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
             ))}
             {result.items.length === 0 ? (
-              <SearchEmptyState activeCategoryGroup={activeCategoryGroup} categoryGroups={categoryGroups} params={initialParams} />
+              <SearchEmptyState activeCategoryGroup={activeCategoryGroup} categoryGroups={categoryGroups} params={activeParams} />
             ) : null}
           </div>
         </div>
@@ -709,6 +718,48 @@ function currentSearchHref(params: Record<string, string | string[]>) {
 
   const search = query.toString();
   return search ? `/?${search}` : "/";
+}
+
+function replaceCurrentSearchParams(params: SearchParamsRecord) {
+  const search = searchParamsRecordToQuery(params).toString();
+  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function syncSearchFormLocationInputs(params: SearchParamsRecord) {
+  const form = document.querySelector<HTMLFormElement>("form.search-form");
+  if (!form) return;
+
+  for (const key of MAP_LOCATION_PARAM_KEYS) {
+    const value = textParam(params[key]);
+    const inputs = Array.from(form.querySelectorAll<HTMLInputElement>(`input[type="hidden"][name="${key}"]`));
+
+    if (!value) {
+      inputs.forEach((input) => input.remove());
+      continue;
+    }
+
+    const input = inputs[0] ?? document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = value;
+    if (!inputs[0]) form.prepend(input);
+    inputs.slice(1).forEach((duplicate) => duplicate.remove());
+  }
+}
+
+function searchParamsRecordToQuery(params: SearchParamsRecord) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      value.filter(Boolean).forEach((item) => query.append(key, item));
+      continue;
+    }
+    if (value) query.set(key, value);
+  }
+
+  return query;
 }
 
 function currentSearchUrlObject(params: Record<string, string | string[]>): UrlObject {
