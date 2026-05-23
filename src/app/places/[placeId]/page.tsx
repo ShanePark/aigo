@@ -51,6 +51,9 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
   const backHref = searchBackHref(query.returnTo);
+  const decisionChips = detailDecisionChips(place);
+  const decisionNote = place.notes.parent ?? place.scoring.placeScoreRationale;
+  const primaryInfoLink = infoLinks[0];
 
   return (
     <div className="page detail-page">
@@ -65,30 +68,56 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           <p className="lede">{place.description ?? "설명이 아직 등록되지 않았습니다."}</p>
         </div>
         <div className="score version-box">
-          v{place.version}
+          <small>데이터</small>
+          <strong>v{place.version}</strong>
         </div>
       </section>
 
-      <PlaceImage category={place.primaryCategory} src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
-      {heroImage?.sourceUrl ? (
-        <p className="image-credit">
-          이미지 {imageTierLabel(heroImage.displayTier)} 출처:{" "}
-          <a href={heroImage.sourceUrl} target="_blank" rel="noreferrer">
-            {heroImage.sourceTitle ?? heroImage.creditText}
-          </a>
-        </p>
-      ) : null}
-
-      {naverMapLink ? (
-        <a className="detail-primary-map-cta" href={naverMapLink.url} target="_blank" rel="noreferrer">
-          <span>
-            <MapPin size={20} aria-hidden="true" />
-            <strong>네이버지도에서 보기</strong>
-          </span>
-          <small>{naverMapLink.label}</small>
-          <ExternalLink size={18} aria-hidden="true" />
-        </a>
-      ) : null}
+      <section className="detail-hero-grid">
+        <div className="detail-hero-media">
+          <PlaceImage category={place.primaryCategory} src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
+          {heroImage?.sourceUrl ? (
+            <p className="image-credit">
+              이미지 {imageTierLabel(heroImage.displayTier)} 출처:{" "}
+              <a href={heroImage.sourceUrl} target="_blank" rel="noreferrer">
+                {heroImage.sourceTitle ?? heroImage.creditText}
+              </a>
+            </p>
+          ) : null}
+        </div>
+        <aside className="detail-decision-card" aria-label="방문 핵심 정보">
+          <div className="detail-decision-header">
+            <span>{categoryLabel(place.primaryCategory)}</span>
+            <strong>{tenPointScoreLabel(place.scoring.placeScore)}</strong>
+          </div>
+          <div className="detail-decision-chips">
+            {decisionChips.map((chip) => (
+              <span className={`detail-decision-chip ${chip.tone}`} key={chip.label}>
+                {chip.label}
+              </span>
+            ))}
+          </div>
+          {decisionNote ? <p className="detail-decision-note">{decisionNote}</p> : null}
+          <div className="detail-decision-actions">
+            {naverMapLink ? (
+              <a className="detail-decision-action is-primary" href={naverMapLink.url} target="_blank" rel="noreferrer">
+                <MapPin size={15} aria-hidden="true" />
+                네이버지도
+              </a>
+            ) : null}
+            <a className="detail-decision-action" href="#detail-map">
+              <MapPin size={15} aria-hidden="true" />
+              위치 보기
+            </a>
+            {primaryInfoLink ? (
+              <a className="detail-decision-action" href={primaryInfoLink.url} target="_blank" rel="noreferrer">
+                <ExternalLink size={15} aria-hidden="true" />
+                정보 확인
+              </a>
+            ) : null}
+          </div>
+        </aside>
+      </section>
 
       <PlaceDetailMap address={place.address ?? place.roadAddress ?? undefined} category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
 
@@ -323,7 +352,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </section>
       ) : null}
 
-      <section className="info-block full">
+      <section className="info-block full" id="detail-sources">
         <h2>출처</h2>
         <div className="source-list">
           {displaySources.map((source) =>
@@ -381,6 +410,7 @@ async function loadPlace(placeId: string) {
 
 type PlaceDetail = Awaited<ReturnType<typeof getPlaceDetail>>;
 type Source = PlaceDetail["sources"][number];
+type DetailDecisionTone = "negative" | "neutral" | "partial" | "positive" | "unknown";
 
 type ReviewLink = {
   key: string;
@@ -389,6 +419,42 @@ type ReviewLink = {
   provider: string;
   url: string;
 };
+
+function detailDecisionChips(place: PlaceDetail) {
+  const chips: Array<{ label: string; tone: DetailDecisionTone }> = [
+    { label: recommendedAgeShortLabel(place.recommendedAgeMonths), tone: "neutral" },
+    { label: `체류 ${minutesLabel(place.visit.averageStayMinutes)}`, tone: "neutral" },
+    { label: indoorLabel(place.facilities.indoorType), tone: place.facilities.indoorType === "unknown" ? "unknown" : "neutral" },
+    triStateDecisionChip("주차", place.facilities.parkingAvailable),
+    triStateDecisionChip("유모차", place.facilities.strollerFriendly),
+    triStateDecisionChip("수유", place.facilities.nursingRoom),
+    triStateDecisionChip("기저귀", place.facilities.diaperChangingTable),
+    triStateDecisionChip("아기의자", place.facilities.babyChair)
+  ];
+
+  return chips;
+}
+
+function triStateDecisionChip(label: string, value: string) {
+  const tones: Record<string, DetailDecisionTone> = {
+    yes: "positive",
+    partial: "partial",
+    no: "negative",
+    unknown: "unknown"
+  };
+
+  return {
+    label: `${label} ${triStateLabel(value)}`,
+    tone: tones[value] ?? "unknown"
+  };
+}
+
+function recommendedAgeShortLabel(value: PlaceDetail["recommendedAgeMonths"]) {
+  if (value.min === null && value.max === null) return "월령 미확인";
+  if (value.min === null) return `${value.max}개월 이하`;
+  if (value.max === null) return `${value.min}개월 이상`;
+  return `${value.min}-${value.max}개월`;
+}
 
 function uniqueDisplaySources(sources: Source[]) {
   const grouped = new Map<string, Source & { key: string; count: number }>();

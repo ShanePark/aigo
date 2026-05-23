@@ -76,7 +76,7 @@ export function PlaceDetailMap({ address, category, lat, lng, name }: PlaceDetai
   }, [address, category, lat, lng, name]);
 
   return (
-    <section className="detail-map-card" aria-label="장소 위치 지도">
+    <section className="detail-map-card" id="detail-map" aria-label="장소 위치 지도">
       <div className="detail-map-head">
         <div>
           <h2>위치</h2>

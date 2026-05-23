@@ -1639,49 +1639,133 @@ h3 {
   text-underline-offset: 2px;
 }
 
-.detail-primary-map-cta {
-  align-items: center;
-  background: var(--blue);
-  border: 1px solid var(--blue);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  color: #fff;
+.detail-hero-grid {
+  align-items: stretch;
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  margin: 0 0 18px;
-  min-height: 58px;
-  padding: 12px 16px;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  margin-bottom: 18px;
 }
 
-.detail-primary-map-cta:hover {
-  border-color: var(--line-strong);
-}
-
-.detail-primary-map-cta span {
-  align-items: center;
-  display: inline-flex;
-  gap: 8px;
+.detail-hero-media {
   min-width: 0;
 }
 
-.detail-primary-map-cta strong {
-  font-size: 16px;
-  line-height: 1.25;
+.detail-hero-media .detail-hero-image {
+  margin-bottom: 10px;
 }
 
-.detail-primary-map-cta small {
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 13px;
-  font-weight: 800;
+.detail-decision-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 16px;
+}
+
+.detail-decision-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.detail-decision-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.detail-decision-header strong {
+  color: var(--mint);
+  font-size: 24px;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.detail-primary-map-cta > svg {
-  justify-self: end;
+.detail-decision-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-decision-chip {
+  background: var(--chip-neutral-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--chip-neutral-text);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.detail-decision-chip.positive {
+  background: var(--mint-soft);
+  border-color: var(--line-strong);
+  color: var(--mint);
+}
+
+.detail-decision-chip.partial {
+  background: var(--yellow-soft);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.detail-decision-chip.negative {
+  background: var(--coral-soft);
+  border-color: var(--line-strong);
+  color: var(--coral);
+}
+
+.detail-decision-note {
+  color: var(--body-copy);
+  display: -webkit-box;
+  line-height: 1.55;
+  margin-bottom: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.detail-decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.detail-decision-action {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.detail-decision-action:hover {
+  border-color: var(--hover-border);
+  color: var(--mint);
+}
+
+.detail-decision-action.is-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.detail-decision-action.is-primary:hover {
+  border-color: var(--line-strong);
+  color: #fff;
 }
 
 .detail-map-card {
@@ -1866,7 +1950,19 @@ h3 {
 }
 
 .version-box {
+  display: grid;
+  gap: 2px;
   min-width: 64px;
+}
+
+.version-box small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.version-box strong {
+  line-height: 1;
 }
 
 .detail-grid {
@@ -2072,6 +2168,10 @@ dd {
     height: min(52vh, 380px);
     min-height: 300px;
   }
+
+  .detail-hero-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2122,20 +2222,8 @@ dd {
     justify-content: center;
   }
 
-  .detail-primary-map-cta {
-    align-items: flex-start;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .detail-primary-map-cta small {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    white-space: normal;
-  }
-
-  .detail-primary-map-cta > svg {
-    grid-column: 2;
-    grid-row: 1;
+  .detail-decision-action {
+    justify-content: center;
   }
 
   .results-panel .result-card {
