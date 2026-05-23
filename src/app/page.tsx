@@ -125,7 +125,6 @@ export default async function Home({ searchParams }: HomeProps) {
   const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, effectiveParams);
   const activeCategoryGroupConfig = CATEGORY_GROUPS[activeCategoryGroup];
   const activeSort = sortParam(effectiveParams);
-  const activePreferenceLabels = preferenceLabels(effectiveParams);
   const mapOrigin = mapOriginFromMeta(result.meta);
   const searchReturnHref = currentSearchHref(effectiveParams);
   const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
@@ -167,29 +166,6 @@ export default async function Home({ searchParams }: HomeProps) {
             })}
           </div>
 
-          <div className="search-summary-row" aria-label="검색 상태">
-            <span>
-              <strong>{activeCategoryGroupConfig.label}</strong>
-              <small>분류</small>
-            </span>
-            <span>
-              <strong>{resultCountLabel(result.meta)}</strong>
-              <small>결과</small>
-            </span>
-            <span>
-              <strong>{nationwideStaySearch ? "전국 숙소" : (mapOrigin?.label ?? DEFAULT_ORIGIN.label)}</strong>
-              <small>기준</small>
-            </span>
-            <span>
-              <strong>{sortLabel(activeSort)}</strong>
-              <small>정렬</small>
-            </span>
-            <span className={activePreferenceLabels.length > 0 ? "is-active" : ""}>
-              <strong>{activePreferenceLabels.length > 0 ? activePreferenceLabels.join(" · ") : "기본 조건"}</strong>
-              <small>조건</small>
-            </span>
-          </div>
-
           <details className="advanced-search">
             <summary>
               <SlidersHorizontal size={16} aria-hidden="true" />
@@ -221,10 +197,6 @@ export default async function Home({ searchParams }: HomeProps) {
               <label>
                 <span>아이 월령</span>
                 <input name="ages" defaultValue={textParam(effectiveParams.ages) || "32,7,7"} placeholder="32,7,7" />
-              </label>
-              <label>
-                <span>반경 km</span>
-                <input name="radiusKm" type="number" min="1" max="200" defaultValue={textParam(effectiveParams.radiusKm) ?? (nationwideStaySearch ? "" : "80")} />
               </label>
               <label>
                 <span>위도</span>
@@ -590,22 +562,6 @@ function sortParam(params: Record<string, string | string[] | undefined>): Extra
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
-}
-
-function sortLabel(sort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
-  return sort === "distance" ? "거리순" : "관련도순";
-}
-
-function preferenceLabels(params: Record<string, string | string[] | undefined>) {
-  return [
-    [params.indoor === "on", "실내"],
-    [params.parking === "on", "주차"],
-    [params.stroller === "on", "유모차"],
-    [params.nursing === "on", "수유실"],
-    [params.babyChair === "on", "아기의자"]
-  ]
-    .filter(([enabled]) => enabled)
-    .map(([, label]) => String(label));
 }
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
