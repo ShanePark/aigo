@@ -2,10 +2,23 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Check, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import { childAgeStage, childAgeStageLabel, formatChildAge, MAX_CHILD_AGE_MONTHS, parseChildAgeMonths } from "@/lib/child-ages";
+import {
+  CHILD_AGE_BANDS,
+  CHILD_GENDERS,
+  childAgeBandById,
+  childProfilesToAgeMonths,
+  formatChildProfile,
+  normalizeChildProfiles,
+  parseChildProfiles,
+  serializeChildAgeMonths,
+  serializeChildProfiles,
+  type ChildAgeBandId,
+  type ChildGender,
+  type ChildProfile
+} from "@/lib/child-ages";
 
 type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
@@ -21,13 +34,8 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "babyChair", label: "아기의자" }
 ];
 
-const CHILD_ICON_SRC = {
-  infant: "/icons/child-ages/child-age-infant.png",
-  preschooler: "/icons/child-ages/child-age-preschooler.png",
-  toddler: "/icons/child-ages/child-age-toddler.png"
-} as const;
-
-const ADD_AGE_CANDIDATES = [0, 7, 12, 24, 36, 60];
+const DEFAULT_DRAFT_GENDER: ChildGender = "boy";
+const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
 
 export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const router = useRouter();
@@ -35,19 +43,26 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const [isPending, startTransition] = useTransition();
   const initialKey = useMemo(() => JSON.stringify(initialParams), [initialParams]);
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
-  const [childAges, setChildAges] = useState(() => parseChildAgeMonths(textParam(initialParams.ages)));
+  const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
+  const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
 
   useEffect(() => {
     setSelectedFilters(filtersFromParams(initialParams));
-    setChildAges(parseChildAgeMonths(textParam(initialParams.ages)));
+    setChildProfiles(parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
+    setIsPickerOpen(false);
   }, [initialKey, initialParams]);
 
   const activeChips = [
     ...FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label),
-    ...childAges.map(formatChildAge)
+    ...childProfiles.map(formatChildProfile)
   ];
+  const profileAges = childProfilesToAgeMonths(childProfiles);
+  const draftBandAlreadyExists = childProfiles.some((profile) => profile.ageBand === draftAgeBand);
+  const isAtProfileLimit = childProfiles.length >= CHILD_AGE_BANDS.length && !draftBandAlreadyExists;
 
-  function applyCurrentForm(overrides: { ages?: number[] } = {}) {
+  function applyCurrentForm(overrides: { profiles?: ChildProfile[] } = {}) {
     const form = rootRef.current?.closest("form");
     if (!form) return;
 
@@ -57,8 +72,10 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
       if (text.length > 0) params.append(key, text);
     }
 
-    if (overrides.ages) {
-      params.set("ages", serializeAges(overrides.ages));
+    if (overrides.profiles) {
+      const nextProfiles = normalizeChildProfiles(overrides.profiles);
+      params.set("children", serializeChildProfiles(nextProfiles));
+      params.set("ages", serializeChildAgeMonths(childProfilesToAgeMonths(nextProfiles)));
     }
 
     params.delete("page");
@@ -75,15 +92,32 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     window.setTimeout(() => applyCurrentForm(), 0);
   }
 
-  function commitAges(nextAges: number[]) {
-    const normalizedAges = normalizeAges(nextAges);
-    setChildAges(normalizedAges);
-    applyCurrentForm({ ages: normalizedAges });
+  function commitProfiles(nextProfiles: readonly ChildProfile[]) {
+    const normalizedProfiles = normalizeChildProfiles(nextProfiles);
+    setChildProfiles(normalizedProfiles);
+    applyCurrentForm({ profiles: normalizedProfiles });
   }
 
-  function addChildAge() {
-    const nextAge = ADD_AGE_CANDIDATES.find((age) => !childAges.includes(age)) ?? 0;
-    commitAges([...childAges, nextAge]);
+  function addDraftProfile() {
+    if (isAtProfileLimit) return;
+    commitProfiles([...childProfiles, { ageBand: draftAgeBand, gender: draftGender }]);
+    setIsPickerOpen(false);
+  }
+
+  function togglePicker() {
+    if (isPickerOpen) {
+      setIsPickerOpen(false);
+      return;
+    }
+
+    const nextAgeBand =
+      CHILD_AGE_BANDS.find((band) => !childProfiles.some((profile) => profile.ageBand === band.id))?.id ??
+      childProfiles[0]?.ageBand ??
+      DEFAULT_DRAFT_AGE_BAND;
+    const existingProfile = childProfiles.find((profile) => profile.ageBand === nextAgeBand);
+    setDraftAgeBand(nextAgeBand);
+    setDraftGender(existingProfile?.gender ?? DEFAULT_DRAFT_GENDER);
+    setIsPickerOpen(true);
   }
 
   return (
@@ -95,8 +129,8 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
         </span>
         {activeChips.length > 0 ? (
           <span className="advanced-active-chips" aria-label="적용된 세부 조건">
-            {activeChips.slice(0, 6).map((chip) => (
-              <span key={chip}>{chip}</span>
+            {activeChips.slice(0, 6).map((chip, index) => (
+              <span key={`${chip}-${index}`}>{chip}</span>
             ))}
             {activeChips.length > 6 ? <span>+{activeChips.length - 6}</span> : null}
           </span>
@@ -117,80 +151,121 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
         ))}
       </div>
 
-      <section className="child-age-panel" aria-label="아이 월령">
-        <div className="child-age-panel-head">
+      <section className="child-profile-panel" aria-label="아이 조건">
+        <div className="child-profile-panel-head">
           <div>
-            <span>아이 월령</span>
-            <strong>{childAges.map(formatChildAge).join(" · ")}</strong>
+            <span>아이 조건</span>
+            <strong>{childProfiles.length > 0 ? childProfiles.map(formatChildProfile).join(" · ") : "선택 없음"}</strong>
           </div>
-          <button className="child-age-add-button" type="button" onClick={addChildAge} disabled={isPending || childAges.length >= 10}>
+          <button
+            className="child-profile-add-button"
+            type="button"
+            onClick={togglePicker}
+            disabled={isPending}
+            aria-expanded={isPickerOpen}
+          >
             <Plus size={15} aria-hidden="true" />
             아이 추가
           </button>
         </div>
-        <input name="ages" type="hidden" value={serializeAges(childAges)} />
-        <div className="child-age-grid">
-          {childAges.map((age) => (
-            <ChildAgeCard
-              age={age}
-              key={age}
-              onChange={(nextAge) => commitAges(childAges.map((currentAge) => (currentAge === age ? nextAge : currentAge)))}
-              onRemove={() => commitAges(childAges.filter((currentAge) => currentAge !== age))}
-            />
-          ))}
-        </div>
+
+        <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
+        <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
+
+        {isPickerOpen ? (
+          <div className="child-profile-picker">
+            <div className="child-profile-picker-row">
+              <span className="child-profile-picker-label">성별</span>
+              <div className="child-profile-segmented" role="group" aria-label="아이 성별">
+                {CHILD_GENDERS.map((gender) => (
+                  <button
+                    className={draftGender === gender.id ? "is-selected" : ""}
+                    type="button"
+                    key={gender.id}
+                    onClick={() => setDraftGender(gender.id)}
+                    aria-pressed={draftGender === gender.id}
+                  >
+                    {gender.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="child-profile-options" role="group" aria-label="아이 연령대">
+              {CHILD_AGE_BANDS.map((band) => {
+                const optionProfile = { ageBand: band.id, gender: draftGender };
+                const isSelected = draftAgeBand === band.id;
+                const isApplied = childProfiles.some((profile) => profile.ageBand === band.id);
+
+                return (
+                  <button
+                    className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
+                    type="button"
+                    key={band.id}
+                    onClick={() => setDraftAgeBand(band.id)}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="child-profile-option-icon">
+                      <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={56} height={56} />
+                    </span>
+                    <span className="child-profile-option-copy">
+                      <strong>{band.label}</strong>
+                      <small>{band.hint}</small>
+                    </span>
+                    {isApplied ? <span className="child-profile-applied">적용됨</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
+              <Check size={15} aria-hidden="true" />
+              {draftBandAlreadyExists ? "선택 바꾸기" : "아이 적용"}
+            </button>
+          </div>
+        ) : null}
+
+        {childProfiles.length > 0 ? (
+          <div className="child-profile-grid">
+            {childProfiles.map((profile) => (
+              <ChildProfileCard
+                profile={profile}
+                key={profile.ageBand}
+                onRemove={() => commitProfiles(childProfiles.filter((item) => item.ageBand !== profile.ageBand))}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
     </details>
   );
 }
 
-function ChildAgeCard({
-  age,
-  onChange,
-  onRemove
-}: {
-  age: number;
-  onChange: (age: number) => void;
-  onRemove: () => void;
-}) {
-  const stage = childAgeStage(age);
-  const canDecrease = age > 0;
-  const canIncrease = age < MAX_CHILD_AGE_MONTHS;
+function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemove: () => void }) {
+  const band = childAgeBandById(profile.ageBand);
 
   return (
-    <article className={`child-age-card ${stage}`}>
-      <div className="child-age-icon">
-        <Image src={CHILD_ICON_SRC[stage]} alt="" aria-hidden="true" width={56} height={56} />
+    <article className={`child-profile-card tone-${band.tone}`}>
+      <div className="child-profile-icon">
+        <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={56} height={56} />
       </div>
-      <div className="child-age-copy">
-        <strong>{formatChildAge(age)}</strong>
-        <span>{childAgeStageLabel(age)}</span>
+      <div className="child-profile-copy">
+        <strong>{formatChildProfile(profile)}</strong>
+        <span>{band.hint}</span>
       </div>
-      <div className="child-age-stepper" aria-label={`${formatChildAge(age)} 조정`}>
-        <button type="button" onClick={() => onChange(Math.max(0, age - 1))} disabled={!canDecrease} aria-label={`${formatChildAge(age)} 줄이기`}>
-          <Minus size={13} aria-hidden="true" />
-        </button>
-        <button type="button" onClick={() => onChange(Math.min(MAX_CHILD_AGE_MONTHS, age + 1))} disabled={!canIncrease} aria-label={`${formatChildAge(age)} 늘리기`}>
-          <Plus size={13} aria-hidden="true" />
-        </button>
-        <button className="child-age-remove" type="button" onClick={onRemove} aria-label={`${formatChildAge(age)} 제거`}>
-          <Trash2 size={13} aria-hidden="true" />
-        </button>
-      </div>
+      <button className="child-profile-remove" type="button" onClick={onRemove} aria-label={`${formatChildProfile(profile)} 제거`}>
+        <Trash2 size={14} aria-hidden="true" />
+      </button>
     </article>
   );
 }
 
+function childProfileIconSrc(profile: ChildProfile) {
+  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}.png`;
+}
+
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {
   return Object.fromEntries(FILTERS.map((filter) => [filter.key, textParam(params[filter.key]) === "on"])) as Record<FilterKey, boolean>;
-}
-
-function normalizeAges(ages: number[]) {
-  return Array.from(new Set(ages.map((age) => Math.round(age)).filter((age) => age >= 0 && age <= MAX_CHILD_AGE_MONTHS))).slice(0, 10);
-}
-
-function serializeAges(ages: number[]) {
-  return ages.length > 0 ? ages.join(",") : "none";
 }
 
 function textParam(value: string | string[] | undefined) {

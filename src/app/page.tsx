@@ -15,7 +15,7 @@ import {
 
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
 import { SearchFilters } from "@/app/search-filters";
-import { parseChildAgeMonths } from "@/lib/child-ages";
+import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
@@ -157,7 +157,10 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
   const shouldFilterByRadius = categoryGroup !== "stay" || hasExplicitLocationParams(params);
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
-  const ages = parseChildAgeMonths(textParam(params.ages));
+  const children = textParam(params.children);
+  const ages = children
+    ? childProfilesToAgeMonths(parseChildProfiles(children, textParam(params.ages)))
+    : parseChildAgeMonths(textParam(params.ages));
 
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
