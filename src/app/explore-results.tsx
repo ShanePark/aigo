@@ -10,6 +10,7 @@ import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } 
 import {
   SearchResultTrustBadges,
   type SearchResultBadgeOpeningHoursSummary,
+  type SearchResultBadgeRecommendationReadiness,
   type SearchResultBadgeSourceSummary
 } from "@/app/search-result-badges";
 import { pricingSummaryLabel } from "@/lib/pricing";
@@ -114,6 +115,7 @@ type SearchItem = {
   primaryImage?: {
     url: string;
   } | null;
+  recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null;
   score: number;
   sourceSummary: SearchResultBadgeSourceSummary;
   tags: string[];
@@ -360,7 +362,11 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
             <span className="trust-badge warning">{priceLabel}</span>
           </div>
         ) : null}
-        <SearchResultTrustBadges openingHoursSummary={place.openingHoursSummary} sourceSummary={place.sourceSummary} />
+        <SearchResultTrustBadges
+          openingHoursSummary={place.openingHoursSummary}
+          recommendationReadiness={place.recommendationReadiness}
+          sourceSummary={place.sourceSummary}
+        />
       </div>
     </Link>
   );

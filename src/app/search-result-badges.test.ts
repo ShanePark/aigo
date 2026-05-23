@@ -42,7 +42,7 @@ describe("search result trust badges", () => {
 
     expect(html).toContain("출처 없음");
     expect(html).toContain("확인일 없음");
-    expect(html).toContain("출처와 최신성");
+    expect(html).toContain("출처와 추천 확인 상태");
   });
 
   it("marks stale public-listing records as needing recheck", () => {
@@ -64,5 +64,31 @@ describe("search result trust badges", () => {
       { label: "공개목록 출처", tone: "neutral" },
       { label: "재확인 필요", tone: "danger" }
     ]);
+  });
+
+  it("surfaces paid indoor visit planning, price, and image gaps", () => {
+    const badges = searchResultTrustBadges(
+      {
+        sourceCount: 1,
+        bestSourceTier: "official",
+        bestSourceType: "official_site",
+        latestCheckedAt: "2026-05-23T00:00:00.000Z",
+        freshnessStatus: "checked_today"
+      },
+      {
+        sourceBacked: true,
+        structuredDataGaps: []
+      },
+      {
+        agentSummary: "핵심 확인값 3개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.",
+        blockingGaps: ["reservationRequired", "sessionBased", "sameDayAvailabilityKnown", "primaryImage"],
+        cautionNotes: ["유료 가능성이 높은 장소라 가격이나 회차 정보를 별도로 확인해야 합니다."],
+        readinessMode: "familyWeekend",
+        readyForWeekendRecommendation: false
+      }
+    );
+
+    expect(badges.map((badge) => badge.label)).toEqual(["공식 출처", "오늘 확인", "예약/회차 확인", "가격 확인 필요", "대표 이미지 없음"]);
+    expect(badges.at(-1)).toMatchObject({ tone: "danger" });
   });
 });

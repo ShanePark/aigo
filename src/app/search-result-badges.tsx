@@ -23,17 +23,28 @@ export type SearchResultBadgeOpeningHoursSummary = {
   structuredDataGaps: string[];
 };
 
+export type SearchResultBadgeRecommendationReadiness = {
+  agentSummary: string;
+  blockingGaps: string[];
+  cautionNotes: string[];
+  readinessMode: string;
+  readyForWeekendRecommendation: boolean;
+};
+
 type SearchResultTrustBadgesProps = {
   openingHoursSummary: SearchResultBadgeOpeningHoursSummary;
+  recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null;
   sourceSummary: SearchResultBadgeSourceSummary;
 };
 
-export function SearchResultTrustBadges({ openingHoursSummary, sourceSummary }: SearchResultTrustBadgesProps) {
-  const badges = searchResultTrustBadges(sourceSummary, openingHoursSummary);
+const visitPlanningGapKeys = new Set(["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"]);
+
+export function SearchResultTrustBadges({ openingHoursSummary, recommendationReadiness, sourceSummary }: SearchResultTrustBadgesProps) {
+  const badges = searchResultTrustBadges(sourceSummary, openingHoursSummary, recommendationReadiness);
 
   return createElement(
     "div",
-    { "aria-label": "출처와 최신성", className: "trust-row" },
+    { "aria-label": "출처와 추천 확인 상태", className: "trust-row" },
     badges.map((badge) =>
       createElement(
         "span",
@@ -50,13 +61,16 @@ export function SearchResultTrustBadges({ openingHoursSummary, sourceSummary }: 
 
 export function searchResultTrustBadges(
   sourceSummary: SearchResultBadgeSourceSummary,
-  openingHoursSummary: SearchResultBadgeOpeningHoursSummary
+  openingHoursSummary: SearchResultBadgeOpeningHoursSummary,
+  recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null
 ) {
   const badges: SearchResultBadge[] = [sourceTierBadge(sourceSummary), freshnessBadge(sourceSummary)];
 
   if (openingHoursSummary.sourceBacked && openingHoursSummary.structuredDataGaps.length > 0) {
     badges.push(openingHoursGapBadge(openingHoursSummary.structuredDataGaps));
   }
+
+  badges.push(...recommendationReadinessBadges(recommendationReadiness));
 
   return badges;
 }
@@ -91,6 +105,52 @@ function openingHoursGapBadge(structuredDataGaps: string[]): SearchResultBadge {
     title: `출처에는 운영 정보가 있지만 구조화가 더 필요합니다: ${structuredDataGaps.map(openingHoursGapLabel).join(", ")}.`,
     tone: "warning"
   };
+}
+
+function recommendationReadinessBadges(readiness: SearchResultBadgeRecommendationReadiness | null | undefined): SearchResultBadge[] {
+  if (!readiness) return [];
+
+  const badges: SearchResultBadge[] = [];
+  const visitPlanningGaps = readiness.blockingGaps.filter((gap) => visitPlanningGapKeys.has(gap));
+  const priceNotes = readiness.cautionNotes.filter((note) => note.includes("가격"));
+
+  if (visitPlanningGaps.length > 0) {
+    badges.push({
+      key: "visit-planning-gaps",
+      label: "예약/회차 확인",
+      title: `예약, 현장 입장, 회차, 당일 가능 여부 중 확인이 필요합니다: ${visitPlanningGaps.map(openingHoursGapLabel).join(", ")}.`,
+      tone: "warning"
+    });
+  }
+
+  if (priceNotes.length > 0) {
+    badges.push({
+      key: "pricing-gap",
+      label: "가격 확인 필요",
+      title: priceNotes.join(" "),
+      tone: "warning"
+    });
+  }
+
+  if (readiness.blockingGaps.includes("primaryImage")) {
+    badges.push({
+      key: "primary-image-gap",
+      label: "대표 이미지 없음",
+      title: "검색 결과에서 장소를 빠르게 확인할 대표 이미지 보강이 필요합니다.",
+      tone: "danger"
+    });
+  }
+
+  if (!readiness.readyForWeekendRecommendation && badges.length === 0) {
+    badges.push({
+      key: "recommendation-readiness-gap",
+      label: "추천 확인 필요",
+      title: readiness.agentSummary,
+      tone: "warning"
+    });
+  }
+
+  return badges;
 }
 
 function sourceTierLabel(tier: SourceTier) {
