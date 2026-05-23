@@ -144,6 +144,32 @@ summary {
   cursor: pointer;
 }
 
+:where(a, button, input, select, summary):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+:where(
+    .back-link,
+    .category-tab,
+    .detail-decision-action,
+    .detail-map-head a,
+    .empty-state-action,
+    .map-search-button,
+    .page-control,
+    .page-number,
+    .primary-button,
+    .sort-option,
+    .limit-option
+  ) {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
 .topbar {
   align-items: center;
   backdrop-filter: blur(12px);
@@ -219,11 +245,6 @@ summary {
 :root:not([data-theme="dark"]) .theme-toggle svg:first-child,
 :root[data-theme="dark"] .theme-toggle svg:last-child {
   color: var(--marker-text);
-}
-
-.theme-toggle:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 3px;
 }
 
 .page {
@@ -442,11 +463,18 @@ h3 {
 }
 
 .category-tab:hover,
+.category-tab:focus-visible,
 .category-tab.is-active {
   background: var(--panel);
   border-color: var(--hover-border);
   box-shadow: 0 12px 26px rgba(24, 33, 29, 0.08);
   color: var(--text);
+}
+
+.category-tab:focus-visible {
+  border-color: var(--focus-border);
+  color: var(--mint);
+  transform: translateY(-1px);
 }
 
 .category-tab.is-active {
@@ -650,8 +678,10 @@ h3 {
 }
 
 .sort-option:hover,
+.sort-option:focus-visible,
 .sort-option.is-active,
 .limit-option:hover,
+.limit-option:focus-visible,
 .limit-option.is-active {
   background: var(--text);
   color: var(--bg);
@@ -788,6 +818,12 @@ h3 {
   color: var(--mint);
 }
 
+.map-search-button:focus-visible {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring), var(--shadow-soft);
+  color: var(--mint);
+}
+
 .leaflet-map,
 .map-canvas .leaflet-container {
   height: 100%;
@@ -872,6 +908,16 @@ h3 {
   transform: scale(1.36);
 }
 
+.map-place-marker:focus-visible span,
+.map-place-marker:focus-within span {
+  border-color: var(--marker-border);
+  box-shadow:
+    0 0 0 5px var(--marker-border),
+    0 0 0 12px var(--focus-ring),
+    0 18px 34px rgba(24, 33, 29, 0.28);
+  transform: scale(1.22);
+}
+
 .map-place-marker.is-hovered span::after {
   animation: map-marker-pulse 1s ease-out infinite;
   border: 2px solid rgba(233, 179, 64, 0.72);
@@ -919,8 +965,22 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .map-place-marker.is-hovered span::after {
+  *,
+  *::before,
+  *::after {
     animation: none;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .map-place-marker.is-hovered span,
+  .map-place-marker:focus-visible span,
+  .map-place-marker:focus-within span,
+  .result-card:hover,
+  .result-card:focus-visible,
+  .result-card.is-map-highlighted,
+  .category-tab:focus-visible {
+    transform: none;
   }
 }
 
@@ -1019,7 +1079,8 @@ h3 {
     transform 160ms ease;
 }
 
-.result-card:hover {
+.result-card:hover,
+.result-card:focus-visible {
   border-color: var(--hover-border);
   box-shadow: var(--shadow);
   transform: translateY(-1px);
@@ -1036,7 +1097,7 @@ h3 {
 }
 
 .result-card:focus-visible {
-  outline: 3px solid rgba(31, 138, 99, 0.22);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -1356,7 +1417,9 @@ h3 {
 }
 
 .page-control:hover,
-.page-number:hover {
+.page-control:focus-visible,
+.page-number:hover,
+.page-number:focus-visible {
   border-color: var(--hover-border);
   color: var(--mint);
 }
@@ -1586,6 +1649,12 @@ h3 {
   color: var(--mint);
 }
 
+.empty-state-action:focus-visible {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+  color: var(--mint);
+}
+
 .empty-state-action.is-primary {
   background: var(--mint);
   border-color: var(--mint);
@@ -1770,6 +1839,12 @@ h3 {
 
 .detail-decision-action:hover {
   border-color: var(--hover-border);
+  color: var(--mint);
+}
+
+.detail-decision-action:focus-visible {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring);
   color: var(--mint);
 }
 
