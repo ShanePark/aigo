@@ -3128,7 +3128,7 @@ function retailAliasCompactTexts(value: string) {
     }
   }
 
-  if (compact.includes("롯데프리미엄아울렛의왕") || compact.includes("타임빌라스")) {
+  if (compact.includes("롯데프리미엄아울렛의왕") || shouldExpandTimeVillasToUiwang(compact)) {
     [
       "타임빌라스",
       "의왕타임빌라스",
@@ -3141,6 +3141,12 @@ function retailAliasCompactTexts(value: string) {
   }
 
   return Array.from(aliases);
+}
+
+function shouldExpandTimeVillasToUiwang(compact: string) {
+  if (!compact.includes("타임빌라스")) return false;
+  if (compact.includes("의왕")) return true;
+  return !["수원"].some((branch) => compact.includes(branch));
 }
 
 function mergeReasonCodes(first: string[], second: string[]) {

@@ -262,6 +262,20 @@ describe("place search helpers", () => {
     ]);
   });
 
+  it("does not expand Time Villas aliases across conflicting branch names", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "타임빌라스 수원",
+      matchMode: "exactName"
+    });
+
+    expect(retailAliasCompactTextsForTest("타임빌라스")).toContain("롯데프리미엄아울렛의왕점");
+    expect(retailAliasCompactTextsForTest("타임빌라스 의왕")).toContain("롯데프리미엄아울렛의왕점");
+    expect(retailAliasCompactTextsForTest("타임빌라스 수원")).not.toContain("롯데프리미엄아울렛의왕점");
+    expect(retailAliasCompactTextsForTest("너티월드 타임빌라스 수원점")).not.toContain("롯데프리미엄아울렛의왕점");
+    expect(query.params).toEqual(["타임빌라스 수원", "타임빌라스수원"]);
+  });
+
   it("preserves literal exact-name queries during preference inference", () => {
     expect(normalizeSearchInput({ ...baseSearchInput, query: "실내 어린이 도서관", matchMode: "exactName" })).toMatchObject({
       query: "실내 어린이 도서관",
@@ -1507,6 +1521,21 @@ describe("place search helpers", () => {
 
     expect(signal.delta).toBeGreaterThanOrEqual(18);
     expect(signal.reasonCodes).toContain("QUERY_RETAIL_ALIAS_MATCH");
+  });
+
+  it("does not boost retail aliases when Time Villas branch names conflict", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "롯데프리미엄아울렛 의왕점",
+        tags: [],
+        description: null,
+        address: "경기도 의왕시",
+        roadAddress: "경기도 의왕시 바라산로 1"
+      },
+      "타임빌라스 수원"
+    );
+
+    expect(signal.reasonCodes).not.toContain("QUERY_RETAIL_ALIAS_MATCH");
   });
 
   it("does not add literal query boosts for broad nature intent queries", () => {
