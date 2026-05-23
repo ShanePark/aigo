@@ -36,6 +36,28 @@ describe("image candidate helper", () => {
     expect(imageCandidateLabels("https://example.com/default-thumbnail.jpg", undefined, "image/jpeg")).toContain("generic_or_placeholder_risk");
   });
 
+  it("holds a known shared placeholder image by URL pattern and size", () => {
+    const report = buildReport(
+      { url: "https://example.com/rest_main_photo.jpg?rest=12345", sourceUrl: "https://example.com/place", title: "Restaurant" },
+      [
+        {
+          method: "HEAD",
+          status: 200,
+          ok: true,
+          contentType: "image/jpeg",
+          contentLength: 11_024,
+          finalUrl: "https://example.com/rest_main_photo.jpg?rest=12345",
+          usedReferer: false
+        }
+      ]
+    );
+
+    expect(report.labels).toContain("known_placeholder_image");
+    expect(report.labels).toContain("diningcode_rest_main_photo_placeholder");
+    expect(report.visualRisk).toBe("high");
+    expect(report.recommendation).toBe("hold");
+  });
+
   it("uses a clean image response when it is remote and image typed", () => {
     const report = buildReport(
       { url: "https://example.com/place.jpg", sourceUrl: "https://example.com/place", title: "Place hero" },
@@ -132,5 +154,32 @@ describe("image candidate helper", () => {
     expect(report.contentType).toBe("image/png");
     expect(report.attempts.map((attempt) => attempt.method)).toEqual(["HEAD", "GET_RANGE", "GET"]);
     expect(fetchMock.mock.calls[1]?.[1]?.headers).toEqual({ range: "bytes=0-63" });
+  });
+
+  it("downloads a suspicious known placeholder URL when range metadata cannot prove it", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "HEAD") {
+        return new Response(null, { status: 405, headers: { "content-type": "text/html" } });
+      }
+
+      if (new Headers(init?.headers).has("range")) {
+        return new Response(new Uint8Array(64), { status: 206, headers: { "content-type": "image/jpeg", "content-length": "64" } });
+      }
+
+      return new Response(new Uint8Array(11_024), { status: 200, headers: { "content-type": "image/jpeg", "content-length": "11024" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const report = await probeImageCandidate({
+      url: "https://example.com/rest_main_photo.jpg?rest=12345",
+      urls: [],
+      json: true,
+      timeoutMs: 1_000
+    });
+
+    expect(report.labels).toContain("known_placeholder_image");
+    expect(report.fullContentLength).toBe(11_024);
+    expect(report.recommendation).toBe("hold");
+    expect(report.attempts.map((attempt) => attempt.method)).toEqual(["HEAD", "GET_RANGE", "GET"]);
   });
 });

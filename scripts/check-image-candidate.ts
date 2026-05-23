@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 type ProbeArgs = {
@@ -14,6 +15,8 @@ type ProbeAttempt = {
   ok: boolean;
   contentType: string | null;
   contentLength: number | null;
+  fullContentLength?: number | null;
+  contentSha256?: string | null;
   finalUrl: string;
   usedReferer: boolean;
   error?: string;
@@ -28,6 +31,8 @@ type ImageCandidateReport = {
   ok: boolean;
   contentType: string | null;
   contentLength: number | null;
+  fullContentLength: number | null;
+  contentSha256: string | null;
   finalUrl: string | null;
   refererNeeded: boolean;
   hotlinkRisk: "low" | "medium" | "high";
@@ -41,6 +46,14 @@ const defaultTimeoutMs = 8_000;
 const imageExtensions = /\.(avif|gif|jpe?g|png|webp)(?:[?#].*)?$/i;
 const logoLikePattern = /(?:^|[._/-])(logo|favicon|icon|brand|symbol|mark|ci|bi)(?:[._/-]|$)/i;
 const genericLikePattern = /(?:placeholder|default|thumb|thumbnail|no[_-]?image|share|og[_-]?image|sns|banner|visual|main)(?:[._/-]|$)/i;
+const knownPlaceholderImages = [
+  {
+    label: "diningcode_rest_main_photo_placeholder",
+    urlPattern: /\/rest_main_photo\.jpg\?rest=[^&#]+/i,
+    contentLength: 11_024,
+    sha256: "9df49a55c73111ebf5addfa75c5aec3c17fac1919ee6dc36f85283678d00437a"
+  }
+];
 
 if (isMain()) {
   void main();
@@ -120,17 +133,28 @@ export async function probeImageCandidate(input: ProbeArgs & { url: string }): P
     attempts.push(await fetchImageProbe(input.url, "GET", input.timeoutMs, true, input.sourceUrl));
   }
 
+  const usefulAttempt = attempts.find(isUsefulImageAttempt);
+  if (usefulAttempt && shouldRunKnownPlaceholderBodyProbe(input.url, usefulAttempt)) {
+    attempts.push(await fetchImageProbe(input.url, "GET", input.timeoutMs, usefulAttempt.usedReferer, usefulAttempt.usedReferer ? input.sourceUrl : undefined));
+  }
+
   return buildReport(input, attempts);
 }
 
 export function buildReport(input: { url: string; sourceUrl?: string; title?: string }, attempts: ProbeAttempt[]): ImageCandidateReport {
   const bestAttempt = attempts.find(isUsefulImageAttempt) ?? attempts.find((attempt) => attempt.status !== null) ?? attempts[0] ?? null;
-  const labels = imageCandidateLabels(input.url, input.title, bestAttempt?.contentType ?? null);
+  const labels = new Set(imageCandidateLabels(input.url, input.title, bestAttempt?.contentType ?? null));
+  for (const attempt of attempts) {
+    for (const label of knownPlaceholderLabels(input.url, attempt)) {
+      labels.add(label);
+    }
+  }
   const isRemote = isRemoteHttpUrl(input.url);
   const ok = Boolean(isRemote && bestAttempt?.ok && isImageContentType(bestAttempt.contentType));
   const refererNeeded = Boolean(bestAttempt?.usedReferer);
   const hotlinkRisk = hotlinkRiskLevel({ isRemote, ok, refererNeeded, status: bestAttempt?.status ?? null });
-  const visualRisk = visualRiskLevel(labels);
+  const labelList = Array.from(labels);
+  const visualRisk = visualRiskLevel(labelList);
 
   return {
     url: input.url,
@@ -141,11 +165,13 @@ export function buildReport(input: { url: string; sourceUrl?: string; title?: st
     ok,
     contentType: bestAttempt?.contentType ?? dataUrlContentType(input.url),
     contentLength: bestAttempt?.contentLength ?? dataUrlApproxLength(input.url),
+    fullContentLength: attempts.find((attempt) => attempt.fullContentLength !== null && attempt.fullContentLength !== undefined)?.fullContentLength ?? null,
+    contentSha256: attempts.find((attempt) => attempt.contentSha256)?.contentSha256 ?? null,
     finalUrl: bestAttempt?.finalUrl ?? null,
     refererNeeded,
     hotlinkRisk,
     visualRisk,
-    labels,
+    labels: labelList,
     recommendation: recommendation({ ok, isRemote, hotlinkRisk, visualRisk }),
     attempts
   };
@@ -162,6 +188,7 @@ export function imageCandidateLabels(url: string, title: string | undefined, con
   if (imageExtensions.test(url)) labels.add("image_extension");
   if (logoLikePattern.test(haystack)) labels.add("logo_or_icon_risk");
   if (genericLikePattern.test(haystack)) labels.add("generic_or_placeholder_risk");
+  if (knownPlaceholderImages.some((candidate) => candidate.urlPattern.test(url))) labels.add("known_placeholder_url_pattern");
   if (!imageExtensions.test(url) && !contentType) labels.add("extension_unknown");
 
   return Array.from(labels);
@@ -183,9 +210,35 @@ function hotlinkRiskLevel(input: { isRemote: boolean; ok: boolean; refererNeeded
 }
 
 function visualRiskLevel(labels: string[]) {
+  if (labels.includes("known_placeholder_image")) return "high";
   if (labels.includes("logo_or_icon_risk")) return "high";
   if (labels.includes("generic_or_placeholder_risk") || labels.includes("extension_unknown")) return "medium";
   return "low";
+}
+
+function knownPlaceholderLabels(url: string, attempt: Pick<ProbeAttempt, "contentLength" | "fullContentLength" | "contentSha256">) {
+  const labels = new Set<string>();
+  const length = attempt.fullContentLength ?? attempt.contentLength ?? null;
+
+  for (const candidate of knownPlaceholderImages) {
+    if (!candidate.urlPattern.test(url)) continue;
+    labels.add("known_placeholder_url_pattern");
+    if (attempt.contentSha256 === candidate.sha256 || length === candidate.contentLength) {
+      labels.add("known_placeholder_image");
+      labels.add(candidate.label);
+    }
+  }
+
+  return Array.from(labels);
+}
+
+function shouldRunKnownPlaceholderBodyProbe(url: string, attempt: ProbeAttempt) {
+  if (attempt.method === "GET") return false;
+  if (!knownPlaceholderImages.some((candidate) => candidate.urlPattern.test(url))) return false;
+  if (knownPlaceholderLabels(url, attempt).includes("known_placeholder_image")) return false;
+
+  const knownLength = attempt.fullContentLength ?? (attempt.method === "HEAD" ? attempt.contentLength : null);
+  return knownLength === null || knownPlaceholderImages.some((candidate) => knownLength === candidate.contentLength);
 }
 
 function isUsefulImageAttempt(attempt: ProbeAttempt) {
@@ -203,13 +256,26 @@ async function fetchImageProbe(url: string, method: ProbeAttempt["method"], time
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs)
     });
+    const contentType = normalizedHeader(response.headers.get("content-type"));
+    const contentLength = numericHeader(response.headers.get("content-length"));
+    const contentRangeLength = contentRangeTotalLength(response.headers.get("content-range"));
+    let fullContentLength = method === "GET_RANGE" ? contentRangeLength : contentLength;
+    let contentSha256: string | null = null;
+
+    if (method === "GET" && response.ok && isImageContentType(contentType)) {
+      const body = Buffer.from(await response.arrayBuffer());
+      fullContentLength = body.byteLength;
+      contentSha256 = createHash("sha256").update(body).digest("hex");
+    }
 
     return {
       method,
       status: response.status,
       ok: response.ok || response.status === 206,
-      contentType: normalizedHeader(response.headers.get("content-type")),
-      contentLength: numericHeader(response.headers.get("content-length")),
+      contentType,
+      contentLength,
+      fullContentLength,
+      contentSha256,
       finalUrl: response.url,
       usedReferer
     };
@@ -239,6 +305,8 @@ function formatReports(reports: ImageCandidateReport[]) {
         `Status: ${report.status ?? "unreachable"}`,
         `Content-Type: ${report.contentType ?? "unknown"}`,
         `Content-Length: ${report.contentLength ?? "unknown"}`,
+        `Full Content-Length: ${report.fullContentLength ?? "unknown"}`,
+        `Content SHA-256: ${report.contentSha256 ?? "unknown"}`,
         `Final URL: ${report.finalUrl ?? "none"}`,
         `Referer needed: ${report.refererNeeded ? "yes" : "no"}`,
         `Hotlink risk: ${report.hotlinkRisk}`,
@@ -273,6 +341,13 @@ function normalizedHeader(value: string | null) {
 function numericHeader(value: string | null) {
   if (!value) return null;
   const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function contentRangeTotalLength(value: string | null) {
+  const total = value?.match(/\/(\d+)$/)?.[1];
+  if (!total) return null;
+  const parsed = Number(total);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
