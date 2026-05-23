@@ -2196,7 +2196,16 @@ dd {
   }
 
   .page {
-    padding: 22px 14px 44px;
+    padding: 16px 14px 36px;
+  }
+
+  .search-form {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .search-bar {
+    padding: 7px;
   }
 
   .search-bar,
@@ -2210,7 +2219,7 @@ dd {
     flex-wrap: nowrap;
     margin: 0 -14px;
     overflow-x: auto;
-    padding: 0 14px 3px;
+    padding: 0 14px 4px;
     scrollbar-width: none;
   }
 
@@ -2220,6 +2229,8 @@ dd {
 
   .category-tab {
     flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 13px;
   }
 
   .detail-hero-image {
@@ -2243,8 +2254,34 @@ dd {
   }
 
   .results-panel .result-card {
-    --result-thumb-size: 104px;
+    --result-thumb-size: 96px;
     grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
+  }
+
+  .result-card-body {
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .result-card-topline {
+    gap: 5px;
+  }
+
+  .rank-badge,
+  .distance-pill,
+  .category-pill,
+  .score-pill {
+    font-size: 11px;
+  }
+
+  .category-pill,
+  .distance-pill,
+  .score-pill {
+    padding-inline: 7px;
+  }
+
+  .result-card-title-row {
+    gap: 6px;
   }
 
   h1 {
@@ -2263,8 +2300,34 @@ dd {
     min-height: auto;
   }
 
+  .map-canvas {
+    height: min(44vh, 340px);
+    min-height: 280px;
+  }
+
   .result-actions {
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .sort-control,
+  .limit-control {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .sort-option,
+  .limit-option {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
+  .page-badge {
+    justify-content: center;
     width: 100%;
   }
 
@@ -2273,12 +2336,49 @@ dd {
   }
 
   .pagination {
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .page-numbers {
+    grid-column: 1 / -1;
     justify-content: center;
+    order: -1;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .page-numbers::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-control {
+    min-height: 44px;
+    padding: 0 10px;
+    width: 100%;
+  }
+
+  .detail-decision-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .detail-decision-action {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .detail-map-head {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .detail-map-head a {
+    justify-content: center;
+    min-height: 44px;
   }
 
   .source-row,
