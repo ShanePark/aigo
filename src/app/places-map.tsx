@@ -1,5 +1,6 @@
 "use client";
 
+import { LocateFixed } from "lucide-react";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
@@ -60,16 +61,21 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
   const placeMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
+  const userLocationMarkerRef = useRef<LeafletMarker | null>(null);
   const initializedViewKeyRef = useRef<string | null>(null);
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
+  const locationRequestTimerRef = useRef<number | null>(null);
   const viewKeyRef = useRef(mapViewKey(origin));
   const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "denied" | "unsupported">("idle");
 
   useEffect(() => {
     return () => {
+      if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current = null;
+      userLocationMarkerRef.current = null;
     };
   }, []);
 
@@ -187,6 +193,49 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
     };
   }, []);
 
+  function moveToCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus("unsupported");
+      return;
+    }
+
+    setLocationStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        void focusCurrentLocation(coords.latitude, coords.longitude);
+      },
+      () => setLocationStatus("denied"),
+      { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 }
+    );
+  }
+
+  async function focusCurrentLocation(lat: number, lng: number) {
+    const map = mapRef.current;
+    if (!map) {
+      setLocationStatus("idle");
+      return;
+    }
+
+    const L = await import("leaflet");
+    const target = {
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lng.toFixed(6))
+    };
+
+    userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target);
+    const targetZoom = Math.max(map.getZoom(), 15);
+    map.flyTo([target.lat, target.lng], targetZoom, { animate: true, duration: 0.65 });
+
+    if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
+    locationRequestTimerRef.current = window.setTimeout(() => {
+      setViewportSearchRequest(buildViewportSearchRequest(map));
+      locationRequestTimerRef.current = null;
+    }, 720);
+    setLocationStatus("idle");
+  }
+
+  const locationStatusLabel = locationStatusMessage(locationStatus);
+
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
       <div className="map-card-head">
@@ -197,6 +246,23 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
         <span>{places.length}곳</span>
       </div>
       <div className="map-canvas">
+        <div className="map-location-control">
+          <button
+            aria-label={locationStatus === "locating" ? "현재 위치 확인 중" : "내 위치로 지도 이동"}
+            className="map-location-button"
+            disabled={locationStatus === "locating"}
+            onClick={moveToCurrentLocation}
+            title="내 위치로 지도 이동"
+            type="button"
+          >
+            <LocateFixed size={17} aria-hidden="true" />
+          </button>
+          {locationStatusLabel ? (
+            <span className="map-location-status" aria-live="polite">
+              {locationStatusLabel}
+            </span>
+          ) : null}
+        </div>
         {viewportSearchRequest ? (
           <button
             className="map-search-button"
@@ -211,6 +277,13 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
       </div>
     </aside>
   );
+}
+
+function locationStatusMessage(status: "idle" | "locating" | "denied" | "unsupported") {
+  if (status === "locating") return "위치 확인 중";
+  if (status === "denied") return "위치 권한 필요";
+  if (status === "unsupported") return "위치 미지원";
+  return null;
 }
 
 function getOrCreateMap(
@@ -285,6 +358,37 @@ function originIcon(L: LeafletModule) {
     iconAnchor: [10, 10],
     iconSize: [20, 20]
   });
+}
+
+function userLocationIcon(L: LeafletModule) {
+  return L.divIcon({
+    className: "map-user-location-marker",
+    html: "<span></span>",
+    iconAnchor: [14, 14],
+    iconSize: [28, 28]
+  });
+}
+
+function updateUserLocationMarker(
+  L: LeafletModule,
+  map: LeafletMap,
+  marker: LeafletMarker | null,
+  location: {
+    lat: number;
+    lng: number;
+  }
+) {
+  if (marker) {
+    marker.setLatLng([location.lat, location.lng]);
+    return marker;
+  }
+
+  return L.marker([location.lat, location.lng], {
+    icon: userLocationIcon(L),
+    interactive: false,
+    keyboard: false,
+    title: "내 위치"
+  }).addTo(map);
 }
 
 function revealResultCard(placeId: string) {
