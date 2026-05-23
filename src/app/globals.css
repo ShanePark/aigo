@@ -1460,7 +1460,6 @@ h3 {
   outline: 2px solid transparent;
   outline-offset: 2px;
   overflow: hidden;
-  position: relative;
   scroll-margin: 16px;
   transition:
     background-color 160ms ease,
@@ -1579,25 +1578,6 @@ h3 {
 .results-panel .result-card {
   grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
   min-height: var(--result-thumb-size);
-}
-
-.results-panel .result-card::before {
-  background: var(--highlight-border);
-  bottom: 0;
-  content: "";
-  left: var(--result-thumb-size);
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  transition: opacity 160ms ease;
-  width: 5px;
-}
-
-.results-panel .result-card:hover::before,
-.results-panel .result-card:focus-visible::before,
-.results-panel .result-card.is-map-highlighted::before {
-  opacity: 1;
 }
 
 .results-panel .result-image {
