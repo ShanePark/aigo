@@ -1482,6 +1482,105 @@ h3 {
   padding: 14px;
 }
 
+.empty-state {
+  align-items: start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 13px;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 18px;
+}
+
+.empty-state-page {
+  margin: 0 auto;
+  max-width: 760px;
+  width: 100%;
+}
+
+.empty-state-error {
+  border-color: var(--line-strong);
+}
+
+.empty-state-icon {
+  align-items: center;
+  background: var(--blue-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--blue);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.empty-state-error .empty-state-icon {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+.empty-state-copy {
+  min-width: 0;
+}
+
+.empty-state-kicker {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.empty-state h2,
+.empty-state h3 {
+  margin-bottom: 6px;
+}
+
+.empty-state-copy p:last-child {
+  color: var(--body-copy);
+  line-height: 1.55;
+  margin-bottom: 0;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 2;
+}
+
+.empty-state-action {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.empty-state-action:hover {
+  border-color: var(--hover-border);
+  color: var(--mint);
+}
+
+.empty-state-action.is-primary {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--accent-text);
+}
+
+.empty-state-action.is-primary:hover {
+  background: var(--button-hover);
+  color: var(--accent-text);
+}
+
 .detail-page {
   max-width: 1000px;
 }
@@ -2009,6 +2108,18 @@ dd {
 
   .detail-hero-image {
     aspect-ratio: 16 / 9;
+  }
+
+  .empty-state {
+    grid-template-columns: 1fr;
+  }
+
+  .empty-state-actions {
+    grid-column: 1;
+  }
+
+  .empty-state-action {
+    justify-content: center;
   }
 
   .detail-primary-map-cta {

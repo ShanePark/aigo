@@ -8,9 +8,12 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
   MapPin,
   Puzzle,
+  RotateCcw,
   Search,
+  SearchX,
   SlidersHorizontal,
   TreePine,
   Utensils,
@@ -92,6 +95,7 @@ const RESULT_CARD_PLAY_FEATURE_LABELS: Record<string, string> = {
   rideOnToys: "승용완구",
   playHouse: "놀이집"
 };
+const RELAXED_SEARCH_PARAM_KEYS = new Set(["babyChair", "indoor", "maxLat", "maxLng", "minLat", "minLng", "nursing", "offset", "page", "parking", "stroller"]);
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -236,7 +240,7 @@ export default async function Home({ searchParams }: HomeProps) {
       </section>
 
       {result.error ? (
-        <div className="notice">{result.error}</div>
+        <SearchErrorState message={result.error} params={effectiveParams} />
       ) : (
         <section className="explore-layout">
           <PlacesMap origin={mapOrigin} places={mapPlaces} searchHref={searchReturnHref} />
@@ -258,7 +262,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 {result.items.map((place, index) => (
                   <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
                 ))}
-                {result.items.length === 0 ? <div className="notice">아직 조건에 맞는 장소가 없습니다.</div> : null}
+                {result.items.length === 0 ? <SearchEmptyState activeCategoryGroup={activeCategoryGroup} params={effectiveParams} /> : null}
               </div>
             </div>
             <Pagination meta={result.meta} params={effectiveParams} />
@@ -266,6 +270,77 @@ export default async function Home({ searchParams }: HomeProps) {
         </section>
       )}
     </div>
+  );
+}
+
+function SearchErrorState({ message, params }: { message: string; params: Record<string, string | string[] | undefined> }) {
+  return (
+    <section className="empty-state empty-state-page empty-state-error" aria-live="polite">
+      <div className="empty-state-icon">
+        <CircleAlert size={24} aria-hidden="true" />
+      </div>
+      <div className="empty-state-copy">
+        <p className="empty-state-kicker">검색 오류</p>
+        <h2>장소를 불러오지 못했습니다</h2>
+        <p>{message}</p>
+      </div>
+      <div className="empty-state-actions">
+        <Link className="empty-state-action is-primary" href={currentSearchUrlObject(params)}>
+          <RotateCcw size={15} aria-hidden="true" />
+          다시 시도
+        </Link>
+        {hasRelaxableParams(params) ? (
+          <Link className="empty-state-action" href={relaxedSearchHref(params)}>
+            <SearchX size={15} aria-hidden="true" />
+            조건 줄이기
+          </Link>
+        ) : null}
+        <Link className="empty-state-action" href="/">
+          <Blocks size={15} aria-hidden="true" />
+          전체 보기
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function SearchEmptyState({ activeCategoryGroup, params }: { activeCategoryGroup: CategoryGroupId; params: Record<string, string | string[] | undefined> }) {
+  const suggestedGroups = emptyStateCategoryGroups(activeCategoryGroup);
+
+  return (
+    <section className="empty-state" aria-live="polite">
+      <div className="empty-state-icon">
+        <SearchX size={24} aria-hidden="true" />
+      </div>
+      <div className="empty-state-copy">
+        <p className="empty-state-kicker">결과 없음</p>
+        <h3>조건에 맞는 장소가 아직 없습니다</h3>
+        <p>실내, 주차, 유모차 같은 조건을 조금 줄이거나 다른 큰 분류에서 다시 찾아볼 수 있습니다.</p>
+      </div>
+      <div className="empty-state-actions">
+        {hasRelaxableParams(params) ? (
+          <Link className="empty-state-action is-primary" href={relaxedSearchHref(params)}>
+            <SearchX size={15} aria-hidden="true" />
+            조건 줄이기
+          </Link>
+        ) : null}
+        <Link className={`empty-state-action ${hasRelaxableParams(params) ? "" : "is-primary"}`} href="/">
+          <Blocks size={15} aria-hidden="true" />
+          전체 보기
+        </Link>
+        {suggestedGroups.map((groupId) => {
+          const group = CATEGORY_GROUPS[groupId];
+          const Icon = group.icon;
+
+          return (
+            <Link className="empty-state-action" href={categoryGroupHref(params, groupId)} key={groupId}>
+              <Icon size={15} aria-hidden="true" />
+              {group.label}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -468,6 +543,35 @@ function withoutCategoryParams(params: Record<string, string | string[] | undefi
   delete next.offset;
   delete next.page;
   return next;
+}
+
+function hasRelaxableParams(params: Record<string, string | string[] | undefined>) {
+  return Array.from(RELAXED_SEARCH_PARAM_KEYS).some((key) => Boolean(textParam(params[key])));
+}
+
+function relaxedSearchHref(params: Record<string, string | string[] | undefined>): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (RELAXED_SEARCH_PARAM_KEYS.has(key) || key === "visitContext") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  return { pathname: "/", query };
+}
+
+function emptyStateCategoryGroups(activeCategoryGroup: CategoryGroupId) {
+  const suggestions: CategoryGroupId[] = ["kidsCafe", "playground", "visit"];
+  return suggestions.filter((groupId) => groupId !== activeCategoryGroup);
 }
 
 function resultLimitParam(params: Record<string, string | string[] | undefined>) {
@@ -704,6 +808,26 @@ function currentSearchHref(params: Record<string, string | string[] | undefined>
 
   const search = query.toString();
   return search ? `/?${search}` : "/";
+}
+
+function currentSearchUrlObject(params: Record<string, string | string[] | undefined>): UrlObject {
+  const query: Record<string, string | string[]> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "offset" || key === "returnTo" || key === "visitContext") continue;
+    if (Array.isArray(value)) {
+      const values = value.filter(Boolean);
+      if (values.length === 1) {
+        query[key] = values[0];
+      } else if (values.length > 1) {
+        query[key] = values;
+      }
+      continue;
+    }
+    if (value) query[key] = value;
+  }
+
+  return { pathname: "/", query };
 }
 
 function placeDetailHref(placeId: string, returnHref: string): UrlObject {
