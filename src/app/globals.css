@@ -1460,6 +1460,7 @@ h3 {
   outline: 2px solid transparent;
   outline-offset: 2px;
   overflow: hidden;
+  position: relative;
   scroll-margin: 16px;
   transition:
     background-color 160ms ease,
@@ -1474,7 +1475,6 @@ h3 {
   background: var(--result-hover-bg);
   border-color: var(--highlight-border);
   box-shadow:
-    inset 5px 0 0 var(--highlight-border),
     0 0 0 3px var(--highlight-ring),
     var(--result-hover-shadow);
   outline-color: var(--highlight-outline);
@@ -1485,7 +1485,6 @@ h3 {
   background: var(--result-hover-bg);
   border-color: var(--highlight-border);
   box-shadow:
-    inset 5px 0 0 var(--highlight-border),
     0 0 0 4px var(--highlight-ring),
     var(--result-hover-shadow);
   outline: 2px solid var(--highlight-outline);
@@ -1582,10 +1581,30 @@ h3 {
   min-height: var(--result-thumb-size);
 }
 
+.results-panel .result-card::before {
+  background: var(--highlight-border);
+  bottom: 0;
+  content: "";
+  left: var(--result-thumb-size);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transition: opacity 160ms ease;
+  width: 5px;
+}
+
+.results-panel .result-card:hover::before,
+.results-panel .result-card:focus-visible::before,
+.results-panel .result-card.is-map-highlighted::before {
+  opacity: 1;
+}
+
 .results-panel .result-image {
-  align-self: start;
+  align-self: stretch;
+  aspect-ratio: auto;
   border-right: 1px solid var(--line);
-  height: var(--result-thumb-size);
+  height: auto;
   min-height: 0;
   width: var(--result-thumb-size);
 }
