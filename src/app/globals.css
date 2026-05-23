@@ -594,6 +594,25 @@ h3 {
   white-space: nowrap;
 }
 
+.advanced-active-chips .advanced-child-chip {
+  align-items: center;
+  background: var(--panel);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1px;
+  width: 32px;
+}
+
+.advanced-child-chip img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.1);
+  width: 100%;
+}
+
 .advanced-search summary::-webkit-details-marker {
   display: none;
 }
@@ -601,6 +620,14 @@ h3 {
 .advanced-search[open] {
   background: var(--panel);
   box-shadow: var(--shadow-soft);
+}
+
+.advanced-search[open] .advanced-active-chips {
+  display: none;
+}
+
+.advanced-search[open] .advanced-child-chip {
+  display: none;
 }
 
 .advanced-checks {
@@ -633,11 +660,6 @@ h3 {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
-}
-
-.child-profile-panel-head strong {
-  font-size: 14px;
-  line-height: 1.35;
 }
 
 .child-profile-add-button {
@@ -746,6 +768,7 @@ h3 {
   display: block;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.12);
   width: 100%;
 }
 
@@ -762,24 +785,21 @@ h3 {
   line-height: 1.1;
 }
 
-.child-profile-option-copy small,
-.child-profile-copy span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .child-profile-applied {
+  align-items: center;
   background: var(--mint);
   border-radius: 999px;
   color: var(--accent-text);
+  display: inline-flex;
   font-size: 10px;
   font-weight: 900;
+  height: 20px;
+  justify-content: center;
   line-height: 1;
-  padding: 5px 6px;
   position: absolute;
   right: 7px;
   top: 7px;
+  width: 20px;
 }
 
 .child-profile-confirm {

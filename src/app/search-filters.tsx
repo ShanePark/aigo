@@ -54,10 +54,8 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     setIsPickerOpen(false);
   }, [initialKey, initialParams]);
 
-  const activeChips = [
-    ...FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label),
-    ...childProfiles.map(formatChildProfile)
-  ];
+  const activeFilterChips = FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label);
+  const activeChipCount = activeFilterChips.length + childProfiles.length;
   const profileAges = childProfilesToAgeMonths(childProfiles);
   const draftBandAlreadyExists = childProfiles.some((profile) => profile.ageBand === draftAgeBand);
   const isAtProfileLimit = childProfiles.length >= CHILD_AGE_BANDS.length && !draftBandAlreadyExists;
@@ -121,18 +119,22 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   }
 
   return (
-    <details className={`advanced-search ${activeChips.length > 0 ? "has-active" : ""}`} ref={rootRef}>
+    <details className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
       <summary>
         <span className="advanced-summary-title">
           <SlidersHorizontal size={16} aria-hidden="true" />
           세부 조건
         </span>
-        {activeChips.length > 0 ? (
+        {activeChipCount > 0 ? (
           <span className="advanced-active-chips" aria-label="적용된 세부 조건">
-            {activeChips.slice(0, 6).map((chip, index) => (
-              <span key={`${chip}-${index}`}>{chip}</span>
+            {activeFilterChips.map((chip) => (
+              <span key={chip}>{chip}</span>
             ))}
-            {activeChips.length > 6 ? <span>+{activeChips.length - 6}</span> : null}
+            {childProfiles.map((profile) => (
+              <span className="advanced-child-chip" key={profile.ageBand} aria-label={formatChildProfile(profile)}>
+                <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={28} height={28} />
+              </span>
+            ))}
           </span>
         ) : null}
       </summary>
@@ -155,7 +157,6 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
         <div className="child-profile-panel-head">
           <div>
             <span>아이 조건</span>
-            <strong>{childProfiles.length > 0 ? childProfiles.map(formatChildProfile).join(" · ") : "선택 없음"}</strong>
           </div>
           <button
             className="child-profile-add-button"
@@ -210,9 +211,12 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
                     </span>
                     <span className="child-profile-option-copy">
                       <strong>{band.label}</strong>
-                      <small>{band.hint}</small>
                     </span>
-                    {isApplied ? <span className="child-profile-applied">적용됨</span> : null}
+                    {isApplied ? (
+                      <span className="child-profile-applied" aria-label="이미 적용됨">
+                        <Check size={11} aria-hidden="true" />
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -251,9 +255,8 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
       </div>
       <div className="child-profile-copy">
         <strong>{formatChildProfile(profile)}</strong>
-        <span>{band.hint}</span>
       </div>
-      <button className="child-profile-remove" type="button" onClick={onRemove} aria-label={`${formatChildProfile(profile)} 제거`}>
+      <button className="child-profile-remove" type="button" onClick={onRemove} aria-label="아이 조건 제거">
         <Trash2 size={14} aria-hidden="true" />
       </button>
     </article>

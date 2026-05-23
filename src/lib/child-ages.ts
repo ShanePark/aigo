@@ -1,9 +1,9 @@
 export const CHILD_AGE_BANDS = [
-  { id: "under6", label: "6개월 이하", shortLabel: "~6개월", ageMonths: 4, tone: "blue", hint: "낮잠·수유" },
-  { id: "6-12", label: "6~12개월", shortLabel: "6~12개월", ageMonths: 7, tone: "mint", hint: "쪽쪽이·기어다니기" },
-  { id: "12-24", label: "12~24개월", shortLabel: "12~24개월", ageMonths: 18, tone: "yellow", hint: "걸음마" },
-  { id: "24-48", label: "24~48개월", shortLabel: "24~48개월", ageMonths: 32, tone: "coral", hint: "뛰어놀기" },
-  { id: "48-84", label: "48개월~7세", shortLabel: "48개월~7세", ageMonths: 60, tone: "blue", hint: "미취학 활동" }
+  { id: "under6", label: "6개월 이하", shortLabel: "~6개월", ageMonths: 4, tone: "blue" },
+  { id: "6-12", label: "6~12개월", shortLabel: "6~12개월", ageMonths: 7, tone: "mint" },
+  { id: "12-24", label: "12~24개월", shortLabel: "12~24개월", ageMonths: 18, tone: "yellow" },
+  { id: "24-48", label: "24~48개월", shortLabel: "24~48개월", ageMonths: 32, tone: "coral" },
+  { id: "48-84", label: "48개월~7세", shortLabel: "48개월~7세", ageMonths: 60, tone: "blue" }
 ] as const;
 
 export const CHILD_GENDERS = [
@@ -19,7 +19,6 @@ export const DEFAULT_CHILD_PROFILES = [
 export const DEFAULT_CHILD_AGE_MONTHS = [32, 7] as const;
 export const MAX_CHILD_AGE_MONTHS = 240;
 
-export type ChildAgeStage = "infant" | "preschooler" | "toddler";
 export type ChildAgeBandId = (typeof CHILD_AGE_BANDS)[number]["id"];
 export type ChildGender = (typeof CHILD_GENDERS)[number]["id"];
 export type ChildProfile = {
@@ -109,23 +108,6 @@ export function childGenderLabel(gender: ChildGender) {
 
 export function formatChildProfile(profile: ChildProfile) {
   return `${childGenderLabel(profile.gender)} ${childAgeBandById(profile.ageBand).shortLabel}`;
-}
-
-export function childAgeStage(ageMonths: number): ChildAgeStage {
-  if (ageMonths < 12) return "infant";
-  if (ageMonths < 36) return "toddler";
-  return "preschooler";
-}
-
-export function childAgeStageLabel(ageMonths: number) {
-  const stage = childAgeStage(ageMonths);
-  if (stage === "infant") return "쪽쪽이 시기";
-  if (stage === "toddler") return "아장아장";
-  return "활동 많은 아이";
-}
-
-export function formatChildAge(ageMonths: number) {
-  return `${ageMonths}개월`;
 }
 
 function isChildGender(value: string | undefined): value is ChildGender {
