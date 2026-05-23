@@ -674,11 +674,11 @@ h3 {
 }
 
 .explore-layout {
-  --explore-height: clamp(380px, calc(100vh - 340px), 680px);
+  --explore-height: clamp(430px, calc(100vh - 318px), 700px);
   align-items: stretch;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(380px, 0.92fr) minmax(420px, 1.08fr);
+  gap: 14px;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(440px, 1.1fr);
 }
 
 .map-card {
@@ -700,7 +700,8 @@ h3 {
   flex: 0 0 auto;
   gap: 14px;
   justify-content: space-between;
-  padding: 12px 14px 10px;
+  min-height: 73px;
+  padding: 14px 14px 12px;
 }
 
 .map-card-head h2 {
@@ -711,6 +712,7 @@ h3 {
   color: var(--muted);
   font-size: 13px;
   margin-bottom: 0;
+  max-width: 34ch;
 }
 
 .map-card-head > span {
@@ -732,21 +734,6 @@ h3 {
   overflow: hidden;
   position: relative;
   width: 100%;
-}
-
-.map-count-badge {
-  background: var(--mint-soft);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--mint);
-  font-size: 13px;
-  font-weight: 900;
-  padding: 7px 10px;
-  position: absolute;
-  right: 14px;
-  top: 14px;
-  white-space: nowrap;
-  z-index: 450;
 }
 
 .map-search-button {
@@ -951,6 +938,7 @@ h3 {
 
 .results-panel .result-header {
   flex: 0 0 auto;
+  min-height: 73px;
   margin-bottom: 0;
   padding: 14px 14px 12px;
 }
@@ -1923,8 +1911,8 @@ dd {
   }
 
   .map-canvas {
-    height: 420px;
-    min-height: 360px;
+    height: min(52vh, 380px);
+    min-height: 300px;
   }
 }
 
@@ -1994,6 +1982,11 @@ dd {
   .search-interpretation {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .map-card-head,
+  .results-panel .result-header {
+    min-height: auto;
   }
 
   .result-actions {

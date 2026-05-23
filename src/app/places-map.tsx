@@ -185,13 +185,19 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
 
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
+      <div className="map-card-head">
+        <div>
+          <h2>지도</h2>
+          <p>{origin?.label ?? "전국 탐색"} 기준으로 후보 위치를 확인합니다</p>
+        </div>
+        <span>{places.length}곳</span>
+      </div>
       <div className="map-canvas">
         {viewportSearchHref ? (
           <a className="map-search-button" href={viewportSearchHref}>
             현 지도에서 검색
           </a>
         ) : null}
-        <span className="map-count-badge">{places.length}곳</span>
         <div className="leaflet-map" ref={mapElementRef} />
       </div>
     </aside>
