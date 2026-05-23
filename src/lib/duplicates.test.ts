@@ -98,6 +98,23 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toContain("ADDRESS_MATCH");
   });
 
+  it("treats exact self-check signals as high confidence", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 1,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"]));
+  });
+
   it("keeps same-region name matches at medium confidence without address", () => {
     const signals = {
       aliasMatch: false,

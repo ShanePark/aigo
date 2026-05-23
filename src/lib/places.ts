@@ -1099,11 +1099,21 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
       select
         *,
         case
-          when ${hasCoordinates} then ST_Distance(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography)
+          when ${hasCoordinates} then least(
+            ST_Distance(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography),
+            ST_Distance(ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography)
+          )
           else null
         end as distance_meters,
         case
-          when ${hasCoordinates} then ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${input.radiusMeters})
+          when ${hasCoordinates} then (
+            ST_DWithin(geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${input.radiusMeters})
+            or ST_DWithin(
+              ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+              ${input.radiusMeters}
+            )
+          )
           else false
         end as geo_near,
         greatest(
