@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Search,
   SearchX,
+  ShoppingBag,
   SlidersHorizontal,
   TreePine,
   Utensils,
@@ -40,10 +41,11 @@ const CATEGORY_GROUPS = {
   stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, categories: ["accommodation"] },
   visit: {
     label: "방문",
-    hint: "과학관/쇼핑",
+    hint: "과학관/문화",
     icon: Building2,
-    categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "shopping_mall", "sports_venue", "rest_area"]
+    categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "sports_venue", "rest_area"]
   },
+  shopping: { label: "쇼핑몰", hint: "백화점/몰", icon: ShoppingBag, categories: ["shopping_mall"] },
   toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: ["toy_store"] },
   playground: { label: "놀이터", hint: "공공놀이", icon: TreePine, categories: ["park", "indoor_playground"] },
   kidsCafe: { label: "키즈카페", hint: "상업놀이", icon: Baby, categories: ["kids_cafe", "family_cafe"] },
@@ -542,7 +544,7 @@ function relaxedSearchHref(params: Record<string, string | string[] | undefined>
 }
 
 function emptyStateCategoryGroups(activeCategoryGroup: CategoryGroupId) {
-  const suggestions: CategoryGroupId[] = ["kidsCafe", "playground", "visit"];
+  const suggestions: CategoryGroupId[] = ["kidsCafe", "playground", "shopping", "visit"];
   return suggestions.filter((groupId) => groupId !== activeCategoryGroup);
 }
 
