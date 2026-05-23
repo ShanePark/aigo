@@ -14,6 +14,8 @@ type ProbeAttempt = {
   status: number | null;
   ok: boolean;
   contentType: string | null;
+  declaredContentType?: string | null;
+  sniffedContentType?: string | null;
   contentLength: number | null;
   fullContentLength?: number | null;
   contentSha256?: string | null;
@@ -144,6 +146,9 @@ export async function probeImageCandidate(input: ProbeArgs & { url: string }): P
 export function buildReport(input: { url: string; sourceUrl?: string; title?: string }, attempts: ProbeAttempt[]): ImageCandidateReport {
   const bestAttempt = attempts.find(isUsefulImageAttempt) ?? attempts.find((attempt) => attempt.status !== null) ?? attempts[0] ?? null;
   const labels = new Set(imageCandidateLabels(input.url, input.title, bestAttempt?.contentType ?? null));
+  if (bestAttempt?.sniffedContentType && !isImageContentType(bestAttempt.declaredContentType ?? null)) {
+    labels.add("image_content_type_sniffed");
+  }
   for (const attempt of attempts) {
     for (const label of knownPlaceholderLabels(input.url, attempt)) {
       labels.add(label);
@@ -256,14 +261,25 @@ async function fetchImageProbe(url: string, method: ProbeAttempt["method"], time
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs)
     });
-    const contentType = normalizedHeader(response.headers.get("content-type"));
+    const declaredContentType = normalizedHeader(response.headers.get("content-type"));
     const contentLength = numericHeader(response.headers.get("content-length"));
     const contentRangeLength = contentRangeTotalLength(response.headers.get("content-range"));
     let fullContentLength = method === "GET_RANGE" ? contentRangeLength : contentLength;
     let contentSha256: string | null = null;
+    let sniffedContentType: string | null = null;
+    let contentType = declaredContentType;
+    let body: Buffer | null = null;
+    const probeOk = response.ok || response.status === 206;
 
-    if (method === "GET" && response.ok && isImageContentType(contentType)) {
-      const body = Buffer.from(await response.arrayBuffer());
+    if (method !== "HEAD" && probeOk) {
+      body = Buffer.from(await response.arrayBuffer());
+      sniffedContentType = sniffImageContentType(body);
+      if (sniffedContentType && !isImageContentType(contentType)) {
+        contentType = sniffedContentType;
+      }
+    }
+
+    if (method === "GET" && probeOk && body && isImageContentType(contentType)) {
       fullContentLength = body.byteLength;
       contentSha256 = createHash("sha256").update(body).digest("hex");
     }
@@ -271,8 +287,10 @@ async function fetchImageProbe(url: string, method: ProbeAttempt["method"], time
     return {
       method,
       status: response.status,
-      ok: response.ok || response.status === 206,
+      ok: probeOk,
       contentType,
+      declaredContentType,
+      sniffedContentType,
       contentLength,
       fullContentLength,
       contentSha256,
@@ -332,6 +350,29 @@ function isRemoteHttpUrl(value: string) {
 
 function isImageContentType(value: string | null) {
   return Boolean(value?.toLowerCase().startsWith("image/"));
+}
+
+function sniffImageContentType(bytes: Uint8Array) {
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) {
+    return "image/png";
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (bytes.length >= 6 && ascii(bytes, 0, 6).match(/^GIF8[79]a$/)) {
+    return "image/gif";
+  }
+  if (bytes.length >= 12 && ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 4) === "WEBP") {
+    return "image/webp";
+  }
+  if (bytes.length >= 12 && ascii(bytes, 4, 4) === "ftyp" && ["avif", "avis"].includes(ascii(bytes, 8, 4))) {
+    return "image/avif";
+  }
+  return null;
+}
+
+function ascii(bytes: Uint8Array, offset: number, length: number) {
+  return String.fromCharCode(...bytes.slice(offset, offset + length));
 }
 
 function normalizedHeader(value: string | null) {
