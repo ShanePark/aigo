@@ -61,9 +61,15 @@ export function PlaceImage({ alt, category, src, variant }: PlaceImageProps) {
   const wrapperClass = variant === "detail" ? "detail-hero-image" : "result-image";
   const stateClass = !imageSrc ? "is-missing" : loaded ? "is-loaded" : "is-loading";
   const sourceClass = isFallbackSource ? "is-fallback-source" : "is-original-source";
+  const showFallbackUnderlay = Boolean(imageSrc && imageSrc !== fallbackSrc && !failedSources.includes(fallbackSrc));
+  const underlayClass = showFallbackUnderlay ? "has-fallback-underlay" : "no-fallback-underlay";
 
   return (
-    <div className={`${wrapperClass} ${stateClass} ${sourceClass}`} aria-label={!imageSrc ? alt : undefined}>
+    <div className={`${wrapperClass} ${stateClass} ${sourceClass} ${underlayClass}`} aria-label={!imageSrc ? alt : undefined}>
+      {showFallbackUnderlay ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="place-image-fallback-underlay" src={fallbackSrc} alt="" aria-hidden="true" loading="eager" />
+      ) : null}
       {!imageSrc || !loaded ? <ImageIcon className="place-image-placeholder" size={28} aria-hidden="true" /> : null}
       {imageSrc ? (
         // eslint-disable-next-line @next/next/no-img-element

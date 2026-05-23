@@ -1133,7 +1133,9 @@ h3 {
 }
 
 .result-image.is-fallback-source,
-.detail-hero-image.is-fallback-source {
+.detail-hero-image.is-fallback-source,
+.result-image.is-loading.has-fallback-underlay,
+.detail-hero-image.is-loading.has-fallback-underlay {
   background: var(--placeholder-frame);
 }
 
@@ -1143,14 +1145,32 @@ h3 {
   transform: scale(1.015);
 }
 
+.place-image-fallback-underlay {
+  filter: var(--placeholder-image-filter);
+  inset: 0;
+  opacity: 1 !important;
+  position: absolute;
+  transform: scale(1.015);
+  z-index: 0;
+}
+
+.result-image img:not(.place-image-fallback-underlay),
+.detail-hero-image img:not(.place-image-fallback-underlay) {
+  position: relative;
+  z-index: 1;
+}
+
 .result-image.is-fallback-source::after,
-.detail-hero-image.is-fallback-source::after {
+.detail-hero-image.is-fallback-source::after,
+.result-image.is-loading.has-fallback-underlay::after,
+.detail-hero-image.is-loading.has-fallback-underlay::after {
   background: var(--placeholder-overlay);
   box-shadow: var(--placeholder-inset-shadow);
   content: "";
   inset: 0;
   pointer-events: none;
   position: absolute;
+  z-index: 2;
 }
 
 .result-image.is-loaded img,
