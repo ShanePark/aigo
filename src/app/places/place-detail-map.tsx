@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import type { Map as LeafletMap, Marker } from "leaflet";
 
 type PlaceDetailMapProps = {
-  address?: string;
   category: string;
   lat: number;
   lng: number;
   name: string;
 };
 
-export function PlaceDetailMap({ address, category, lat, lng, name }: PlaceDetailMapProps) {
+export function PlaceDetailMap({ category, lat, lng, name }: PlaceDetailMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -73,28 +72,16 @@ export function PlaceDetailMap({ address, category, lat, lng, name }: PlaceDetai
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [address, category, lat, lng, name]);
+  }, [category, lat, lng, name]);
 
   return (
     <section className="detail-map-card" id="detail-map" aria-label="장소 위치 지도">
-      <div className="detail-map-head">
-        <div>
-          <h2>위치</h2>
-          <p>{address ?? "주소 미등록"}</p>
-        </div>
-        <a href={osmHref} target="_blank" rel="noreferrer">
+      <div className="detail-map-canvas">
+        <a className="detail-map-open-link" href={osmHref} target="_blank" rel="noreferrer">
           <ExternalLink size={14} aria-hidden="true" />
           크게 보기
         </a>
-      </div>
-      <div className="detail-map-canvas">
         <div className="leaflet-map" ref={mapElementRef} />
-      </div>
-      <div className="detail-map-meta">
-        <span>
-          <MapPin size={14} aria-hidden="true" />
-          {lat.toFixed(6)}, {lng.toFixed(6)}
-        </span>
       </div>
     </section>
   );

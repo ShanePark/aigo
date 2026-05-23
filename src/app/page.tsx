@@ -87,7 +87,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <ViewportBoundsInputs params={effectiveParams} />
           <div className="search-bar">
             <label className="query-field">
-              <span>검색어</span>
+              <span className="sr-only">검색어</span>
               <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
             </label>
             <button type="submit" className="primary-button">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UrlObject } from "url";
-import { ArrowUpDown, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX } from "lucide-react";
+import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
@@ -226,14 +226,13 @@ export function ExploreResults({
       />
       <div className="results-panel">
         <section className="result-header">
-          <div>
-            <h2>{activeCategoryGroup === "all" ? "주변 장소" : activeCategoryGroupLabel}</h2>
-            <p>{resultCountLabel(result.meta)}</p>
-          </div>
+          <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
+          <span className="result-count-chip" aria-label={resultCountLabel(result.meta)}>
+            {compactResultCountLabel(result.meta)}
+          </span>
           <div className="result-actions">
             <SortControls activeSort={activeSort} params={initialParams} />
             <LimitControls activeLimit={resultLimitParam(initialParams)} params={initialParams} />
-            {result.meta.total > 0 ? <span className="page-badge">{currentResultPage(result.meta)}페이지</span> : null}
           </div>
         </section>
 
@@ -386,10 +385,6 @@ function SortControls({
 }) {
   return (
     <nav className="sort-control" aria-label="목록 정렬">
-      <span>
-        <ArrowUpDown size={13} aria-hidden="true" />
-        정렬
-      </span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
         관련도순
       </Link>
@@ -403,7 +398,6 @@ function SortControls({
 function LimitControls({ activeLimit, params }: { activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number]; params: Record<string, string | string[]> }) {
   return (
     <nav className="limit-control" aria-label="한 페이지 표시 개수">
-      <span>표시</span>
       {RESULT_LIMIT_OPTIONS.map((limit) => (
         <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit)} key={limit}>
           {limit}개
@@ -500,6 +494,16 @@ function resultCountLabel(meta: SearchResultMeta) {
   const start = Math.min(meta.offset + 1, meta.total);
   const end = Math.min(meta.offset + meta.count, meta.total);
   return `${meta.total}개 중 ${start}-${end}번째`;
+}
+
+function compactResultCountLabel(meta: SearchResultMeta) {
+  if (meta.total === 0 || meta.count === 0) {
+    return "0곳";
+  }
+
+  const start = Math.min(meta.offset + 1, meta.total);
+  const end = Math.min(meta.offset + meta.count, meta.total);
+  return meta.total === meta.count ? `${meta.total}곳` : `${start}-${end} / ${meta.total}`;
 }
 
 function currentResultPage(meta: SearchResultMeta) {

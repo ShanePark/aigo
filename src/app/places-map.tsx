@@ -238,14 +238,20 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
 
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
-      <div className="map-card-head">
-        <div>
-          <h2>지도</h2>
-          <p>현 지도 화면에서 후보 위치를 확인합니다</p>
-        </div>
-        <span>{places.length}곳</span>
-      </div>
       <div className="map-canvas">
+        <div className="map-overlay-strip">
+          <span className="map-count-chip">{places.length}곳</span>
+          {viewportSearchRequest ? (
+            <button
+              className="map-search-button"
+              type="button"
+              onClick={() => onViewportSearch?.(viewportSearchRequest)}
+              disabled={isViewportSearchPending || !onViewportSearch}
+            >
+              {isViewportSearchPending ? "검색 중" : "이 화면 검색"}
+            </button>
+          ) : null}
+        </div>
         <div className="map-location-control">
           <button
             aria-label={locationStatus === "locating" ? "현재 위치 확인 중" : "내 위치로 지도 이동"}
@@ -263,16 +269,6 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
             </span>
           ) : null}
         </div>
-        {viewportSearchRequest ? (
-          <button
-            className="map-search-button"
-            type="button"
-            onClick={() => onViewportSearch?.(viewportSearchRequest)}
-            disabled={isViewportSearchPending || !onViewportSearch}
-          >
-            {isViewportSearchPending ? "검색 중" : "현 지도에서 검색"}
-          </button>
-        ) : null}
         <div className="leaflet-map" ref={mapElementRef} />
       </div>
     </aside>

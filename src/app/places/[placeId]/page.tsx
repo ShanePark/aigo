@@ -68,11 +68,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             {categoryLabel(place.primaryCategory)}
           </p>
           <h1>{place.name}</h1>
-          <p className="lede">{place.description ?? "설명이 아직 등록되지 않았습니다."}</p>
-        </div>
-        <div className="score version-box">
-          <small>데이터</small>
-          <strong>v{place.version}</strong>
+          {place.description ? <p className="lede">{place.description}</p> : null}
         </div>
       </section>
 
@@ -122,7 +118,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </aside>
       </section>
 
-      <PlaceDetailMap address={place.address ?? place.roadAddress ?? undefined} category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
+      <PlaceDetailMap category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
 
       {place.relatedPlaces.length > 0 ? (
         <section className="info-block full">
