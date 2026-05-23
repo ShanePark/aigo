@@ -4,6 +4,8 @@ import { LocateFixed } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
+import { LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
+
 export type MapPlace = {
   category: string;
   distance: string;
@@ -354,7 +356,7 @@ function getOrCreateMap(
 
   const map = L.map(element, {
     attributionControl: true,
-    scrollWheelZoom: true,
+    ...LEAFLET_SCROLL_WHEEL_OPTIONS,
     zoomControl: true
   });
 

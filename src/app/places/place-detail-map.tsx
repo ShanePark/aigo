@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
 import type { Map as LeafletMap, Marker } from "leaflet";
 
+import { LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
+
 type PlaceDetailMapProps = {
   category: string;
   lat: number;
@@ -29,7 +31,7 @@ export function PlaceDetailMap({ category, lat, lng, name }: PlaceDetailMapProps
         mapRef.current ??
         L.map(mapElementRef.current, {
           attributionControl: true,
-          scrollWheelZoom: true,
+          ...LEAFLET_SCROLL_WHEEL_OPTIONS,
           zoomControl: true
         });
 
