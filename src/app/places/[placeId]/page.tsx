@@ -60,16 +60,18 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
 
   return (
     <div className="page detail-page">
-      <BackToSearchLink href={backHref} />
+      <header className="detail-sticky-head">
+        <BackToSearchLink href={backHref} />
 
-      <section className="detail-head">
-        <div>
-          <p className="category" title={place.primaryCategory}>
-            {categoryLabel(place.primaryCategory)}
-          </p>
-          <h1>{place.name}</h1>
+        <div className="detail-head">
+          <div>
+            <p className="category" title={place.primaryCategory}>
+              {categoryLabel(place.primaryCategory)}
+            </p>
+            <h1>{place.name}</h1>
+          </div>
         </div>
-      </section>
+      </header>
 
       <section className="detail-media-grid">
         <div className="detail-hero-media">
