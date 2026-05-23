@@ -241,7 +241,7 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
       <div className="map-card-head">
         <div>
           <h2>지도</h2>
-          <p>{origin?.label ?? "전국 탐색"} 기준으로 후보 위치를 확인합니다</p>
+          <p>현 지도 화면에서 후보 위치를 확인합니다</p>
         </div>
         <span>{places.length}곳</span>
       </div>

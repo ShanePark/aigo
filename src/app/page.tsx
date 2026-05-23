@@ -22,7 +22,7 @@ import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 const DEFAULT_ORIGIN = {
   lat: 36.3322,
   lng: 127.4341,
-  label: "대전역/원도심"
+  label: "기본 지도 중심"
 };
 const DEFAULT_RESULT_LIMIT = 30;
 const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
