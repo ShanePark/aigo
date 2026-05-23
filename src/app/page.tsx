@@ -14,36 +14,38 @@ import {
 } from "lucide-react";
 
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
+import {
+  CATEGORY_GROUP_CATEGORY_FILTERS,
+  buildSearchInput,
+  categoryGroupParam,
+  resultLimitParam,
+  sortParam,
+  textParam,
+  type CategoryGroupId
+} from "@/app/home-search-state";
+import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
 import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
-import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
-const DEFAULT_ORIGIN = {
-  lat: 36.3322,
-  lng: 127.4341,
-  label: "기본 지도 중심"
-};
-const DEFAULT_RESULT_LIMIT = 30;
-const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
 const CATEGORY_GROUPS = {
-  all: { label: "전체", hint: "모두", icon: Blocks, categories: undefined },
-  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, categories: ["accommodation"] },
+  all: { label: "전체", hint: "모두", icon: Blocks, categories: CATEGORY_GROUP_CATEGORY_FILTERS.all },
+  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, categories: CATEGORY_GROUP_CATEGORY_FILTERS.stay },
   visit: {
     label: "방문",
     hint: "과학관/문화",
     icon: Building2,
-    categories: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "sports_venue", "rest_area"]
+    categories: CATEGORY_GROUP_CATEGORY_FILTERS.visit
   },
-  shopping: { label: "쇼핑몰", hint: "백화점/몰", icon: ShoppingBag, categories: ["shopping_mall"] },
-  toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: ["toy_store"] },
-  playground: { label: "놀이터", hint: "공공놀이", icon: TreePine, categories: ["park", "indoor_playground"] },
-  kidsCafe: { label: "키즈카페", hint: "상업놀이", icon: Baby, categories: ["kids_cafe", "family_cafe"] },
-  playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: ["family_restaurant"] }
+  shopping: { label: "쇼핑몰", hint: "백화점/몰", icon: ShoppingBag, categories: CATEGORY_GROUP_CATEGORY_FILTERS.shopping },
+  toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: CATEGORY_GROUP_CATEGORY_FILTERS.toyStore },
+  playground: { label: "놀이터", hint: "공공놀이", icon: TreePine, categories: CATEGORY_GROUP_CATEGORY_FILTERS.playground },
+  kidsCafe: { label: "키즈카페", hint: "상업놀이", icon: Baby, categories: CATEGORY_GROUP_CATEGORY_FILTERS.kidsCafe },
+  playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: CATEGORY_GROUP_CATEGORY_FILTERS.playroomDining }
 } as const satisfies Record<
-  string,
+  CategoryGroupId,
   {
     categories?: readonly string[];
     hint: string;
@@ -54,8 +56,6 @@ const CATEGORY_GROUPS = {
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-type CategoryGroupId = keyof typeof CATEGORY_GROUPS;
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
@@ -87,6 +87,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <input name="sort" type="hidden" value={activeSort} />
           <input name="limit" type="hidden" value={resultLimitParam(effectiveParams)} />
           <LocationStateInputs params={effectiveParams} />
+          <SearchFormLocationReset />
           <div className="search-bar">
             <label className="query-field">
               <span className="sr-only">검색어</span>
@@ -153,50 +154,6 @@ function locationStateParams(params: Record<string, string | string[] | undefine
   });
 }
 
-function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
-  const category = textParam(params.category);
-  const categoryGroup = categoryGroupParam(params);
-  const groupCategories = CATEGORY_GROUPS[categoryGroup].categories;
-  const limit = resultLimitParam(params);
-  const page = currentPageParam(params);
-  const nearby = textParam(params.nearby) === "1";
-  const viewportBounds = viewportBoundsFromParams(params);
-  const shouldFilterByRadius = categoryGroup !== "stay" || hasExplicitLocationParams(params);
-  const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
-  const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
-  const children = textParam(params.children);
-  const ages = children
-    ? childProfilesToAgeMonths(parseChildProfiles(children, textParam(params.ages)))
-    : parseChildAgeMonths(textParam(params.ages));
-
-  return {
-    origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
-    visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
-    radiusKm: shouldFilterByRadius ? Number(textParam(params.radiusKm) || 80) : undefined,
-    filterByRadius: viewportBounds ? false : shouldFilterByRadius,
-    viewportBounds,
-    query: textParam(params.query) || undefined,
-    primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
-    playgroundOnly: categoryGroup === "playground" ? true : undefined,
-    kidsCafeOnly: categoryGroup === "kidsCafe" ? true : undefined,
-    childAgeMonths: ages,
-    preferences: {
-      indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
-      parkingAvailable: params.parking === "on" ? true : undefined,
-      strollerFriendly: params.stroller === "on" ? true : undefined,
-      nursingRoom: params.nursing === "on" ? true : undefined,
-      babyChair: params.babyChair === "on" ? true : undefined
-    },
-    sort: sortParam(params),
-    limit,
-    offset: Math.min((page - 1) * limit, 1000)
-  };
-}
-
-function hasExplicitLocationParams(params: Record<string, string | string[] | undefined>) {
-  return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm) || viewportBoundsFromParams(params));
-}
-
 async function safeSearch(input: SearchPlacesInput) {
   try {
     return { ...(await searchPlaces(input)), error: undefined as string | undefined };
@@ -225,26 +182,6 @@ async function safeSearch(input: SearchPlacesInput) {
   }
 }
 
-function textParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function numberParam(value: string | string[] | undefined) {
-  const text = textParam(value);
-  if (!text || text.trim() === "") return undefined;
-  const number = Number(text);
-  return Number.isFinite(number) ? number : undefined;
-}
-
-function viewportBoundsFromParams(params: Record<string, string | string[] | undefined>): SearchPlacesInput["viewportBounds"] | undefined {
-  const minLat = numberParam(params.minLat);
-  const minLng = numberParam(params.minLng);
-  const maxLat = numberParam(params.maxLat);
-  const maxLng = numberParam(params.maxLng);
-  if (minLat === undefined || minLng === undefined || maxLat === undefined || maxLng === undefined) return undefined;
-  return { minLat, minLng, maxLat, maxLng };
-}
-
 function withoutCategoryParams(params: Record<string, string | string[] | undefined>) {
   const next = { ...params };
   delete next.category;
@@ -252,29 +189,6 @@ function withoutCategoryParams(params: Record<string, string | string[] | undefi
   delete next.offset;
   delete next.page;
   return next;
-}
-
-function resultLimitParam(params: Record<string, string | string[] | undefined>) {
-  const requested = Number(textParam(params.limit) || DEFAULT_RESULT_LIMIT);
-  return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? DEFAULT_RESULT_LIMIT;
-}
-
-function currentPageParam(params: Record<string, string | string[] | undefined>) {
-  const requested = Number(textParam(params.page) || 1);
-  return Number.isInteger(requested) && requested > 0 ? requested : 1;
-}
-
-function sortParam(params: Record<string, string | string[] | undefined>): Extract<SearchPlacesInput["sort"], "recommended" | "distance"> {
-  const value = textParam(params.sort);
-  if (value === "recommended" || value === "distance") {
-    return value;
-  }
-  return textParam(params.nearby) === "1" ? "distance" : "recommended";
-}
-
-function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {
-  const value = textParam(params.categoryGroup);
-  return value && value in CATEGORY_GROUPS ? (value as CategoryGroupId) : "all";
 }
 
 function categoryGroupHref(params: Record<string, string | string[] | undefined>, group: CategoryGroupId): UrlObject {

@@ -64,6 +64,14 @@ export function hasMapLocationParams(params: SearchParamsLike) {
   return MAP_LOCATION_PARAM_KEYS.some((key) => hasParamValue(params[key]));
 }
 
+export function clearMapLocationParamsForTextSearch(params: URLSearchParams | FormData) {
+  const query = params.get("query");
+  if (typeof query !== "string" || query.trim().length === 0) return params;
+
+  for (const key of MAP_LOCATION_PARAM_KEYS) params.delete(key);
+  return params;
+}
+
 export function searchParamsWithCurrentLocationState(search: string, formData: FormData): URLSearchParams {
   const params = currentLocationSearchParams(search);
   const shouldPreferCurrentLocationState = hasAnyParam(params);

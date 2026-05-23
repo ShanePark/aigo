@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clearMapLocationParamsForTextSearch,
   hasMapLocationParams,
   searchParamsForCurrentLocation,
   searchParamsForViewportSearch,
@@ -79,6 +80,39 @@ describe("search URL state", () => {
     expect(params.has("page")).toBe(false);
   });
 
+  it("keeps current map state for facet changes even after text-search form data cleanup", () => {
+    const formData = new FormData();
+    formData.set("query", "수유실");
+    formData.set("sort", "recommended");
+    formData.set("limit", "30");
+    formData.set("nursing", "on");
+    formData.set("lat", "35.000000");
+    formData.set("lng", "126.000000");
+    formData.set("minLat", "35.000000");
+    formData.set("minLng", "126.000000");
+    formData.set("maxLat", "35.100000");
+    formData.set("maxLng", "126.100000");
+
+    clearMapLocationParamsForTextSearch(formData);
+    const params = searchParamsWithCurrentLocationState(
+      "?lat=36.330000&lng=127.440000&minLat=36.300000&minLng=127.400000&maxLat=36.360000&maxLng=127.480000",
+      formData
+    );
+
+    expect(Object.fromEntries(params.entries())).toEqual({
+      lat: "36.330000",
+      lng: "127.440000",
+      maxLat: "36.360000",
+      maxLng: "127.480000",
+      minLat: "36.300000",
+      minLng: "127.400000",
+      limit: "30",
+      nursing: "on",
+      query: "수유실",
+      sort: "recommended"
+    });
+  });
+
   it("uses form location inputs when there is no current location state", () => {
     const formData = new FormData();
     formData.set("lat", "36.330000");
@@ -128,5 +162,47 @@ describe("search URL state", () => {
     expect(hasMapLocationParams({ query: "키즈카페" })).toBe(false);
     expect(hasMapLocationParams({ lat: "37.566500" })).toBe(true);
     expect(hasMapLocationParams({ maxLat: ["", "37.600000"] })).toBe(true);
+  });
+
+  it("clears carried map location params for an explicit text search", () => {
+    const params = new URLSearchParams({
+      categoryGroup: "kidsCafe",
+      lat: "36.330000",
+      lng: "127.440000",
+      maxLat: "36.360000",
+      maxLng: "127.480000",
+      minLat: "36.300000",
+      minLng: "127.400000",
+      nearby: "1",
+      query: "서울 키즈카페",
+      radiusKm: "20",
+      sort: "distance"
+    });
+
+    clearMapLocationParamsForTextSearch(params);
+
+    expect(Object.fromEntries(params.entries())).toEqual({
+      categoryGroup: "kidsCafe",
+      query: "서울 키즈카페",
+      sort: "distance"
+    });
+  });
+
+  it("keeps map location params when the text query is blank", () => {
+    const params = new URLSearchParams({
+      lat: "36.330000",
+      lng: "127.440000",
+      query: "   ",
+      radiusKm: "20"
+    });
+
+    clearMapLocationParamsForTextSearch(params);
+
+    expect(Object.fromEntries(params.entries())).toEqual({
+      lat: "36.330000",
+      lng: "127.440000",
+      query: "   ",
+      radiusKm: "20"
+    });
   });
 });
