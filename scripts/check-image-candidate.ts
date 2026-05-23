@@ -9,7 +9,7 @@ type ProbeArgs = {
 };
 
 type ProbeAttempt = {
-  method: "HEAD" | "GET_RANGE";
+  method: "HEAD" | "GET_RANGE" | "GET";
   status: number | null;
   ok: boolean;
   contentType: string | null;
@@ -95,7 +95,7 @@ export function parseArgs(argv: string[]): ProbeArgs {
   return args;
 }
 
-async function probeImageCandidate(input: ProbeArgs & { url: string }): Promise<ImageCandidateReport> {
+export async function probeImageCandidate(input: ProbeArgs & { url: string }): Promise<ImageCandidateReport> {
   const remote = isRemoteHttpUrl(input.url);
   const attempts: ProbeAttempt[] = [];
 
@@ -110,6 +110,14 @@ async function probeImageCandidate(input: ProbeArgs & { url: string }): Promise<
 
   if (input.sourceUrl && !attempts.some(isUsefulImageAttempt)) {
     attempts.push(await fetchImageProbe(input.url, "GET_RANGE", input.timeoutMs, true, input.sourceUrl));
+  }
+
+  if (!attempts.some(isUsefulImageAttempt)) {
+    attempts.push(await fetchImageProbe(input.url, "GET", input.timeoutMs, false));
+  }
+
+  if (input.sourceUrl && !attempts.some(isUsefulImageAttempt)) {
+    attempts.push(await fetchImageProbe(input.url, "GET", input.timeoutMs, true, input.sourceUrl));
   }
 
   return buildReport(input, attempts);
@@ -189,7 +197,7 @@ async function fetchImageProbe(url: string, method: ProbeAttempt["method"], time
     const response = await fetch(url, {
       method: method === "HEAD" ? "HEAD" : "GET",
       headers: {
-        ...(method === "GET_RANGE" ? { range: "bytes=0-0" } : {}),
+        ...(method === "GET_RANGE" ? { range: "bytes=0-63" } : {}),
         ...(usedReferer && sourceUrl ? { referer: sourceUrl } : {})
       },
       redirect: "follow",

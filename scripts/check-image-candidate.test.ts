@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildReport, imageCandidateLabels, parseArgs } from "./check-image-candidate";
+import { buildReport, imageCandidateLabels, parseArgs, probeImageCandidate } from "./check-image-candidate";
 
 describe("image candidate helper", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("parses repeated candidate urls", () => {
     const args = parseArgs([
       "--url=https://example.com/a.jpg",
@@ -71,5 +75,62 @@ describe("image candidate helper", () => {
 
     expect(report.hotlinkRisk).toBe("high");
     expect(report.recommendation).toBe("hold");
+  });
+
+  it("accepts ranged image GET after a failed HEAD probe", () => {
+    const report = buildReport(
+      { url: "https://example.com/fileImage.do", sourceUrl: "https://example.com/place", title: "Place" },
+      [
+        {
+          method: "HEAD",
+          status: 405,
+          ok: false,
+          contentType: "text/html",
+          contentLength: null,
+          finalUrl: "https://example.com/fileImage.do",
+          usedReferer: false
+        },
+        {
+          method: "GET_RANGE",
+          status: 206,
+          ok: true,
+          contentType: "image/jpeg",
+          contentLength: 64,
+          finalUrl: "https://example.com/fileImage.do",
+          usedReferer: false
+        }
+      ]
+    );
+
+    expect(report.status).toBe(206);
+    expect(report.hotlinkRisk).toBe("low");
+    expect(report.recommendation).toBe("use");
+  });
+
+  it("falls back from HEAD to ranged GET and full GET", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "HEAD") {
+        return new Response(null, { status: 405, headers: { "content-type": "text/html" } });
+      }
+
+      if (new Headers(init?.headers).has("range")) {
+        return new Response(null, { status: 200, headers: { "content-type": "text/html" } });
+      }
+
+      return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { "content-type": "image/png", "content-length": "3" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const report = await probeImageCandidate({
+      url: "https://example.com/no-range-support",
+      urls: [],
+      json: true,
+      timeoutMs: 1_000
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.contentType).toBe("image/png");
+    expect(report.attempts.map((attempt) => attempt.method)).toEqual(["HEAD", "GET_RANGE", "GET"]);
+    expect(fetchMock.mock.calls[1]?.[1]?.headers).toEqual({ range: "bytes=0-63" });
   });
 });
