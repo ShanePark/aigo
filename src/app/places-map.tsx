@@ -20,9 +20,11 @@ export type MapOrigin = {
 } | null;
 
 type PlacesMapProps = {
+  isViewportSearchPending?: boolean;
+  onViewportSearch?: (request: ViewportSearchRequest) => void;
   origin: MapOrigin;
   places: MapPlace[];
-  searchHref: string;
+  preserveViewOnUpdate?: boolean;
 };
 
 type MapBounds = {
@@ -38,6 +40,14 @@ type SavedMapView = {
   zoom: number;
 };
 
+export type ViewportSearchRequest = {
+  bounds: MapBounds;
+  center: {
+    lat: number;
+    lng: number;
+  };
+};
+
 type LeafletModule = typeof import("leaflet");
 
 const DEFAULT_MAP_CENTER = { lat: 36.3322, lng: 127.4341 };
@@ -45,16 +55,15 @@ const DEFAULT_MAP_ZOOM = 13;
 const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
 let highlightedResultTimer: number | undefined;
 
-export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
+export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, origin, places, preserveViewOnUpdate = false }: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
   const placeMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
   const initializedViewKeyRef = useRef<string | null>(null);
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
-  const searchHrefRef = useRef(searchHref);
   const viewKeyRef = useRef(mapViewKey(origin));
-  const [viewportSearchHref, setViewportSearchHref] = useState<string | null>(null);
+  const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
 
   useEffect(() => {
     return () => {
@@ -65,11 +74,6 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
   }, []);
 
   useEffect(() => {
-    searchHrefRef.current = searchHref;
-    setViewportSearchHref(null);
-  }, [searchHref]);
-
-  useEffect(() => {
     let disposed = false;
 
     async function renderMap() {
@@ -77,10 +81,10 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
       if (disposed || !mapElementRef.current) return;
 
       const viewKey = mapViewKey(origin);
-      const shouldApplyMapView = initializedViewKeyRef.current !== viewKey;
+      const shouldApplyMapView = initializedViewKeyRef.current !== viewKey && !(preserveViewOnUpdate && mapRef.current);
       viewKeyRef.current = viewKey;
       const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef, (changedMap) => {
-        setViewportSearchHref(buildViewportSearchHref(searchHrefRef.current, changedMap));
+        setViewportSearchRequest(buildViewportSearchRequest(changedMap));
       });
       const markers = getOrCreateMarkerLayer(L, map, markersRef);
       markers.clearLayers();
@@ -128,11 +132,11 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
         } else {
           setInitialMapView(map, origin, places);
         }
-        initializedViewKeyRef.current = viewKey;
       }
+      initializedViewKeyRef.current = viewKey;
 
       map.invalidateSize();
-      setViewportSearchHref(null);
+      setViewportSearchRequest(null);
     }
 
     void renderMap();
@@ -140,7 +144,7 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
     return () => {
       disposed = true;
     };
-  }, [origin, places]);
+  }, [origin, places, preserveViewOnUpdate]);
 
   useEffect(() => {
     function handleCardEnter(event: Event) {
@@ -193,10 +197,15 @@ export function PlacesMap({ origin, places, searchHref }: PlacesMapProps) {
         <span>{places.length}곳</span>
       </div>
       <div className="map-canvas">
-        {viewportSearchHref ? (
-          <a className="map-search-button" href={viewportSearchHref}>
-            현 지도에서 검색
-          </a>
+        {viewportSearchRequest ? (
+          <button
+            className="map-search-button"
+            type="button"
+            onClick={() => onViewportSearch?.(viewportSearchRequest)}
+            disabled={isViewportSearchPending || !onViewportSearch}
+          >
+            {isViewportSearchPending ? "검색 중" : "현 지도에서 검색"}
+          </button>
         ) : null}
         <div className="leaflet-map" ref={mapElementRef} />
       </div>
@@ -235,27 +244,22 @@ function getOrCreateMap(
   return map;
 }
 
-function buildViewportSearchHref(searchHref: string, map: LeafletMap) {
+function buildViewportSearchRequest(map: LeafletMap): ViewportSearchRequest {
   const bounds = map.getBounds();
   const center = map.getCenter();
-  const url = new URL(searchHref, window.location.origin);
 
-  url.searchParams.set("minLat", formatCoordinate(bounds.getSouth()));
-  url.searchParams.set("minLng", formatCoordinate(bounds.getWest()));
-  url.searchParams.set("maxLat", formatCoordinate(bounds.getNorth()));
-  url.searchParams.set("maxLng", formatCoordinate(bounds.getEast()));
-  url.searchParams.set("lat", formatCoordinate(center.lat));
-  url.searchParams.set("lng", formatCoordinate(center.lng));
-  url.searchParams.delete("page");
-  url.searchParams.delete("offset");
-  url.searchParams.delete("radiusKm");
-  url.searchParams.delete("nearby");
-
-  return `${url.pathname}${url.search}`;
-}
-
-function formatCoordinate(value: number) {
-  return value.toFixed(6);
+  return {
+    bounds: {
+      minLat: Number(bounds.getSouth().toFixed(6)),
+      minLng: Number(bounds.getWest().toFixed(6)),
+      maxLat: Number(bounds.getNorth().toFixed(6)),
+      maxLng: Number(bounds.getEast().toFixed(6))
+    },
+    center: {
+      lat: Number(center.lat.toFixed(6)),
+      lng: Number(center.lng.toFixed(6))
+    }
+  };
 }
 
 function getOrCreateMarkerLayer(L: LeafletModule, map: LeafletMap, markersRef: MutableRefObject<LayerGroup | null>) {

@@ -388,7 +388,7 @@ h3 {
 }
 
 .advanced-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   padding-top: 12px;
 }
 
@@ -780,6 +780,11 @@ h3 {
   z-index: 460;
 }
 
+.map-search-button:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
 .map-search-button:hover {
   border-color: var(--mint);
   color: var(--mint);
@@ -1022,6 +1027,17 @@ h3 {
 
 .results-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.results-inline-status {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--mint);
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 10px;
+  padding: 9px 11px;
 }
 
 .results-panel .results {
@@ -1392,6 +1408,7 @@ h3 {
 .page-ellipsis {
   align-items: center;
   border-radius: 999px;
+  font: inherit;
   display: inline-flex;
   font-size: 13px;
   font-weight: 800;
