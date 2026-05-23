@@ -31,10 +31,11 @@ describe("parseChildProfiles", () => {
     ]);
   });
 
-  it("keeps one representative search age per selected age band", () => {
+  it("keeps gender-specific profiles while using one representative search age per band", () => {
     const profiles = parseChildProfiles("boy:6-12,girl:6-12,boy:48-84");
 
     expect(profiles).toEqual([
+      { ageBand: "6-12", gender: "boy" },
       { ageBand: "6-12", gender: "girl" },
       { ageBand: "48-84", gender: "boy" }
     ]);

@@ -58,14 +58,16 @@ export function parseChildProfiles(childrenValue: string | null | undefined, age
 }
 
 export function normalizeChildProfiles(profiles: readonly ChildProfile[]): ChildProfile[] {
-  const byBand = new Map<ChildAgeBandId, ChildProfile>();
+  const byProfile = new Map<string, ChildProfile>();
   for (const profile of profiles) {
     if (isChildGender(profile.gender) && isChildAgeBandId(profile.ageBand)) {
-      byBand.set(profile.ageBand, { ageBand: profile.ageBand, gender: profile.gender });
+      byProfile.set(childProfileKey(profile), { ageBand: profile.ageBand, gender: profile.gender });
     }
   }
 
-  return CHILD_AGE_BANDS.map((band) => byBand.get(band.id)).filter((profile): profile is ChildProfile => Boolean(profile));
+  return CHILD_AGE_BANDS.flatMap((band) => CHILD_GENDERS.map((gender) => byProfile.get(childProfileKey({ ageBand: band.id, gender: gender.id })))).filter(
+    (profile): profile is ChildProfile => Boolean(profile)
+  );
 }
 
 export function profilesFromAgeMonths(ages: readonly number[]): ChildProfile[] {
@@ -78,7 +80,8 @@ export function profilesFromAgeMonths(ages: readonly number[]): ChildProfile[] {
 }
 
 export function childProfilesToAgeMonths(profiles: readonly ChildProfile[]): number[] {
-  return normalizeChildProfiles(profiles).map((profile) => childAgeBandById(profile.ageBand).ageMonths);
+  const ages = normalizeChildProfiles(profiles).map((profile) => childAgeBandById(profile.ageBand).ageMonths);
+  return Array.from(new Set(ages));
 }
 
 export function serializeChildProfiles(profiles: readonly ChildProfile[]) {
@@ -108,6 +111,10 @@ export function childGenderLabel(gender: ChildGender) {
 
 export function formatChildProfile(profile: ChildProfile) {
   return childAgeBandById(profile.ageBand).shortLabel;
+}
+
+export function childProfileKey(profile: ChildProfile) {
+  return `${profile.gender}:${profile.ageBand}`;
 }
 
 function isChildGender(value: string | undefined): value is ChildGender {

@@ -9,6 +9,7 @@ import {
   CHILD_AGE_BANDS,
   CHILD_GENDERS,
   childAgeBandById,
+  childProfileKey,
   childProfilesToAgeMonths,
   formatChildProfile,
   normalizeChildProfiles,
@@ -37,6 +38,7 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 const DEFAULT_DRAFT_GENDER: ChildGender = "boy";
 const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
 const CHILD_PROFILE_STORAGE_KEY = "aigo-child-profiles";
+const MAX_CHILD_PROFILE_COUNT = CHILD_AGE_BANDS.length * CHILD_GENDERS.length;
 
 export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const router = useRouter();
@@ -52,8 +54,8 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const activeFilterChips = FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label);
   const activeChipCount = activeFilterChips.length + childProfiles.length;
   const profileAges = childProfilesToAgeMonths(childProfiles);
-  const draftBandAlreadyExists = childProfiles.some((profile) => profile.ageBand === draftAgeBand);
-  const isAtProfileLimit = childProfiles.length >= CHILD_AGE_BANDS.length;
+  const draftProfileAlreadyExists = childProfiles.some((profile) => isSameChildProfile(profile, { ageBand: draftAgeBand, gender: draftGender }));
+  const isAtProfileLimit = childProfiles.length >= MAX_CHILD_PROFILE_COUNT;
 
   function applyCurrentForm(overrides: { profiles?: ChildProfile[] } = {}) {
     const form = rootRef.current?.closest("form");
@@ -93,7 +95,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   }
 
   function addDraftProfile() {
-    if (isAtProfileLimit || draftBandAlreadyExists) return;
+    if (isAtProfileLimit || draftProfileAlreadyExists) return;
     commitProfiles([...childProfiles, { ageBand: draftAgeBand, gender: draftGender }]);
     setIsPickerOpen(false);
   }
@@ -106,13 +108,12 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
       return;
     }
 
-    const nextAgeBand =
-      CHILD_AGE_BANDS.find((band) => !childProfiles.some((profile) => profile.ageBand === band.id))?.id ??
-      childProfiles[0]?.ageBand ??
-      DEFAULT_DRAFT_AGE_BAND;
-    const existingProfile = childProfiles.find((profile) => profile.ageBand === nextAgeBand);
-    setDraftAgeBand(nextAgeBand);
-    setDraftGender(existingProfile?.gender ?? DEFAULT_DRAFT_GENDER);
+    const nextProfile =
+      CHILD_AGE_BANDS.flatMap((band) => CHILD_GENDERS.map((gender) => ({ ageBand: band.id, gender: gender.id }))).find(
+        (candidate) => !childProfiles.some((profile) => isSameChildProfile(profile, candidate))
+      ) ?? { ageBand: DEFAULT_DRAFT_AGE_BAND, gender: DEFAULT_DRAFT_GENDER };
+    setDraftAgeBand(nextProfile.ageBand);
+    setDraftGender(nextProfile.gender);
     setIsPickerOpen(true);
   }
 
@@ -167,7 +168,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
               <span key={chip}>{chip}</span>
             ))}
             {childProfiles.map((profile) => (
-              <span className="advanced-child-chip" key={profile.ageBand} aria-label={formatChildProfile(profile)}>
+              <span className="advanced-child-chip" key={childProfileKey(profile)} aria-label={formatChildProfile(profile)}>
                 <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={28} height={28} />
               </span>
             ))}
@@ -237,7 +238,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
               {CHILD_AGE_BANDS.map((band) => {
                 const optionProfile = { ageBand: band.id, gender: draftGender };
                 const isSelected = draftAgeBand === band.id;
-                const isApplied = childProfiles.some((profile) => profile.ageBand === band.id);
+                const isApplied = childProfiles.some((profile) => isSameChildProfile(profile, optionProfile));
 
                 return (
                   <button
@@ -265,9 +266,9 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
               })}
             </div>
 
-            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftBandAlreadyExists}>
+            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftProfileAlreadyExists}>
               <Check size={15} aria-hidden="true" />
-              {draftBandAlreadyExists ? "이미 등록됨" : "아이 적용"}
+              {draftProfileAlreadyExists ? "이미 등록됨" : "아이 적용"}
             </button>
           </div>
         ) : null}
@@ -277,8 +278,8 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             {childProfiles.map((profile) => (
               <ChildProfileCard
                 profile={profile}
-                key={profile.ageBand}
-                onRemove={() => commitProfiles(childProfiles.filter((item) => item.ageBand !== profile.ageBand))}
+                key={childProfileKey(profile)}
+                onRemove={() => commitProfiles(childProfiles.filter((item) => !isSameChildProfile(item, profile)))}
               />
             ))}
           </div>
@@ -308,6 +309,10 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
 
 function childProfileIconSrc(profile: ChildProfile) {
   return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.png`;
+}
+
+function isSameChildProfile(left: ChildProfile, right: ChildProfile) {
+  return left.gender === right.gender && left.ageBand === right.ageBand;
 }
 
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {
