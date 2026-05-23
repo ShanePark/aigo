@@ -681,7 +681,7 @@ h3 {
 .child-profile-add-button:disabled,
 .child-profile-confirm:disabled {
   color: var(--disabled-text);
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .child-profile-picker {
@@ -766,6 +766,11 @@ h3 {
   box-shadow: 0 0 0 3px var(--highlight-ring);
 }
 
+.child-profile-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .child-profile-option-icon,
 .child-profile-icon {
   background: transparent;
@@ -805,15 +810,16 @@ h3 {
   border-radius: 999px;
   color: var(--accent-text);
   display: inline-flex;
+  gap: 3px;
   font-size: 10px;
   font-weight: 900;
-  height: 20px;
+  min-height: 22px;
   justify-content: center;
   line-height: 1;
+  padding: 0 7px;
   position: absolute;
   right: 7px;
   top: 7px;
-  width: 20px;
 }
 
 .child-profile-confirm {

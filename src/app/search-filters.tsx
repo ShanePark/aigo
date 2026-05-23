@@ -53,7 +53,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const activeChipCount = activeFilterChips.length + childProfiles.length;
   const profileAges = childProfilesToAgeMonths(childProfiles);
   const draftBandAlreadyExists = childProfiles.some((profile) => profile.ageBand === draftAgeBand);
-  const isAtProfileLimit = childProfiles.length >= CHILD_AGE_BANDS.length && !draftBandAlreadyExists;
+  const isAtProfileLimit = childProfiles.length >= CHILD_AGE_BANDS.length;
 
   function applyCurrentForm(overrides: { profiles?: ChildProfile[] } = {}) {
     const form = rootRef.current?.closest("form");
@@ -93,12 +93,14 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   }
 
   function addDraftProfile() {
-    if (isAtProfileLimit) return;
+    if (isAtProfileLimit || draftBandAlreadyExists) return;
     commitProfiles([...childProfiles, { ageBand: draftAgeBand, gender: draftGender }]);
     setIsPickerOpen(false);
   }
 
   function togglePicker() {
+    if (isAtProfileLimit) return;
+
     if (isPickerOpen) {
       setIsPickerOpen(false);
       return;
@@ -196,11 +198,11 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             className="child-profile-add-button"
             type="button"
             onClick={togglePicker}
-            disabled={isPending}
+            disabled={isPending || isAtProfileLimit}
             aria-expanded={isPickerOpen}
           >
             <Plus size={15} aria-hidden="true" />
-            아이 추가
+            {isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
           </button>
         </div>
 
@@ -239,11 +241,12 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
 
                 return (
                   <button
-                    className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
+                    className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""} ${isApplied ? "is-applied" : ""}`}
                     type="button"
                     key={band.id}
                     onClick={() => setDraftAgeBand(band.id)}
                     aria-pressed={isSelected}
+                    disabled={isApplied}
                   >
                     <span className="child-profile-option-icon">
                       <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={56} height={56} />
@@ -252,8 +255,9 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
                       <strong>{band.label}</strong>
                     </span>
                     {isApplied ? (
-                      <span className="child-profile-applied" aria-label="이미 적용됨">
+                      <span className="child-profile-applied" aria-label="이미 등록됨">
                         <Check size={11} aria-hidden="true" />
+                        이미 등록됨
                       </span>
                     ) : null}
                   </button>
@@ -261,9 +265,9 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
               })}
             </div>
 
-            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
+            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftBandAlreadyExists}>
               <Check size={15} aria-hidden="true" />
-              {draftBandAlreadyExists ? "선택 바꾸기" : "아이 적용"}
+              {draftBandAlreadyExists ? "이미 등록됨" : "아이 적용"}
             </button>
           </div>
         ) : null}
