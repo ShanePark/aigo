@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateReasonCodes } from "@/lib/duplicates";
+import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateOutsideRadiusReviewOnly, duplicateReasonCodes } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
   it("treats kakao place id match as high confidence", () => {
@@ -40,9 +40,42 @@ describe("duplicate helpers", () => {
     };
 
     expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateReasonCodes(signals)).toContain("NAME_SIMILAR");
     expect(duplicateReasonCodes(signals)).toContain("GEO_OUTSIDE_REQUEST_RADIUS");
+    expect(duplicateReasonCodes(signals)).toContain("OUTSIDE_RADIUS_REVIEW_ONLY");
     expect(duplicateReasonCodes(signals)).not.toContain("GEO_NEAR");
+  });
+
+  it("downgrades outside-radius alias and region matches to review-only", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 5600,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
+  });
+
+  it("keeps same-address outside-radius candidates as possible duplicates", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 5600,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(false);
   });
 
   it("keeps same-building substring matches below high confidence", () => {

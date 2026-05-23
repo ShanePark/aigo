@@ -11,7 +11,7 @@ import {
   type SourceInput,
   type UpdatePlaceInput
 } from "@/lib/schemas";
-import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateReasonCodes } from "@/lib/duplicates";
+import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateOutsideRadiusReviewOnly, duplicateReasonCodes } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
@@ -1220,6 +1220,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         place: await getPlaceDetail(row.id),
         confidence: duplicateConfidence(signals),
         reasonCodes: duplicateReasonCodes(signals),
+        outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(signals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };

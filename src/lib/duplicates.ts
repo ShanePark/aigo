@@ -70,6 +70,9 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     signals.distanceMeters > signals.radiusMeters
   ) {
     reasonCodes.push("GEO_OUTSIDE_REQUEST_RADIUS");
+    if (duplicateOutsideRadiusReviewOnly(signals)) {
+      reasonCodes.push("OUTSIDE_RADIUS_REVIEW_ONLY");
+    }
   }
 
   if (signals.nameSimilarity !== null && signals.nameSimilarity >= 0.45) {
@@ -82,6 +85,7 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
 export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.externalRefsMatch) return "high";
   if (signals.kakaoPlaceIdMatch) return "high";
+  if (duplicateOutsideRadiusReviewOnly(signals)) return "low";
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
@@ -91,6 +95,18 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.addressMatch) return "medium";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 && (signals.nameSimilarity ?? 0) >= 0.35) return "medium";
   return "low";
+}
+
+export function duplicateOutsideRadiusReviewOnly(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    signals.radiusMeters !== null &&
+      signals.radiusMeters !== undefined &&
+      signals.distanceMeters !== null &&
+      signals.distanceMeters > signals.radiusMeters &&
+      !signals.addressMatch &&
+      !signals.externalRefsMatch &&
+      !signals.kakaoPlaceIdMatch
+  );
 }
 
 export function duplicateGenericBranchName(inputName: string, candidateName: string) {
