@@ -121,6 +121,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, effectiveParams);
   const activeCategoryGroupConfig = CATEGORY_GROUPS[activeCategoryGroup];
   const activeSort = sortParam(effectiveParams);
+  const activePreferenceLabels = preferenceLabels(effectiveParams);
   const mapOrigin = mapOriginFromMeta(result.meta);
   const searchReturnHref = currentSearchHref(effectiveParams);
   const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
@@ -178,6 +179,10 @@ export default async function Home({ searchParams }: HomeProps) {
             <span>
               <strong>{sortLabel(activeSort)}</strong>
               <small>정렬</small>
+            </span>
+            <span className={activePreferenceLabels.length > 0 ? "is-active" : ""}>
+              <strong>{activePreferenceLabels.length > 0 ? activePreferenceLabels.join(" · ") : "기본 조건"}</strong>
+              <small>조건</small>
             </span>
           </div>
 
@@ -485,6 +490,18 @@ function sortParam(params: Record<string, string | string[] | undefined>): Extra
 
 function sortLabel(sort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
   return sort === "distance" ? "거리순" : "관련도순";
+}
+
+function preferenceLabels(params: Record<string, string | string[] | undefined>) {
+  return [
+    [params.indoor === "on", "실내"],
+    [params.parking === "on", "주차"],
+    [params.stroller === "on", "유모차"],
+    [params.nursing === "on", "수유실"],
+    [params.babyChair === "on", "아기의자"]
+  ]
+    .filter(([enabled]) => enabled)
+    .map(([, label]) => String(label));
 }
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];

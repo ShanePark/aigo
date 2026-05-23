@@ -453,7 +453,13 @@ h3 {
   gap: 7px;
   min-height: 34px;
   min-width: 0;
+  max-width: 100%;
   padding: 0 11px;
+}
+
+.search-summary-row span.is-active {
+  background: var(--mint-soft);
+  border-color: var(--line-strong);
 }
 
 .search-summary-row strong {
@@ -461,6 +467,13 @@ h3 {
   font-size: 13px;
   line-height: 1.2;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-summary-row span.is-active strong {
+  color: var(--mint);
 }
 
 .search-summary-row small {
