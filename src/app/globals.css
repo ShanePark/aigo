@@ -45,7 +45,13 @@
   --marker-shadow: rgba(33, 48, 42, 0.24);
   --marker-text: #ffffff;
   --pagination-bg: rgba(255, 255, 255, 0.76);
+  --placeholder-frame: rgba(255, 255, 255, 0.7);
   --placeholder-icon: #83a394;
+  --placeholder-image-filter: saturate(0.98) contrast(0.98);
+  --placeholder-inset-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  --placeholder-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.18)),
+    linear-gradient(135deg, rgba(19, 122, 86, 0.08), rgba(47, 106, 168, 0.05));
   --scrollbar-thumb: #c9d7ce;
   --source-bg: #f8fbf9;
   --topbar-bg: rgba(255, 255, 255, 0.84);
@@ -99,7 +105,13 @@
   --marker-shadow: rgba(0, 0, 0, 0.34);
   --marker-text: #ffffff;
   --pagination-bg: rgba(15, 21, 18, 0.76);
+  --placeholder-frame: rgba(13, 18, 16, 0.5);
   --placeholder-icon: #739184;
+  --placeholder-image-filter: saturate(0.84) contrast(0.96) brightness(0.78);
+  --placeholder-inset-shadow: inset 0 0 0 1px rgba(237, 245, 239, 0.08);
+  --placeholder-overlay:
+    linear-gradient(180deg, rgba(13, 18, 16, 0.18), rgba(13, 18, 16, 0.44)),
+    linear-gradient(135deg, rgba(121, 215, 166, 0.14), rgba(137, 186, 242, 0.1));
   --scrollbar-thumb: #465e53;
   --source-bg: #121b17;
   --topbar-bg: rgba(15, 21, 18, 0.88);
@@ -1118,6 +1130,27 @@ h3 {
   opacity: 0;
   transition: opacity 160ms ease;
   width: 100%;
+}
+
+.result-image.is-fallback-source,
+.detail-hero-image.is-fallback-source {
+  background: var(--placeholder-frame);
+}
+
+.result-image.is-fallback-source img,
+.detail-hero-image.is-fallback-source img {
+  filter: var(--placeholder-image-filter);
+  transform: scale(1.015);
+}
+
+.result-image.is-fallback-source::after,
+.detail-hero-image.is-fallback-source::after {
+  background: var(--placeholder-overlay);
+  box-shadow: var(--placeholder-inset-shadow);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 .result-image.is-loaded img,
