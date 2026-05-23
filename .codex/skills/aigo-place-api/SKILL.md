@@ -62,18 +62,18 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 3. Run shallow discovery before deep research.
    - Start with search-result snippets, official directory/list pages, public facility lists, or category roundup pages to collect only place names, branch names, rough area, and one likely source URL.
    - Before opening many pages for a candidate, query AiGo for duplicates and exact-name matches. If a strong existing record is found, stage it as `update` only when the shallow source shows a real data gap; otherwise record `skip_existing`.
-   - Deep-dive only candidates that are likely missing, likely stale, or have high-value missing family logistics. Deep research should collect address, coordinates, family signals, source summaries, and image provenance.
+   - Deep-dive only candidates that are likely missing, likely stale, or have high-value missing family logistics. Deep research should collect address, coordinates with `coordinateProvenance`, family signals, source summaries, and image provenance.
    - Maintain a visited-page ledger in the active `agent-research/` context or slice file. Record source URLs and search queries already used so later agents avoid repeating the same page unless they are resolving a specific conflict or checking freshness.
 
 4. Research with source notes.
    - Use one staging file per slice: `agent-research/<topic>-YYYYMMDD-HHMM.md`.
-   - For each place, record suggested action (`create`, `update`, `skip_existing`, `skip`, or `hold_for_later`), family signals, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
+   - For each place, record suggested action (`create`, `update`, `skip_existing`, `skip`, or `hold_for_later`), family signals, coordinate provenance, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it.
 
 5. Check duplicates before mutation.
-   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng` or source-backed `roadAddress`/`address`/`regionSigungu`; include optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters` when coordinates are known.
+   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng` or source-backed `roadAddress`/`address`/`regionSigungu`; include optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address-only duplicate checks for `manual_hold` or uncertain coordinates.
    - For generic branch names such as common food chains or category-like restaurant names, treat `GENERIC_BRANCH_NAME` and `ADDRESS_REGION_CONFLICT` reason codes as strong caution. A same-province fuzzy name is not enough for high confidence; prefer same address, same 시군구, nearby coordinates, external refs, or a provider id before calling it a duplicate.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
    - If no meaningful candidate exists, `POST /v1/places`.
@@ -170,7 +170,47 @@ Rules for `sources`:
 - `sourceType` is required.
 - Either `url` or `externalId` is required.
 - `summary` must be the agent's own concise summary, not copied source text.
-- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `official_image_source`, or `public_listing_image_source`.
+- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `geocode`, `map_service`, `official_image_source`, or `public_listing_image_source`.
+
+## Coordinate Provenance
+
+Coordinates are required for creates, but they must be source-backed. Do not invent lat/lng from a place name, rough search memory, or an unverified map pin. If coordinate evidence is weak, hold the candidate in `agent-research/` until address or coordinate evidence improves, or use address-only duplicate checks before deeper research.
+
+Use these trust levels in research notes and payload planning:
+
+- `official_embedded_map`: an official/operator/public-agency page embeds or links a venue-specific map marker, roughmap, or coordinates for the exact branch/site.
+- `public_dataset_exact_address`: a public dataset or linked-data page provides coordinates for the exact facility name and matching address.
+- `public_address_coordinate`: a public address/coordinate page provides WGS84 coordinates for the exact road or parcel address, but not necessarily a venue-specific marker.
+- `parent_building_coordinate`: the coordinate belongs to a confirmed parent building, mall, station, campus, or facility that contains the venue, but the exact subvenue point is unavailable.
+- `manual_hold`: coordinates are approximate, conflicting, inferred from a broad area, or not source-backed enough for mutation.
+
+For API payloads, store coordinate provenance under `externalRefs.coordinateProvenance` unless a future first-class field exists. Keep the same object in `agent-research/` notes so mutation agents do not have to re-judge the evidence from scratch:
+
+```json
+{
+  "externalRefs": {
+    "coordinateProvenance": {
+      "level": "public_dataset_exact_address",
+      "lat": 36.3504,
+      "lng": 127.3845,
+      "coordinateSystem": "WGS84",
+      "sourceUrl": "https://example.go.kr/facility-data",
+      "sourceTitle": "Public facility dataset",
+      "basis": "Dataset row matches the exact facility name and road address.",
+      "addressMatched": "Daejeon ...",
+      "confidence": "high",
+      "checkedAt": "<ISO datetime with timezone>"
+    }
+  }
+}
+```
+
+Mutation and duplicate-check rules:
+
+- `official_embedded_map`, `public_dataset_exact_address`, and `public_address_coordinate` are acceptable for normal creates/updates and radius duplicate checks.
+- `parent_building_coordinate` is acceptable only when the source proves the place is inside that parent site; record the parent-site basis, keep parent notes honest, and use a conservative duplicate radius.
+- `manual_hold` must not be used for create/update lat/lng or radius duplicate checks. Use `roadAddress`, `address`, `regionSigungu`, source URLs, or external refs for duplicate review instead.
+- When patching coordinates, include a `geocode`, `public_agency`, `official_site`, or other source entry whose summary states the coordinate provenance level and the address/name match.
 
 Common writable fields:
 
