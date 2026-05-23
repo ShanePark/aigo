@@ -20,6 +20,8 @@ export type NormalizedAigoSearchResponse<TItem = AigoSearchItem> = {
 export type AigoSearchOptions = {
   apiBaseUrl?: string;
   apiKey?: string;
+  retryDelayMs?: number;
+  retries?: number;
   timeoutMs?: number;
 };
 
@@ -63,22 +65,36 @@ export async function searchPlacesReadOnly<TItem = AigoSearchItem>(
 ): Promise<NormalizedAigoSearchResponse<TItem>> {
   const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
   const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
-  const response = await fetch(`${apiBaseUrl}/v1/places/search`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(request),
-    signal: AbortSignal.timeout(options.timeoutMs ?? 10_000)
-  });
-  const text = await response.text();
+  const retries = options.retries ?? 2;
+  let lastFailure: SearchHttpFailure | null = null;
 
-  if (!response.ok) {
-    throw new Error(`AiGo search failed with ${response.status} ${response.statusText}: ${text.slice(0, 500)}`);
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const result = await fetchSearchResponse(apiBaseUrl, apiKey, request, options.timeoutMs ?? 10_000);
+    if (result.response.ok) {
+      return normalizeSearchResponse<TItem>(result.text ? JSON.parse(result.text) : {});
+    }
+
+    lastFailure = result;
+    if (attempt >= retries || !isTransientSearchFailure(result)) break;
+    await delay((options.retryDelayMs ?? 150) * (attempt + 1));
   }
 
-  return normalizeSearchResponse<TItem>(text ? JSON.parse(text) : {});
+  if (lastFailure) {
+    throw new Error(`AiGo search failed with ${lastFailure.response.status} ${lastFailure.response.statusText}: ${lastFailure.text.slice(0, 500)}`);
+  }
+
+  throw new Error("AiGo search failed before receiving a response.");
+}
+
+export async function warmSearchRouteReadOnly(options: AigoSearchOptions = {}) {
+  await searchPlacesReadOnly(
+    {
+      projection: "compact",
+      limit: 1,
+      offset: 0
+    },
+    options
+  );
 }
 
 export async function exactNameSearchReadOnly<TItem = AigoSearchItem>(
@@ -104,4 +120,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+type SearchHttpFailure = {
+  response: Response;
+  text: string;
+};
+
+async function fetchSearchResponse(apiBaseUrl: string, apiKey: string, request: AigoSearchRequest, timeoutMs: number) {
+  const response = await fetch(`${apiBaseUrl}/v1/places/search`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(request),
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+  const text = await response.text();
+  return { response, text };
+}
+
+function isTransientSearchFailure(failure: SearchHttpFailure) {
+  if ([500, 502, 503, 504].includes(failure.response.status)) return true;
+  if (failure.response.status !== 404) return false;
+  const contentType = failure.response.headers.get("content-type")?.toLowerCase() ?? "";
+  const body = failure.text.toLowerCase();
+  return contentType.includes("text/html") || body.includes("<!doctype html") || body.includes("this page could not be found");
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

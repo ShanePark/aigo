@@ -1,8 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeSearchResponse, readSearchItems } from "./aigo-search";
+import { normalizeSearchResponse, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
 
 describe("AiGo search helper", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it("reads current top-level items", () => {
     const items = readSearchItems({ items: [{ id: "place-1" }], meta: { count: 1 } });
 
@@ -28,5 +33,35 @@ describe("AiGo search helper", () => {
 
   it("throws when items is present but not an array", () => {
     expect(() => readSearchItems({ items: null, results: [] })).toThrow(/items.*not an array/);
+  });
+
+  it("retries transient Next.js 404 HTML before reading search items", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("<!DOCTYPE html><title>404</title>", { status: 404, headers: { "content-type": "text/html" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "place-1" }], meta: { total: 1 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const promise = searchPlacesReadOnly({ projection: "compact", limit: 1 }, { retryDelayMs: 1 });
+    await vi.runAllTimersAsync();
+    const response = await promise;
+
+    expect(response.items).toEqual([{ id: "place-1" }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("warms the search route with a compact one-row request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await warmSearchRouteReadOnly();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      projection: "compact",
+      limit: 1,
+      offset: 0
+    });
   });
 });
