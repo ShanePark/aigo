@@ -948,8 +948,6 @@ h3 {
   .map-place-marker.is-hovered span,
   .map-place-marker:focus-visible span,
   .map-place-marker:focus-within span,
-  .planner-lane:hover,
-  .planner-lane:focus-visible,
   .result-card:hover,
   .result-card:focus-visible,
   .result-card.is-map-highlighted,
@@ -1004,107 +1002,6 @@ h3 {
   min-height: 73px;
   margin-bottom: 0;
   padding: 14px 14px 12px;
-}
-
-.weekend-planner {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow-soft);
-  flex: 0 0 auto;
-  margin: 0 14px 10px;
-  padding: 10px;
-}
-
-.weekend-planner-title {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.weekend-planner-title h3 {
-  font-size: 13px;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.weekend-planner-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.planner-lane {
-  align-content: start;
-  background: var(--panel-soft);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: inherit;
-  display: grid;
-  gap: 5px;
-  min-height: 94px;
-  min-width: 0;
-  padding: 9px;
-  text-decoration: none;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.planner-lane:hover,
-.planner-lane:focus-visible {
-  border-color: var(--hover-border);
-  box-shadow: var(--shadow-soft);
-  transform: translateY(-1px);
-}
-
-.planner-lane:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.planner-lane.is-empty {
-  color: var(--muted);
-}
-
-.planner-lane-label {
-  color: var(--mint);
-  font-size: 11px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.planner-lane strong {
-  font-size: 13px;
-  line-height: 1.32;
-  overflow-wrap: anywhere;
-}
-
-.planner-lane-meta {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.25;
-}
-
-.planner-signal-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 0;
-}
-
-.planner-signal-row span {
-  background: var(--chip-neutral-bg);
-  border-radius: 999px;
-  color: var(--chip-neutral-text);
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.2;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  padding: 3px 6px;
 }
 
 .results-scroll {
@@ -2383,10 +2280,6 @@ dd {
     padding: 2px 0 0;
   }
 
-  .weekend-planner {
-    margin: 0 0 10px;
-  }
-
   .map-canvas {
     height: min(52vh, 380px);
     min-height: 300px;
@@ -2517,10 +2410,6 @@ dd {
     grid-template-columns: 1fr;
     justify-content: stretch;
     width: 100%;
-  }
-
-  .weekend-planner-grid {
-    grid-template-columns: 1fr;
   }
 
   .sort-control,

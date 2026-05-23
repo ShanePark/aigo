@@ -7,8 +7,12 @@ import { ArrowUpDown, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, Ro
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
-import { SearchResultTrustBadges } from "@/app/search-result-badges";
-import { plannerMetaLabel, weekendPlannerLanes, type SearchItem, type WeekendPlannerLane } from "@/app/weekend-planner";
+import {
+  SearchResultTrustBadges,
+  type SearchResultBadgeOpeningHoursSummary,
+  type SearchResultBadgeRecommendationReadiness,
+  type SearchResultBadgeSourceSummary
+} from "@/app/search-result-badges";
 import { pricingSummaryLabel } from "@/lib/pricing";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
@@ -88,6 +92,38 @@ type SearchResultMeta = {
     lng: number;
   } | null;
   total: number;
+};
+
+type SearchItem = {
+  distanceKm: number | null;
+  facilities: {
+    babyChair: string;
+    diaperChangingTable: string;
+    elevator?: string;
+    indoorType: string;
+    nursingRoom: string;
+    parkingAvailable: string;
+    strollerFriendly: string;
+  };
+  lat: number;
+  lng: number;
+  name: string;
+  openingHoursSummary: SearchResultBadgeOpeningHoursSummary;
+  placeId: string;
+  playFeatures?: Record<string, unknown> | null;
+  pricing?: unknown;
+  primaryCategory: string;
+  primaryImage?: {
+    url: string;
+  } | null;
+  recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null;
+  score: number;
+  sourceSummary: SearchResultBadgeSourceSummary;
+  tags: string[];
+  visit?: {
+    childEngagementLevel?: number | null;
+    parentEffortLevel?: number | null;
+  };
 };
 
 export function ExploreResults({
@@ -173,7 +209,6 @@ export function ExploreResults({
 
   const mapOrigin = mapOriginFromMeta(result.meta);
   const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
-  const plannerLanes = weekendPlannerLanes(result.items);
   const shownError = clientError ?? result.error;
 
   if (shownError) {
@@ -202,8 +237,6 @@ export function ExploreResults({
           </div>
         </section>
 
-        <WeekendPlanner lanes={plannerLanes} returnHref={searchReturnHref} />
-
         <div className="results-scroll" data-results-scroll>
           {isViewportSearchPending ? <div className="results-inline-status">현재 지도 화면 안의 장소를 찾는 중입니다</div> : null}
           <div className="results">
@@ -216,39 +249,6 @@ export function ExploreResults({
           </div>
         </div>
         <Pagination meta={result.meta} onPage={handlePage} />
-      </div>
-    </section>
-  );
-}
-
-function WeekendPlanner({ lanes, returnHref }: { lanes: WeekendPlannerLane[]; returnHref: string }) {
-  if (!lanes.some((lane) => lane.place)) return null;
-
-  return (
-    <section className="weekend-planner" aria-label="이번 주말 아이와 갈 곳 비교">
-      <div className="weekend-planner-title">
-        <h3>이번 주말 비교</h3>
-      </div>
-      <div className="weekend-planner-grid">
-        {lanes.map((lane) =>
-          lane.place ? (
-            <Link className="planner-lane" href={placeDetailHref(lane.place.placeId, returnHref)} key={lane.key}>
-              <span className="planner-lane-label">{lane.label}</span>
-              <strong>{lane.place.name}</strong>
-              <span className="planner-lane-meta">{plannerMetaLabel(lane.place)}</span>
-              <span className="planner-signal-row">
-                {lane.signals.map((signal) => (
-                  <span key={signal}>{signal}</span>
-                ))}
-              </span>
-            </Link>
-          ) : (
-            <div className="planner-lane is-empty" key={lane.key}>
-              <span className="planner-lane-label">{lane.label}</span>
-              <strong>후보 없음</strong>
-            </div>
-          )
-        )}
       </div>
     </section>
   );
