@@ -11,6 +11,7 @@ import {
   buildSearchImageHealth,
   buildSearchCoursePlan,
   buildSearchPreferenceSemantics,
+  buildSearchRecommendationReadiness,
   buildSearchSourceSummary,
   buildStructuredDataGaps,
   categoryClauseForKeywordTerm,
@@ -811,6 +812,69 @@ describe("place search helpers", () => {
     ).toEqual([]);
   });
 
+  it("summarizes weekend recommendation readiness gaps for agents", () => {
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "official_site",
+        title: "공식 예약 및 운영 안내",
+        summary: "공식 페이지가 운영시간과 예약, 회차 정보를 안내한다.",
+        checked_at: "2026-05-22T06:30:00.000Z",
+        created_at: "2026-05-22T06:45:00.000Z"
+      }
+    ]);
+    const visit = {
+      reservationRequired: "unknown",
+      walkInAvailable: "unknown",
+      sessionBased: "unknown",
+      sameDayAvailabilityKnown: "unknown"
+    } as const;
+    const openingHoursSummary = buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit);
+    const readiness = buildSearchRecommendationReadiness(
+      {
+        primaryCategory: "kids_cafe",
+        pricing: {},
+        structuredDataGaps: buildStructuredDataGaps(
+          {
+            facilities: {
+              strollerFriendly: "yes",
+              parkingAvailable: "yes",
+              nursingRoom: "unknown",
+              diaperChangingTable: "unknown",
+              kidsToilet: "unknown",
+              elevator: "yes",
+              babyChair: "unknown",
+              foodAllowed: "unknown"
+            },
+            visit
+          },
+          sourceSummary,
+          openingHoursSummary
+        ),
+        openingHoursSummary,
+        imageHealth: buildSearchImageHealth([]),
+        sourceSummary,
+        facilities: { indoorType: "indoor" }
+      },
+      { visitContext: "weekendHalfDay", childAgeMonths: [32, 7, 7] }
+    );
+
+    expect(readiness).toMatchObject({
+      readinessMode: "familyWeekend",
+      readyForWeekendRecommendation: false,
+      blockingGaps: expect.arrayContaining([
+        "openingHours",
+        "reservationRequired",
+        "walkInAvailable",
+        "sessionBased",
+        "sameDayAvailabilityKnown",
+        "nursingRoom",
+        "diaperChangingTable",
+        "primaryImage"
+      ]),
+      cautionNotes: expect.arrayContaining([expect.stringContaining("가격")])
+    });
+  });
+
   it("describes search preferences as soft ranking signals", () => {
     expect(
       buildSearchPreferenceSemantics({
@@ -960,6 +1024,13 @@ describe("place search helpers", () => {
         latestImageCheckedAt: null,
         latestImageUpdatedAt: null
       },
+      recommendationReadiness: {
+        readinessMode: "familyWeekend",
+        readyForWeekendRecommendation: true,
+        blockingGaps: [],
+        cautionNotes: [],
+        agentSummary: "운영, 예약, 이미지 핵심 신호가 갖춰져 바로 비교 후보로 사용할 수 있습니다."
+      },
       sourceSummary: {
         sourceCount: 1,
         sourceTypes: ["official_site"],
@@ -982,6 +1053,9 @@ describe("place search helpers", () => {
       structuredDataGaps: ["nursingRoom", "diaperChangingTable"],
       openingHoursSummary: {
         confidenceLevel: "high"
+      },
+      recommendationReadiness: {
+        readyForWeekendRecommendation: true
       },
       pricing: {
         summary: "어린이 2시간 15,000원",

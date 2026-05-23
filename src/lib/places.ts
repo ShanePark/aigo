@@ -500,14 +500,27 @@ export async function searchPlaces(input: SearchPlacesInput) {
     const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
     const { openingHoursData, region: _region, ...publicItem } = item;
     const openingHoursSummary = buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit);
+    const imageHealth = buildSearchImageHealth(imageRows);
+    const structuredDataGaps = buildStructuredDataGaps(item, sourceSummary, openingHoursSummary);
+    const recommendationReadiness = buildSearchRecommendationReadiness(
+      {
+        ...item,
+        imageHealth,
+        sourceSummary,
+        structuredDataGaps,
+        openingHoursSummary
+      },
+      normalizedInput
+    );
     void _region;
     return {
       ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
-      imageHealth: buildSearchImageHealth(imageRows),
+      imageHealth,
       sourceSummary,
-      structuredDataGaps: buildStructuredDataGaps(item, sourceSummary, openingHoursSummary),
-      openingHoursSummary
+      structuredDataGaps,
+      openingHoursSummary,
+      recommendationReadiness
     };
   });
 
@@ -651,6 +664,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     infantLogistics: item.infantLogistics,
     structuredDataGaps: item.structuredDataGaps,
     openingHoursSummary: item.openingHoursSummary,
+    recommendationReadiness: item.recommendationReadiness,
     facilities: {
       indoorType: item.facilities.indoorType,
       strollerFriendly: item.facilities.strollerFriendly,
@@ -3483,6 +3497,86 @@ export function buildStructuredDataGaps(
   }
 
   return Array.from(gaps);
+}
+
+const recommendationOperationGapKeys = new Set(["openingHours", "reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"]);
+const recommendationInfantGapKeys = new Set(["strollerFriendly", "nursingRoom", "diaperChangingTable", "elevator"]);
+const paidPlanningCategories = new Set(["kids_cafe", "indoor_playground", "family_cafe", "family_restaurant", "accommodation"]);
+
+type RecommendationReadinessMode = "familyWeekend" | "rainyDay" | "dayTrip";
+type SearchRecommendationReadinessPlace = {
+  primaryCategory: string;
+  pricing: Record<string, unknown>;
+  structuredDataGaps: string[];
+  openingHoursSummary: ReturnType<typeof buildSearchOpeningHoursSummary>;
+  imageHealth: ReturnType<typeof buildSearchImageHealth>;
+  sourceSummary: Pick<SearchSourceSummary, "sourceCount">;
+  facilities: Pick<SearchFacilities, "indoorType">;
+};
+
+export function buildSearchRecommendationReadiness(
+  place: SearchRecommendationReadinessPlace,
+  input: Pick<SearchPlacesInput, "childAgeMonths" | "visitContext"> = {}
+) {
+  const readinessMode = recommendationReadinessMode(input.visitContext);
+  const blockingGaps = new Set<string>();
+  const cautionNotes: string[] = [];
+  const hasInfant = input.childAgeMonths?.some((ageMonths) => ageMonths < 18) ?? false;
+
+  if (place.sourceSummary.sourceCount === 0) {
+    blockingGaps.add("sourceEvidence");
+  }
+
+  for (const gap of place.structuredDataGaps) {
+    if (recommendationOperationGapKeys.has(gap)) {
+      blockingGaps.add(gap);
+    }
+    if (hasInfant && recommendationInfantGapKeys.has(gap)) {
+      blockingGaps.add(gap);
+    }
+  }
+
+  if (place.imageHealth.status === "no_active_image") {
+    blockingGaps.add("primaryImage");
+  } else if (place.imageHealth.status !== "healthy") {
+    cautionNotes.push("대표 이미지는 있지만 검토나 대표 지정 상태를 확인해야 합니다.");
+  }
+
+  if (place.openingHoursSummary.confidenceLevel === "source_backed" || place.openingHoursSummary.confidenceLevel === "low") {
+    cautionNotes.push("운영시간 근거는 있지만 구조화되지 않아 출발 전 확인 문구가 필요합니다.");
+  }
+
+  if (paidPlanningCategories.has(place.primaryCategory) && !hasMeaningfulPricing(place.pricing)) {
+    cautionNotes.push("유료 가능성이 높은 장소라 가격이나 회차 정보를 별도로 확인해야 합니다.");
+  }
+
+  if (readinessMode === "rainyDay" && !["indoor", "mixed"].includes(place.facilities.indoorType)) {
+    cautionNotes.push("비 오는 날 후보라면 실내 이용 가능성을 다시 확인해야 합니다.");
+  }
+
+  const gapList = Array.from(blockingGaps);
+  return {
+    readinessMode,
+    readyForWeekendRecommendation: gapList.length === 0,
+    blockingGaps: gapList,
+    cautionNotes,
+    agentSummary:
+      gapList.length === 0
+        ? "운영, 예약, 이미지 핵심 신호가 갖춰져 바로 비교 후보로 사용할 수 있습니다."
+        : `핵심 확인값 ${gapList.length}개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.`
+  };
+}
+
+function recommendationReadinessMode(visitContext: SearchPlacesInput["visitContext"]): RecommendationReadinessMode {
+  if (visitContext === "rainyDay") return "rainyDay";
+  if (visitContext === "dayTrip") return "dayTrip";
+  return "familyWeekend";
+}
+
+function hasMeaningfulPricing(pricing: Record<string, unknown>) {
+  if (!isPlainRecord(pricing) || Object.keys(pricing).length === 0) return false;
+  if (Array.isArray(pricing.items) && pricing.items.length > 0) return true;
+  return ["summary", "basisDate", "checkedAt", "priceCheckedAt"].some((key) => typeof pricing[key] === "string" && pricing[key].trim().length > 0);
 }
 
 function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceEvidence: SearchSourceSummary["openingHoursEvidence"]) {
