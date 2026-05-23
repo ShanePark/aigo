@@ -8,13 +8,14 @@ import {
   Puzzle,
   Search,
   ShoppingBag,
-  SlidersHorizontal,
   TreePine,
   Utensils,
   type LucideIcon
 } from "lucide-react";
 
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
+import { SearchFilters } from "@/app/search-filters";
+import { parseChildAgeMonths } from "@/lib/child-ages";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
@@ -114,40 +115,7 @@ export default async function Home({ searchParams }: HomeProps) {
             })}
           </div>
 
-          <details className="advanced-search">
-            <summary>
-              <SlidersHorizontal size={16} aria-hidden="true" />
-              세부 조건
-            </summary>
-            <div className="advanced-checks" aria-label="선호 조건">
-              <label className="check">
-                <input name="indoor" type="checkbox" defaultChecked={effectiveParams.indoor === "on"} />
-                <span>실내</span>
-              </label>
-              <label className="check">
-                <input name="parking" type="checkbox" defaultChecked={effectiveParams.parking === "on"} />
-                <span>주차</span>
-              </label>
-              <label className="check">
-                <input name="stroller" type="checkbox" defaultChecked={effectiveParams.stroller === "on"} />
-                <span>유모차</span>
-              </label>
-              <label className="check">
-                <input name="nursing" type="checkbox" defaultChecked={effectiveParams.nursing === "on"} />
-                <span>수유실</span>
-              </label>
-              <label className="check">
-                <input name="babyChair" type="checkbox" defaultChecked={effectiveParams.babyChair === "on"} />
-                <span>아기의자</span>
-              </label>
-            </div>
-            <div className="advanced-grid">
-              <label>
-                <span>아이 월령</span>
-                <input name="ages" defaultValue={textParam(effectiveParams.ages) || "32,7,7"} placeholder="32,7,7" />
-              </label>
-            </div>
-          </details>
+          <SearchFilters initialParams={clientParams(effectiveParams)} />
         </form>
       </section>
 
@@ -189,10 +157,7 @@ function buildSearchInput(params: Record<string, string | string[] | undefined>)
   const shouldFilterByRadius = categoryGroup !== "stay" || hasExplicitLocationParams(params);
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
-  const ages = (textParam(params.ages) || "32,7,7")
-    .split(",")
-    .map((age) => Number(age.trim()))
-    .filter((age) => Number.isFinite(age));
+  const ages = parseChildAgeMonths(textParam(params.ages));
 
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },

@@ -392,18 +392,6 @@ h3 {
   padding-inline: 14px;
 }
 
-.filter-grid,
-.advanced-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.advanced-grid {
-  grid-template-columns: minmax(0, 1fr);
-  padding-top: 12px;
-}
-
 .location-row {
   align-items: center;
   display: flex;
@@ -564,11 +552,46 @@ h3 {
   padding: 11px 12px;
 }
 
+.advanced-search.has-active {
+  border-color: var(--line-strong);
+}
+
 .advanced-search summary {
   align-items: center;
-  display: inline-flex;
-  gap: 7px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
   list-style: none;
+}
+
+.advanced-summary-title {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.advanced-active-chips {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+  min-width: min(100%, 260px);
+}
+
+.advanced-active-chips span {
+  background: var(--mint-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 8px;
+  white-space: nowrap;
 }
 
 .advanced-search summary::-webkit-details-marker {
@@ -582,6 +605,157 @@ h3 {
 
 .advanced-checks {
   margin-top: 12px;
+}
+
+.child-age-panel {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  margin-top: 13px;
+  padding-top: 13px;
+}
+
+.child-age-panel-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.child-age-panel-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.child-age-panel-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.child-age-panel-head strong {
+  font-size: 14px;
+}
+
+.child-age-add-button {
+  align-items: center;
+  background: var(--blue-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--blue);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.child-age-add-button:disabled {
+  color: var(--disabled-text);
+  cursor: wait;
+}
+
+.child-age-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.child-age-card {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 78px;
+  padding: 10px;
+}
+
+.child-age-card.infant {
+  background: var(--blue-soft);
+}
+
+.child-age-card.toddler {
+  background: var(--coral-soft);
+}
+
+.child-age-card.preschooler {
+  background: var(--mint-soft);
+}
+
+.child-age-icon {
+  border: 2px solid var(--panel);
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(24, 33, 29, 0.12);
+  height: 56px;
+  overflow: hidden;
+  width: 56px;
+}
+
+.child-age-icon img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.child-age-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.child-age-copy strong {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.child-age-copy span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.child-age-stepper {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.child-age-stepper button {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  width: 30px;
+}
+
+.child-age-stepper button:hover,
+.child-age-stepper button:focus-visible,
+.child-age-add-button:hover,
+.child-age-add-button:focus-visible {
+  border-color: var(--hover-border);
+  color: var(--mint);
+}
+
+.child-age-stepper button:disabled {
+  color: var(--disabled-text);
+  cursor: not-allowed;
+}
+
+.child-age-stepper .child-age-remove {
+  color: var(--coral);
 }
 
 .result-header {
@@ -1894,7 +2068,7 @@ h3 {
 }
 
 .detail-decision-chips {
-  align-content: start;
+  align-content: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -2429,8 +2603,6 @@ dd {
   }
 
   .search-bar,
-  .filter-grid,
-  .advanced-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }
