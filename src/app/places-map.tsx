@@ -1,7 +1,7 @@
 "use client";
 
 import { LocateFixed } from "lucide-react";
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 export type MapPlace = {
@@ -21,7 +21,9 @@ export type MapOrigin = {
 } | null;
 
 type PlacesMapProps = {
+  autoLocateOnInitialLoad?: boolean;
   isViewportSearchPending?: boolean;
+  onInitialLocationSearch?: (location: UserLocation) => void;
   onViewportSearch?: (request: ViewportSearchRequest) => void;
   origin: MapOrigin;
   places: MapPlace[];
@@ -41,6 +43,11 @@ type SavedMapView = {
   zoom: number;
 };
 
+type UserLocation = {
+  lat: number;
+  lng: number;
+};
+
 export type ViewportSearchRequest = {
   bounds: MapBounds;
   center: {
@@ -55,23 +62,90 @@ const DEFAULT_MAP_CENTER = { lat: 36.3322, lng: 127.4341 };
 const DEFAULT_MAP_ZOOM = 13;
 const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
 let highlightedResultTimer: number | undefined;
+let initialGeolocationRequest: Promise<GeolocationPosition> | null = null;
 
-export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, origin, places, preserveViewOnUpdate = false }: PlacesMapProps) {
+export function PlacesMap({
+  autoLocateOnInitialLoad = false,
+  isViewportSearchPending = false,
+  onInitialLocationSearch,
+  onViewportSearch,
+  origin,
+  places,
+  preserveViewOnUpdate = false
+}: PlacesMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
   const placeMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
   const userLocationMarkerRef = useRef<LeafletMarker | null>(null);
   const initializedViewKeyRef = useRef<string | null>(null);
+  const initialLocationRequestedRef = useRef(false);
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
   const locationRequestTimerRef = useRef<number | null>(null);
+  const locationRequestTokenRef = useRef(0);
   const viewKeyRef = useRef(mapViewKey(origin));
   const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "denied" | "unsupported">("idle");
 
+  const focusCurrentLocation = useCallback(
+    async (lat: number, lng: number, options: { runSearch?: boolean } = {}) => {
+      const map = mapRef.current;
+      if (!map) {
+        setLocationStatus("idle");
+        return;
+      }
+
+      const L = await import("leaflet");
+      const target = {
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6))
+      };
+
+      userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target);
+      const targetZoom = Math.max(map.getZoom(), 15);
+      if (options.runSearch) {
+        viewKeyRef.current = mapViewKey({ ...target, label: "현재 위치" });
+      }
+      map.flyTo([target.lat, target.lng], targetZoom, { animate: true, duration: 0.65 });
+
+      if (options.runSearch) {
+        onInitialLocationSearch?.(target);
+      } else {
+        if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
+        locationRequestTimerRef.current = window.setTimeout(() => {
+          setViewportSearchRequest(buildViewportSearchRequest(map));
+          locationRequestTimerRef.current = null;
+        }, 720);
+      }
+      setLocationStatus("idle");
+    },
+    [onInitialLocationSearch]
+  );
+
+  const requestInitialLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus("unsupported");
+      return;
+    }
+
+    const requestToken = ++locationRequestTokenRef.current;
+    setLocationStatus("locating");
+    void getInitialGeolocationPosition().then(
+      ({ coords }) => {
+        if (locationRequestTokenRef.current !== requestToken) return;
+        void focusCurrentLocation(coords.latitude, coords.longitude, { runSearch: true });
+      },
+      () => {
+        if (locationRequestTokenRef.current !== requestToken) return;
+        setLocationStatus("denied");
+      }
+    );
+  }, [focusCurrentLocation]);
+
   useEffect(() => {
     return () => {
       if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
+      locationRequestTokenRef.current += 1;
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current = null;
@@ -88,6 +162,8 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
 
       const viewKey = mapViewKey(origin);
       const shouldApplyMapView = initializedViewKeyRef.current !== viewKey && !(preserveViewOnUpdate && mapRef.current);
+      const shouldRequestInitialLocation =
+        autoLocateOnInitialLoad && !initialLocationRequestedRef.current && initializedViewKeyRef.current === null;
       viewKeyRef.current = viewKey;
       const map = getOrCreateMap(L, mapElementRef.current, mapRef, viewKeyRef, (changedMap) => {
         setViewportSearchRequest(buildViewportSearchRequest(changedMap));
@@ -143,6 +219,11 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
 
       map.invalidateSize();
       setViewportSearchRequest(null);
+
+      if (shouldRequestInitialLocation) {
+        initialLocationRequestedRef.current = true;
+        requestInitialLocation();
+      }
     }
 
     void renderMap();
@@ -150,7 +231,7 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
     return () => {
       disposed = true;
     };
-  }, [origin, places, preserveViewOnUpdate]);
+  }, [autoLocateOnInitialLoad, origin, places, preserveViewOnUpdate, requestInitialLocation]);
 
   useEffect(() => {
     function handleCardEnter(event: Event) {
@@ -199,39 +280,19 @@ export function PlacesMap({ isViewportSearchPending = false, onViewportSearch, o
       return;
     }
 
+    const requestToken = ++locationRequestTokenRef.current;
     setLocationStatus("locating");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        if (locationRequestTokenRef.current !== requestToken) return;
         void focusCurrentLocation(coords.latitude, coords.longitude);
       },
-      () => setLocationStatus("denied"),
+      () => {
+        if (locationRequestTokenRef.current !== requestToken) return;
+        setLocationStatus("denied");
+      },
       { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 }
     );
-  }
-
-  async function focusCurrentLocation(lat: number, lng: number) {
-    const map = mapRef.current;
-    if (!map) {
-      setLocationStatus("idle");
-      return;
-    }
-
-    const L = await import("leaflet");
-    const target = {
-      lat: Number(lat.toFixed(6)),
-      lng: Number(lng.toFixed(6))
-    };
-
-    userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target);
-    const targetZoom = Math.max(map.getZoom(), 15);
-    map.flyTo([target.lat, target.lng], targetZoom, { animate: true, duration: 0.65 });
-
-    if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
-    locationRequestTimerRef.current = window.setTimeout(() => {
-      setViewportSearchRequest(buildViewportSearchRequest(map));
-      locationRequestTimerRef.current = null;
-    }, 720);
-    setLocationStatus("idle");
   }
 
   const locationStatusLabel = locationStatusMessage(locationStatus);
@@ -530,6 +591,13 @@ function mapViewStorage() {
   } catch {
     return null;
   }
+}
+
+function getInitialGeolocationPosition() {
+  initialGeolocationRequest ??= new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 });
+  });
+  return initialGeolocationRequest;
 }
 
 function distanceKm(fromLat: number, fromLng: number, toLat: number, toLng: number) {

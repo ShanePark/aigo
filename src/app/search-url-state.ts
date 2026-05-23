@@ -1,4 +1,5 @@
 export type SearchParamsRecord = Record<string, string | string[]>;
+type SearchParamsLike = Record<string, string | string[] | undefined>;
 
 export type MapViewportSearchRequest = {
   bounds: {
@@ -16,6 +17,7 @@ export type MapViewportSearchRequest = {
 export const MAP_LOCATION_PARAM_KEYS = ["lat", "lng", "radiusKm", "nearby", "minLat", "minLng", "maxLat", "maxLng"] as const;
 
 const RESET_ON_SEARCH_PARAM_KEYS = ["page", "offset"] as const;
+const VIEWPORT_PARAM_KEYS = ["minLat", "minLng", "maxLat", "maxLng"] as const;
 
 export function searchParamsForViewportSearch(params: SearchParamsRecord, request: MapViewportSearchRequest): SearchParamsRecord {
   const next = cloneSearchParamsRecord(params);
@@ -32,6 +34,34 @@ export function searchParamsForViewportSearch(params: SearchParamsRecord, reques
   next.maxLng = coordinateParam(request.bounds.maxLng);
 
   return next;
+}
+
+export function searchParamsForCurrentLocation(
+  params: SearchParamsRecord,
+  location: { lat: number; lng: number },
+  options: { radiusKm?: string; sort?: string } = {}
+): SearchParamsRecord {
+  const next = cloneSearchParamsRecord(params);
+
+  for (const key of RESET_ON_SEARCH_PARAM_KEYS) delete next[key];
+  for (const key of VIEWPORT_PARAM_KEYS) delete next[key];
+
+  next.lat = coordinateParam(location.lat);
+  next.lng = coordinateParam(location.lng);
+  next.nearby = "1";
+
+  if (options.radiusKm) {
+    next.radiusKm = options.radiusKm;
+  }
+  if (options.sort) {
+    next.sort = options.sort;
+  }
+
+  return next;
+}
+
+export function hasMapLocationParams(params: SearchParamsLike) {
+  return MAP_LOCATION_PARAM_KEYS.some((key) => hasParamValue(params[key]));
 }
 
 export function searchParamsWithCurrentLocationState(search: string, formData: FormData): URLSearchParams {
@@ -81,4 +111,9 @@ function cloneSearchParamsRecord(params: SearchParamsRecord): SearchParamsRecord
 
 function coordinateParam(value: number) {
   return value.toFixed(6);
+}
+
+function hasParamValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value.some((item) => item.trim().length > 0);
+  return Boolean(value?.trim());
 }

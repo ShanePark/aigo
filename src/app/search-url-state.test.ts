@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { searchParamsForViewportSearch, searchParamsWithCurrentLocationState } from "@/app/search-url-state";
+import {
+  hasMapLocationParams,
+  searchParamsForCurrentLocation,
+  searchParamsForViewportSearch,
+  searchParamsWithCurrentLocationState
+} from "@/app/search-url-state";
 
 describe("search URL state", () => {
   it("records viewport searches without keeping stale radius state", () => {
@@ -89,5 +94,39 @@ describe("search URL state", () => {
       radiusKm: "20",
       stroller: "on"
     });
+  });
+
+  it("builds current-location state without keeping stale viewport or paging params", () => {
+    expect(
+      searchParamsForCurrentLocation(
+        {
+          categoryGroup: "playground",
+          maxLat: "36.400000",
+          maxLng: "127.500000",
+          minLat: "36.300000",
+          minLng: "127.400000",
+          page: "3",
+          parking: "on",
+          query: "모래놀이",
+          sort: "recommended"
+        },
+        { lat: 37.5665, lng: 126.978 },
+        { sort: "recommended" }
+      )
+    ).toEqual({
+      categoryGroup: "playground",
+      lat: "37.566500",
+      lng: "126.978000",
+      nearby: "1",
+      parking: "on",
+      query: "모래놀이",
+      sort: "recommended"
+    });
+  });
+
+  it("detects map location params", () => {
+    expect(hasMapLocationParams({ query: "키즈카페" })).toBe(false);
+    expect(hasMapLocationParams({ lat: "37.566500" })).toBe(true);
+    expect(hasMapLocationParams({ maxLat: ["", "37.600000"] })).toBe(true);
   });
 });

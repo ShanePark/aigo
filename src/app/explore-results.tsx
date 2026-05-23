@@ -7,7 +7,13 @@ import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, Sear
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
-import { MAP_LOCATION_PARAM_KEYS, searchParamsForViewportSearch, type SearchParamsRecord } from "@/app/search-url-state";
+import {
+  MAP_LOCATION_PARAM_KEYS,
+  hasMapLocationParams,
+  searchParamsForCurrentLocation,
+  searchParamsForViewportSearch,
+  type SearchParamsRecord
+} from "@/app/search-url-state";
 import {
   SearchResultTrustBadges,
   type SearchResultBadgeOpeningHoursSummary,
@@ -139,21 +145,22 @@ export function ExploreResults({
   const [result, setResult] = useState(initialResult);
   const [activeInput, setActiveInput] = useState(initialInput);
   const [activeParams, setActiveParams] = useState(initialParams);
-  const [isViewportSearchPending, setIsViewportSearchPending] = useState(false);
+  const [pendingSearchKind, setPendingSearchKind] = useState<"location" | "viewport" | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const searchReturnHref = useMemo(() => currentSearchHref(activeParams), [activeParams]);
+  const isClientSearchPending = pendingSearchKind !== null;
 
   useEffect(() => {
     setResult(initialResult);
     setActiveInput(initialInput);
     setActiveParams(initialParams);
     setClientError(null);
-    setIsViewportSearchPending(false);
+    setPendingSearchKind(null);
   }, [initialInput, initialParams, initialResult]);
 
-  const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord) => {
+  const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord, pendingKind: "location" | "viewport" = "viewport") => {
     const scrollY = window.scrollY;
-    setIsViewportSearchPending(true);
+    setPendingSearchKind(pendingKind);
     setClientError(null);
     try {
       const response = await fetch("/places/search", {
@@ -177,9 +184,9 @@ export function ExploreResults({
       }
       restoreScrollPosition(scrollY);
     } catch (error) {
-      setClientError(error instanceof Error ? error.message : "지도 범위 검색 중 오류가 발생했습니다.");
+      setClientError(error instanceof Error ? error.message : "검색 중 오류가 발생했습니다.");
     } finally {
-      setIsViewportSearchPending(false);
+      setPendingSearchKind(null);
       restoreScrollPosition(scrollY);
     }
   }, []);
@@ -199,9 +206,34 @@ export function ExploreResults({
         viewportBounds: request.bounds
       } satisfies SearchPlacesInput;
 
-      void runClientSearch(nextInput, nextParams);
+      void runClientSearch(nextInput, nextParams, "viewport");
     },
     [activeInput, activeParams, runClientSearch]
+  );
+
+  const handleInitialLocationSearch = useCallback(
+    (location: { lat: number; lng: number }) => {
+      if (hasMapLocationParams(activeParams)) return;
+
+      const sort = activeInput.sort ?? activeSort;
+      const nextParams = searchParamsForCurrentLocation(activeParams, location, { sort });
+      const nextInput = {
+        ...activeInput,
+        filterByRadius: true,
+        offset: 0,
+        origin: {
+          lat: location.lat,
+          lng: location.lng,
+          label: "현재 위치"
+        },
+        radiusKm: activeInput.radiusKm ?? 80,
+        sort,
+        viewportBounds: undefined
+      } satisfies SearchPlacesInput;
+
+      void runClientSearch(nextInput, nextParams, "location");
+    },
+    [activeInput, activeParams, activeSort, runClientSearch]
   );
 
   const handlePage = useCallback(
@@ -227,7 +259,9 @@ export function ExploreResults({
   return (
     <section className="explore-layout">
       <PlacesMap
-        isViewportSearchPending={isViewportSearchPending}
+        autoLocateOnInitialLoad={!hasMapLocationParams(activeParams)}
+        isViewportSearchPending={isClientSearchPending}
+        onInitialLocationSearch={handleInitialLocationSearch}
         onViewportSearch={handleViewportSearch}
         origin={mapOrigin}
         places={mapPlaces}
@@ -246,7 +280,7 @@ export function ExploreResults({
         </section>
 
         <div className="results-scroll" data-results-scroll>
-          {isViewportSearchPending ? <div className="results-inline-status">현재 지도 화면 안의 장소를 찾는 중입니다</div> : null}
+          {pendingSearchKind ? <div className="results-inline-status">{pendingStatusLabel(pendingSearchKind)}</div> : null}
           <div className="results">
             {result.items.map((place, index) => (
               <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
@@ -513,6 +547,10 @@ function compactResultCountLabel(meta: SearchResultMeta) {
   const start = Math.min(meta.offset + 1, meta.total);
   const end = Math.min(meta.offset + meta.count, meta.total);
   return meta.total === meta.count ? `${meta.total}곳` : `${start}-${end} / ${meta.total}`;
+}
+
+function pendingStatusLabel(kind: "location" | "viewport") {
+  return kind === "location" ? "현재 위치 기준으로 장소를 찾는 중입니다" : "현재 지도 화면 안의 장소를 찾는 중입니다";
 }
 
 function currentResultPage(meta: SearchResultMeta) {
