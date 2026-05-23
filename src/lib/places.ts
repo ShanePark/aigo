@@ -1188,7 +1188,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
         distanceMeters: row.distance_meters,
-        nameSimilarity: row.name_similarity
+        nameSimilarity: row.name_similarity,
+        radiusMeters: hasCoordinates ? input.radiusMeters : null
       };
 
       return {

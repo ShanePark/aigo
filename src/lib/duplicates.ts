@@ -11,6 +11,7 @@ export type DuplicateCandidateSignals = {
   kakaoPlaceIdMatch: boolean;
   distanceMeters: number | null;
   nameSimilarity: number | null;
+  radiusMeters?: number | null;
 };
 
 export type DuplicateLocationInput = {
@@ -62,6 +63,13 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
 
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
     reasonCodes.push("GEO_NEAR");
+  } else if (
+    signals.radiusMeters !== null &&
+    signals.radiusMeters !== undefined &&
+    signals.distanceMeters !== null &&
+    signals.distanceMeters > signals.radiusMeters
+  ) {
+    reasonCodes.push("GEO_OUTSIDE_REQUEST_RADIUS");
   }
 
   if (signals.nameSimilarity !== null && signals.nameSimilarity >= 0.45) {

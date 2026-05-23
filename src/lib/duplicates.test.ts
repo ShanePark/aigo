@@ -35,11 +35,13 @@ describe("duplicate helpers", () => {
       externalRefsMatch: false,
       kakaoPlaceIdMatch: false,
       distanceMeters: 8000,
-      nameSimilarity: 0.9
+      nameSimilarity: 0.9,
+      radiusMeters: 800
     };
 
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateReasonCodes(signals)).toContain("NAME_SIMILAR");
+    expect(duplicateReasonCodes(signals)).toContain("GEO_OUTSIDE_REQUEST_RADIUS");
     expect(duplicateReasonCodes(signals)).not.toContain("GEO_NEAR");
   });
 

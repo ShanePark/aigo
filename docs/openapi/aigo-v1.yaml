@@ -2190,7 +2190,7 @@ components:
                 enum: [high, medium, low]
               reasonCodes:
                 type: array
-                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GEO_NEAR, and NAME_SIMILAR.
+                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, and NAME_SIMILAR.
                 items:
                   type: string
               distanceMeters:
