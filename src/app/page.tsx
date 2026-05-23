@@ -268,6 +268,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
   const priceLabel = pricingSummaryLabel(place.pricing);
+  const category = categoryLabel(place.primaryCategory);
 
   return (
     <Link
@@ -283,13 +284,16 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       <div className="result-card-body">
         <div className="result-card-topline">
           <span className="rank-badge">{index}</span>
-          <span className={`score-pill ${scoreTone(place.score)}`}>추천 {place.score}</span>
+          <span className="category-pill">{category}</span>
           <span className="distance-pill">
             <MapPin size={14} aria-hidden="true" />
             {distanceLabel(place.distanceKm)}
           </span>
         </div>
-        <h3>{place.name}</h3>
+        <div className="result-card-title-row">
+          <h3>{place.name}</h3>
+          <span className={`score-pill ${scoreTone(place.score)}`}>추천 {place.score}</span>
+        </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (
             <span key={keyword}>{keyword}</span>
@@ -720,7 +724,6 @@ function mapPlaceForMap(place: SearchItem, returnHref: string): MapPlace {
 
 function resultKeywordChips(place: SearchItem) {
   const keywords = [
-    categoryLabel(place.primaryCategory),
     indoorLabel(place.facilities.indoorType),
     ...positivePlayFeatureKeywords(place),
     ...place.tags.map(formatKeyword),

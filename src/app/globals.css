@@ -1044,7 +1044,8 @@ h3 {
 .result-card-body {
   align-content: start;
   display: grid;
-  gap: 9px;
+  gap: 8px;
+  min-width: 0;
   padding: 13px;
 }
 
@@ -1068,6 +1069,7 @@ h3 {
   gap: 7px;
   justify-content: flex-start;
   min-height: 28px;
+  min-width: 0;
 }
 
 .rank-badge {
@@ -1098,6 +1100,39 @@ h3 {
   margin-left: auto;
   padding: 5px 9px;
   white-space: nowrap;
+}
+
+.category-pill {
+  background: var(--blue-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--blue);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  max-width: min(100%, 15ch);
+  overflow: hidden;
+  padding: 6px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-card-title-row {
+  align-items: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.result-card-title-row h3 {
+  display: -webkit-box;
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .score-pill {
@@ -1141,12 +1176,21 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 }
 
 .trust-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+}
+
+.keyword-row span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trust-badge {
@@ -1157,7 +1201,9 @@ h3 {
   font-weight: 800;
   line-height: 1.2;
   max-width: 100%;
+  overflow: hidden;
   padding: 5px 8px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
