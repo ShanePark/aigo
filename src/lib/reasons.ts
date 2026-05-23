@@ -28,6 +28,8 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   QUERY_PLAY_FEATURE_MATCH: { labelKo: "놀이시설 조건 일치", group: "match", tone: "positive", basePriority: 40 },
   QUERY_ROUTE_SUPPORT_MATCH: { labelKo: "이동 지원 조건 일치", group: "match", tone: "positive", basePriority: 40 },
   QUERY_TEXT_MATCH: { labelKo: "본문/주소에 검색어 포함", group: "match", tone: "positive", basePriority: 58 },
+  PLAYGROUND_FEATURES_UNKNOWN: { labelKo: "놀이터 장비 정보 부족", group: "confidence", tone: "unknown", basePriority: 17 },
+  PLAYGROUND_INFANT_ROUTE_UNKNOWN: { labelKo: "영아 동선 정보 부족", group: "confidence", tone: "unknown", basePriority: 18 },
   TAXONOMY_ACTIVITY_MATCH: { labelKo: "활동 유형 일치", group: "match", tone: "positive", basePriority: 39 },
   TAXONOMY_USE_CASE_MATCH: { labelKo: "외출 목적 일치", group: "match", tone: "positive", basePriority: 41 },
   TAXONOMY_LOGISTICS_MATCH: { labelKo: "가족 편의 조건 일치", group: "match", tone: "positive", basePriority: 42 },

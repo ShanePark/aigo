@@ -38,6 +38,7 @@ type SearchResultTrustBadgesProps = {
 };
 
 const visitPlanningGapKeys = new Set(["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"]);
+const playgroundInfantRouteGapKeys = new Set(["strollerFriendly", "parkingAvailable", "kidsToilet", "nursingRoom", "diaperChangingTable"]);
 
 export function SearchResultTrustBadges({ openingHoursSummary, recommendationReadiness, sourceSummary }: SearchResultTrustBadgesProps) {
   const badges = searchResultTrustBadges(sourceSummary, openingHoursSummary, recommendationReadiness);
@@ -112,7 +113,26 @@ function recommendationReadinessBadges(readiness: SearchResultBadgeRecommendatio
 
   const badges: SearchResultBadge[] = [];
   const visitPlanningGaps = readiness.blockingGaps.filter((gap) => visitPlanningGapKeys.has(gap));
+  const playgroundInfantRouteGaps = readiness.blockingGaps.filter((gap) => playgroundInfantRouteGapKeys.has(gap));
   const priceNotes = readiness.cautionNotes.filter((note) => note.includes("가격"));
+
+  if (readiness.blockingGaps.includes("playFeatures")) {
+    badges.push({
+      key: "playground-feature-gap",
+      label: "놀이터 정보 검증",
+      title: "놀이기구, 그늘, 울타리, 바닥, 화장실 근접성 같은 장비 정보 보강이 필요합니다.",
+      tone: "warning"
+    });
+  }
+
+  if (playgroundInfantRouteGaps.length > 0) {
+    badges.push({
+      key: "playground-infant-route-gap",
+      label: "영아 동선 확인",
+      title: `쌍둥이 영아 동선에 필요한 값이 부족합니다: ${playgroundInfantRouteGaps.map(recommendationGapLabel).join(", ")}.`,
+      tone: "warning"
+    });
+  }
 
   if (visitPlanningGaps.length > 0) {
     badges.push({
@@ -209,6 +229,17 @@ function openingHoursGapLabel(gap: string) {
     sameDayAvailabilityKnown: "당일 가능 여부"
   };
   return labels[gap] ?? gap;
+}
+
+function recommendationGapLabel(gap: string) {
+  const labels: Record<string, string> = {
+    diaperChangingTable: "기저귀 교환대",
+    kidsToilet: "유아화장실",
+    nursingRoom: "수유실",
+    parkingAvailable: "주차",
+    strollerFriendly: "유모차 동선"
+  };
+  return labels[gap] ?? openingHoursGapLabel(gap);
 }
 
 function formatDate(value: string) {

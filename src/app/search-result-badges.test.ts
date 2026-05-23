@@ -91,4 +91,29 @@ describe("search result trust badges", () => {
     expect(badges.map((badge) => badge.label)).toEqual(["공식 출처", "오늘 확인", "예약/회차 확인", "가격 확인 필요", "대표 이미지 없음"]);
     expect(badges.at(-1)).toMatchObject({ tone: "danger" });
   });
+
+  it("surfaces playground equipment and infant route gaps", () => {
+    const badges = searchResultTrustBadges(
+      {
+        sourceCount: 1,
+        bestSourceTier: "public_agency",
+        bestSourceType: "public_agency",
+        latestCheckedAt: "2026-05-23T00:00:00.000Z",
+        freshnessStatus: "checked_today"
+      },
+      {
+        sourceBacked: true,
+        structuredDataGaps: []
+      },
+      {
+        agentSummary: "핵심 확인값 4개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.",
+        blockingGaps: ["playFeatures", "strollerFriendly", "parkingAvailable", "kidsToilet", "primaryImage"],
+        cautionNotes: ["놀이기구, 그늘, 울타리, 바닥, 화장실 근접성 같은 놀이터 장비 정보가 부족해 가까운 후보라도 현장 검증이 필요합니다."],
+        readinessMode: "familyWeekend",
+        readyForWeekendRecommendation: false
+      }
+    );
+
+    expect(badges.map((badge) => badge.label)).toEqual(["공공 출처", "오늘 확인", "놀이터 정보 검증", "영아 동선 확인", "대표 이미지 없음"]);
+  });
 });

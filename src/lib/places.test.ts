@@ -889,6 +889,44 @@ describe("place search helpers", () => {
     });
   });
 
+  it("marks weak playground evidence as not ready for infant family recommendations", () => {
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "public_agency",
+        title: "공원 시설 안내",
+        summary: "공공 페이지가 주소와 공원 이용 정보를 안내하지만 놀이기구와 영아 동선 세부 정보는 없다.",
+        checked_at: "2026-05-23T00:00:00.000Z",
+        created_at: "2026-05-23T00:00:00.000Z"
+      }
+    ]);
+    const visit = {
+      reservationRequired: "no",
+      walkInAvailable: "yes",
+      sessionBased: "no",
+      sameDayAvailabilityKnown: "yes"
+    } as const;
+    const openingHoursSummary = buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal({ openNow: true }), sourceSummary, visit);
+    const readiness = buildSearchRecommendationReadiness(
+      {
+        primaryCategory: "park",
+        pricing: {},
+        playFeatures: {},
+        structuredDataGaps: ["strollerFriendly", "parkingAvailable", "kidsToilet"],
+        openingHoursSummary,
+        imageHealth: buildSearchImageHealth([]),
+        sourceSummary,
+        facilities: { indoorType: "outdoor" }
+      },
+      { visitContext: "weekendHalfDay", childAgeMonths: [32, 7, 7] }
+    );
+
+    expect(readiness).toMatchObject({
+      readyForWeekendRecommendation: false,
+      blockingGaps: expect.arrayContaining(["playFeatures", "strollerFriendly", "parkingAvailable", "kidsToilet", "primaryImage"]),
+      cautionNotes: expect.arrayContaining([expect.stringContaining("놀이터 장비 정보")])
+    });
+  });
+
   it("describes search preferences as soft ranking signals", () => {
     expect(
       buildSearchPreferenceSemantics({

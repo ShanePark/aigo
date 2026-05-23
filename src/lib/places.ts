@@ -439,7 +439,10 @@ export async function searchPlaces(input: SearchPlacesInput) {
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);
     const querySignal = queryMatchSignal(place, normalizedInput.query);
-    const score = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
+    const baseScore = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
+    const playgroundEvidenceCap = playgroundEvidenceScoreCap(baseScore, place, normalizedInput);
+    const score = playgroundEvidenceCap.score;
+    const reasonCodes = mergeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), playgroundEvidenceCap.reasonCodes);
 
     return {
       id: place.id,
@@ -463,8 +466,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
         queryMatch: querySignal.delta,
         total: score
       },
-      reasonCodes: mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes),
-      reasons: describeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), normalizedInput),
+      reasonCodes,
+      reasons: describeReasonCodes(reasonCodes, normalizedInput),
       dataConfidence: place.dataConfidence,
       scoring: place.scoring,
       recommendedAgeMonths: place.recommendedAgeMonths,
@@ -547,6 +550,33 @@ export async function searchPlaces(input: SearchPlacesInput) {
       }
     }
   };
+}
+
+function playgroundEvidenceScoreCap(
+  score: number,
+  place: ReturnType<typeof mapPlace>,
+  input: Pick<SearchPlacesInput, "childAgeMonths" | "playgroundOnly">
+) {
+  if (!input.playgroundOnly || place.primaryCategory !== "park") {
+    return { score, reasonCodes: [] as string[] };
+  }
+
+  const reasonCodes: string[] = [];
+  let cappedScore = score;
+
+  if (!hasPositivePlaygroundFeature(place.playFeatures)) {
+    cappedScore = Math.min(cappedScore, 66);
+    reasonCodes.push("PLAYGROUND_FEATURES_UNKNOWN");
+  }
+
+  const hasInfant = input.childAgeMonths?.some((ageMonths) => ageMonths < 18) ?? false;
+  const routeUnknownCount = playgroundInfantRouteKeys.filter((key) => place.facilities[key] === "unknown").length;
+  if (hasInfant && routeUnknownCount >= 2) {
+    cappedScore = Math.min(cappedScore, 64);
+    reasonCodes.push("PLAYGROUND_INFANT_ROUTE_UNKNOWN");
+  }
+
+  return { score: cappedScore, reasonCodes };
 }
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
@@ -3519,11 +3549,29 @@ export function buildStructuredDataGaps(
 const recommendationOperationGapKeys = new Set(["openingHours", "reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"]);
 const recommendationInfantGapKeys = new Set(["strollerFriendly", "nursingRoom", "diaperChangingTable", "elevator"]);
 const paidPlanningCategories = new Set(["kids_cafe", "indoor_playground", "family_cafe", "family_restaurant", "accommodation"]);
+const playgroundInfantRouteKeys = ["strollerFriendly", "parkingAvailable", "kidsToilet"] as const;
+const playgroundReadinessGapKeys = new Set([...playgroundInfantRouteKeys, "nursingRoom", "diaperChangingTable"]);
+const playgroundFeatureKeys = [
+  "slide",
+  "swing",
+  "seesaw",
+  "babySwing",
+  "sandPlay",
+  "waterPlayground",
+  "climbing",
+  "openLawn",
+  "shade",
+  "fenced",
+  "rubberSurface",
+  "strollerPath",
+  "toiletNearby"
+];
 
 type RecommendationReadinessMode = "familyWeekend" | "rainyDay" | "dayTrip";
 type SearchRecommendationReadinessPlace = {
   primaryCategory: string;
   pricing: Record<string, unknown>;
+  playFeatures?: Record<string, unknown> | null;
   structuredDataGaps: string[];
   openingHoursSummary: ReturnType<typeof buildSearchOpeningHoursSummary>;
   imageHealth: ReturnType<typeof buildSearchImageHealth>;
@@ -3550,6 +3598,20 @@ export function buildSearchRecommendationReadiness(
     }
     if (hasInfant && recommendationInfantGapKeys.has(gap)) {
       blockingGaps.add(gap);
+    }
+  }
+
+  if (place.primaryCategory === "park") {
+    if (!hasPositivePlaygroundFeature(place.playFeatures)) {
+      blockingGaps.add("playFeatures");
+      cautionNotes.push("놀이기구, 그늘, 울타리, 바닥, 화장실 근접성 같은 놀이터 장비 정보가 부족해 가까운 후보라도 현장 검증이 필요합니다.");
+    }
+    if (hasInfant) {
+      for (const gap of place.structuredDataGaps) {
+        if (playgroundReadinessGapKeys.has(gap)) {
+          blockingGaps.add(gap);
+        }
+      }
     }
   }
 
@@ -3594,6 +3656,14 @@ function hasMeaningfulPricing(pricing: Record<string, unknown>) {
   if (!isPlainRecord(pricing) || Object.keys(pricing).length === 0) return false;
   if (Array.isArray(pricing.items) && pricing.items.length > 0) return true;
   return ["summary", "basisDate", "checkedAt", "priceCheckedAt"].some((key) => typeof pricing[key] === "string" && pricing[key].trim().length > 0);
+}
+
+function hasPositivePlaygroundFeature(playFeatures: Record<string, unknown> | null | undefined) {
+  if (!isPlainRecord(playFeatures)) return false;
+  return playgroundFeatureKeys.some((key) => {
+    const value = playFeatures[key];
+    return value === "yes" || value === "partial" || value === true;
+  });
 }
 
 function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceEvidence: SearchSourceSummary["openingHoursEvidence"]) {
