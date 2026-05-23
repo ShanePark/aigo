@@ -89,7 +89,7 @@ describe("place info links", () => {
     });
   });
 
-  it("does not treat Naver public search fallback as a map CTA", () => {
+  it("falls back to a Naver map search CTA when no direct map URL exists", () => {
     const link = buildNaverMapLink({
       name: "외부 URL 없는 장소",
       address: "대전광역시 중구",
@@ -99,6 +99,10 @@ describe("place info links", () => {
       sources: [{ sourceType: "user_observation", title: null, url: null, summary: "사용자 관찰만 있는 장소입니다." }]
     });
 
-    expect(link).toBeUndefined();
+    expect(link).toMatchObject({
+      label: "네이버 지도 검색",
+      provider: "네이버",
+      url: `https://map.naver.com/p/search/${encodeURIComponent("외부 URL 없는 장소 대전광역시 중구")}`
+    });
   });
 });

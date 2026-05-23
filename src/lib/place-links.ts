@@ -72,8 +72,8 @@ export function buildNaverMapLink(place: PlaceLinkInput): PlaceInfoLink | undefi
   }
 
   const [best] = Array.from(deduped.values()).sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
-  if (!best) return undefined;
-  return stripRank(best);
+  if (best) return stripRank(best);
+  return naverMapSearchLink(place);
 }
 
 function stripRank(link: RankedPlaceInfoLink): PlaceInfoLink {
@@ -95,6 +95,20 @@ function infoLinkFromPublicSearch(place: PlaceLinkInput): RankedPlaceInfoLink {
     note: "공식/출처 URL이 없을 때 부모가 공개 정보를 확인할 수 있는 검색 링크입니다.",
     provider: "네이버",
     rank: 9,
+    url
+  };
+}
+
+function naverMapSearchLink(place: PlaceLinkInput): PlaceInfoLink | undefined {
+  const query = [place.name, place.roadAddress ?? place.address].filter(Boolean).join(" ").trim();
+  if (!query) return undefined;
+  const url = `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
+
+  return {
+    key: normalizeLinkKey(url),
+    label: "네이버 지도 검색",
+    note: "직접 장소 링크가 없을 때 장소명과 주소로 네이버 지도에서 검색합니다.",
+    provider: "네이버",
     url
   };
 }

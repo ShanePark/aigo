@@ -110,7 +110,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             {naverMapLink ? (
               <a className="detail-decision-action is-primary" href={naverMapLink.url} target="_blank" rel="noreferrer">
                 <MapPin size={15} aria-hidden="true" />
-                네이버지도
+                네이버 지도에서 보기
               </a>
             ) : null}
             {primaryInfoLink ? (
