@@ -46,7 +46,7 @@ const emptyTaxonomyFacetSetValue = () => ({
 });
 
 export const taxonomySchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(1).default(1),
   sourceBacked: taxonomyFacetSetSchema.default(emptyTaxonomyFacetSetValue),
   inferred: taxonomyFacetSetSchema
     .extend({

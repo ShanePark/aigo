@@ -142,6 +142,43 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
+  it("fills taxonomy v1 defaults for research payload fragments", () => {
+    const result = taxonomySchema.parse({
+      sourceBacked: {
+        familyFitGates: ["child_primary"]
+      },
+      inferred: {
+        activityTypes: ["science_exhibit"],
+        confidence: "medium",
+        basis: "Research report noted a science exhibit."
+      }
+    });
+    const create = createPlaceSchema.parse({
+      name: "분류 조각 장소",
+      primaryCategory: "science_museum",
+      regionSido: "대전",
+      lat: 36.35,
+      lng: 127.38,
+      taxonomy: {
+        sourceBacked: {
+          familyFitGates: ["child_primary"]
+        },
+        inferred: {
+          activityTypes: ["science_exhibit"]
+        }
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(result.schemaVersion).toBe(1);
+    expect(result.migration).toEqual({ legacyTags: [], broadMappedTags: [], unmappedTags: [] });
+    expect(result.sourceBacked.familyFitGates).toEqual(["child_primary"]);
+    expect(result.sourceBacked.logisticsTags).toEqual([]);
+    expect(result.inferred.activityTypes).toEqual(["science_exhibit"]);
+    expect(create.taxonomy?.schemaVersion).toBe(1);
+    expect(create.taxonomy?.migration.legacyTags).toEqual([]);
+  });
+
   it("accepts source-backed pricing with a price basis date", () => {
     const result = createPlaceSchema.parse({
       name: "유료 키즈카페",

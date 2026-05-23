@@ -517,12 +517,12 @@ components:
             enum: [water_edge, road_nearby, steep_path, crowding, fire_grill, current_operation_uncertain, seasonal_operation, infant_amenity_gap]
     PlaceTaxonomy:
       type: object
-      description: Source-backed and inferred controlled classification for parent-planning semantics. Use `sourceBacked` only for cited facts and `inferred` for agent-derived broad planning labels.
-      required: [schemaVersion, sourceBacked, inferred, migration]
+      description: Source-backed and inferred controlled classification for parent-planning semantics. Use `sourceBacked` only for cited facts and `inferred` for agent-derived broad planning labels. Write requests may provide a fragment; omitted schemaVersion, facet arrays, and migration arrays default to taxonomy v1 empty values.
       properties:
         schemaVersion:
           type: integer
           enum: [1]
+          default: 1
         sourceBacked:
           $ref: "#/components/schemas/TaxonomyFacetSet"
         inferred:
@@ -538,7 +538,6 @@ components:
                   maxLength: 1000
         migration:
           type: object
-          required: [legacyTags, broadMappedTags, unmappedTags]
           properties:
             legacyTags:
               type: array
