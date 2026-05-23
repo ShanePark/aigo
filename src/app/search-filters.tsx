@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Check, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import {
@@ -97,13 +97,17 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     setIsPickerOpen(false);
   }
 
-  function togglePicker() {
-    if (isAtProfileLimit) return;
+  function cancelDraftProfile() {
+    setIsPickerOpen(false);
+  }
 
+  function togglePicker() {
     if (isPickerOpen) {
       setIsPickerOpen(false);
       return;
     }
+
+    if (isAtProfileLimit) return;
 
     const nextProfile =
       CHILD_AGE_BANDS.flatMap((band) => CHILD_GENDERS.map((gender) => ({ ageBand: band.id, gender: gender.id }))).find(
@@ -192,11 +196,11 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             className="child-profile-add-button"
             type="button"
             onClick={togglePicker}
-            disabled={isPending || isAtProfileLimit}
+            disabled={isPending || (!isPickerOpen && isAtProfileLimit)}
             aria-expanded={isPickerOpen}
           >
-            <Plus size={15} aria-hidden="true" />
-            {isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
+            {isPickerOpen ? <X size={15} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
+            {isPickerOpen ? "닫기" : isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
           </button>
         </div>
 
@@ -262,10 +266,16 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
               })}
             </div>
 
-            <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftProfileAlreadyExists}>
-              <Check size={15} aria-hidden="true" />
-              {draftProfileAlreadyExists ? "이미 등록됨" : "아이 적용"}
-            </button>
+            <div className="child-profile-picker-actions">
+              <button className="child-profile-cancel" type="button" onClick={cancelDraftProfile}>
+                <X size={15} aria-hidden="true" />
+                취소
+              </button>
+              <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftProfileAlreadyExists}>
+                <Check size={15} aria-hidden="true" />
+                {draftProfileAlreadyExists ? "이미 등록됨" : "아이 적용"}
+              </button>
+            </div>
           </div>
         ) : null}
 

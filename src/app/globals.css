@@ -689,6 +689,7 @@ h3 {
 }
 
 .child-profile-add-button:disabled,
+.child-profile-cancel:disabled,
 .child-profile-confirm:disabled {
   color: var(--disabled-text);
   cursor: not-allowed;
@@ -847,20 +848,34 @@ h3 {
   top: 7px;
 }
 
+.child-profile-picker-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr);
+}
+
+.child-profile-cancel,
 .child-profile-confirm {
   align-items: center;
-  background: var(--mint);
-  border: 0;
+  border: 1px solid var(--highlight-border);
   border-radius: 999px;
-  color: var(--accent-text);
   display: inline-flex;
   font-size: 13px;
   font-weight: 900;
   gap: 6px;
   justify-content: center;
-  justify-self: end;
   min-height: 34px;
   padding: 0 13px;
+}
+
+.child-profile-cancel {
+  background: var(--field-bg);
+  color: var(--muted);
+}
+
+.child-profile-confirm {
+  background: var(--mint);
+  color: var(--accent-text);
 }
 
 .child-profile-grid {
@@ -921,9 +936,18 @@ h3 {
 .child-profile-segmented button:hover,
 .child-profile-segmented button:focus-visible,
 .child-profile-add-button:hover,
-.child-profile-add-button:focus-visible {
+.child-profile-add-button:focus-visible,
+.child-profile-cancel:hover,
+.child-profile-cancel:focus-visible,
+.child-profile-confirm:hover,
+.child-profile-confirm:focus-visible {
   border-color: var(--hover-border);
   color: var(--mint);
+}
+
+.child-profile-confirm:hover,
+.child-profile-confirm:focus-visible {
+  color: var(--accent-text);
 }
 
 .result-header {
@@ -2844,8 +2868,13 @@ dd {
   }
 
   .child-profile-add-button,
+  .child-profile-cancel,
   .child-profile-confirm {
     width: 100%;
+  }
+
+  .child-profile-picker-actions {
+    grid-template-columns: 1fr;
   }
 
   .child-profile-segmented button {
