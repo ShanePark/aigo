@@ -119,6 +119,7 @@ export default async function Home({ searchParams }: HomeProps) {
   }
 
   const nationwideStaySearch = isNationwideStaySearch(activeCategoryGroup, effectiveParams);
+  const activeCategoryGroupConfig = CATEGORY_GROUPS[activeCategoryGroup];
   const activeSort = sortParam(effectiveParams);
   const mapOrigin = mapOriginFromMeta(result.meta);
   const searchReturnHref = currentSearchHref(effectiveParams);
@@ -152,12 +153,32 @@ export default async function Home({ searchParams }: HomeProps) {
                   className={`category-tab ${activeCategoryGroup === groupId ? "is-active" : ""}`}
                   href={categoryGroupHref(effectiveParams, groupId as CategoryGroupId)}
                   key={groupId}
+                  aria-label={`${group.label}: ${group.hint}`}
                 >
                   <Icon size={17} aria-hidden="true" />
                   <span>{group.label}</span>
                 </Link>
               );
             })}
+          </div>
+
+          <div className="search-summary-row" aria-label="검색 상태">
+            <span>
+              <strong>{activeCategoryGroupConfig.label}</strong>
+              <small>분류</small>
+            </span>
+            <span>
+              <strong>{resultCountLabel(result.meta)}</strong>
+              <small>결과</small>
+            </span>
+            <span>
+              <strong>{nationwideStaySearch ? "전국 숙소" : (mapOrigin?.label ?? DEFAULT_ORIGIN.label)}</strong>
+              <small>기준</small>
+            </span>
+            <span>
+              <strong>{sortLabel(activeSort)}</strong>
+              <small>정렬</small>
+            </span>
           </div>
 
           <details className="advanced-search">
@@ -217,7 +238,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="results-panel">
             <section className="result-header">
               <div>
-                <h2>{activeCategoryGroup === "stay" ? "키즈 숙소" : "주변 장소"}</h2>
+                <h2>{activeCategoryGroup === "all" ? "주변 장소" : activeCategoryGroupConfig.label}</h2>
                 <p>{resultCountLabel(result.meta)}</p>
               </div>
               <div className="result-actions">
@@ -456,6 +477,10 @@ function sortParam(params: Record<string, string | string[] | undefined>): Extra
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
+}
+
+function sortLabel(sort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
+  return sort === "distance" ? "거리순" : "관련도순";
 }
 
 type SearchItem = Awaited<ReturnType<typeof searchPlaces>>["items"][number];
