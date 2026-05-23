@@ -1769,7 +1769,7 @@ h3 {
 }
 
 .detail-page {
-  max-width: 1000px;
+  max-width: 1120px;
 }
 
 .back-link {
@@ -1789,7 +1789,7 @@ h3 {
   display: flex;
   gap: 24px;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
 
 .detail-hero-image {
@@ -1826,20 +1826,39 @@ h3 {
   text-underline-offset: 2px;
 }
 
-.detail-hero-grid {
+.detail-media-grid {
   align-items: stretch;
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
-  margin-bottom: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
+  margin-bottom: 16px;
 }
 
 .detail-hero-media {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
 .detail-hero-media .detail-hero-image {
+  aspect-ratio: 16 / 9;
+  flex: 1 1 auto;
   margin-bottom: 10px;
+}
+
+.detail-description {
+  color: var(--body-copy);
+  font-size: 15px;
+  line-height: 1.72;
+  margin: 0 0 16px;
+}
+
+.detail-description p {
+  margin: 0;
+}
+
+.detail-summary {
+  margin-bottom: 14px;
 }
 
 .detail-decision-card {
@@ -1847,18 +1866,18 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(150px, 0.36fr) minmax(0, 1fr);
   min-width: 0;
   padding: 16px;
 }
 
 .detail-decision-header {
   align-items: flex-start;
-  display: flex;
+  display: grid;
   gap: 12px;
-  justify-content: space-between;
+  justify-content: start;
 }
 
 .detail-decision-header span {
@@ -1875,6 +1894,7 @@ h3 {
 }
 
 .detail-decision-chips {
+  align-content: start;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -1911,18 +1931,20 @@ h3 {
 .detail-decision-note {
   color: var(--body-copy);
   display: -webkit-box;
+  grid-column: 2;
   line-height: 1.55;
   margin-bottom: 0;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
 }
 
 .detail-decision-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: auto;
+  grid-column: 1 / -1;
+  margin-top: 0;
 }
 
 .detail-decision-action {
@@ -1966,8 +1988,9 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
-  margin: 0 0 18px;
-  max-width: 640px;
+  height: 100%;
+  margin: 0;
+  max-width: none;
   overflow: hidden;
 }
 
@@ -1992,8 +2015,8 @@ h3 {
 
 .detail-map-canvas {
   background: var(--map-bg);
-  height: 220px;
-  min-height: 190px;
+  height: 100%;
+  min-height: 300px;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -2382,7 +2405,7 @@ dd {
     min-height: 300px;
   }
 
-  .detail-hero-grid {
+  .detail-media-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -2562,6 +2585,14 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .detail-decision-card {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-decision-note {
+    grid-column: auto;
+  }
+
   .detail-decision-action {
     min-height: 44px;
     width: 100%;
@@ -2576,8 +2607,8 @@ dd {
   }
 
   .detail-map-canvas {
-    height: 180px;
-    min-height: 160px;
+    height: 220px;
+    min-height: 200px;
   }
 
   .related-place-card {

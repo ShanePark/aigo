@@ -68,11 +68,10 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             {categoryLabel(place.primaryCategory)}
           </p>
           <h1>{place.name}</h1>
-          {place.description ? <p className="lede">{place.description}</p> : null}
         </div>
       </section>
 
-      <section className="detail-hero-grid">
+      <section className="detail-media-grid">
         <div className="detail-hero-media">
           <PlaceImage category={place.primaryCategory} src={heroImage?.url} alt={`${place.name} 대표 이미지`} variant="detail" />
           {heroImage?.sourceUrl ? (
@@ -84,6 +83,16 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             </p>
           ) : null}
         </div>
+        <PlaceDetailMap category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
+      </section>
+
+      {place.description ? (
+        <section className="detail-description" aria-label="장소 설명">
+          <p>{place.description}</p>
+        </section>
+      ) : null}
+
+      <section className="detail-summary">
         <aside className="detail-decision-card" aria-label="방문 핵심 정보">
           <div className="detail-decision-header">
             <span>{categoryLabel(place.primaryCategory)}</span>
@@ -104,10 +113,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
                 네이버지도
               </a>
             ) : null}
-            <a className="detail-decision-action" href="#detail-map">
-              <MapPin size={15} aria-hidden="true" />
-              위치 보기
-            </a>
             {primaryInfoLink ? (
               <a className="detail-decision-action" href={primaryInfoLink.url} target="_blank" rel="noreferrer">
                 <ExternalLink size={15} aria-hidden="true" />
@@ -117,69 +122,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           </div>
         </aside>
       </section>
-
-      <PlaceDetailMap category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
-
-      {place.relatedPlaces.length > 0 ? (
-        <section className="info-block full">
-          <h2>관련 장소</h2>
-          <div className="related-place-grid">
-            {place.relatedPlaces.map((relatedPlace) => (
-              <Link className="related-place-card" href={relatedPlaceHref(relatedPlace.placeId, backHref)} key={relatedPlace.relationId}>
-                <PlaceImage category={relatedPlace.primaryCategory} src={null} alt={`${relatedPlace.name} 이미지`} variant="result" />
-                <div className="related-place-copy">
-                  <span>{relationTypeLabel(relatedPlace.relationType)}</span>
-                  <strong>{relatedPlace.name}</strong>
-                  <small>
-                    {categoryLabel(relatedPlace.primaryCategory)}
-                    {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
-                  </small>
-                  {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {galleryImages.length > 0 ? (
-        <section className="image-gallery-section">
-          <h2>
-            <Images size={18} aria-hidden="true" />
-            갤러리
-          </h2>
-          <div className="image-gallery-grid">
-            {galleryImages.map((image) => (
-              <article className="image-gallery-card" key={image.id}>
-                <PlaceImage category={place.primaryCategory} src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
-                <div className="image-gallery-copy">
-                  {image.sourceUrl ? (
-                    <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
-                      {image.sourceTitle ?? image.creditText}
-                    </a>
-                  ) : null}
-                  <details className="image-info-details">
-                    <summary>이미지 정보 보기</summary>
-                    <div className="visit-row">
-                      {image.isPrimary ? <span>대표 이미지</span> : null}
-                      <span>{imageTierLabel(image.displayTier)}</span>
-                      <span>{imageReviewLabel(image.reviewStatus)}</span>
-                    </div>
-                    {image.description ? <p>{image.description}</p> : null}
-                    {image.visualFeatures.length > 0 ? (
-                      <div className="reason-grid">
-                        {image.visualFeatures.slice(0, 10).map((feature) => (
-                          <span key={feature}>{imageFeatureLabel(feature)}</span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </details>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <section className="detail-grid">
         <div className="info-block">
@@ -300,6 +242,67 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
                 <p>{place.notes.parent}</p>
               </div>
             ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {place.relatedPlaces.length > 0 ? (
+        <section className="info-block full">
+          <h2>관련 장소</h2>
+          <div className="related-place-grid">
+            {place.relatedPlaces.map((relatedPlace) => (
+              <Link className="related-place-card" href={relatedPlaceHref(relatedPlace.placeId, backHref)} key={relatedPlace.relationId}>
+                <PlaceImage category={relatedPlace.primaryCategory} src={null} alt={`${relatedPlace.name} 이미지`} variant="result" />
+                <div className="related-place-copy">
+                  <span>{relationTypeLabel(relatedPlace.relationType)}</span>
+                  <strong>{relatedPlace.name}</strong>
+                  <small>
+                    {categoryLabel(relatedPlace.primaryCategory)}
+                    {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
+                  </small>
+                  {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {galleryImages.length > 0 ? (
+        <section className="image-gallery-section">
+          <h2>
+            <Images size={18} aria-hidden="true" />
+            갤러리
+          </h2>
+          <div className="image-gallery-grid">
+            {galleryImages.map((image) => (
+              <article className="image-gallery-card" key={image.id}>
+                <PlaceImage category={place.primaryCategory} src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
+                <div className="image-gallery-copy">
+                  {image.sourceUrl ? (
+                    <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
+                      {image.sourceTitle ?? image.creditText}
+                    </a>
+                  ) : null}
+                  <details className="image-info-details">
+                    <summary>이미지 정보 보기</summary>
+                    <div className="visit-row">
+                      {image.isPrimary ? <span>대표 이미지</span> : null}
+                      <span>{imageTierLabel(image.displayTier)}</span>
+                      <span>{imageReviewLabel(image.reviewStatus)}</span>
+                    </div>
+                    {image.description ? <p>{image.description}</p> : null}
+                    {image.visualFeatures.length > 0 ? (
+                      <div className="reason-grid">
+                        {image.visualFeatures.slice(0, 10).map((feature) => (
+                          <span key={feature}>{imageFeatureLabel(feature)}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </details>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       ) : null}
