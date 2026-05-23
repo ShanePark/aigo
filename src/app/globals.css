@@ -56,6 +56,8 @@
   --source-bg: #f8fbf9;
   --topbar-bg: rgba(255, 255, 255, 0.84);
   --topbar-border: rgba(220, 233, 227, 0.9);
+  --z-detail-sticky: 1100;
+  --z-topbar: 1200;
   --shadow: 0 18px 42px rgba(24, 33, 29, 0.08);
   --shadow-soft: 0 8px 24px rgba(24, 33, 29, 0.06);
 }
@@ -194,7 +196,7 @@ summary {
   padding: 0 24px;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-topbar);
 }
 
 .brand {
@@ -2118,7 +2120,7 @@ h3 {
   padding: 10px 12px;
   position: sticky;
   top: 60px;
-  z-index: 9;
+  z-index: var(--z-detail-sticky);
 }
 
 .detail-sticky-head .detail-head {
