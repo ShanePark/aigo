@@ -596,20 +596,21 @@ h3 {
 
 .advanced-active-chips .advanced-child-chip {
   align-items: center;
-  background: var(--panel);
+  background: transparent;
+  border-color: transparent;
   display: inline-flex;
-  height: 32px;
+  height: 34px;
   justify-content: center;
   overflow: hidden;
-  padding: 1px;
-  width: 32px;
+  padding: 0;
+  width: 34px;
 }
 
 .advanced-child-chip img {
   display: block;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.1);
+  transform: scale(1.12);
   width: 100%;
 }
 
@@ -702,29 +703,42 @@ h3 {
 .child-profile-segmented {
   background: var(--field-bg);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 8px;
   display: inline-grid;
   flex: 0 0 auto;
   gap: 3px;
-  grid-template-columns: repeat(2, minmax(58px, 1fr));
+  grid-template-columns: repeat(2, 44px);
   padding: 3px;
 }
 
 .child-profile-segmented button {
+  align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--muted);
+  display: inline-flex;
   font-size: 13px;
   font-weight: 900;
-  min-height: 30px;
-  padding: 0 12px;
+  height: 42px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  width: 42px;
 }
 
 .child-profile-segmented button.is-selected {
   background: var(--panel);
   box-shadow: var(--shadow-soft);
   color: var(--mint);
+}
+
+.child-profile-segmented img {
+  display: block;
+  height: 38px;
+  object-fit: cover;
+  transform: scale(1.12);
+  width: 38px;
 }
 
 .child-profile-options {
@@ -754,13 +768,13 @@ h3 {
 
 .child-profile-option-icon,
 .child-profile-icon {
-  background: var(--panel);
-  border: 2px solid var(--panel);
+  background: transparent;
+  border: 0;
   border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(24, 33, 29, 0.12);
-  height: 56px;
+  box-shadow: none;
+  height: 64px;
   overflow: hidden;
-  width: 56px;
+  width: 64px;
 }
 
 .child-profile-option-icon img,
@@ -768,7 +782,7 @@ h3 {
   display: block;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.12);
+  transform: scale(1.08);
   width: 100%;
 }
 
@@ -832,7 +846,7 @@ h3 {
   display: grid;
   gap: 10px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 78px;
+  min-height: 82px;
   padding: 10px;
 }
 
@@ -2755,13 +2769,12 @@ dd {
   }
 
   .child-profile-add-button,
-  .child-profile-confirm,
-  .child-profile-segmented {
+  .child-profile-confirm {
     width: 100%;
   }
 
   .child-profile-segmented button {
-    min-height: 36px;
+    min-height: 42px;
   }
 
   .child-profile-options,

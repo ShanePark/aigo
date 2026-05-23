@@ -41,6 +41,7 @@ Out of scope for the current MVP:
 The web app provides a Korean place-search UI with:
 
 - Keyword, category, age, map-viewport/distance, and family-logistics filters
+- Local-only child profile preference restore through `localStorage` while account-backed family profiles remain a future feature
 - Map-first browsing: pan or zoom the map, then tap `현 지도에서 검색` to refresh the list from the visible map area without changing results during casual map movement
 - Soft matching instead of hard exclusion for age and amenity mismatches
 - Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, and reason codes

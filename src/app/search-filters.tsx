@@ -36,6 +36,7 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 
 const DEFAULT_DRAFT_GENDER: ChildGender = "boy";
 const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
+const CHILD_PROFILE_STORAGE_KEY = "aigo-child-profiles";
 
 export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const router = useRouter();
@@ -47,12 +48,6 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
-
-  useEffect(() => {
-    setSelectedFilters(filtersFromParams(initialParams));
-    setChildProfiles(parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
-    setIsPickerOpen(false);
-  }, [initialKey, initialParams]);
 
   const activeFilterChips = FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label);
   const activeChipCount = activeFilterChips.length + childProfiles.length;
@@ -92,6 +87,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
 
   function commitProfiles(nextProfiles: readonly ChildProfile[]) {
     const normalizedProfiles = normalizeChildProfiles(nextProfiles);
+    storeChildProfiles(normalizedProfiles);
     setChildProfiles(normalizedProfiles);
     applyCurrentForm({ profiles: normalizedProfiles });
   }
@@ -117,6 +113,44 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     setDraftGender(existingProfile?.gender ?? DEFAULT_DRAFT_GENDER);
     setIsPickerOpen(true);
   }
+
+  useEffect(() => {
+    const profilesFromParams = parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages));
+    const hasExplicitChildParams = hasChildParams(initialParams);
+    setSelectedFilters(filtersFromParams(initialParams));
+    setChildProfiles(profilesFromParams);
+    setIsPickerOpen(false);
+
+    if (hasExplicitChildParams) {
+      storeChildProfiles(profilesFromParams);
+      return;
+    }
+
+    const storedProfilesValue = readStoredChildProfiles();
+    if (!storedProfilesValue) return;
+
+    const storedProfiles = parseChildProfiles(storedProfilesValue);
+    if (serializeChildProfiles(storedProfiles) === serializeChildProfiles(profilesFromParams)) return;
+
+    setChildProfiles(storedProfiles);
+    const form = rootRef.current?.closest("form");
+    if (!form) return;
+
+    const params = new URLSearchParams();
+    for (const [key, value] of new FormData(form).entries()) {
+      const text = String(value).trim();
+      if (text.length > 0) params.append(key, text);
+    }
+    params.set("children", serializeChildProfiles(storedProfiles));
+    params.set("ages", serializeChildAgeMonths(childProfilesToAgeMonths(storedProfiles)));
+    params.delete("page");
+    params.delete("offset");
+
+    const query = params.toString();
+    startTransition(() => {
+      router.replace(query ? `/?${query}` : "/", { scroll: false });
+    });
+  }, [initialKey, initialParams, router, startTransition]);
 
   return (
     <details className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
@@ -178,17 +212,22 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             <div className="child-profile-picker-row">
               <span className="child-profile-picker-label">성별</span>
               <div className="child-profile-segmented" role="group" aria-label="아이 성별">
-                {CHILD_GENDERS.map((gender) => (
-                  <button
-                    className={draftGender === gender.id ? "is-selected" : ""}
-                    type="button"
-                    key={gender.id}
-                    onClick={() => setDraftGender(gender.id)}
-                    aria-pressed={draftGender === gender.id}
-                  >
-                    {gender.label}
-                  </button>
-                ))}
+                {CHILD_GENDERS.map((gender) => {
+                  const genderPreviewProfile = { ageBand: draftAgeBand, gender: gender.id };
+
+                  return (
+                    <button
+                      className={draftGender === gender.id ? "is-selected" : ""}
+                      type="button"
+                      key={gender.id}
+                      onClick={() => setDraftGender(gender.id)}
+                      aria-label={gender.label}
+                      aria-pressed={draftGender === gender.id}
+                    >
+                      <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={38} height={38} />
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -264,11 +303,31 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
 }
 
 function childProfileIconSrc(profile: ChildProfile) {
-  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}.png`;
+  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.png`;
 }
 
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {
   return Object.fromEntries(FILTERS.map((filter) => [filter.key, textParam(params[filter.key]) === "on"])) as Record<FilterKey, boolean>;
+}
+
+function hasChildParams(params: Record<string, string | string[]>) {
+  return textParam(params.children) !== undefined || textParam(params.ages) !== undefined;
+}
+
+function readStoredChildProfiles() {
+  try {
+    return window.localStorage.getItem(CHILD_PROFILE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeChildProfiles(profiles: readonly ChildProfile[]) {
+  try {
+    window.localStorage.setItem(CHILD_PROFILE_STORAGE_KEY, serializeChildProfiles(profiles));
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
 }
 
 function textParam(value: string | string[] | undefined) {

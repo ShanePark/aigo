@@ -107,7 +107,7 @@ export function childGenderLabel(gender: ChildGender) {
 }
 
 export function formatChildProfile(profile: ChildProfile) {
-  return `${childGenderLabel(profile.gender)} ${childAgeBandById(profile.ageBand).shortLabel}`;
+  return childAgeBandById(profile.ageBand).shortLabel;
 }
 
 function isChildGender(value: string | undefined): value is ChildGender {
