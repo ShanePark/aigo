@@ -11,25 +11,25 @@ type PlaceImageProps = {
 };
 
 const FALLBACK_PLACE_IMAGES: Record<string, string> = {
-  accommodation: "/placeholders/default-accommodation.png",
-  aquarium_zoo: "/placeholders/default-aquarium-zoo.png",
-  experience_center: "/placeholders/default-visit.png",
-  family_cafe: "/placeholders/default-kids-cafe.png",
-  family_restaurant: "/placeholders/default-family-restaurant.png",
-  indoor_playground: "/placeholders/default-playground.png",
-  kids_cafe: "/placeholders/default-kids-cafe.png",
-  library: "/placeholders/default-library.png",
-  museum: "/placeholders/default-museum.png",
-  park: "/placeholders/default-playground.png",
-  rest_area: "/placeholders/default-visit.png",
-  science_museum: "/placeholders/default-visit.png",
-  shopping_mall: "/placeholders/default-shopping-mall.png",
-  sports_venue: "/placeholders/default-visit.png",
-  toy_library: "/placeholders/default-toy-store.png",
-  toy_store: "/placeholders/default-toy-store.png"
+  accommodation: "/placeholders/default-accommodation.webp",
+  aquarium_zoo: "/placeholders/default-aquarium-zoo.webp",
+  experience_center: "/placeholders/default-visit.webp",
+  family_cafe: "/placeholders/default-kids-cafe.webp",
+  family_restaurant: "/placeholders/default-family-restaurant.webp",
+  indoor_playground: "/placeholders/default-playground.webp",
+  kids_cafe: "/placeholders/default-kids-cafe.webp",
+  library: "/placeholders/default-library.webp",
+  museum: "/placeholders/default-museum.webp",
+  park: "/placeholders/default-playground.webp",
+  rest_area: "/placeholders/default-visit.webp",
+  science_museum: "/placeholders/default-visit.webp",
+  shopping_mall: "/placeholders/default-shopping-mall.webp",
+  sports_venue: "/placeholders/default-visit.webp",
+  toy_library: "/placeholders/default-toy-store.webp",
+  toy_store: "/placeholders/default-toy-store.webp"
 };
 
-const GENERIC_FALLBACK_PLACE_IMAGE = "/placeholders/default-visit.png";
+const GENERIC_FALLBACK_PLACE_IMAGE = "/placeholders/default-visit.webp";
 
 export function fallbackPlaceImageForCategory(category: string | null | undefined) {
   return category ? (FALLBACK_PLACE_IMAGES[category] ?? GENERIC_FALLBACK_PLACE_IMAGE) : GENERIC_FALLBACK_PLACE_IMAGE;

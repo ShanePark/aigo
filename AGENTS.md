@@ -186,6 +186,8 @@ Use the `$imagegen` skill at `/Users/shane/.codex/skills/.system/imagegen/SKILL.
 
 Before generating or editing any project-bound raster asset, read and follow the ImageGen skill. Use the built-in `image_gen` path by default. If the final asset is referenced by the app, move or copy it into the repository, usually under `public/`, and update the consuming code so the project never depends on a file left only under `$CODEX_HOME`.
 
+Project-bound raster UI assets should be WebP by default to keep the app light. Convert generated PNG outputs to WebP before referencing them unless PNG is genuinely required for platform compatibility, such as favicons, Apple/Android manifest icons, Windows tiles, source masters, or a tooling/browser requirement that WebP cannot satisfy.
+
 For transparent icons or cutouts, prefer the skill's chroma-key workflow first, then validate the alpha output before using it in the UI. Ask before falling back to CLI/native transparency paths that require model or API-key changes.
 
 Generated AiGo visual assets should be readable at real UI sizes, warm and family-friendly, and visually consistent across a set. Avoid tiny text inside generated icons unless explicitly required, and do not use generated raster assets when a simple lucide/code-native icon is the cleaner fit.

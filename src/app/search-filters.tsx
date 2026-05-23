@@ -301,7 +301,7 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
 }
 
 function childProfileIconSrc(profile: ChildProfile) {
-  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.png`;
+  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.webp`;
 }
 
 function isSameChildProfile(left: ChildProfile, right: ChildProfile) {
