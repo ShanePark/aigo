@@ -25,7 +25,7 @@ const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
 const TAG_LABELS: Record<string, string> = {
   babyChair: "아기의자",
   childrenRoom: "어린이자료실",
-  diaperChangingTable: "기저귀",
+  diaperChangingTable: "기저귀갈이대",
   familyRestaurant: "가족식당",
   infantRoom: "유아실",
   kidsCafe: "키즈카페",
@@ -563,7 +563,7 @@ function positiveFacilityKeywords(place: SearchItem) {
     [place.facilities.parkingAvailable, "주차"],
     [place.facilities.strollerFriendly, "유모차"],
     [place.facilities.nursingRoom, "수유실"],
-    [place.facilities.diaperChangingTable, "기저귀"],
+    [place.facilities.diaperChangingTable, "기저귀갈이대"],
     [place.facilities.babyChair, "아기의자"]
   ];
 

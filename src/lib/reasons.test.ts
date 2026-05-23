@@ -36,7 +36,7 @@ describe("reason metadata", () => {
   it("keeps Korean labels and machine codes together for API consumers", () => {
     expect(describeReasonCodes(["DIAPER_TABLE_YES"])[0]).toMatchObject({
       code: "DIAPER_TABLE_YES",
-      labelKo: "기저귀 교환 가능",
+      labelKo: "기저귀갈이대 있음",
       group: "preference",
       tone: "positive"
     });

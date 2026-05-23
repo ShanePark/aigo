@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, History, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
+import { Clock, ExternalLink, History, Images, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
@@ -54,6 +54,9 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const decisionChips = detailDecisionChips(place);
   const decisionNote = place.notes.parent ?? place.scoring.placeScoreRationale;
   const primaryInfoLink = infoLinks[0];
+  const familySignalChips = detailFamilySignalChips(place);
+  const visitSignalChips = detailVisitSignalChips(place);
+  const playFeatures = playFeatureEntries(place.playFeatures);
 
   return (
     <div className="page detail-page">
@@ -127,13 +130,16 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           <div className="related-place-grid">
             {place.relatedPlaces.map((relatedPlace) => (
               <Link className="related-place-card" href={relatedPlaceHref(relatedPlace.placeId, backHref)} key={relatedPlace.relationId}>
-                <span>{relationTypeLabel(relatedPlace.relationType)}</span>
-                <strong>{relatedPlace.name}</strong>
-                <small>
-                  {categoryLabel(relatedPlace.primaryCategory)}
-                  {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
-                </small>
-                {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
+                <PlaceImage category={relatedPlace.primaryCategory} src={null} alt={`${relatedPlace.name} 이미지`} variant="result" />
+                <div className="related-place-copy">
+                  <span>{relationTypeLabel(relatedPlace.relationType)}</span>
+                  <strong>{relatedPlace.name}</strong>
+                  <small>
+                    {categoryLabel(relatedPlace.primaryCategory)}
+                    {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
+                  </small>
+                  {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
+                </div>
               </Link>
             ))}
           </div>
@@ -141,31 +147,37 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       ) : null}
 
       {galleryImages.length > 0 ? (
-        <section className="image-audit-section">
-          <h2>이미지 검수</h2>
-          <div className="image-audit-grid">
+        <section className="image-gallery-section">
+          <h2>
+            <Images size={18} aria-hidden="true" />
+            갤러리
+          </h2>
+          <div className="image-gallery-grid">
             {galleryImages.map((image) => (
-              <article className="image-audit-card" key={image.id}>
+              <article className="image-gallery-card" key={image.id}>
                 <PlaceImage category={place.primaryCategory} src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
-                <div>
-                  <div className="visit-row">
-                    {image.isPrimary ? <span>대표</span> : null}
-                    <span>이미지 {imageTierLabel(image.displayTier)}</span>
-                    <span>{imageReviewLabel(image.reviewStatus)}</span>
-                  </div>
-                  {image.description ? <p>{image.description}</p> : <p className="muted">아직 눈으로 검수한 설명이 없습니다.</p>}
-                  {image.visualFeatures.length > 0 ? (
-                    <div className="reason-grid">
-                      {image.visualFeatures.slice(0, 10).map((feature) => (
-                        <span key={feature}>{imageFeatureLabel(feature)}</span>
-                      ))}
-                    </div>
-                  ) : null}
+                <div className="image-gallery-copy">
                   {image.sourceUrl ? (
                     <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
                       {image.sourceTitle ?? image.creditText}
                     </a>
                   ) : null}
+                  <details className="image-info-details">
+                    <summary>이미지 정보 보기</summary>
+                    <div className="visit-row">
+                      {image.isPrimary ? <span>대표 이미지</span> : null}
+                      <span>{imageTierLabel(image.displayTier)}</span>
+                      <span>{imageReviewLabel(image.reviewStatus)}</span>
+                    </div>
+                    {image.description ? <p>{image.description}</p> : null}
+                    {image.visualFeatures.length > 0 ? (
+                      <div className="reason-grid">
+                        {image.visualFeatures.slice(0, 10).map((feature) => (
+                          <span key={feature}>{imageFeatureLabel(feature)}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </details>
                 </div>
               </article>
             ))}
@@ -195,47 +207,33 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
 
         <div className="info-block">
           <h2>아이 동반 신호</h2>
-          <dl>
-            <dt>권장 월령</dt>
-            <dd>
-              {place.recommendedAgeMonths.min ?? "?"} - {place.recommendedAgeMonths.max ?? "?"}
-            </dd>
-            <dt>실내외</dt>
-            <dd>{indoorLabel(place.facilities.indoorType)}</dd>
-            <dt>유모차</dt>
-            <dd>{triStateLabel(place.facilities.strollerFriendly)}</dd>
-            <dt>주차</dt>
-            <dd>{triStateLabel(place.facilities.parkingAvailable)}</dd>
-            <dt>수유실</dt>
-            <dd>{triStateLabel(place.facilities.nursingRoom)}</dd>
-            <dt>기저귀 교환대</dt>
-            <dd>{triStateLabel(place.facilities.diaperChangingTable)}</dd>
-            <dt>어린이 화장실</dt>
-            <dd>{triStateLabel(place.facilities.kidsToilet)}</dd>
-            <dt>엘리베이터</dt>
-            <dd>{triStateLabel(place.facilities.elevator)}</dd>
-            <dt>아기의자</dt>
-            <dd>{triStateLabel(place.facilities.babyChair)}</dd>
-            <dt>간식/음식</dt>
-            <dd>{triStateLabel(place.facilities.foodAllowed)}</dd>
-          </dl>
+          {familySignalChips.length > 0 ? (
+            <div className="detail-chip-grid">
+              {familySignalChips.map((chip) => (
+                <span className={`detail-feature-chip ${chip.tone}`} key={chip.label}>
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="muted-copy">확인된 편의시설 정보가 아직 없습니다.</p>
+          )}
         </div>
       </section>
 
-      <section className="info-block full">
-        <h2>
-          <Clock size={18} aria-hidden="true" />
-          방문 판단
-        </h2>
-        <div className="detail-signal-grid">
-          <span>체류 {minutesLabel(place.visit.averageStayMinutes)}</span>
-          <span>부모 피로도 {scoreLabel(place.visit.parentEffortLevel)}</span>
-          <span>아이 몰입도 {scoreLabel(place.visit.childEngagementLevel)}</span>
-          <span>비 오는 날 {scoreLabel(place.visit.rainyDayScore)}</span>
-          <span>더운 날 {scoreLabel(place.visit.hotDayScore)}</span>
-          <span>추운 날 {scoreLabel(place.visit.coldDayScore)}</span>
-        </div>
-      </section>
+      {visitSignalChips.length > 0 ? (
+        <section className="info-block full">
+          <h2>
+            <Clock size={18} aria-hidden="true" />
+            방문 판단
+          </h2>
+          <div className="detail-signal-grid">
+            {visitSignalChips.map((chip) => (
+              <span key={chip}>{chip}</span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {priceLabel || priceItems.length > 0 || priceNote ? (
         <section className="info-block full">
@@ -271,13 +269,13 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </section>
       ) : null}
 
-      {playFeatureEntries(place.playFeatures).length > 0 ? (
+      {playFeatures.length > 0 ? (
         <section className="info-block full">
           <h2>놀이시설</h2>
           <div className="play-feature-grid detail-play-feature-grid">
-            {playFeatureEntries(place.playFeatures).map(([key, value]) => (
+            {playFeatures.map(([key, value]) => (
               <span className={`play-feature-chip ${playFeatureTone(value)}`} key={key}>
-                {playFeatureLabel(key)}: {playFeatureValueLabel(value)}
+                {playFeatureChipLabel(key, value)}
               </span>
             ))}
           </div>
@@ -411,6 +409,10 @@ async function loadPlace(placeId: string) {
 type PlaceDetail = Awaited<ReturnType<typeof getPlaceDetail>>;
 type Source = PlaceDetail["sources"][number];
 type DetailDecisionTone = "negative" | "neutral" | "partial" | "positive" | "unknown";
+type DetailChip = {
+  label: string;
+  tone: DetailDecisionTone;
+};
 
 type ReviewLink = {
   key: string;
@@ -421,36 +423,83 @@ type ReviewLink = {
 };
 
 function detailDecisionChips(place: PlaceDetail) {
-  const chips: Array<{ label: string; tone: DetailDecisionTone }> = [
-    { label: recommendedAgeShortLabel(place.recommendedAgeMonths), tone: "neutral" },
-    { label: `체류 ${minutesLabel(place.visit.averageStayMinutes)}`, tone: "neutral" },
-    { label: indoorLabel(place.facilities.indoorType), tone: place.facilities.indoorType === "unknown" ? "unknown" : "neutral" },
-    triStateDecisionChip("주차", place.facilities.parkingAvailable),
-    triStateDecisionChip("유모차", place.facilities.strollerFriendly),
-    triStateDecisionChip("수유", place.facilities.nursingRoom),
-    triStateDecisionChip("기저귀", place.facilities.diaperChangingTable),
-    triStateDecisionChip("아기의자", place.facilities.babyChair)
-  ];
-
-  return chips;
+  return uniqueChips(
+    [
+      recommendedAgeChip(place.recommendedAgeMonths),
+      stayChip(place.visit.averageStayMinutes),
+      indoorChip(place.facilities.indoorType),
+      ...knownAmenityChips(place.facilities)
+    ].filter(isDetailChip)
+  );
 }
 
-function triStateDecisionChip(label: string, value: string) {
-  const tones: Record<string, DetailDecisionTone> = {
-    yes: "positive",
-    partial: "partial",
-    no: "negative",
-    unknown: "unknown"
-  };
+function detailFamilySignalChips(place: PlaceDetail) {
+  return uniqueChips([recommendedAgeChip(place.recommendedAgeMonths), indoorChip(place.facilities.indoorType), ...knownAmenityChips(place.facilities)].filter(isDetailChip));
+}
 
-  return {
-    label: `${label} ${triStateLabel(value)}`,
-    tone: tones[value] ?? "unknown"
-  };
+function detailVisitSignalChips(place: PlaceDetail) {
+  return [
+    place.visit.averageStayMinutes === null ? null : `체류 ${minutesLabel(place.visit.averageStayMinutes)}`,
+    place.visit.parentEffortLevel === null ? null : `부모 피로도 ${scoreLabel(place.visit.parentEffortLevel)}`,
+    place.visit.childEngagementLevel === null ? null : `아이 몰입도 ${scoreLabel(place.visit.childEngagementLevel)}`,
+    place.visit.rainyDayScore === null ? null : `비 오는 날 ${scoreLabel(place.visit.rainyDayScore)}`,
+    place.visit.hotDayScore === null ? null : `더운 날 ${scoreLabel(place.visit.hotDayScore)}`,
+    place.visit.coldDayScore === null ? null : `추운 날 ${scoreLabel(place.visit.coldDayScore)}`
+  ].filter(isString);
+}
+
+function recommendedAgeChip(value: PlaceDetail["recommendedAgeMonths"]): DetailChip | null {
+  const label = recommendedAgeShortLabel(value);
+  return label ? { label, tone: "neutral" } : null;
+}
+
+function indoorChip(value: string): DetailChip | null {
+  if (value === "unknown") return null;
+  return { label: indoorLabel(value), tone: "neutral" };
+}
+
+function stayChip(value: number | null): DetailChip | null {
+  return value === null ? null : { label: `체류 ${minutesLabel(value)}`, tone: "neutral" };
+}
+
+function knownAmenityChips(facilities: PlaceDetail["facilities"]) {
+  return [
+    triStateFeatureChip("주차", facilities.parkingAvailable),
+    triStateFeatureChip("유모차", facilities.strollerFriendly),
+    triStateFeatureChip("수유실", facilities.nursingRoom),
+    triStateFeatureChip("기저귀갈이대", facilities.diaperChangingTable),
+    triStateFeatureChip("어린이화장실", facilities.kidsToilet),
+    triStateFeatureChip("엘리베이터", facilities.elevator),
+    triStateFeatureChip("아기의자", facilities.babyChair),
+    triStateFeatureChip("간식 가능", facilities.foodAllowed)
+  ].filter(isDetailChip);
+}
+
+function triStateFeatureChip(label: string, value: string): DetailChip | null {
+  if (value === "yes") return { label, tone: "positive" };
+  if (value === "partial") return { label: `${label} 일부`, tone: "partial" };
+  return null;
+}
+
+function isDetailChip(value: DetailChip | null | undefined): value is DetailChip {
+  return Boolean(value);
+}
+
+function isString(value: string | null): value is string {
+  return typeof value === "string";
+}
+
+function uniqueChips(chips: DetailChip[]) {
+  const seen = new Set<string>();
+  return chips.filter((chip) => {
+    if (seen.has(chip.label)) return false;
+    seen.add(chip.label);
+    return true;
+  });
 }
 
 function recommendedAgeShortLabel(value: PlaceDetail["recommendedAgeMonths"]) {
-  if (value.min === null && value.max === null) return "월령 미확인";
+  if (value.min === null && value.max === null) return null;
   if (value.min === null) return `${value.max}개월 이하`;
   if (value.max === null) return `${value.min}개월 이상`;
   return `${value.min}-${value.max}개월`;
@@ -613,7 +662,7 @@ function routeSupportSummaryChips(routeSupport: Record<string, unknown>) {
     const position = [stringValue(location.floor), routeSupportAccessAreaLabel(stringValue(location.area)), stringValue(location.gate)].filter(Boolean).join(" · ");
     const signals = [
       routeSupportTriStateSignal("수유", stringValue(location.nursingRoom)),
-      routeSupportTriStateSignal("기저귀", stringValue(location.diaperChangingTable)),
+      routeSupportTriStateSignal("기저귀갈이대", stringValue(location.diaperChangingTable)),
       routeSupportTriStateSignal("유모차", stringValue(location.strollerFriendly))
     ]
       .filter(Boolean)
@@ -623,14 +672,14 @@ function routeSupportSummaryChips(routeSupport: Record<string, unknown>) {
 
   if (isRecord(routeSupport.strollerRental)) {
     const available = stringValue(routeSupport.strollerRental.available);
-    if (available) chips.push(`유모차 대여 ${triStateLabel(available)}`);
+    if (available && available !== "unknown") chips.push(`유모차 대여 ${triStateLabel(available)}`);
   }
 
   if (isRecord(routeSupport.prioritySupport)) {
     const securityFastTrack = stringValue(routeSupport.prioritySupport.securityFastTrack);
     const priorityBoarding = stringValue(routeSupport.prioritySupport.priorityBoarding);
-    if (securityFastTrack) chips.push(`우선보안검색 ${triStateLabel(securityFastTrack)}`);
-    if (priorityBoarding) chips.push(`우선탑승 ${triStateLabel(priorityBoarding)}`);
+    if (securityFastTrack && securityFastTrack !== "unknown") chips.push(`우선보안검색 ${triStateLabel(securityFastTrack)}`);
+    if (priorityBoarding && priorityBoarding !== "unknown") chips.push(`우선탑승 ${triStateLabel(priorityBoarding)}`);
   }
 
   return Array.from(new Set(chips)).slice(0, 10);
@@ -771,7 +820,9 @@ function playFeatureEntries(playFeatures: Record<string, unknown>) {
     "strollerPath",
     "toiletNearby"
   ];
-  const entries = Object.entries(playFeatures ?? {}).filter(([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null);
+  const entries = Object.entries(playFeatures ?? {}).filter(
+    ([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null && value !== "unknown" && value !== "no" && value !== false
+  );
   const order = new Map(preferredOrder.map((key, index) => [key, index]));
   return entries.sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999) || a[0].localeCompare(b[0]));
 }
@@ -798,10 +849,12 @@ function playFeatureLabel(key: string) {
   return labels[key] ?? key;
 }
 
-function playFeatureValueLabel(value: unknown) {
-  if (typeof value === "string") return triStateLabel(value);
-  if (typeof value === "boolean") return value ? "있음" : "없음";
-  return "기록";
+function playFeatureChipLabel(key: string, value: unknown) {
+  const label = playFeatureLabel(key);
+  if (value === "partial") return `${label} 일부`;
+  if (value === "yes" || value === true) return label;
+  if (typeof value === "string" && value.trim().length > 0) return `${label} ${value}`;
+  return label;
 }
 
 function playFeatureTone(value: unknown) {

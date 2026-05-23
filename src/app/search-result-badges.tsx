@@ -233,7 +233,7 @@ function openingHoursGapLabel(gap: string) {
 
 function recommendationGapLabel(gap: string) {
   const labels: Record<string, string> = {
-    diaperChangingTable: "기저귀 교환대",
+    diaperChangingTable: "기저귀갈이대",
     kidsToilet: "유아화장실",
     nursingRoom: "수유실",
     parkingAvailable: "주차",
