@@ -5,6 +5,7 @@
 .next-build/
 node_modules/
 coverage/
+test-results/
 dist/
 dev/db/
 data/
