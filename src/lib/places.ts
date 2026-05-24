@@ -541,6 +541,8 @@ export async function searchPlaces(input: SearchPlacesInput) {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
         temporalTerms: input.query ? inferTemporalTermsFromQuery(input.query) : [],
+        suggestedExactNameQuery:
+          input.matchMode === "exactName" && input.query ? suggestedExactNameQuery(input.query) : null,
         appliedPreferences: normalizedInput.preferences ?? null,
         preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
         visitContext: normalizedInput.visitContext ?? null,
@@ -2813,6 +2815,15 @@ function inferTemporalTermsFromQuery(query: string) {
     .trim()
     .split(/\s+/)
     .filter((term) => temporalQueryTerms.has(term) || /^[0-9]+(?:[-~][0-9]+)?(?:시|분|시간)(?:권|만)?$/.test(term));
+}
+
+export function suggestedExactNameQueryForTest(query: string) {
+  return suggestedExactNameQuery(query);
+}
+
+function suggestedExactNameQuery(query: string) {
+  const stripped = stripPreferenceTerms(query);
+  return stripped && stripped !== query.trim() ? stripped : null;
 }
 
 function stripPreferenceTerms(query: string) {

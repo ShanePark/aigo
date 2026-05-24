@@ -2131,7 +2131,15 @@ components:
                 - type: "null"
             search:
               type: object
-              required: [originalQuery, normalizedQuery, temporalTerms, appliedPreferences, preferenceSemantics, visitContext, normalized]
+              required:
+                - originalQuery
+                - normalizedQuery
+                - temporalTerms
+                - suggestedExactNameQuery
+                - appliedPreferences
+                - preferenceSemantics
+                - visitContext
+                - normalized
               description: Query normalization details for agent debugging and zero-result recovery.
               properties:
                 originalQuery:
@@ -2147,6 +2155,11 @@ components:
                   description: Date/time words removed from keyword matching and handled by planned-visit context when possible.
                   items:
                     type: string
+                suggestedExactNameQuery:
+                  description: Candidate place-name-only query when exact-name mode receives amenity or logistics words.
+                  type:
+                    - string
+                    - "null"
                 appliedPreferences:
                   anyOf:
                     - type: object

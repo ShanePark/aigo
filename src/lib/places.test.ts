@@ -29,6 +29,7 @@ import {
   retailAliasCompactTextsForTest,
   searchEvaluationDate,
   searchTermPatterns,
+  suggestedExactNameQueryForTest,
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
 } from "@/lib/places";
@@ -282,6 +283,11 @@ describe("place search helpers", () => {
       matchMode: "exactName",
       preferences: { indoorTypes: ["indoor", "mixed"] }
     });
+  });
+
+  it("suggests a stripped exact-name query when amenity words are included", () => {
+    expect(suggestedExactNameQueryForTest("갤러리아 타임월드 수유실")).toBe("갤러리아 타임월드");
+    expect(suggestedExactNameQueryForTest("국립중앙과학관")).toBeNull();
   });
 
   it("can require source-backed preference matches instead of soft ranking", () => {
