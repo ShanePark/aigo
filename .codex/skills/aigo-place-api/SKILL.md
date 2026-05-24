@@ -302,6 +302,8 @@ Use these enum values:
 
 Use related-place relationships when two already registered places should be shown together because a parent would naturally compare or combine them: a kids cafe inside a mall, a child facility inside a museum/science center campus, a resort subfacility, or a named playground attached to a larger destination.
 
+Before creating or enriching several places that may share one campus, park, resort, mall, or public-facility site, run `pnpm tsx scripts/audit-place-cluster.ts --candidate=<name> --candidate=<name> --json`. The helper is read-only: it exact-name searches existing records, reads place details, calculates coordinate distance, checks address/source-host hierarchy, detects existing relations, and drafts review-only `relatedPlaces` fragments for `same_site`, `parent_child`, or `nearby` candidates. Treat its output as mutation planning evidence, not an automatic merge or PATCH command.
+
 Mutation rules:
 
 - Mutate related places through `PATCH /v1/places/{placeId}` with `relatedPlaces`, not direct DB writes.
