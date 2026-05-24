@@ -21,7 +21,7 @@ const defaultOrigin = {
   label: "Selected origin"
 };
 
-const childAgeMonths = [32, 7, 7];
+const sampleChildAgeMonths = [36, 12];
 
 const familyLogistics = {
   parkingAvailable: true,
@@ -33,12 +33,12 @@ const scenarios: Scenario[] = [
   {
     id: "after-daycare-indoor",
     label: "After daycare indoor fallback",
-    intent: "Short, low-effort indoor places near the selected origin with toddler activity and infant logistics.",
+    intent: "Short, low-effort indoor places near the selected origin with child activity and care logistics.",
     input: {
       visitContext: "afterDaycare",
       origin: defaultOrigin,
       radiusKm: 15,
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         ...familyLogistics,
         indoorTypes: ["indoor", "mixed"],
@@ -59,7 +59,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 8,
       query: "키즈카페",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         ...familyLogistics,
         indoorTypes: ["indoor", "mixed"]
@@ -78,7 +78,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 15,
       query: "놀이터",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true
@@ -98,7 +98,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 20,
       query: "놀이방식당",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,
         babyChair: true
@@ -118,7 +118,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 30,
       query: "실내",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         ...familyLogistics,
         indoorTypes: ["indoor", "mixed"]
@@ -136,7 +136,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 250,
       query: "키즈숙소",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
@@ -157,7 +157,7 @@ const scenarios: Scenario[] = [
       origin: defaultOrigin,
       radiusKm: 50,
       query: "어린이",
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
@@ -177,7 +177,7 @@ const scenarios: Scenario[] = [
       visitContext: "dayTrip",
       origin: defaultOrigin,
       radiusKm: 80,
-      childAgeMonths,
+      childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,
         strollerFriendly: true,
@@ -263,7 +263,7 @@ function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
   lines.push("");
   lines.push(`Generated: ${results.generatedAt}`);
   lines.push(`Origin: ${defaultOrigin.label} (${defaultOrigin.lat}, ${defaultOrigin.lng})`);
-  lines.push(`Child ages: ${childAgeMonths.join(", ")} months`);
+  lines.push(`Sample child ages: ${sampleChildAgeMonths.join(", ")} months`);
   lines.push("");
 
   for (const scenario of results.scenarios) {
@@ -330,7 +330,7 @@ async function runAudit(args: AuditArgs) {
   return {
     generatedAt: new Date().toISOString(),
     origin: defaultOrigin,
-    childAgeMonths,
+    childAgeMonths: sampleChildAgeMonths,
     scenarios: results
   };
 }

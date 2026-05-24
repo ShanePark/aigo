@@ -11,12 +11,9 @@ export const CHILD_GENDERS = [
   { id: "girl", label: "여아" }
 ] as const;
 
-export const DEFAULT_CHILD_PROFILES = [
-  { gender: "boy", ageBand: "24-48" },
-  { gender: "girl", ageBand: "6-12" }
-] as const satisfies readonly ChildProfile[];
+export const DEFAULT_CHILD_PROFILES = [] as const satisfies readonly ChildProfile[];
 
-export const DEFAULT_CHILD_AGE_MONTHS = [32, 7] as const;
+export const DEFAULT_CHILD_AGE_MONTHS = [] as const;
 export const MAX_CHILD_AGE_MONTHS = 240;
 
 export type ChildAgeBandId = (typeof CHILD_AGE_BANDS)[number]["id"];
@@ -28,6 +25,7 @@ export type ChildProfile = {
 
 export function parseChildAgeMonths(value: string | null | undefined): number[] {
   const source = value && value.trim().length > 0 ? value : DEFAULT_CHILD_AGE_MONTHS.join(",");
+  if (source.trim().length === 0) return [];
   const ages = source
     .split(",")
     .map((age) => Number(age.trim()))

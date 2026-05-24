@@ -129,7 +129,7 @@ function recommendationReadinessBadges(readiness: SearchResultBadgeRecommendatio
     badges.push({
       key: "playground-infant-route-gap",
       label: "영아 동선 확인",
-      title: `쌍둥이 영아 동선에 필요한 값이 부족합니다: ${playgroundInfantRouteGaps.map(recommendationGapLabel).join(", ")}.`,
+      title: `영아/유모차 동선에 필요한 값이 부족합니다: ${playgroundInfantRouteGaps.map(recommendationGapLabel).join(", ")}.`,
       tone: "warning"
     });
   }

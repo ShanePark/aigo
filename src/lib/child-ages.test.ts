@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 
 describe("parseChildAgeMonths", () => {
-  it("uses the default child age set without duplicate twin ages", () => {
-    expect(parseChildAgeMonths(undefined)).toEqual([32, 7]);
+  it("does not assume child ages before the user chooses them", () => {
+    expect(parseChildAgeMonths(undefined)).toEqual([]);
   });
 
   it("deduplicates repeated age months from params", () => {
@@ -17,11 +17,8 @@ describe("parseChildAgeMonths", () => {
 });
 
 describe("parseChildProfiles", () => {
-  it("uses the default preschool child profile bands", () => {
-    expect(parseChildProfiles(undefined)).toEqual([
-      { ageBand: "24-48", gender: "boy" },
-      { ageBand: "6-12", gender: "girl" }
-    ]);
+  it("does not assume child profiles before the user chooses them", () => {
+    expect(parseChildProfiles(undefined)).toEqual([]);
   });
 
   it("derives profile bands from legacy exact age params", () => {
