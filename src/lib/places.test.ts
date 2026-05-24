@@ -1307,6 +1307,20 @@ describe("place search helpers", () => {
         nursingRoom: true
       }
     });
+    expect(
+      normalizeSearchInput({
+        ...baseSearchInput,
+        query: "월요일 실내 키즈카페 수유실",
+        visitDate: "2026-05-25",
+        visitStartTime: "10:30"
+      })
+    ).toMatchObject({
+      query: "키즈카페",
+      preferences: {
+        indoorTypes: ["indoor", "mixed"],
+        nursingRoom: true
+      }
+    });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "홈경기 없는 날 키벤저스 주차 실내놀이" })).toMatchObject({
       query: "키벤저스",
       preferences: {

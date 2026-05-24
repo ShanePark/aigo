@@ -540,6 +540,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       search: {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
+        temporalTerms: input.query ? inferTemporalTermsFromQuery(input.query) : [],
         appliedPreferences: normalizedInput.preferences ?? null,
         preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
         visitContext: normalizedInput.visitContext ?? null,
@@ -2456,7 +2457,37 @@ const indoorPreferenceTerms = new Set([
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
 const literalFallbackTerms = new Set(["장난감도서관"]);
+const temporalQueryTerms = new Set([
+  "오늘",
+  "내일",
+  "모레",
+  "이번주",
+  "이번주말",
+  "다음주",
+  "주중",
+  "평일",
+  "월요일",
+  "화요일",
+  "수요일",
+  "목요일",
+  "금요일",
+  "토요일",
+  "일요일",
+  "월",
+  "화",
+  "수",
+  "목",
+  "금",
+  "토",
+  "일",
+  "오전",
+  "오후",
+  "아침",
+  "점심",
+  "저녁"
+]);
 const queryStopTerms = new Set([
+  ...temporalQueryTerms,
   "있는",
   "가능",
   "가능한",
@@ -2773,8 +2804,15 @@ function inferVisitContextFromQuery(query: string): SearchPlacesInput["visitCont
   if (terms.has("하원하고") || (terms.has("어린이집") && terms.has("끝나고"))) return "afterDaycare";
   if (terms.has("당일치기") || terms.has("근교") || terms.has("1시간권")) return "dayTrip";
   if (["비", "비오는날", "비오는", "비오면", "비올때", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
-  if (terms.has("주말") || terms.has("반나절")) return "weekendHalfDay";
+  if (terms.has("주말") || terms.has("이번주말") || terms.has("반나절")) return "weekendHalfDay";
   return undefined;
+}
+
+function inferTemporalTermsFromQuery(query: string) {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter((term) => temporalQueryTerms.has(term) || /^[0-9]+(?:[-~][0-9]+)?(?:시|분|시간)(?:권|만)?$/.test(term));
 }
 
 function stripPreferenceTerms(query: string) {

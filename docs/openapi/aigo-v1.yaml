@@ -2099,7 +2099,7 @@ components:
                 - type: "null"
             search:
               type: object
-              required: [originalQuery, normalizedQuery, appliedPreferences, preferenceSemantics, visitContext, normalized]
+              required: [originalQuery, normalizedQuery, temporalTerms, appliedPreferences, preferenceSemantics, visitContext, normalized]
               description: Query normalization details for agent debugging and zero-result recovery.
               properties:
                 originalQuery:
@@ -2110,6 +2110,11 @@ components:
                   type:
                     - string
                     - "null"
+                temporalTerms:
+                  type: array
+                  description: Date/time words removed from keyword matching and handled by planned-visit context when possible.
+                  items:
+                    type: string
                 appliedPreferences:
                   anyOf:
                     - type: object
