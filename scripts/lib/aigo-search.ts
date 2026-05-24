@@ -29,6 +29,12 @@ export type ExactNameSearchOptions = AigoSearchOptions & {
   limit?: number;
 };
 
+export type AigoJsonReadOptions = AigoSearchOptions & {
+  body?: unknown;
+  headers?: Record<string, string>;
+  method?: string;
+};
+
 export function readSearchItems<TItem = AigoSearchItem>(response: unknown): TItem[] {
   if (!isRecord(response)) {
     throw new Error("AiGo search response must be an object with a top-level items array.");
@@ -63,27 +69,40 @@ export async function searchPlacesReadOnly<TItem = AigoSearchItem>(
   request: AigoSearchRequest,
   options: AigoSearchOptions = {}
 ): Promise<NormalizedAigoSearchResponse<TItem>> {
+  const response = await readAigoJsonReadOnly("/v1/places/search", {
+    ...options,
+    method: "POST",
+    body: request
+  });
+
+  return normalizeSearchResponse<TItem>(response);
+}
+
+export async function readAigoJsonReadOnly<TResponse = Record<string, unknown>>(
+  path: string,
+  options: AigoJsonReadOptions = {}
+): Promise<TResponse> {
   const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
   const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
   const retries = options.retries ?? 2;
-  let lastFailure: SearchHttpFailure | null = null;
+  let lastFailure: AigoHttpFailure | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const result = await fetchSearchResponse(apiBaseUrl, apiKey, request, options.timeoutMs ?? 10_000);
+    const result = await fetchAigoJsonResponse(apiBaseUrl, path, apiKey, options, options.timeoutMs ?? 10_000);
     if (result.response.ok) {
-      return normalizeSearchResponse<TItem>(result.text ? JSON.parse(result.text) : {});
+      return (result.text ? JSON.parse(result.text) : {}) as TResponse;
     }
 
     lastFailure = result;
-    if (attempt >= retries || !isTransientSearchFailure(result)) break;
+    if (attempt >= retries || !isTransientAigoRouteFailure(result)) break;
     await delay((options.retryDelayMs ?? 150) * (attempt + 1));
   }
 
   if (lastFailure) {
-    throw new Error(`AiGo search failed with ${lastFailure.response.status} ${lastFailure.response.statusText}: ${lastFailure.text.slice(0, 500)}`);
+    throw new Error(`AiGo ${path} failed with ${lastFailure.response.status} ${lastFailure.response.statusText}: ${lastFailure.text.slice(0, 500)}`);
   }
 
-  throw new Error("AiGo search failed before receiving a response.");
+  throw new Error(`AiGo ${path} failed before receiving a response.`);
 }
 
 export async function warmSearchRouteReadOnly(options: AigoSearchOptions = {}) {
@@ -122,26 +141,29 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-type SearchHttpFailure = {
+type AigoHttpFailure = {
   response: Response;
   text: string;
 };
 
-async function fetchSearchResponse(apiBaseUrl: string, apiKey: string, request: AigoSearchRequest, timeoutMs: number) {
-  const response = await fetch(`${apiBaseUrl}/v1/places/search`, {
-    method: "POST",
+async function fetchAigoJsonResponse(apiBaseUrl: string, path: string, apiKey: string, options: AigoJsonReadOptions, timeoutMs: number) {
+  const body = options.body === undefined ? undefined : typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+  const response = await fetch(`${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
+    method: options.method ?? (body ? "POST" : "GET"),
     headers: {
       authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json"
+      accept: "application/json",
+      ...(body ? { "content-type": "application/json" } : {}),
+      ...options.headers
     },
-    body: JSON.stringify(request),
+    body,
     signal: AbortSignal.timeout(timeoutMs)
   });
   const text = await response.text();
   return { response, text };
 }
 
-function isTransientSearchFailure(failure: SearchHttpFailure) {
+function isTransientAigoRouteFailure(failure: AigoHttpFailure) {
   if ([500, 502, 503, 504].includes(failure.response.status)) return true;
   if (failure.response.status !== 404) return false;
   const contentType = failure.response.headers.get("content-type")?.toLowerCase() ?? "";

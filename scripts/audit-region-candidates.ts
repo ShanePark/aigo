@@ -1,7 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { DEFAULT_DEV_API_KEY } from "@/env";
-import { exactNameSearchReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
+import { exactNameSearchReadOnly, readAigoJsonReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
 
 type RegionCandidateAuditArgs = {
   candidates: string[];
@@ -451,24 +450,14 @@ async function readJsonRoute(
   args: Pick<RegionCandidateAuditArgs, "apiBaseUrl" | "apiKey" | "timeoutMs">,
   init: RequestInit = {}
 ): Promise<PlaceDetail> {
-  const apiBaseUrl = normalizeBaseUrl(args.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
-  const apiKey = args.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const parsed = await readAigoJsonReadOnly(path, {
+    apiBaseUrl: args.apiBaseUrl,
+    apiKey: args.apiKey,
+    body: init.body ?? undefined,
+    headers: Object.fromEntries(new Headers(init.headers).entries()),
     method: init.method ?? "GET",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      accept: "application/json",
-      ...(init.body ? { "content-type": "application/json" } : {}),
-      ...init.headers
-    },
-    body: init.body,
-    signal: AbortSignal.timeout(args.timeoutMs)
+    timeoutMs: args.timeoutMs
   });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`AiGo ${path} failed with ${response.status} ${response.statusText}: ${text.slice(0, 500)}`);
-  }
-  const parsed = text ? JSON.parse(text) : {};
   return isRecord(parsed) ? parsed : {};
 }
 
@@ -595,10 +584,6 @@ function daysBetween(iso: string, now: Date) {
 
 function unique<T>(values: T[]) {
   return Array.from(new Set(values));
-}
-
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/+$/, "");
 }
 
 function isMain() {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeSearchResponse, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
+import { normalizeSearchResponse, readAigoJsonReadOnly, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
 
 describe("AiGo search helper", () => {
   afterEach(() => {
@@ -49,6 +49,28 @@ describe("AiGo search helper", () => {
 
     expect(response.items).toEqual([{ id: "place-1" }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries transient Next.js HTML failures for generic read-only routes", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("<!DOCTYPE html><title>ENOENT .next/server/app/v1/places/route.js</title>", {
+          status: 500,
+          headers: { "content-type": "text/html" }
+        })
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "version-1" }] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const promise = readAigoJsonReadOnly<{ items: Array<{ id: string }> }>("/v1/places/place-1/versions", { retryDelayMs: 1 });
+    await vi.runAllTimersAsync();
+    const response = await promise;
+
+    expect(response.items).toEqual([{ id: "version-1" }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:3000/v1/places/place-1/versions");
   });
 
   it("warms the search route with a compact one-row request", async () => {

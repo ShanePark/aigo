@@ -1,7 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { DEFAULT_DEV_API_KEY } from "@/env";
-import { exactNameSearchReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
+import { exactNameSearchReadOnly, readAigoJsonReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
 
 type ClusterAuditArgs = {
   candidates: string[];
@@ -269,21 +268,11 @@ async function auditCandidate(candidate: string, args: ClusterAuditArgs, options
 }
 
 async function readPlaceDetailReadOnly(placeId: string, args: Pick<ClusterAuditArgs, "apiBaseUrl" | "apiKey" | "timeoutMs">): Promise<PlaceDetail> {
-  const apiBaseUrl = normalizeBaseUrl(args.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
-  const apiKey = args.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
-  const response = await fetch(`${apiBaseUrl}/v1/places/${placeId}`, {
-    method: "GET",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      accept: "application/json"
-    },
-    signal: AbortSignal.timeout(args.timeoutMs)
+  const parsed = await readAigoJsonReadOnly(`/v1/places/${placeId}`, {
+    apiBaseUrl: args.apiBaseUrl,
+    apiKey: args.apiKey,
+    timeoutMs: args.timeoutMs
   });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`AiGo place detail failed with ${response.status} ${response.statusText}: ${text.slice(0, 500)}`);
-  }
-  const parsed = text ? JSON.parse(text) : {};
   return isRecord(parsed) ? parsed : {};
 }
 
@@ -529,10 +518,6 @@ function normalizeName(value: string) {
     .replace(/\s+/g, "")
     .replace(/[()·ㆍ.,-]/g, "")
     .toLowerCase();
-}
-
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/+$/, "");
 }
 
 function toRadians(value: number) {
