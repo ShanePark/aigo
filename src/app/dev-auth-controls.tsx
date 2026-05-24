@@ -1,6 +1,7 @@
 "use client";
 
 import { LogIn, LogOut, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import styles from "./dev-auth-controls.module.css";
@@ -13,10 +14,12 @@ type MeResponse = {
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
 
 export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { devLoginEnabled: boolean }) {
+  const router = useRouter();
   const [devLoginEnabled, setDevLoginEnabled] = useState(initialDevLoginEnabled);
   const [user, setUser] = useState<MeResponse["user"]>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,6 +49,11 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
 
   return (
     <div className={styles.controls}>
+      {error ? (
+        <span className={styles.error} role="alert">
+          {error}
+        </span>
+      ) : null}
       {user ? (
         <>
           <span className={styles.identity} title={user.email}>
@@ -68,15 +76,20 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
 
   async function login() {
     setBusy(true);
+    setError(null);
     try {
       const response = await fetch("/api/auth/dev-login", {
         credentials: "same-origin",
         method: "POST"
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        setError(await errorMessage(response, "로그인 실패"));
+        return;
+      }
       const body = (await response.json()) as Pick<MeResponse, "user">;
       setUser(body.user);
       window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
+      router.refresh();
     } finally {
       setBusy(false);
       setLoading(false);
@@ -85,15 +98,30 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
 
   async function logout() {
     setBusy(true);
+    setError(null);
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         credentials: "same-origin",
         method: "POST"
       });
+      if (!response.ok) {
+        setError(await errorMessage(response, "로그아웃 실패"));
+        return;
+      }
       setUser(null);
       window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: null } }));
+      router.refresh();
     } finally {
       setBusy(false);
     }
+  }
+}
+
+async function errorMessage(response: Response, fallback: string) {
+  try {
+    const body = (await response.json()) as { error?: string };
+    return body.error ? `${fallback}: ${body.error}` : fallback;
+  } catch {
+    return fallback;
   }
 }
