@@ -79,6 +79,7 @@ export type MyVisitLogItem = PlaceVisitItem & {
 
 export async function listPlaceVisits(placeId: string, viewerUserId?: string | null, executor: SqlExecutor = pg) {
   await assertPlaceExists(placeId, executor);
+  const viewerId = viewerUserId ?? null;
 
   const [summaryRows, visitRows] = await Promise.all([
     executor<{ ratingCount: string; averageRating: string | null }[]>`
@@ -99,10 +100,12 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
         v.created_at as "createdAt",
         v.updated_at as "updatedAt",
         u.display_name as "displayName",
-        0::int as "photoCount"
+        count(ph.id)::int as "photoCount"
       from place_visits v
       join users u on u.id = v.user_id
+      left join place_visit_photos ph on ph.visit_id = v.id and (ph.visibility = 'public' or ph.user_id = ${viewerId})
       where v.place_id = ${placeId}
+      group by v.id, u.display_name
       order by v.visited_on desc, v.created_at desc
     `
   ]);
@@ -211,10 +214,12 @@ export async function listMyVisitLog(userId: string, executor: SqlExecutor = pg)
       v.updated_at as "updatedAt",
       p.name as "placeName",
       p.primary_category as "primaryCategory",
-      0::int as "photoCount"
+      count(ph.id)::int as "photoCount"
     from place_visits v
     join places p on p.id = v.place_id
+    left join place_visit_photos ph on ph.visit_id = v.id
     where v.user_id = ${userId}
+    group by v.id, p.name, p.primary_category
     order by v.visited_on desc, v.created_at desc
   `;
 
