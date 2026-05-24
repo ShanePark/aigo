@@ -7,7 +7,6 @@ import { ApiError } from "@/lib/errors";
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 const visitVisibilitySchema = z.enum(["public", "private"]);
-const visitedOnSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "visitedOn must use YYYY-MM-DD");
 const reviewTextSchema = z
   .string()
   .trim()
@@ -16,20 +15,16 @@ const reviewTextSchema = z
   .nullable();
 
 export const createPlaceVisitSchema = z.object({
-  visitedOn: visitedOnSchema.optional(),
   rating: z.number().int().min(1).max(5),
   reviewText: reviewTextSchema.optional(),
-  visibility: visitVisibilitySchema.default("public"),
-  isRevisit: z.boolean().default(false)
+  visibility: visitVisibilitySchema.default("public")
 });
 
 export const updatePlaceVisitSchema = z
   .object({
-    visitedOn: visitedOnSchema.optional(),
     rating: z.number().int().min(1).max(5).optional(),
     reviewText: reviewTextSchema.optional(),
-    visibility: visitVisibilitySchema.optional(),
-    isRevisit: z.boolean().optional()
+    visibility: visitVisibilitySchema.optional()
   })
   .refine((value) => Object.keys(value).length > 0, "At least one visit field is required");
 
@@ -198,11 +193,16 @@ export async function createPlaceVisit(placeId: string, userId: string, input: C
     values (
       ${userId},
       ${placeId},
-      ${input.visitedOn ?? todaySeoulDate()},
+      ${todaySeoulDate()},
       ${input.rating},
       ${reviewText},
       ${input.visibility},
-      ${input.isRevisit}
+      exists (
+        select 1
+        from place_visits existing
+        where existing.user_id = ${userId}
+          and existing.place_id = ${placeId}
+      )
     )
     returning
       id::text as id,
@@ -239,11 +239,9 @@ export async function updatePlaceVisit(visitId: string, userId: string, input: U
   const rows = await executor<VisitRow[]>`
     update place_visits
     set
-      visited_on = coalesce(${input.visitedOn ?? null}, visited_on),
       rating = coalesce(${input.rating ?? null}, rating),
       review_text = case when ${input.reviewText === undefined} then review_text else ${input.reviewText ?? null} end,
       visibility = coalesce(${input.visibility ?? null}, visibility),
-      is_revisit = coalesce(${input.isRevisit ?? null}, is_revisit),
       updated_at = now()
     where id = ${visitId}
     returning

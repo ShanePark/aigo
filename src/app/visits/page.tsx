@@ -75,7 +75,7 @@ export default async function VisitsPage() {
           <div className="empty-state-copy">
             <p className="empty-state-kicker">아직 기록 없음</p>
             <h2>장소 상세에서 첫 평가를 남겨보세요</h2>
-            <p>방문일, 별점, 재방문 여부를 저장하면 이 화면에 날짜별 로그가 쌓입니다.</p>
+            <p>장소 상세에서 별점과 리뷰를 저장하면 오늘 날짜로 로그가 쌓입니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action is-primary" href="/">

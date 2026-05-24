@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Camera, CheckCircle2, Globe2, Lock, RotateCcw, Star } from "lucide-react";
+import { Camera, CheckCircle2, Globe2, Lock, Star } from "lucide-react";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -48,8 +48,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [user, setUser] = useState<User | null>(null);
   const [visits, setVisits] = useState<VisitsResponse | null>(null);
   const [rating, setRating] = useState(5);
-  const [visitedOn, setVisitedOn] = useState(() => todaySeoulDate());
-  const [isRevisit, setIsRevisit] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -139,22 +137,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           </div>
         </fieldset>
 
-        <label className="place-visit-field">
-          <span>
-            <CalendarDays size={15} aria-hidden="true" />
-            방문일
-          </span>
-          <input type="date" value={visitedOn} onChange={(event) => setVisitedOn(event.currentTarget.value)} required />
-        </label>
-
-        <label className="place-visit-check">
-          <input type="checkbox" checked={isRevisit} onChange={(event) => setIsRevisit(event.currentTarget.checked)} />
-          <span>
-            <RotateCcw size={15} aria-hidden="true" />
-            재방문
-          </span>
-        </label>
-
         <fieldset className="place-visit-visibility">
           <legend>공개 범위</legend>
           <div>
@@ -228,11 +210,9 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     try {
       const response = await fetch(`/api/places/${placeId}/visits`, {
         body: JSON.stringify({
-          isRevisit,
           rating,
           reviewText,
-          visibility,
-          visitedOn
+          visibility
         }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
@@ -290,13 +270,4 @@ async function errorMessage(response: Response) {
   } catch {
     return "요청 실패";
   }
-}
-
-function todaySeoulDate(now = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Seoul",
-    year: "numeric"
-  }).format(now);
 }

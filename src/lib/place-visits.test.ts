@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createPlaceVisit,
   createPlaceVisitSchema,
   groupMyVisitLogRows,
   placeVisitSummaryFromRow,
   placeVisitItemFromRow,
   updatePlaceVisitSchema
 } from "@/lib/place-visits";
+
+type QueryResponse = Array<Record<string, unknown>>;
 
 const baseVisitRow = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -23,12 +26,25 @@ const baseVisitRow = {
   photoCount: 2
 };
 
+function fakeExecutor(responses: QueryResponse[]) {
+  const calls: string[] = [];
+  const executor = (async (strings: TemplateStringsArray) => {
+    calls.push(strings.join("?").replace(/\s+/g, " ").trim());
+    return responses.shift() ?? [];
+  }) as never;
+
+  return { calls, executor };
+}
+
 describe("place visit schemas", () => {
-  it("defaults new visits to public first-time visits", () => {
+  it("defaults new visits to public and keeps server-owned fields out of input", () => {
     expect(createPlaceVisitSchema.parse({ rating: 4 })).toEqual({
       rating: 4,
-      visibility: "public",
-      isRevisit: false
+      visibility: "public"
+    });
+    expect(createPlaceVisitSchema.parse({ rating: 4, visitedOn: "2026-05-01", isRevisit: true })).toEqual({
+      rating: 4,
+      visibility: "public"
     });
   });
 
@@ -39,6 +55,26 @@ describe("place visit schemas", () => {
 
   it("rejects empty visit updates", () => {
     expect(() => updatePlaceVisitSchema.parse({})).toThrow("At least one visit field is required");
+    expect(() => updatePlaceVisitSchema.parse({ visitedOn: "2026-05-01", isRevisit: true })).toThrow("At least one visit field is required");
+  });
+});
+
+describe("place visit creation", () => {
+  it("sets revisit status from existing user-place visits", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: baseVisitRow.placeId }],
+      [{ ...baseVisitRow, visibility: "public", isRevisit: true, photoCount: 0 }]
+    ]);
+
+    await expect(createPlaceVisit(baseVisitRow.placeId, baseVisitRow.userId, { rating: 5, visibility: "public" }, executor)).resolves.toMatchObject({
+      item: {
+        isRevisit: true,
+        rating: 5
+      }
+    });
+    expect(calls[1]).toContain("exists ( select 1 from place_visits existing");
+    expect(calls[1]).toContain("where existing.user_id = ?");
+    expect(calls[1]).toContain("and existing.place_id = ?");
   });
 });
 

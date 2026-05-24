@@ -2647,7 +2647,7 @@ h3 {
 .place-visit-form {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(180px, 0.7fr) minmax(160px, 0.55fr) minmax(128px, 0.38fr) minmax(180px, 0.55fr);
+  grid-template-columns: minmax(180px, 0.7fr) minmax(180px, 0.55fr);
 }
 
 .place-visit-form fieldset {
@@ -2743,42 +2743,12 @@ h3 {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-.place-visit-check {
-  align-self: end;
-  align-items: center;
-  background: var(--panel-soft);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: inline-flex;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 11px;
-}
-
-.place-visit-check input {
-  accent-color: var(--mint);
-}
-
-.place-visit-check:has(input:checked) {
-  background: var(--mint-soft);
-  border-color: var(--line-strong);
-  color: var(--mint);
-}
-
-.place-visit-check span {
-  align-items: center;
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 900;
-  gap: 5px;
-}
-
 .place-visit-review {
-  grid-column: 1 / span 2;
+  grid-column: span 1;
 }
 
 .place-visit-photo {
-  grid-column: span 2;
+  grid-column: span 1;
 }
 
 .place-visit-submit {
@@ -3765,7 +3735,6 @@ dd {
     flex-direction: column;
   }
 
-  .place-visit-check,
   .place-visit-submit .primary-button {
     justify-content: center;
     width: 100%;
