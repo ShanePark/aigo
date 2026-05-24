@@ -1505,6 +1505,7 @@ components:
         - images
         - imageHealth
         - sourceSummary
+        - userRatingSummary
         - playFeatures
         - taxonomy
         - pricing
@@ -1621,6 +1622,8 @@ components:
               format: date-time
         sourceSummary:
           $ref: "#/components/schemas/SearchSourceSummary"
+        userRatingSummary:
+          $ref: "#/components/schemas/UserRatingSummary"
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
         taxonomy:
@@ -1706,6 +1709,7 @@ components:
         - primaryImageUrl
         - imageHealth
         - sourceSummary
+        - userRatingSummary
       properties:
         id:
           type: string
@@ -1798,6 +1802,8 @@ components:
           additionalProperties: true
         sourceSummary:
           $ref: "#/components/schemas/SearchSourceSummary"
+        userRatingSummary:
+          $ref: "#/components/schemas/UserRatingSummary"
     StructuredDataGaps:
       type: array
       description: Source-backed structured fields that are still unknown or missing on the place record. Agents can use these keys to decide which family logistics, booking, or operating-hours fields to patch after checking evidence sources.
@@ -1907,6 +1913,31 @@ components:
           type: array
           items:
             type: string
+    UserRatingSummary:
+      type: object
+      description: User-submitted visit rating aggregate for search cards. Average/count include private ratings, while review and photo counts include public content only.
+      required: [averageRating, ratingCount, publicReviewCount, publicPhotoCount, latestVisitedOn]
+      properties:
+        averageRating:
+          type:
+            - number
+            - "null"
+          minimum: 1
+          maximum: 5
+        ratingCount:
+          type: integer
+          minimum: 0
+        publicReviewCount:
+          type: integer
+          minimum: 0
+        publicPhotoCount:
+          type: integer
+          minimum: 0
+        latestVisitedOn:
+          type:
+            - string
+            - "null"
+          format: date
     SearchSourceSummary:
       type: object
       description: Compact source provenance and freshness summary for search cards and agent planning.

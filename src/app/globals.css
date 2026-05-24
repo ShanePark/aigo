@@ -1984,6 +1984,11 @@ h3 {
   color: var(--mint);
 }
 
+.result-rating-badge {
+  align-items: center;
+  gap: 4px;
+}
+
 .trust-badge.neutral {
   background: var(--chip-neutral-bg);
   color: var(--chip-neutral-text);

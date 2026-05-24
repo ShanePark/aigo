@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UrlObject } from "url";
-import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX } from "lucide-react";
+import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
@@ -150,6 +150,13 @@ type SearchItem = {
   score: number;
   sourceSummary: SearchResultBadgeSourceSummary;
   tags: string[];
+  userRatingSummary?: {
+    averageRating: number | null;
+    latestVisitedOn: string | null;
+    publicPhotoCount: number;
+    publicReviewCount: number;
+    ratingCount: number;
+  };
   visit?: {
     childEngagementLevel?: number | null;
     parentEffortLevel?: number | null;
@@ -433,6 +440,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
   const primaryImage = place.primaryImage;
   const priceLabel = pricingSummaryLabel(place.pricing);
   const category = categoryLabel(place.primaryCategory);
+  const userRatingSummary = place.userRatingSummary;
 
   return (
     <Link
@@ -466,6 +474,20 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         {priceLabel ? (
           <div className="trust-row">
             <span className="trust-badge warning">{priceLabel}</span>
+          </div>
+        ) : null}
+        {userRatingSummary && userRatingSummary.ratingCount > 0 ? (
+          <div className="trust-row">
+            <span className="trust-badge positive result-rating-badge">
+              <Star size={12} aria-hidden="true" />
+              방문평가 {userRatingSummary.averageRating?.toFixed(1) ?? "-"} · {userRatingSummary.ratingCount}건
+            </span>
+            {userRatingSummary.publicReviewCount > 0 ? (
+              <span className="trust-badge neutral">공개리뷰 {userRatingSummary.publicReviewCount}</span>
+            ) : null}
+            {userRatingSummary.publicPhotoCount > 0 ? (
+              <span className="trust-badge neutral">공개사진 {userRatingSummary.publicPhotoCount}</span>
+            ) : null}
           </div>
         ) : null}
         <SearchResultTrustBadges

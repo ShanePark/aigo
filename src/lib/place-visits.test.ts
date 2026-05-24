@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createPlaceVisitSchema,
   groupMyVisitLogRows,
+  placeVisitSummaryFromRow,
   placeVisitItemFromRow,
   updatePlaceVisitSchema
 } from "@/lib/place-visits";
@@ -84,6 +85,25 @@ describe("place visit privacy formatting", () => {
     expect(groups[1]).toMatchObject({
       visitedOn: "2026-05-23",
       items: [{ placeName: "둘째 장소", primaryCategory: "kids_cafe" }]
+    });
+  });
+
+  it("formats aggregate summaries without exposing private review or photo data", () => {
+    expect(
+      placeVisitSummaryFromRow({
+        placeId: baseVisitRow.placeId,
+        averageRating: "4.6666666667",
+        ratingCount: "3",
+        publicReviewCount: 1,
+        publicPhotoCount: "2",
+        latestVisitedOn: "2026-05-24"
+      })
+    ).toEqual({
+      averageRating: 4.67,
+      ratingCount: 3,
+      publicReviewCount: 1,
+      publicPhotoCount: 2,
+      latestVisitedOn: "2026-05-24"
     });
   });
 });

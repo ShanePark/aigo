@@ -77,6 +77,23 @@ export type MyVisitLogItem = PlaceVisitItem & {
   primaryCategory: string;
 };
 
+export type PlaceVisitSummary = {
+  averageRating: number | null;
+  ratingCount: number;
+  publicReviewCount: number;
+  publicPhotoCount: number;
+  latestVisitedOn: string | null;
+};
+
+type PlaceVisitSummaryRow = {
+  placeId: string;
+  averageRating: string | null;
+  ratingCount: number | string;
+  publicReviewCount: number | string;
+  publicPhotoCount: number | string;
+  latestVisitedOn: string | null;
+};
+
 export async function listPlaceVisits(placeId: string, viewerUserId?: string | null, executor: SqlExecutor = pg) {
   await assertPlaceExists(placeId, executor);
   const viewerId = viewerUserId ?? null;
@@ -123,6 +140,53 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
     myVisits,
     items
   };
+}
+
+export async function listPlaceVisitSummaries(placeIds: string[], executor: SqlExecutor = pg) {
+  const uniquePlaceIds = Array.from(new Set(placeIds.filter(Boolean)));
+  const summaries = new Map<string, PlaceVisitSummary>();
+  if (uniquePlaceIds.length === 0) return summaries;
+
+  const rows = await executor<PlaceVisitSummaryRow[]>`
+    with visit_summary as (
+      select
+        place_id,
+        count(*)::int as "ratingCount",
+        avg(rating)::text as "averageRating",
+        count(*) filter (
+          where visibility = 'public'
+            and review_text is not null
+            and length(trim(review_text)) > 0
+        )::int as "publicReviewCount",
+        max(visited_on)::text as "latestVisitedOn"
+      from place_visits
+      where place_id = any(${uniquePlaceIds}::uuid[])
+      group by place_id
+    ),
+    photo_summary as (
+      select
+        place_id,
+        count(*) filter (where visibility = 'public')::int as "publicPhotoCount"
+      from place_visit_photos
+      where place_id = any(${uniquePlaceIds}::uuid[])
+      group by place_id
+    )
+    select
+      v.place_id::text as "placeId",
+      v."averageRating",
+      v."ratingCount",
+      v."publicReviewCount",
+      coalesce(p."publicPhotoCount", 0)::int as "publicPhotoCount",
+      v."latestVisitedOn"
+    from visit_summary v
+    left join photo_summary p on p.place_id = v.place_id
+  `;
+
+  for (const row of rows) {
+    summaries.set(row.placeId, placeVisitSummaryFromRow(row));
+  }
+
+  return summaries;
 }
 
 export async function createPlaceVisit(placeId: string, userId: string, input: CreatePlaceVisitInput, executor: SqlExecutor = pg) {
@@ -262,6 +326,16 @@ export function groupMyVisitLogRows(rows: VisitLogRow[]) {
   }
 
   return Array.from(groups.entries()).map(([visitedOn, items]) => ({ visitedOn, items }));
+}
+
+export function placeVisitSummaryFromRow(row: PlaceVisitSummaryRow): PlaceVisitSummary {
+  return {
+    averageRating: row.averageRating ? Number(Number(row.averageRating).toFixed(2)) : null,
+    ratingCount: Number(row.ratingCount),
+    publicReviewCount: Number(row.publicReviewCount),
+    publicPhotoCount: Number(row.publicPhotoCount),
+    latestVisitedOn: row.latestVisitedOn
+  };
 }
 
 function todaySeoulDate(now = new Date()) {

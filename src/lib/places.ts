@@ -21,6 +21,7 @@ import {
   duplicateSameBuildingReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
+import { listPlaceVisitSummaries } from "@/lib/place-visits";
 import {
   shoppingMallRelatedPlaceScoreAdjustment,
   summarizeRelatedPlaceScoringRows,
@@ -528,10 +529,21 @@ export async function searchPlaces(input: SearchPlacesInput) {
   const diversified = applySearchDiversity(scored, normalizedInput.diversity);
   const items = diversified.slice(input.offset, input.offset + input.limit);
   const itemPlaceIds = items.map((item) => item.placeId);
-  const [imageMap, sourceSummaryMap] = await Promise.all([getImageMapForPlaces(itemPlaceIds), getSourceSummaryMapForPlaces(itemPlaceIds)]);
+  const [imageMap, sourceSummaryMap, visitSummaryMap] = await Promise.all([
+    getImageMapForPlaces(itemPlaceIds),
+    getSourceSummaryMapForPlaces(itemPlaceIds),
+    listPlaceVisitSummaries(itemPlaceIds)
+  ]);
   const enrichedItems = items.map((item) => {
     const imageRows = imageMap.get(item.placeId) ?? [];
     const sourceSummary = sourceSummaryMap.get(item.placeId) ?? buildSearchSourceSummary([]);
+    const userRatingSummary = visitSummaryMap.get(item.placeId) ?? {
+      averageRating: null,
+      latestVisitedOn: null,
+      publicPhotoCount: 0,
+      publicReviewCount: 0,
+      ratingCount: 0
+    };
     const { openingHoursData, region: _region, ...publicItem } = item;
     const openingHoursSummary = buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit);
     const imageHealth = buildSearchImageHealth(imageRows);
@@ -552,6 +564,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       ...buildImageMetadataFromRows(imageRows),
       imageHealth,
       sourceSummary,
+      userRatingSummary,
       structuredDataGaps,
       openingHoursSummary,
       recommendationReadiness
@@ -828,7 +841,8 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     notes: item.notes,
     primaryImageUrl: item.primaryImage?.url ?? item.imageHealth.primaryImageUrl,
     imageHealth: item.imageHealth,
-    sourceSummary: item.sourceSummary
+    sourceSummary: item.sourceSummary,
+    userRatingSummary: item.userRatingSummary
   };
 }
 
