@@ -23,15 +23,15 @@ export type CategoryGroupId = keyof typeof CATEGORY_GROUP_CATEGORY_FILTERS;
 
 export function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
   const category = textParam(params.category);
-  const categoryGroup = categoryGroupParam(params);
-  const groupCategories = CATEGORY_GROUP_CATEGORY_FILTERS[categoryGroup];
+  const categoryGroups = categoryGroupParams(params);
+  const groupCategories = categoriesForCategoryGroups(categoryGroups);
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
   const nearby = textParam(params.nearby) === "1";
   const query = textParam(params.query)?.trim();
   const viewportBounds = viewportBoundsFromParams(params);
-  const shouldFilterByRadius = viewportBounds ? false : shouldApplyRadiusFilter(params, categoryGroup, Boolean(query));
-  const radiusKm = Number(textParam(params.radiusKm) || defaultRadiusKmForCategoryGroup(categoryGroup));
+  const shouldFilterByRadius = viewportBounds ? false : shouldApplyRadiusFilter(params, Boolean(query));
+  const radiusKm = Number(textParam(params.radiusKm) || defaultRadiusKmForCategoryGroups(categoryGroups));
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
   const children = textParam(params.children);
@@ -47,8 +47,8 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     viewportBounds,
     query: query || undefined,
     primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
-    playgroundOnly: categoryGroup === "playground" ? true : undefined,
-    kidsCafeOnly: categoryGroup === "kidsCafe" ? true : undefined,
+    playgroundOnly: isSingleCategoryGroup(categoryGroups, "playground") ? true : undefined,
+    kidsCafeOnly: isSingleCategoryGroup(categoryGroups, "kidsCafe") ? true : undefined,
     childAgeMonths: ages,
     preferenceMode: preferenceModeParam(params),
     preferences: {
@@ -83,8 +83,14 @@ export function preferenceModeParam(params: Record<string, string | string[] | u
 }
 
 export function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {
-  const value = textParam(params.categoryGroup);
-  return value && value in CATEGORY_GROUP_CATEGORY_FILTERS ? (value as CategoryGroupId) : "all";
+  return categoryGroupParams(params)[0] ?? "all";
+}
+
+export function categoryGroupParams(params: Record<string, string | string[] | undefined>): CategoryGroupId[] {
+  const pluralGroups = uniqueCategoryGroups(paramValues(params.categoryGroups).flatMap((value) => value.split(",")));
+  if (pluralGroups.length > 0) return pluralGroups;
+  const legacyGroups = uniqueCategoryGroups(paramValues(params.categoryGroup).flatMap((value) => value.split(",")));
+  return legacyGroups.length > 0 ? legacyGroups : ["all"];
 }
 
 export function textParam(value: string | string[] | undefined) {
@@ -100,22 +106,47 @@ function hasExplicitLocationParams(params: Record<string, string | string[] | un
   return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm) || viewportBoundsFromParams(params));
 }
 
-function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, categoryGroup: CategoryGroupId, hasQuery: boolean) {
+function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, hasQuery: boolean) {
   if (!hasQuery) return hasExplicitLocationParams(params);
   return textParam(params.nearby) === "1" || Boolean(textParam(params.radiusKm));
 }
 
+function defaultRadiusKmForCategoryGroups(categoryGroups: CategoryGroupId[]) {
+  return Math.max(...categoryGroups.map(defaultRadiusKmForCategoryGroup));
+}
+
 function defaultRadiusKmForCategoryGroup(categoryGroup: CategoryGroupId) {
-  switch (categoryGroup) {
-    case "playground":
-      return 20;
-    case "visit":
-      return 220;
-    case "stay":
-      return 300;
-    default:
-      return 80;
+  if (categoryGroup === "playground") return 20;
+  if (categoryGroup === "visit") return 220;
+  if (categoryGroup === "stay") return 300;
+  return 80;
+}
+
+function categoriesForCategoryGroups(categoryGroups: CategoryGroupId[]) {
+  const selected = categoryGroups.filter((group) => group !== "all");
+  if (selected.length === 0) return undefined;
+  return Array.from(new Set(selected.flatMap((group) => CATEGORY_GROUP_CATEGORY_FILTERS[group] ?? [])));
+}
+
+function isSingleCategoryGroup(categoryGroups: CategoryGroupId[], group: CategoryGroupId) {
+  return categoryGroups.length === 1 && categoryGroups[0] === group;
+}
+
+function uniqueCategoryGroups(values: string[]) {
+  const groups: CategoryGroupId[] = [];
+  for (const value of values) {
+    const group = value.trim();
+    if (!group || group === "all") continue;
+    if (group in CATEGORY_GROUP_CATEGORY_FILTERS && !groups.includes(group as CategoryGroupId)) {
+      groups.push(group as CategoryGroupId);
+    }
   }
+  return groups;
+}
+
+function paramValues(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value;
+  return value ? [value] : [];
 }
 
 function numberParam(value: string | string[] | undefined) {

@@ -362,7 +362,7 @@ const searchPlacesBaseSchema = z.object({
       label: z.string().trim().optional()
     })
     .optional(),
-  radiusKm: z.number().positive().max(200).default(80),
+  radiusKm: z.number().positive().max(500).default(80),
   filterByRadius: z.boolean().optional(),
   viewportBounds: viewportBoundsSchema.optional(),
   minDistanceKm: z.number().min(0).max(500).optional(),

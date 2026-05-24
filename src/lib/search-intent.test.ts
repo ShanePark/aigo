@@ -29,4 +29,9 @@ describe("search intent helpers", () => {
   it("does not fall back for all-category searches", () => {
     expect(shouldFallbackToAllCategoriesForQuery("논산", "all")).toBe(false);
   });
+
+  it("keeps multi-category searches when any selected category matches the query", () => {
+    expect(shouldFallbackToAllCategoriesForQuery("백화점 수유실", ["shopping", "visit"])).toBe(false);
+    expect(shouldFallbackToAllCategoriesForQuery("레고 스토어 주차", ["shopping", "visit"])).toBe(true);
+  });
 });

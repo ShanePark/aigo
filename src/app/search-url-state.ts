@@ -86,7 +86,11 @@ export function searchParamsWithCurrentLocationState(search: string, formData: F
     const text = String(value).trim();
     if (text.length === 0) continue;
     if (shouldPreferCurrentLocationState && isMapLocationParam(key)) continue;
-    params.set(key, text);
+    if (isMultiValueFormParam(key)) {
+      params.append(key, text);
+    } else {
+      params.set(key, text);
+    }
   }
 
   for (const key of RESET_ON_SEARCH_PARAM_KEYS) params.delete(key);
@@ -124,6 +128,10 @@ function currentLocationSearchParams(search: string) {
 
 function isMapLocationParam(key: string): key is (typeof MAP_LOCATION_PARAM_KEYS)[number] {
   return MAP_LOCATION_PARAM_KEYS.includes(key as (typeof MAP_LOCATION_PARAM_KEYS)[number]);
+}
+
+function isMultiValueFormParam(key: string) {
+  return key === "category" || key === "categoryGroups";
 }
 
 function hasAnyParam(params: URLSearchParams) {

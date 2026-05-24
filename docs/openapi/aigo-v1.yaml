@@ -1003,7 +1003,7 @@ components:
         radiusKm:
           type: number
           default: 80
-          maximum: 200
+          maximum: 500
         filterByRadius:
           type: boolean
           default: true

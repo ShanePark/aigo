@@ -281,6 +281,15 @@ describe("place schemas", () => {
     expect(result.filterByRadius).toBe(false);
   });
 
+  it("accepts wider destination search radii", () => {
+    const result = searchPlacesSchema.parse({
+      origin: { lat: 36.35, lng: 127.38 },
+      radiusKm: 300
+    });
+
+    expect(result.radiusKm).toBe(300);
+  });
+
   it("accepts visible map viewport bounds for search", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

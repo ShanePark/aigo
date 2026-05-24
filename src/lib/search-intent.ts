@@ -8,10 +8,12 @@ const categoryGroupIntentPatterns: Record<string, RegExp[]> = {
   visit: [/도서관|장난감\s*도서관|박물관|미술관|과학관|체험|문화|아쿠아리움|동물원|휴게소|전시/i]
 };
 
-export function shouldFallbackToAllCategoriesForQuery(query: string | undefined, categoryGroup: string) {
-  if (!query?.trim() || categoryGroup === "all") return false;
+export function shouldFallbackToAllCategoriesForQuery(query: string | undefined, categoryGroup: string | string[]) {
+  const activeGroups = Array.isArray(categoryGroup) ? categoryGroup : [categoryGroup];
+  const selectedGroups = activeGroups.filter((group) => group !== "all");
+  if (!query?.trim() || selectedGroups.length === 0) return false;
   const matchedGroups = categoryIntentGroups(query);
-  return matchedGroups.size === 0 || !matchedGroups.has(categoryGroup);
+  return matchedGroups.size === 0 || selectedGroups.every((group) => !matchedGroups.has(group));
 }
 
 function categoryIntentGroups(query: string) {

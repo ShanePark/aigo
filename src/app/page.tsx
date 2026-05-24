@@ -5,6 +5,8 @@ import {
   BedDouble,
   Blocks,
   Building2,
+  Check,
+  Plus,
   Puzzle,
   Search,
   ShoppingBag,
@@ -17,7 +19,7 @@ import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results
 import {
   CATEGORY_GROUP_CATEGORY_FILTERS,
   buildSearchInput,
-  categoryGroupParam,
+  categoryGroupParams,
   resultLimitParam,
   sortParam,
   textParam,
@@ -60,30 +62,30 @@ type HomeProps = {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   let effectiveParams = params;
-  let activeCategoryGroup = categoryGroupParam(params);
+  let activeCategoryGroups = categoryGroupParams(params);
   let input = searchPlacesSchema.parse(buildSearchInput(params));
   let result = await safeSearch(input);
 
-  if (result.meta.total === 0 && shouldFallbackToAllCategoriesForQuery(textParam(params.query), activeCategoryGroup)) {
+  if (result.meta.total === 0 && shouldFallbackToAllCategoriesForQuery(textParam(params.query), activeCategoryGroups)) {
     const fallbackParams = withoutCategoryParams(params);
     const fallbackInput = searchPlacesSchema.parse(buildSearchInput(fallbackParams));
     const fallbackResult = await safeSearch(fallbackInput);
     if (fallbackResult.meta.total > 0) {
       effectiveParams = fallbackParams;
-      activeCategoryGroup = "all";
+      activeCategoryGroups = ["all"];
       input = fallbackInput;
       result = fallbackResult;
     }
   }
 
-  const activeCategoryGroupConfig = CATEGORY_GROUPS[activeCategoryGroup];
+  const activeCategoryGroupLabel = categoryGroupSelectionLabel(activeCategoryGroups);
   const activeSort = sortParam(effectiveParams);
 
   return (
     <div className="page">
       <section className="search-shell">
         <form className="search-form" action="/">
-          <input name="categoryGroup" type="hidden" value={activeCategoryGroup} />
+          <CategoryGroupHiddenInputs activeCategoryGroups={activeCategoryGroups} />
           <input name="sort" type="hidden" value={activeSort} />
           <input name="limit" type="hidden" value={resultLimitParam(effectiveParams)} />
           <LocationStateInputs params={effectiveParams} />
@@ -99,19 +101,27 @@ export default async function Home({ searchParams }: HomeProps) {
             </button>
           </div>
 
-          <div className="category-tabs" aria-label="큰 분류">
+          <div className="category-tabs" aria-label="큰 분류 다중 선택">
             {Object.entries(CATEGORY_GROUPS).map(([groupId, group]) => {
               const Icon = group.icon;
+              const isActive = categoryGroupIsActive(activeCategoryGroups, groupId as CategoryGroupId);
+              const StateIcon = isActive ? Check : Plus;
 
               return (
                 <Link
-                  className={`category-tab ${activeCategoryGroup === groupId ? "is-active" : ""}`}
-                  href={categoryGroupHref(effectiveParams, groupId as CategoryGroupId)}
+                  className={`category-tab ${isActive ? "is-active" : ""}`}
+                  href={categoryGroupHref(effectiveParams, groupId as CategoryGroupId, activeCategoryGroups)}
                   key={groupId}
-                  aria-label={`${group.label}: ${group.hint}`}
+                  aria-label={`${group.label}: ${group.hint} ${isActive ? "해제" : "추가"}`}
+                  aria-pressed={isActive}
                 >
                   <Icon size={17} aria-hidden="true" />
                   <span>{group.label}</span>
+                  {groupId !== "all" ? (
+                    <span className="category-tab-state" aria-hidden="true">
+                      <StateIcon size={13} />
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -122,8 +132,8 @@ export default async function Home({ searchParams }: HomeProps) {
       </section>
 
       <ExploreResults
-        activeCategoryGroup={activeCategoryGroup}
-        activeCategoryGroupLabel={activeCategoryGroupConfig.label}
+        activeCategoryGroup={activeCategoryGroups[0] ?? "all"}
+        activeCategoryGroupLabel={activeCategoryGroupLabel}
         activeSort={activeSort}
         categoryGroups={clientCategoryGroups()}
         initialInput={input}
@@ -189,16 +199,17 @@ function withoutCategoryParams(params: Record<string, string | string[] | undefi
   const next = { ...params };
   delete next.category;
   delete next.categoryGroup;
+  delete next.categoryGroups;
   delete next.offset;
   delete next.page;
   return next;
 }
 
-function categoryGroupHref(params: Record<string, string | string[] | undefined>, group: CategoryGroupId): UrlObject {
+function categoryGroupHref(params: Record<string, string | string[] | undefined>, group: CategoryGroupId, activeGroups: CategoryGroupId[]): UrlObject {
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup" || key === "visitContext") continue;
+    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup" || key === "categoryGroups" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       const values = value.filter(Boolean);
       if (values.length === 1) {
@@ -211,11 +222,44 @@ function categoryGroupHref(params: Record<string, string | string[] | undefined>
     if (value) query[key] = value;
   }
 
-  if (group !== "all") {
-    query.categoryGroup = group;
+  const nextGroups = toggledCategoryGroups(activeGroups, group);
+  if (nextGroups.length > 0) {
+    query.categoryGroups = nextGroups.length === 1 ? nextGroups[0] : nextGroups;
   }
 
   return { pathname: "/", query };
+}
+
+function CategoryGroupHiddenInputs({ activeCategoryGroups }: { activeCategoryGroups: CategoryGroupId[] }) {
+  const selected = activeCategoryGroups.filter((group) => group !== "all");
+  if (selected.length === 0) return null;
+  return (
+    <>
+      {selected.map((group) => (
+        <input name="categoryGroups" type="hidden" value={group} key={group} />
+      ))}
+    </>
+  );
+}
+
+function toggledCategoryGroups(activeGroups: CategoryGroupId[], group: CategoryGroupId) {
+  if (group === "all") return [];
+  const selected = activeGroups.filter((activeGroup) => activeGroup !== "all");
+  if (selected.includes(group)) {
+    return selected.filter((activeGroup) => activeGroup !== group);
+  }
+  return [...selected, group];
+}
+
+function categoryGroupIsActive(activeGroups: CategoryGroupId[], group: CategoryGroupId) {
+  if (group === "all") return activeGroups.length === 0 || activeGroups.includes("all");
+  return activeGroups.includes(group);
+}
+
+function categoryGroupSelectionLabel(activeGroups: CategoryGroupId[]) {
+  const selected = activeGroups.filter((group) => group !== "all");
+  if (selected.length === 0) return CATEGORY_GROUPS.all.label;
+  return selected.map((group) => CATEGORY_GROUPS[group].label).join(", ");
 }
 
 function clientParams(params: Record<string, string | string[] | undefined>) {

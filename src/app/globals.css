@@ -174,6 +174,7 @@ summary {
 :where(
     .back-link,
     .category-tab,
+    .category-tab-state,
     .detail-decision-action,
     .detail-map-open-link,
     .empty-state-action,
@@ -484,6 +485,21 @@ h3 {
   word-break: keep-all;
 }
 
+.category-tab-state {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 999px;
+  display: inline-flex;
+  height: 20px;
+  justify-content: center;
+  margin-left: 2px;
+  width: 20px;
+}
+
+.category-tab-state svg {
+  stroke-width: 3;
+}
+
 .category-tab:hover,
 .category-tab:focus-visible,
 .category-tab.is-active {
@@ -500,8 +516,15 @@ h3 {
 }
 
 .category-tab.is-active {
+  background: color-mix(in srgb, var(--mint) 12%, var(--panel));
   border-color: var(--line-strong);
   color: var(--mint);
+}
+
+.category-tab.is-active .category-tab-state {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: white;
 }
 
 .checks,

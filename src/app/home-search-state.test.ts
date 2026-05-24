@@ -58,6 +58,28 @@ describe("home search input", () => {
     });
   });
 
+  it("combines multiple selected category groups into one search", () => {
+    expect(
+      buildSearchInput({
+        categoryGroups: ["shopping", "visit"],
+        lat: "36.35",
+        lng: "127.38"
+      })
+    ).toMatchObject({
+      filterByRadius: true,
+      radiusKm: 220,
+      primaryCategories: expect.arrayContaining(["shopping_mall", "science_museum", "museum", "aquarium_zoo"])
+    });
+  });
+
+  it("keeps legacy single category group URLs working", () => {
+    expect(buildSearchInput({ categoryGroup: "shopping", lat: "36.35", lng: "127.38" })).toMatchObject({
+      filterByRadius: true,
+      radiusKm: 80,
+      primaryCategories: ["shopping_mall"]
+    });
+  });
+
   it("passes required preference mode from search params", () => {
     expect(buildSearchInput({ nursing: "on", preferenceMode: "required" })).toMatchObject({
       preferenceMode: "required",

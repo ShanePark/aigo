@@ -829,7 +829,7 @@ function categoryGroupHref(params: Record<string, string | string[]>, group: str
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup" || key === "visitContext") continue;
+    if (key === "page" || key === "offset" || key === "category" || key === "categoryGroup" || key === "categoryGroups" || key === "visitContext") continue;
     if (Array.isArray(value)) {
       const values = value.filter(Boolean);
       if (values.length === 1) {
@@ -843,7 +843,7 @@ function categoryGroupHref(params: Record<string, string | string[]>, group: str
   }
 
   if (group !== "all") {
-    query.categoryGroup = group;
+    query.categoryGroups = group;
   }
 
   return { pathname: "/", query };

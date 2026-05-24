@@ -55,6 +55,8 @@ describe("search URL state", () => {
     formData.set("query", "수유실");
     formData.set("sort", "recommended");
     formData.set("limit", "30");
+    formData.append("categoryGroups", "shopping");
+    formData.append("categoryGroups", "visit");
     formData.set("nursing", "on");
     formData.set("minLat", "35.000000");
     formData.set("minLng", "126.000000");
@@ -74,10 +76,12 @@ describe("search URL state", () => {
       minLat: "36.300000",
       minLng: "127.400000",
       limit: "30",
+      categoryGroups: "visit",
       nursing: "on",
       query: "수유실",
       sort: "recommended"
     });
+    expect(params.getAll("categoryGroups")).toEqual(["shopping", "visit"]);
     expect(params.has("page")).toBe(false);
   });
 
