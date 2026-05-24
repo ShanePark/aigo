@@ -198,6 +198,60 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("warns when local family candidates have no parent-facing review evidence", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      externalRefs: {
+        coordinateProvenance: validPayload().externalRefs.coordinateProvenance
+      },
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "Official place page",
+          url: "https://example.com/place",
+          summary: "Official page confirms the address and family facilities.",
+          checkedAt: "2026-05-23T14:00:00.000+09:00"
+        }
+      ]
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_parent_review_evidence",
+          path: "externalRefs.parentReviewEvidence",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
+  it("accepts explicit not_found parent review evidence after research", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "Official place page",
+          url: "https://example.com/place",
+          summary: "Official page confirms the address and family facilities.",
+          checkedAt: "2026-05-23T14:00:00.000+09:00"
+        }
+      ],
+      externalRefs: {
+        ...validPayload().externalRefs,
+        parentReviewEvidence: {
+          status: "not_found",
+          attemptedQueries: ["서울 아이랑 테스트 쇼핑몰", "서울 유모차 테스트 쇼핑몰"]
+        }
+      }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_parent_review_evidence");
+  });
+
   it("parses CLI arguments", () => {
     expect(parseArgs(["--json", "a.json", "b.md"])).toEqual({
       json: true,
@@ -256,6 +310,13 @@ function validPayload(overrides: Record<string, unknown> = {}) {
         title: "Official place page",
         url: "https://example.com/place",
         summary: "Official page confirms the address and family facilities.",
+        checkedAt: "2026-05-23T14:00:00.000+09:00"
+      },
+      {
+        sourceType: "public_blog",
+        title: "Parent visit note",
+        url: "https://example.com/parent-review",
+        summary: "Parent-facing note describes stroller access and toddler fit in the author's own visit context.",
         checkedAt: "2026-05-23T14:00:00.000+09:00"
       }
     ],

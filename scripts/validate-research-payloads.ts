@@ -29,6 +29,23 @@ type PayloadEntry = {
 const registrationDataConfidence = new Set(["agent_collected", "official_verified", "user_reported"]);
 const acceptedCoordinateLevels = new Set(["official_embedded_map", "public_dataset_exact_address", "public_address_coordinate", "parent_building_coordinate"]);
 const operationalSourceTypes = new Set(["official_site", "operator_page", "public_agency", "public_tourism"]);
+const parentReviewSourceTypes = new Set(["public_listing", "public_news", "public_blog", "user_observation", "agent_observation"]);
+const parentReviewRecommendedCategories = new Set([
+  "kids_cafe",
+  "indoor_playground",
+  "toy_store",
+  "toy_library",
+  "library",
+  "museum",
+  "science_museum",
+  "experience_center",
+  "aquarium_zoo",
+  "park",
+  "family_cafe",
+  "family_restaurant",
+  "sports_venue",
+  "shopping_mall"
+]);
 const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
 const personalizedPublicTextPattern =
   /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
@@ -186,6 +203,7 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   collectCoordinateProvenanceIssues(payload, issues);
   collectOperationalStatusSignalIssues(payload, issues);
   collectPersonalizedPublicTextIssues(payload, issues);
+  collectParentReviewEvidenceIssues(payload, issues);
 }
 
 function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
@@ -224,6 +242,35 @@ function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: 
       )
     );
   }
+}
+
+function collectParentReviewEvidenceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  if (!parentReviewRecommendedCategories.has(payload.primaryCategory)) return;
+  if (hasParentReviewEvidence(payload)) return;
+
+  issues.push(
+    warning(
+      "externalRefs.parentReviewEvidence",
+      "workflow_parent_review_evidence",
+      "local family create payloads should include a parent-facing review/listing/blog source or externalRefs.parentReviewEvidence; use \"not_found\" only after recording attempted parent-intent queries in the research note"
+    )
+  );
+}
+
+function hasParentReviewEvidence(payload: CreatePlaceInput) {
+  if (payload.sources.some((source) => parentReviewSourceTypes.has(source.sourceType))) {
+    return true;
+  }
+
+  const externalRefs = isRecord(payload.externalRefs) ? payload.externalRefs : null;
+  return hasNonEmptyEvidenceValue(externalRefs?.parentReviewEvidence) || hasNonEmptyEvidenceValue(externalRefs?.reviewLinks);
+}
+
+function hasNonEmptyEvidenceValue(value: unknown): boolean {
+  if (typeof value === "string") return Boolean(value.trim());
+  if (Array.isArray(value)) return value.some(hasNonEmptyEvidenceValue);
+  if (!isRecord(value)) return false;
+  return Object.values(value).some(hasNonEmptyEvidenceValue);
 }
 
 function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
