@@ -68,6 +68,9 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 4. Research with source notes.
    - Use one staging file per slice: `agent-research/<topic>-YYYYMMDD-HHMM.md`.
    - For each place, record suggested action (`create`, `update`, `skip_existing`, `skip`, or `hold_for_later`), family signals, coordinate provenance, source URLs with short summaries, confidence, open questions, and a possible API payload fragment using camelCase fields. `needs_review` is not a registration status for user-requested API writes.
+   - For named destination, public facility, park, theme-park, mall, resort, museum, science/experience-center, and campus-like places, do a subfacility sweep before mutation. Search the exact place name plus high-yield child/logistics terms such as `놀이터`, `실내놀이터`, `키즈카페`, `어린이자료실`, `도서관`, `장난감`, `수유실`, `기저귀`, `유아화장실`, `주차`, `입장료`, `무료`, `운영시간`, and `시설안내`. Record found subfacilities in structured fields, `playFeatures`, `taxonomy`, tags, pricing, notes, and related-place candidates instead of leaving them buried in source summaries.
+   - When a place appears unusually broad, free/very-low-cost, or multi-use, capture facility scale and free-entry evidence explicitly. Use `pricing` for source-backed free admission or fees, `scoreSignals.facilityScale` / `scoreSignals.freeAdmission` for scoring evidence, and `placeScoreRationale` to explain why the scale or cost changes family value. If the current runtime scorer does not yet use that signal, add a `[대기]` item to `docs/aigo-improvements.md` rather than forcing an inflated score.
+   - Do not treat one official/tourism page as enough for rich public destinations. If the first source is thin, add at least one corroborating public-agency, facility guide, public listing, or parent-facing source for child facilities and baby logistics. If a high-yield term search finds nothing, write that as an open question or `unknown` evidence so future agents know the sweep was attempted.
    - For weak-fit candidates, record the failed gate explicitly, such as "tourist information/lounge only; no baby logistics; no child-primary activity."
    - For image work, record `images` candidates and provenance. If no citeable image is found, hold the candidate in research notes instead of creating/updating it, unless the user explicitly approves a no-image exception for that place.
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it.
@@ -351,6 +354,8 @@ When creating or meaningfully refreshing a place, score it when the evidence is 
 Suggested `placeScore` rubric for the current family context:
 
 - Family purpose and child value: child-primary, baby-logistics, route-break utility, or explicit user signal.
+- Facility scale and breadth: named playgrounds, indoor play rooms, libraries/children's rooms, kids cafes, lawns/water play, cafes, and other on-site subfacilities that let one stop solve multiple family needs.
+- Cost value: source-backed free admission or very-low-cost public service value, balanced against crowding, reservation friction, and whether paid activities are optional.
 - Age fit: toddler engagement plus infant-safe logistics; partial age fit should not be treated as a full match.
 - Practical logistics: stroller, elevator, parking, nursing room, diaper table, kids toilet, baby chair, food/snack handling.
 - Parent effort and safety: line-of-sight, water/road/fire/steepness risk, crowding, floor changes, shade/toilets.
@@ -395,6 +400,8 @@ Use provider labels such as `Naver`, `Naver Blog`, `Kakao`, `Google`, `Tripadvis
 Capture the practical parent tradeoffs in structured fields and notes:
 
 - Fit for current family: toddler born 2023-09 plus twin infants born 2025-10.
+- Facility scope: whether the destination has multiple child-use zones such as indoor play, outdoor playground, water/sand play, children's library/material room, kids cafe, exhibit/experience rooms, cafe/food, or stroller-walk areas.
+- Free-entry and fee model: free admission, free-but-paid-extras, reservation-only free programs, paid sessions, guardian/child pricing, parking validation, and date/source of the fee evidence.
 - Stroller route/elevator/floor changes, nursing room, diaper table, kids toilet, baby chair.
 - Parking entry friction, validation, elevator connection, and whether one building solves food/rest/play.
 - Reservation/session friction, same-day availability, walk-in fallback, and whether parent timing must be planned before departure.
