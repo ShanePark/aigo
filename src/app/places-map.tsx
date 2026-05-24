@@ -104,7 +104,7 @@ export function PlacesMap({
       };
 
       userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target);
-      const targetZoom = Math.max(map.getZoom(), 15);
+      const targetZoom = map.getZoom();
       if (options.runSearch) {
         viewKeyRef.current = mapViewKey({ ...target, label: "현재 위치" });
       }

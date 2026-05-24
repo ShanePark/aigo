@@ -259,7 +259,6 @@ export function ExploreResults({
   return (
     <section className="explore-layout">
       <PlacesMap
-        autoLocateOnInitialLoad={!hasMapLocationParams(activeParams)}
         isViewportSearchPending={isClientSearchPending}
         onInitialLocationSearch={handleInitialLocationSearch}
         onViewportSearch={handleViewportSearch}
