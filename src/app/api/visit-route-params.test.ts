@@ -5,9 +5,14 @@ import { GET as getPlaceVisits, POST as postPlaceVisit } from "@/app/api/places/
 import { GET as getVisitPhoto } from "@/app/api/visit-photos/[photoId]/route";
 import { PATCH as patchVisit } from "@/app/api/visits/[visitId]/route";
 import { POST as postVisitPhoto } from "@/app/api/visits/[visitId]/photos/route";
+import { VISIT_PHOTO_MAX_BYTES } from "@/lib/visit-photos";
 
 function request(method = "GET") {
   return new NextRequest("http://localhost/api/test", { method });
+}
+
+function requestWithHeaders(method: string, headers: HeadersInit) {
+  return new NextRequest("http://localhost/api/test", { headers, method });
 }
 
 function context(paramName: string, value: string) {
@@ -29,6 +34,20 @@ describe("visit API route params", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       error: `${paramName} must be a valid UUID`
+    });
+  });
+
+  it("rejects oversized visit photo requests before multipart parsing", async () => {
+    const response = await postVisitPhoto(
+      requestWithHeaders("POST", {
+        "content-length": String(VISIT_PHOTO_MAX_BYTES + 1)
+      }),
+      context("visitId", "11111111-1111-4111-8111-111111111111")
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Photo upload request must be 10MB or smaller"
     });
   });
 });

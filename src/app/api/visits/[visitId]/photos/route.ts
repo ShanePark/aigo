@@ -18,6 +18,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { visitId: rawVisitId } = await context.params;
     const visitId = requireUuidParam(rawVisitId, "visitId");
+    rejectOversizedContentLength(request);
     const user = await requireCurrentUser(request);
     const formData = await request.formData();
     const file = formData.get("photo");
@@ -53,4 +54,14 @@ function normalizeVisibility(value: FormDataEntryValue | null) {
   if (value === null || value === "") return undefined;
   if (value === "public" || value === "private") return value;
   throw new ApiError(400, "Photo visibility must be public or private");
+}
+
+function rejectOversizedContentLength(request: NextRequest) {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return;
+
+  const byteSize = Number(contentLength);
+  if (Number.isFinite(byteSize) && byteSize > VISIT_PHOTO_MAX_BYTES) {
+    throw new ApiError(413, "Photo upload request must be 10MB or smaller");
+  }
 }
