@@ -2859,6 +2859,157 @@ h3 {
   gap: 10px;
 }
 
+.visits-page {
+  max-width: 980px;
+}
+
+.visits-hero {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.visits-summary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: min(100%, 360px);
+}
+
+.visits-summary span,
+.visit-log-group-head span,
+.visit-log-card-stats > span:not(.score-pill) {
+  align-items: center;
+  background: var(--chip-neutral-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--chip-neutral-text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.visit-log-groups {
+  display: grid;
+  gap: 20px;
+}
+
+.visit-log-group {
+  display: grid;
+  gap: 10px;
+}
+
+.visit-log-group-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.visit-log-group-head time {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.visit-log-items {
+  display: grid;
+  gap: 10px;
+}
+
+.visit-log-card {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  padding: 14px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.visit-log-card:hover,
+.visit-log-card:focus-visible {
+  background: var(--result-hover-bg);
+  border-color: var(--highlight-border);
+  box-shadow:
+    0 0 0 3px var(--highlight-ring),
+    var(--result-hover-shadow);
+  outline-color: var(--highlight-outline);
+  transform: translateY(-2px);
+}
+
+.visit-log-card-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.visit-log-card-topline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.visit-log-card-topline .trust-badge {
+  align-items: center;
+  gap: 4px;
+}
+
+.visit-log-card h2 {
+  font-size: 20px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.visit-log-review {
+  align-items: start;
+  color: var(--body-copy);
+  display: inline-flex;
+  font-size: 14px;
+  gap: 6px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.visit-log-review svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.visit-log-review.is-empty {
+  color: var(--muted);
+}
+
+.visit-log-card-stats {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.visit-log-card-stats .score-pill {
+  gap: 5px;
+  min-height: 32px;
+}
+
 .detail-map-card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -3293,6 +3444,15 @@ dd {
   .place-visit-photo {
     grid-column: 1 / -1;
   }
+
+  .visits-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .visits-summary {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 760px) {
@@ -3562,6 +3722,18 @@ dd {
 
   .detail-map-open-link {
     min-height: 40px;
+  }
+
+  .visit-log-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .visit-log-card-stats {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-items: start;
   }
 
   .detail-map-card {

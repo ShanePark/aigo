@@ -4,3 +4,36 @@
   gap: 8px;
   min-width: 0;
 }
+
+.link {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.link:hover,
+.link:focus-visible {
+  border-color: var(--hover-border);
+  color: var(--mint);
+}
+
+@media (max-width: 620px) {
+  .link span {
+    display: none;
+  }
+
+  .link {
+    justify-content: center;
+    padding: 0;
+    width: 34px;
+  }
+}
