@@ -2165,7 +2165,7 @@ components:
                     - string
                     - "null"
                 locationQuery:
-                  description: Location-only query token split from user intent when normalization leaves a region/place anchor such as 대전.
+                  description: Location-only query token split from user intent when normalization leaves a region/place anchor such as 서울.
                   type:
                     - string
                     - "null"

@@ -82,7 +82,7 @@ Facet families:
 - `logisticsTags`: `parking`, `low_parking_friction`, `stroller`, `double_stroller`, `elevator`, `nursing_room`, `diaper_table`, `kids_toilet`, `baby_chair`, `food_support`, `reservation`, `session_based`
 - `riskTags`: `water_edge`, `road_nearby`, `steep_path`, `crowding`, `fire_grill`, `current_operation_uncertain`, `seasonal_operation`, `infant_amenity_gap`
 
-Canonical source types and region aliases live in `src/lib/taxonomy.ts`. The API normalizes common source aliases such as `official`, `official_page`, `public_data_mirror`, `blog`, and image-source variants, and normalizes Korean region aliases such as `대전`, `충남`, `충북`, `세종`, `강원`, `경남`, `경북`, `전북`, `전남`, and `제주`.
+Canonical source types and region aliases live in `src/lib/taxonomy.ts`. The API normalizes common source aliases such as `official`, `official_page`, `public_data_mirror`, `blog`, and image-source variants, and normalizes Korean region aliases such as `서울`, `경기`, `부산`, `강원`, `경남`, `경북`, `전북`, `전남`, and `제주`.
 
 ## Implemented Surfaces
 

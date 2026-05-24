@@ -4,13 +4,13 @@
 
 <h1 align="center">AiGo</h1>
 
-AiGo is an agent-friendly place database and search UI for kid-friendly family outings across Korea, anchored around a Daejeon family context. It is built for the practical questions parents ask before leaving the house: Is this place indoors? Can a stroller move through it? Is there parking, a nursing room, a diaper changing table, an elevator, a baby chair, or a reliable snack/meal fallback?
+AiGo is an agent-friendly place database and search UI for kid-friendly family outings across Korea. It is built for the practical questions parents ask before leaving the house: Is this place indoors? Can a stroller move through it? Is there parking, a nursing room, a diaper changing table, an elevator, a baby chair, or a reliable snack/meal fallback?
 
 The project combines a Korean Next.js search experience with a structured API that external agents can use to collect, deduplicate, enrich, and inspect source-backed place data. It is a personal/family place intelligence tool, not a generic travel marketplace or review community.
 
 ## Product Focus
 
-AiGo is optimized for families planning low-friction outings, with Daejeon Station / old downtown as the default personalization anchor and nationwide Korea as the broader collection scope.
+AiGo is optimized for families planning low-friction outings across Korea, with personalization based on the user's selected or current origin.
 
 The data model intentionally treats parent logistics as first-class signals:
 
@@ -47,7 +47,7 @@ The web app provides a Korean place-search UI with:
 - Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, and reason codes
 - Place detail pages with source links, image audit information, child-friendly signals, play features, visit judgment, notes, and recent versions
 
-The UI uses the browser's current location as the initial origin when permission is available, with Daejeon Station / old downtown as the fallback personalization anchor.
+The UI uses the browser's current location as the initial origin when permission is available, and otherwise falls back to a neutral default origin that users can change.
 
 ## Agent API
 
@@ -169,13 +169,13 @@ curl -sS http://localhost:3000/v1/places/search \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "origin": { "lat": 36.3322, "lng": 127.4341, "label": "Daejeon Station / old downtown" },
+    "origin": { "lat": 36.5, "lng": 127.8, "label": "Selected origin" },
     "filterByRadius": false,
     "viewportBounds": {
-      "minLat": 36.25,
-      "minLng": 127.32,
-      "maxLat": 36.43,
-      "maxLng": 127.52
+      "minLat": 35.95,
+      "minLng": 126.95,
+      "maxLat": 37.05,
+      "maxLng": 128.65
     },
     "visitContext": "rainyDay",
     "childAgeMonths": [32, 7, 7],
@@ -198,6 +198,6 @@ curl -sS http://localhost:3000/v1/places/search \
 - Use public blogs or public listings only as supporting evidence.
 - Store image URLs only when the source page is citeable and the image helps identify or compare the exact place.
 - Keep `primaryCategory` in the closed top-level category set; use taxonomy facets for finer family-planning meaning and `playFeatures` for physical equipment.
-- Use canonical source types and full Korean province/city names; API normalization handles common aliases such as `official`, `blog`, `public_data_mirror`, `대전`, `충남`, and `세종`.
+- Use canonical source types and full Korean province/city names; API normalization handles common aliases such as `official`, `blog`, `public_data_mirror`, `서울`, `경기`, and `부산`.
 - Use `unknown` when evidence is weak instead of guessing.
 - Preserve uncertainty in `parentNotes`, `safetyNotes`, `dataConfidence`, image review status, or play-feature evidence.

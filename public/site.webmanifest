@@ -1,7 +1,7 @@
 {
   "name": "AiGo",
   "short_name": "AiGo",
-  "description": "Kid-friendly Daejeon family outing search and place data.",
+  "description": "Kid-friendly family outing search and place data across Korea.",
   "lang": "ko-KR",
   "start_url": "/",
   "scope": "/",

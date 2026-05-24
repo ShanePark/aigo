@@ -2,9 +2,9 @@ import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } fro
 import type { SearchPlacesInput } from "@/lib/schemas";
 
 export const DEFAULT_ORIGIN = {
-  lat: 36.3322,
-  lng: 127.4341,
-  label: "기본 지도 중심"
+  lat: 36.5,
+  lng: 127.8,
+  label: "전국 지도 중심"
 };
 export const DEFAULT_RESULT_LIMIT = 30;
 export const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
@@ -100,7 +100,7 @@ function hasExplicitLocationParams(params: Record<string, string | string[] | un
 }
 
 function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, categoryGroup: CategoryGroupId, hasQuery: boolean) {
-  if (!hasQuery) return categoryGroup !== "stay" || hasExplicitLocationParams(params);
+  if (!hasQuery) return hasExplicitLocationParams(params);
   return textParam(params.nearby) === "1" || Boolean(textParam(params.radiusKm));
 }
 

@@ -15,10 +15,10 @@ type AuditArgs = {
   scenarioIds: Set<string>;
 };
 
-const daejeonStation = {
-  lat: 36.3326,
-  lng: 127.4344,
-  label: "Daejeon Station"
+const defaultOrigin = {
+  lat: 36.5,
+  lng: 127.8,
+  label: "Selected origin"
 };
 
 const childAgeMonths = [32, 7, 7];
@@ -33,10 +33,10 @@ const scenarios: Scenario[] = [
   {
     id: "after-daycare-indoor",
     label: "After daycare indoor fallback",
-    intent: "Short, low-effort indoor places near old downtown with toddler activity and infant logistics.",
+    intent: "Short, low-effort indoor places near the selected origin with toddler activity and infant logistics.",
     input: {
       visitContext: "afterDaycare",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 15,
       childAgeMonths,
       preferences: {
@@ -56,7 +56,7 @@ const scenarios: Scenario[] = [
     intent: "Places that should rank well for a same-day nearby kid outing.",
     input: {
       visitContext: "nearbyNow",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 8,
       query: "키즈카페",
       childAgeMonths,
@@ -75,7 +75,7 @@ const scenarios: Scenario[] = [
     intent: "A playground search should strongly prefer close low-friction play over farther destination content.",
     input: {
       visitContext: "nearbyNow",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 15,
       query: "놀이터",
       childAgeMonths,
@@ -95,7 +95,7 @@ const scenarios: Scenario[] = [
     intent: "Meal-plus-play candidates should still be close enough that dinner logistics stay easy.",
     input: {
       visitContext: "afterDaycare",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 20,
       query: "놀이방식당",
       childAgeMonths,
@@ -115,7 +115,7 @@ const scenarios: Scenario[] = [
     intent: "Rain-safe options should beat exposed outdoor places unless the objective place score is overwhelming.",
     input: {
       visitContext: "rainyDay",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 30,
       query: "실내",
       childAgeMonths,
@@ -133,7 +133,7 @@ const scenarios: Scenario[] = [
     label: "Stay destination",
     intent: "Lodging should lean more on stored quality, public evidence, and kid content than raw proximity.",
     input: {
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 250,
       query: "키즈숙소",
       childAgeMonths,
@@ -154,7 +154,7 @@ const scenarios: Scenario[] = [
     intent: "Repeatable museums, libraries, experience centers, malls, and parks for a half-day family plan.",
     input: {
       visitContext: "weekendHalfDay",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 50,
       query: "어린이",
       childAgeMonths,
@@ -175,7 +175,7 @@ const scenarios: Scenario[] = [
     intent: "Longer outdoor/day-trip candidates should need distance fit, toilets, stroller practicality, and safety notes.",
     input: {
       visitContext: "dayTrip",
-      origin: daejeonStation,
+      origin: defaultOrigin,
       radiusKm: 80,
       childAgeMonths,
       preferences: {
@@ -262,7 +262,7 @@ function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
   lines.push(`# AiGo Scoring Audit`);
   lines.push("");
   lines.push(`Generated: ${results.generatedAt}`);
-  lines.push(`Origin: ${daejeonStation.label} (${daejeonStation.lat}, ${daejeonStation.lng})`);
+  lines.push(`Origin: ${defaultOrigin.label} (${defaultOrigin.lat}, ${defaultOrigin.lng})`);
   lines.push(`Child ages: ${childAgeMonths.join(", ")} months`);
   lines.push("");
 
@@ -329,7 +329,7 @@ async function runAudit(args: AuditArgs) {
 
   return {
     generatedAt: new Date().toISOString(),
-    origin: daejeonStation,
+    origin: defaultOrigin,
     childAgeMonths,
     scenarios: results
   };

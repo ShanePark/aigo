@@ -47,13 +47,13 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 ## Workflow
 
 1. Scope the research slice.
-   - For broad expansion, collect family-useful places nationwide across Korea. Daejeon Station / old downtown, Daejeon, and roughly one-hour driving range remain important personalization anchors and prior-coverage references, but they are not geographic limits.
+   - For broad expansion, collect family-useful places nationwide across Korea. Use the user's configured/current base context and prior coverage only as personalization references, not geographic limits.
    - Split nationwide work into region blocks so coverage grows evenly: Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize major cities, tourism corridors, and family-travel routes before smaller long-tail areas.
    - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
    - Apply the Family-Fit Gate before staging a create candidate. If the only positive evidence is "official/indoor/free/nearby/tourism", stage as `skip` or hold it in research notes, not `create`, unless the user explicitly asked to register it.
 
 2. Delegate independent research.
-   - Split nationwide collection by region block and category so reports stay comparable and dedupe-friendly. Useful region slices include Seoul/Incheon/Gyeonggi; Busan/Ulsan/Gyeongnam; Daegu/Gyeongbuk; Gwangju/Jeonnam/Jeonbuk; Gangwon; Chungcheong/Daejeon/Sejong; and Jeju.
+   - Split nationwide collection by region block and category so reports stay comparable and dedupe-friendly. Useful region slices include Seoul/Incheon/Gyeonggi; Busan/Ulsan/Gyeongnam; Daegu/Gyeongbuk; Gwangju/Jeonnam/Jeonbuk; Gangwon; Chungcheong/Sejong; and Jeju.
    - Split category work within those areas when the scope is large: kids cafes and indoor playgrounds; outdoor playgrounds, parks, water/sand play, and forest play; public child-friendly facilities such as libraries, toy libraries, museums, science/experience centers, sports venues, and municipal facilities; shopping malls and department/outlet fallback destinations; family restaurants and playroom cafes; family-friendly lodging/resorts; route-break rest areas and travel support stops.
    - Give each subagent clear ownership of one district/category slice, concrete search terms, and a unique report filename under `agent-research/`.
    - Tell subagents not to mutate data. For broad candidate discovery, have them do a cheap read-only dedupe pass before opening many source pages: use exact-name `/v1/places/search` for deterministic name lookup, `/v1/places/duplicates` when name plus coordinates or source-backed address/region are known, and `GET /v1/places/{placeId}` only for likely matches that need comparison. Their deliverable is a structured Markdown file under `agent-research/`.
@@ -112,7 +112,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For broader planning lists that should not over-concentrate in one area or category, include `diversity: { maxPerRegion, maxPerCategory }`; diversity caps are applied after ranking and before pagination.
    - For future planning, include `visitDate` and optional `visitStartTime` so opening-hours scoring evaluates the planned Asia/Seoul wall-clock time instead of the current moment. Weekly opening-hours keys may use English weekday names, numeric days, or Korean weekday keys such as `월` and `월요일`; public-holiday keys such as `공휴일` are preserved as special-day notes and are not used as normal weekday schedules.
    - Search response meta includes `search.temporalTerms`, the date/time words removed from keyword matching. When a user query contains words such as `월요일`, `내일`, `이번주말`, `오전`, or `오후`, use `visitDate`/`visitStartTime` for planned-time scoring and treat `temporalTerms` as explanation context rather than place-name evidence.
-   - Search response meta includes `search.locationQuery` when query normalization leaves only a region/location anchor such as `대전`; treat `LOCATION_QUERY_MATCH` as geographic context rather than a strong activity or facility intent match.
+   - Search response meta includes `search.locationQuery` when query normalization leaves only a region/location anchor such as `서울`; treat `LOCATION_QUERY_MATCH` as geographic context rather than a strong activity or facility intent match.
    - When natural language category aliases are normalized, explicit region anchors should be preserved. For example, `창원 장난감 가게` should remain a region-scoped category query like `창원 장난감가게`, not collapse to a nationwide `장난감가게` search.
    - For deterministic place lookup by full name, send `matchMode: "exactName"` with `query`; this restricts candidates to exact, whitespace-compacted, or known retail-chain alias matches instead of broad keyword/tag matches. If exact-name mode receives amenity or logistics words, search meta may include `suggestedExactNameQuery`; retry that name-only query when the original exact lookup returns no useful candidate.
    - For controlled facet search, send `taxonomy` with canonical facet arrays. `taxonomy.mode` defaults to `soft`, which boosts matching records without excluding unknowns; use `taxonomy.mode: "required"` when every requested taxonomy facet must appear in either `sourceBacked` or `inferred` taxonomy. Natural Korean queries such as `모래놀이터`, `비오는날`, `쌍둥이 유모차`, `가는 길`, and `놀이방 식당` are also normalized into soft taxonomy facets unless explicit request facets already cover that family.
@@ -214,7 +214,7 @@ For API payloads, store coordinate provenance under `externalRefs.coordinateProv
       "sourceUrl": "https://example.go.kr/facility-data",
       "sourceTitle": "Public facility dataset",
       "basis": "Dataset row matches the exact facility name and road address.",
-      "addressMatched": "Daejeon ...",
+      "addressMatched": "Seoul ...",
       "confidence": "high",
       "checkedAt": "<ISO datetime with timezone>"
     }
@@ -300,7 +300,7 @@ Common `primaryCategory` values used by the UI/search:
 - `rest_area`
 - `accommodation`
 
-`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `대전`, `충남`, `충북`, and `세종` are normalized by the API to full province/city names.
+`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
 
 Playground search semantics:
 
@@ -328,7 +328,7 @@ AiGo has two score layers:
 - Stored objective place score: `placeScore` is a 0-10 agent-assigned family outing quality score. It is not an AiGo user rating.
 - Runtime search score: `/v1/places/search` combines stored score fields with distance, query match, child ages, preferences, visit context, opening hours, visit-fit fields, and data confidence to produce a 0-100 `score` plus `scoreBreakdown` and `reasonCodes`.
 - Runtime distance scoring is category and intent sensitive: nearby playground searches should be strongly proximity-weighted, playroom restaurants should still favor easy meal logistics, kids cafes should be moderate, and lodging or destination visits should let stored quality/content evidence outweigh raw proximity.
-- For lodging or other broad destination searches, agents may send `origin` with `filterByRadius: false` so results still expose `distanceKm` and distance-aware scoring without hiding far-but-relevant places behind the radius filter. For outside-Daejeon day-trip requests, add `minDistanceKm` and/or `maxDistanceKm` to apply a hard distance band from that origin.
+- For lodging or other broad destination searches, agents may send `origin` with `filterByRadius: false` so results still expose `distanceKm` and distance-aware scoring without hiding far-but-relevant places behind the radius filter. For outside-city day-trip requests, add `minDistanceKm` and/or `maxDistanceKm` to apply a hard distance band from that origin.
 - Search filter preferences default to soft scoring; use search `preferenceMode: "required"` when the planning context needs hard gates such as indoor type, parking, stroller, nursing room, kids toilet, or baby-chair evidence. Other logistics fields such as diaper table, elevator, and snack/food handling remain available as card/detail evidence and infant-logistics signals, but they are not standalone search preference filters.
 - Lodging/accommodation results are capped when infant-logistics evidence is sparse, even if child engagement or public popularity looks strong. Source-backed parking, stroller route, nursing/diaper support, elevator, baby chair, and food handling let strong lodging candidates score higher.
 - Use optional `diversity.maxPerRegion` and `diversity.maxPerCategory` when a planning answer needs a mix of regions or categories instead of a single concentrated ranked list.
@@ -517,7 +517,7 @@ curl -sS http://localhost:3000/v1/places/duplicates \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Example Kids Cafe Daejeon",
+    "name": "Example Kids Cafe Seoul",
     "lat": 36.3504,
     "lng": 127.3845,
     "radiusMeters": 800,
@@ -533,8 +533,8 @@ curl -sS http://localhost:3000/v1/places/duplicates \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example Toy Library Branch",
-    "roadAddress": "Daejeon ...",
-    "regionSido": "Daejeon",
+    "roadAddress": "Seoul ...",
+    "regionSido": "Seoul",
     "regionSigungu": "Dong-gu",
     "limit": 10
   }'
@@ -547,11 +547,11 @@ curl -sS http://localhost:3000/v1/places \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Example Kids Cafe Daejeon",
+    "name": "Example Kids Cafe Seoul",
     "primaryCategory": "kids_cafe",
     "tags": ["indoor", "after_daycare", "parking"],
-    "address": "Daejeon ...",
-    "regionSido": "Daejeon",
+    "address": "Seoul ...",
+    "regionSido": "Seoul",
     "regionSigungu": "Dong-gu",
     "lat": 36.3504,
     "lng": 127.3845,

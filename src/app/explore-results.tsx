@@ -26,9 +26,9 @@ import { pricingSummaryLabel } from "@/lib/pricing";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
 const DEFAULT_ORIGIN = {
-  lat: 36.3322,
-  lng: 127.4341,
-  label: "기본 지도 중심"
+  lat: 36.5,
+  lng: 127.8,
+  label: "전국 지도 중심"
 };
 const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
 const TAG_LABELS: Record<string, string> = {
