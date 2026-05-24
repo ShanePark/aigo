@@ -61,8 +61,8 @@ export type ViewportSearchRequest = {
 type LeafletModule = typeof import("leaflet");
 
 const DEFAULT_MAP_CENTER = { lat: 36.3322, lng: 127.4341 };
-const DEFAULT_MAP_ZOOM = 13;
-const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v2";
+const DEFAULT_MAP_ZOOM = 9;
+const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v3";
 let highlightedResultTimer: number | undefined;
 let initialGeolocationRequest: Promise<GeolocationPosition> | null = null;
 
