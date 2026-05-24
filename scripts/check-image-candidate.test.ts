@@ -181,6 +181,31 @@ describe("image candidate helper", () => {
     expect(report.attempts.map((attempt) => attempt.method)).toEqual(["HEAD", "GET_RANGE"]);
   });
 
+  it("accepts jpeg bytes from download URLs declared as text/plain", async () => {
+    const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "HEAD") {
+        return new Response(null, { status: 200, headers: { "content-type": "text/plain;charset=utf-8" } });
+      }
+
+      return new Response(jpegBytes, { status: 206, headers: { "content-type": "text/plain;charset=utf-8", "content-length": String(jpegBytes.byteLength) } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const report = await probeImageCandidate({
+      url: "https://example.com/file/download?atchFileId=123",
+      urls: [],
+      json: true,
+      timeoutMs: 1_000
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.contentType).toBe("image/jpeg");
+    expect(report.labels).toContain("image_content_type_sniffed");
+    expect(report.recommendation).toBe("use");
+    expect(report.attempts.map((attempt) => attempt.method)).toEqual(["HEAD", "GET_RANGE"]);
+  });
+
   it("downloads a suspicious known placeholder URL when range metadata cannot prove it", async () => {
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       if (init?.method === "HEAD") {
