@@ -331,11 +331,29 @@ describe("place search helpers", () => {
 
     expect(retailAliasCompactTextsForTest("백화점 김포공항점")).toContain("롯데몰김포공항점");
     expect(retailAliasCompactTextsForTest("롯데프리미엄아울렛 의왕점")).toContain("타임빌라스");
+    expect(retailAliasCompactTextsForTest("스타필드시티 부천")).toEqual(
+      expect.arrayContaining(["스타필드시티부천점", "스타필드부천점"])
+    );
     expect(query.sql).toContain("= any(");
     expect(query.params).toEqual([
       "롯데몰 김포공항",
       "롯데몰김포공항",
-      expect.arrayContaining(["롯데백화점김포공항", "백화점김포공항", "쇼핑몰김포공항"])
+      expect.arrayContaining(["롯데백화점김포공항", "롯데백화점김포공항점", "백화점김포공항", "쇼핑몰김포공항"])
+    ]);
+  });
+
+  it("expands Starfield City exact-name lookup across spacing and branch suffix variants", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "스타필드시티 부천",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("= any(");
+    expect(query.params).toEqual([
+      "스타필드시티 부천",
+      "스타필드시티부천",
+      expect.arrayContaining(["스타필드시티부천점", "스타필드부천", "스타필드부천점"])
     ]);
   });
 
@@ -350,7 +368,12 @@ describe("place search helpers", () => {
     expect(retailAliasCompactTextsForTest("타임빌라스 의왕")).toContain("롯데프리미엄아울렛의왕점");
     expect(retailAliasCompactTextsForTest("타임빌라스 수원")).not.toContain("롯데프리미엄아울렛의왕점");
     expect(retailAliasCompactTextsForTest("너티월드 타임빌라스 수원점")).not.toContain("롯데프리미엄아울렛의왕점");
-    expect(query.params).toEqual(["타임빌라스 수원", "타임빌라스수원"]);
+    expect(query.params).toEqual([
+      "타임빌라스 수원",
+      "타임빌라스수원",
+      expect.arrayContaining(["타임빌라스수원점"])
+    ]);
+    expect(query.params[2]).not.toContain("롯데프리미엄아울렛의왕점");
   });
 
   it("preserves literal exact-name queries during preference inference", () => {

@@ -3488,14 +3488,17 @@ export function retailAliasCompactTextsForTest(value: string) {
 
 function retailAliasCompactTexts(value: string) {
   const aliases = new Set<string>();
+  let shouldAddBranchSuffix = false;
   const addAlias = (alias: string) => {
     const compact = compactSearchText(alias);
     if (!compact) return;
     aliases.add(compact);
     if (compact.endsWith("점")) aliases.add(compact.slice(0, -1));
+    if (shouldAddBranchSuffix && !compact.endsWith("점")) aliases.add(`${compact}점`);
   };
 
   const compact = compactSearchText(value.replace(/ak\s*plaza/gi, "ak플라자"));
+  shouldAddBranchSuffix = retailBranchAliasCandidatePattern.test(compact);
   addAlias(compact);
 
   const retailReplacements: Array<[RegExp, string[]]> = [
@@ -3505,7 +3508,9 @@ function retailAliasCompactTexts(value: string) {
     [/쇼핑몰/g, ["롯데몰", "롯데백화점", "롯데쇼핑몰", "롯데", "백화점", ""]],
     [/롯데프리미엄아울렛/g, ["프리미엄아울렛", "롯데아울렛", "아울렛"]],
     [/프리미엄아울렛/g, ["롯데프리미엄아울렛", "롯데아울렛", "아울렛"]],
-    [/ak플라자/g, ["ak", "애경백화점", "애경플라자"]]
+    [/ak플라자/g, ["ak", "애경백화점", "애경플라자"]],
+    [/스타필드시티/g, ["스타필드", "스타필드쇼핑몰", "복합쇼핑몰"]],
+    [/스타필드/g, ["스타필드시티", "스타필드쇼핑몰", "복합쇼핑몰"]]
   ];
 
   for (const [pattern, replacements] of retailReplacements) {
@@ -3530,6 +3535,9 @@ function retailAliasCompactTexts(value: string) {
 
   return Array.from(aliases);
 }
+
+const retailBranchAliasCandidatePattern =
+  /(?:롯데몰|롯데백화점|백화점|쇼핑몰|롯데쇼핑몰|롯데프리미엄아울렛|프리미엄아울렛|롯데아울렛|아울렛|ak플라자|스타필드|스타필드시티|타임빌라스)/;
 
 function shouldExpandTimeVillasToUiwang(compact: string) {
   if (!compact.includes("타임빌라스")) return false;
