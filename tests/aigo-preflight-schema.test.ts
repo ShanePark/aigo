@@ -29,6 +29,44 @@ describe("AiGo preflight schema inventory", () => {
       "trigger.places.places_set_derived_fields"
     ]);
   });
+
+  it("reports missing member, session, visit, and visit photo artifacts", () => {
+    const inventory = completeInventory();
+    inventory.columns = inventory.columns.filter(
+      (row) =>
+        !(row.tableName === "users" && row.columnName === "email") &&
+        !(row.tableName === "auth_sessions" && row.columnName === "token_hash") &&
+        !(row.tableName === "place_visits" && row.columnName === "rating") &&
+        !(row.tableName === "place_visit_photos" && row.columnName === "storage_key")
+    );
+    inventory.indexes = inventory.indexes.filter(
+      (row) =>
+        row.name !== "users_email_unique" &&
+        row.name !== "auth_sessions_token_hash_unique" &&
+        row.name !== "place_visits_user_visited_on_idx" &&
+        row.name !== "place_visit_photos_storage_key_unique"
+    );
+    inventory.constraints = inventory.constraints.filter(
+      (row) =>
+        row.name !== "users_role_check" &&
+        row.name !== "place_visits_rating_check" &&
+        row.name !== "place_visit_photos_mime_type_check"
+    );
+
+    expect(missingDatabaseSchemaArtifacts(inventory)).toEqual([
+      "users.email",
+      "auth_sessions.token_hash",
+      "place_visits.rating",
+      "place_visit_photos.storage_key",
+      "index.users.users_email_unique",
+      "index.auth_sessions.auth_sessions_token_hash_unique",
+      "index.place_visits.place_visits_user_visited_on_idx",
+      "index.place_visit_photos.place_visit_photos_storage_key_unique",
+      "constraint.users.users_role_check",
+      "constraint.place_visits.place_visits_rating_check",
+      "constraint.place_visit_photos.place_visit_photos_mime_type_check"
+    ]);
+  });
 });
 
 function completeInventory(): DatabaseSchemaInventory {

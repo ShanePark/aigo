@@ -23,6 +23,8 @@ export type RequiredDatabaseSchema = {
 
 export const requiredDatabaseSchema: RequiredDatabaseSchema = {
   columns: {
+    users: ["id", "email", "display_name", "role", "created_at", "updated_at"],
+    auth_sessions: ["id", "user_id", "token_hash", "expires_at", "last_used_at", "created_at"],
     places: [
       "id",
       "name",
@@ -67,9 +69,36 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
       "checked_at"
     ],
     place_related_places: ["id", "place_id", "related_place_id", "relation_type", "note", "evidence"],
+    place_visits: [
+      "id",
+      "user_id",
+      "place_id",
+      "visited_on",
+      "rating",
+      "review_text",
+      "visibility",
+      "is_revisit",
+      "created_at",
+      "updated_at"
+    ],
+    place_visit_photos: [
+      "id",
+      "visit_id",
+      "user_id",
+      "place_id",
+      "storage_key",
+      "original_filename",
+      "mime_type",
+      "byte_size",
+      "width",
+      "height",
+      "visibility",
+      "created_at"
+    ],
     place_versions: ["id", "place_id", "version_number", "snapshot", "sources"]
   },
   constraints: [
+    { tableName: "users", name: "users_role_check" },
     { tableName: "places", name: "places_place_score_range" },
     { tableName: "places", name: "places_external_rating_score_range" },
     { tableName: "places", name: "places_external_review_count_nonnegative" },
@@ -79,7 +108,14 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "place_images", name: "place_images_review_status_check" },
     { tableName: "place_related_places", name: "place_related_places_distinct_check" },
     { tableName: "place_related_places", name: "place_related_places_canonical_check" },
-    { tableName: "place_related_places", name: "place_related_places_relation_type_check" }
+    { tableName: "place_related_places", name: "place_related_places_relation_type_check" },
+    { tableName: "place_visits", name: "place_visits_rating_check" },
+    { tableName: "place_visits", name: "place_visits_visibility_check" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_visibility_check" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_mime_type_check" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_byte_size_check" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_width_check" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_height_check" }
   ],
   extensions: ["postgis", "pg_trgm", "pgcrypto"],
   functions: ["set_place_derived_fields"],
@@ -93,9 +129,20 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "places", name: "places_route_support_gin_idx" },
     { tableName: "places", name: "places_place_score_idx" },
     { tableName: "places", name: "places_score_updated_at_idx" },
+    { tableName: "users", name: "users_email_unique" },
+    { tableName: "auth_sessions", name: "auth_sessions_user_id_idx" },
+    { tableName: "auth_sessions", name: "auth_sessions_token_hash_unique" },
+    { tableName: "auth_sessions", name: "auth_sessions_expires_at_idx" },
     { tableName: "place_images", name: "place_images_place_url_unique" },
     { tableName: "place_images", name: "place_images_one_primary_active_idx" },
-    { tableName: "place_related_places", name: "place_related_places_pair_unique" }
+    { tableName: "place_related_places", name: "place_related_places_pair_unique" },
+    { tableName: "place_visits", name: "place_visits_user_visited_on_idx" },
+    { tableName: "place_visits", name: "place_visits_place_id_idx" },
+    { tableName: "place_visits", name: "place_visits_place_visibility_idx" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_visit_id_idx" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_user_id_idx" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_place_id_idx" },
+    { tableName: "place_visit_photos", name: "place_visit_photos_storage_key_unique" }
   ],
   triggers: [{ tableName: "places", name: "places_set_derived_fields" }]
 };

@@ -31,7 +31,6 @@ MVP는 실제 회원가입이나 소셜 로그인을 만들지 않고도 이후 
 
 구현 체크리스트:
 
-- [대기] 회원/세션 기반 DB 스키마와 마이그레이션을 추가한다. `users`, `auth_sessions`, `place_visits`, `place_visit_photos`를 만들고 schema/preflight/test를 맞춘다.
 - [대기] dev 단일유저 로그인 기반을 만든다. `POST /api/auth/dev-login`, `POST /api/auth/logout`, `GET /api/me`와 httpOnly `aigo_session` 세션 쿠키, topbar dev 로그인 버튼을 추가한다.
 - [대기] 방문 기록 도메인 API를 만든다. 장소별 방문 생성/조회/수정과 내 방문 로그 조회를 구현하고, 공개/비공개 정책을 검증한다.
 - [대기] 로컬 업로드 저장소를 구축한다. `data/uploads` 저장, Docker Compose 볼륨, 업로드 검증, 사진 스트리밍 라우트를 추가한다.

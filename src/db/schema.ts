@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
+  date,
   doublePrecision,
   index,
   integer,
@@ -15,6 +17,43 @@ import {
 export type TriState = "yes" | "no" | "partial" | "unknown";
 export type IndoorType = "indoor" | "outdoor" | "mixed" | "unknown";
 export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair" | "itinerary_cluster";
+export type UserRole = "user" | "admin";
+export type VisitVisibility = "public" | "private";
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    role: text("role").notNull().default("user"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    emailUnique: uniqueIndex("users_email_unique").on(table.email),
+    roleCheck: check("users_role_check", sql`${table.role} in ('user', 'admin')`)
+  })
+);
+
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userIdx: index("auth_sessions_user_id_idx").on(table.userId),
+    tokenHashUnique: uniqueIndex("auth_sessions_token_hash_unique").on(table.tokenHash),
+    expiresAtIdx: index("auth_sessions_expires_at_idx").on(table.expiresAt)
+  })
+);
 
 export const places = pgTable(
   "places",
@@ -203,6 +242,68 @@ export const placeRelatedPlaces = pgTable(
   })
 );
 
+export const placeVisits = pgTable(
+  "place_visits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    visitedOn: date("visited_on").notNull(),
+    rating: integer("rating").notNull(),
+    reviewText: text("review_text"),
+    visibility: text("visibility").notNull().default("public"),
+    isRevisit: boolean("is_revisit").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userVisitedOnIdx: index("place_visits_user_visited_on_idx").on(table.userId, table.visitedOn),
+    placeIdx: index("place_visits_place_id_idx").on(table.placeId),
+    placeVisibilityIdx: index("place_visits_place_visibility_idx").on(table.placeId, table.visibility),
+    ratingCheck: check("place_visits_rating_check", sql`${table.rating} between 1 and 5`),
+    visibilityCheck: check("place_visits_visibility_check", sql`${table.visibility} in ('public', 'private')`)
+  })
+);
+
+export const placeVisitPhotos = pgTable(
+  "place_visit_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visitId: uuid("visit_id")
+      .notNull()
+      .references(() => placeVisits.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    visibility: text("visibility").notNull().default("public"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    visitIdx: index("place_visit_photos_visit_id_idx").on(table.visitId),
+    userIdx: index("place_visit_photos_user_id_idx").on(table.userId),
+    placeIdx: index("place_visit_photos_place_id_idx").on(table.placeId),
+    storageKeyUnique: uniqueIndex("place_visit_photos_storage_key_unique").on(table.storageKey),
+    visibilityCheck: check("place_visit_photos_visibility_check", sql`${table.visibility} in ('public', 'private')`),
+    mimeTypeCheck: check("place_visit_photos_mime_type_check", sql`${table.mimeType} in ('image/jpeg', 'image/png', 'image/webp')`),
+    byteSizeCheck: check("place_visit_photos_byte_size_check", sql`${table.byteSize} > 0 and ${table.byteSize} <= 10485760`),
+    widthCheck: check("place_visit_photos_width_check", sql`${table.width} is null or ${table.width} > 0`),
+    heightCheck: check("place_visit_photos_height_check", sql`${table.height} is null or ${table.height} > 0`)
+  })
+);
+
 export const placeVersions = pgTable(
   "place_versions",
   {
@@ -226,7 +327,15 @@ export const placeVersions = pgTable(
 
 export type Place = typeof places.$inferSelect;
 export type NewPlace = typeof places.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type AuthSession = typeof authSessions.$inferSelect;
+export type NewAuthSession = typeof authSessions.$inferInsert;
 export type PlaceSource = typeof placeSources.$inferSelect;
 export type PlaceImage = typeof placeImages.$inferSelect;
 export type PlaceRelatedPlace = typeof placeRelatedPlaces.$inferSelect;
+export type PlaceVisit = typeof placeVisits.$inferSelect;
+export type NewPlaceVisit = typeof placeVisits.$inferInsert;
+export type PlaceVisitPhoto = typeof placeVisitPhotos.$inferSelect;
+export type NewPlaceVisitPhoto = typeof placeVisitPhotos.$inferInsert;
 export type PlaceVersion = typeof placeVersions.$inferSelect;
