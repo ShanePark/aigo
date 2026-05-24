@@ -1511,6 +1511,7 @@ components:
         - pricing
         - routeSupport
         - score
+        - placeQualityScore
         - scoreBreakdown
         - reasonCodes
         - reasons
@@ -1643,6 +1644,9 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+          description: Runtime search relevance score. This changes with query, origin, filters, visit context, child ages, and planned time.
+        placeQualityScore:
+          $ref: "#/components/schemas/PlaceQualityScore"
         scoreBreakdown:
           $ref: "#/components/schemas/ScoreBreakdown"
         reasonCodes:
@@ -1692,6 +1696,7 @@ components:
         - lng
         - distanceKm
         - score
+        - placeQualityScore
         - reasonCodes
         - reasons
         - dataConfidence
@@ -1738,6 +1743,9 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+          description: Runtime search relevance score. This changes with query, origin, filters, visit context, child ages, and planned time.
+        placeQualityScore:
+          $ref: "#/components/schemas/PlaceQualityScore"
         reasonCodes:
           type: array
           items:
@@ -2404,6 +2412,90 @@ components:
           type: string
           format: date-time
           nullable: true
+    PlaceQualityScore:
+      type: object
+      description: Objective 0-100 place-quality score for the place itself, excluding search relevance inputs such as query match, distance, filters, visit context, child ages, and current opening-hours timing.
+      required: [score, scoreBreakdown, reasonCodes, reasons, storedScore, rationale, updatedAt]
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        scoreBreakdown:
+          $ref: "#/components/schemas/PlaceQualityScoreBreakdown"
+        reasonCodes:
+          type: array
+          items:
+            type: string
+        reasons:
+          type: array
+          description: Structured reason metadata for the place-quality score.
+          items:
+            $ref: "#/components/schemas/SearchReason"
+        storedScore:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 10
+          description: Source-backed 0-10 place score stored on the place record.
+        rationale:
+          type:
+            - string
+            - "null"
+          description: Public reusable rationale for the stored place score.
+        updatedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+    PlaceQualityScoreBreakdown:
+      type: object
+      required:
+        - baseline
+        - placeQuality
+        - externalEvidence
+        - distance
+        - context
+        - match
+        - age
+        - preferences
+        - openingHours
+        - visitFit
+        - confidence
+        - total
+      properties:
+        baseline:
+          type: number
+        placeQuality:
+          type: number
+        externalEvidence:
+          type: number
+        distance:
+          type: number
+          description: Always 0 for place-quality scoring because distance is search relevance.
+        context:
+          type: number
+          description: Always 0 for place-quality scoring because visit context is search relevance.
+        match:
+          type: number
+          description: Always 0 for place-quality scoring because query/category/tag matching is search relevance.
+        age:
+          type: number
+          description: Always 0 for place-quality scoring because requested child ages are search relevance.
+        preferences:
+          type: number
+        openingHours:
+          type: number
+          description: Always 0 for place-quality scoring because current/planned opening status is search relevance.
+        visitFit:
+          type: number
+        confidence:
+          type: number
+        total:
+          type: integer
+          minimum: 0
+          maximum: 100
     ScoreBreakdown:
       type: object
       required:

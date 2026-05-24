@@ -1099,6 +1099,28 @@ describe("place search helpers", () => {
       lng: 127.43,
       distanceKm: 2.4,
       score: 82,
+      placeQualityScore: {
+        score: 79,
+        scoreBreakdown: {
+          baseline: 24,
+          placeQuality: 8,
+          externalEvidence: 4,
+          distance: 0,
+          context: 0,
+          match: 0,
+          age: 0,
+          preferences: 6,
+          openingHours: 0,
+          visitFit: 3,
+          confidence: 1,
+          total: 79
+        },
+        reasonCodes: ["PLACE_SCORE_HIGH", "PARKING_YES"],
+        reasons: [],
+        storedScore: 8.4,
+        rationale: "공식 출처와 가족 편의 근거가 강한 장소.",
+        updatedAt: "2026-05-22T00:00:00.000Z"
+      },
       reasonCodes: ["DIAPER_TABLE_UNKNOWN"],
       reasons: [],
       dataConfidence: "agent_collected",
@@ -1212,6 +1234,11 @@ describe("place search helpers", () => {
       id: "place-1",
       name: "대전 어린이 시설",
       primaryImageUrl: "https://example.com/place.jpg",
+      placeQualityScore: {
+        score: 79,
+        storedScore: 8.4,
+        rationale: "공식 출처와 가족 편의 근거가 강한 장소."
+      },
       infantLogistics: {
         supportLevel: "moderate"
       },

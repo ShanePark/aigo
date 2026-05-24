@@ -161,6 +161,11 @@ type SearchItem = {
   } | null;
   recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null;
   score: number;
+  placeQualityScore?: {
+    rationale: string | null;
+    score: number;
+    storedScore: number | null;
+  } | null;
   sourceSummary: SearchResultBadgeSourceSummary;
   tags: string[];
   userRatingSummary?: {
@@ -477,7 +482,12 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         </div>
         <div className="result-card-title-row">
           <h3>{place.name}</h3>
-          <span className={`score-pill ${scoreTone(place.score)}`}>관련도 {place.score}</span>
+          <div className="result-score-row" aria-label="검색 관련도와 장소 자체 점수">
+            <span className={`score-pill ${scoreTone(place.score)}`}>관련도 {place.score}</span>
+            {place.placeQualityScore ? (
+              <span className={`score-pill place-quality-score-pill ${scoreTone(place.placeQualityScore.score)}`}>자체 {place.placeQualityScore.score}</span>
+            ) : null}
+          </div>
         </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (

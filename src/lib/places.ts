@@ -29,7 +29,7 @@ import {
   type RelatedPlaceScoringSummary
 } from "@/lib/recommendation-scoring";
 import { describeReasonCodes } from "@/lib/reasons";
-import { scorePlace } from "@/lib/scoring";
+import { scorePlace, scorePlaceIntrinsic } from "@/lib/scoring";
 import {
   emptyPlaceTaxonomy,
   inferTaxonomyFromPlace,
@@ -454,6 +454,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);
+    const placeQualityScore = scorePlaceIntrinsic(scoringPlace, scoringNow ? { now: scoringNow } : undefined);
     const querySignal = queryMatchSignal(place, normalizedInput.query);
     const baseScore = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
     const playgroundEvidenceCap = playgroundEvidenceScoreCap(baseScore, place, {
@@ -491,6 +492,15 @@ export async function searchPlaces(input: SearchPlacesInput) {
       lng: place.lng,
       distanceKm: place.distanceKm,
       score,
+      placeQualityScore: {
+        score: placeQualityScore.score,
+        scoreBreakdown: placeQualityScore.scoreBreakdown,
+        reasonCodes: placeQualityScore.reasonCodes,
+        reasons: describeReasonCodes(placeQualityScore.reasonCodes),
+        storedScore: place.scoring.placeScore,
+        rationale: place.scoring.placeScoreRationale,
+        updatedAt: place.scoring.scoreUpdatedAt
+      },
       scoreBreakdown: {
         ...scoredPlace.scoreBreakdown,
         queryMatch: querySignal.delta,
@@ -804,6 +814,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     lng: item.lng,
     distanceKm: item.distanceKm,
     score: item.score,
+    placeQualityScore: item.placeQualityScore,
     reasonCodes: item.reasonCodes,
     reasons: item.reasons,
     dataConfidence: item.dataConfidence,

@@ -1907,6 +1907,15 @@ h3 {
   -webkit-line-clamp: 2;
 }
 
+.result-score-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+  max-width: 128px;
+}
+
 .score-pill {
   background: var(--yellow-soft);
   border: 1px solid var(--line-strong);
@@ -1918,6 +1927,13 @@ h3 {
   line-height: 1;
   padding: 8px 9px;
   white-space: nowrap;
+}
+
+.place-quality-score-pill {
+  background: var(--panel);
+  box-shadow: 0 6px 16px rgba(24, 33, 29, 0.06);
+  font-size: 11px;
+  padding: 6px 8px;
 }
 
 .score-pill.score-high {

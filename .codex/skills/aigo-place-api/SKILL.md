@@ -31,6 +31,7 @@ AiGo has two different score concepts:
 
 - `placeScore` is a source-backed 0-10 objective family-outing quality score for the place itself. It is agent-maintained, visible in place detail, and should be explained by `placeScoreRationale` plus structured `scoreSignals`.
 - Search response `score` is a 0-100 runtime recommendation score. It changes with query, origin, viewport, visit context, planned visit time, child ages, preferences, distance profile, opening-hours confidence, and data readiness.
+- Search response `placeQualityScore` is a 0-100 objective place-quality view derived from the same scoring primitives while excluding search relevance inputs such as query match, distance, filters, visit context, child ages, and current/planned opening-hours timing. Use it when comparing the intrinsic quality of results, and use top-level `score` only for the current search relevance.
 
 When preparing place payloads:
 
@@ -127,6 +128,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - To focus image-health checks on a current batch, call `GET /v1/places/image-health?status=attention&placeIds=<id1>,<id2>` or `listPlaceImageHealth({ status: "attention", placeIds: ["<id1>", "<id2>"], limit: 100 })`. The helper also accepts the same comma-separated `placeIds` string as the HTTP API.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
    - Search results include compact `imageHealth` so agents can notice missing primary images or review-needed images before recommending cards; use `/v1/places/image-health` for the full audit queue, and pass comma-separated `placeIds` to focus the queue on current search or recommendation candidates.
+   - Search results include `placeQualityScore` with `score`, `scoreBreakdown`, `reasonCodes`, `reasons`, stored 0-10 `storedScore`, public `rationale`, and `updatedAt`. This is the place's own quality score for agent comparison; top-level `score` remains search relevance and can change per query.
    - Search results include `userRatingSummary` for user-submitted visit ratings. `averageRating` and `ratingCount` include private ratings, while `publicReviewCount` and `publicPhotoCount` expose only public text/photo content counts.
    - Search results include compact `sourceSummary` so agents and clients can distinguish official/public-agency sources, public-listing-backed records, and recently checked records without fetching each detail page. Search cards display source tier and freshness badges from this summary.
    - Search results include `infantLogistics`, a separate evidence/support signal for baby-care practical logistics; use it alongside, not as a replacement for, child-oriented `childEngagementLevel`.
