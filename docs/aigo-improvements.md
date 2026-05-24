@@ -9,6 +9,8 @@ Status labels:
 
 Completed improvements should be removed from this file after verification instead of being changed to `[완료]`. Keep verification details in the commit, PR, or implementation notes that closed the item.
 
+If a `[대기]` item is judged weak, obsolete, unactionable, already solved, or no longer worth improving, delete it from this file instead of leaving it in the queue.
+
 Only mark unrelated items as `[개선 중]` at the same time when they are intentionally part of the same active change.
 
 ## Backlog
