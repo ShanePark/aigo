@@ -1,4 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
+import type { NextRequest } from "next/server";
+
+import { ApiError } from "@/lib/errors";
 
 export const AIGO_SESSION_COOKIE = "aigo_session";
 export const DEV_USER_EMAIL = "dev@aigo.local";
@@ -94,6 +97,14 @@ export async function currentUserFromSessionToken(token: string | undefined | nu
     `;
   }
 
+  return user;
+}
+
+export async function requireCurrentUser(request: NextRequest) {
+  const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
+  if (!user) {
+    throw new ApiError(401, "Login required");
+  }
   return user;
 }
 
