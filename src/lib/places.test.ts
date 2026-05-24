@@ -1511,6 +1511,25 @@ describe("place search helpers", () => {
     expect(tagMatch.reasonCodes).toContain("QUERY_TAG_MATCH");
   });
 
+  it("uses a distinct reason for location-only query matches", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "대전오월드",
+        tags: ["대전"],
+        description: "대전 가족 나들이 장소",
+        address: "대전광역시 중구 사정공원로 70",
+        roadAddress: null
+      },
+      "대전"
+    );
+
+    expect(signal.delta).toBeGreaterThan(0);
+    expect(signal.reasonCodes).toContain("LOCATION_QUERY_MATCH");
+    expect(signal.reasonCodes).not.toContain("QUERY_NAME_MATCH");
+    expect(signal.reasonCodes).not.toContain("QUERY_TAG_MATCH");
+    expect(signal.reasonCodes).not.toContain("QUERY_TEXT_MATCH");
+  });
+
   it("boosts name matches in listed-place queries over tag-only matches", () => {
     const nameMatch = queryMatchSignal(
       {

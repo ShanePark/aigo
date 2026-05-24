@@ -540,6 +540,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       search: {
         originalQuery: input.query ?? null,
         normalizedQuery: normalizedInput.query ?? null,
+        locationQuery: normalizedInput.query ? locationOnlyQuery(normalizedInput.query) : null,
         temporalTerms: input.query ? inferTemporalTermsFromQuery(input.query) : [],
         suggestedExactNameQuery:
           input.matchMode === "exactName" && input.query ? suggestedExactNameQuery(input.query) : null,
@@ -2459,6 +2460,31 @@ const indoorPreferenceTerms = new Set([
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
 const literalFallbackTerms = new Set(["장난감도서관"]);
+const locationOnlyTerms = new Set([
+  "서울",
+  "부산",
+  "대구",
+  "인천",
+  "광주",
+  "대전",
+  "울산",
+  "세종",
+  "경기",
+  "강원",
+  "충북",
+  "충남",
+  "전북",
+  "전남",
+  "경북",
+  "경남",
+  "제주",
+  "창원",
+  "김해",
+  "고성",
+  "청주",
+  "청남대",
+  "우포"
+]);
 const temporalQueryTerms = new Set([
   "오늘",
   "내일",
@@ -2826,6 +2852,15 @@ function suggestedExactNameQuery(query: string) {
   return stripped && stripped !== query.trim() ? stripped : null;
 }
 
+function locationOnlyQuery(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.length !== 1) return null;
+  const term = terms[0];
+  if (!term) return null;
+  const normalized = normalizeSearchText(term);
+  return locationOnlyTerms.has(term) || locationOnlyTerms.has(normalized) ? term : null;
+}
+
 function stripPreferenceTerms(query: string) {
   const alias = inferLiteralQueryAlias(query);
   if (alias) return alias;
@@ -3085,6 +3120,7 @@ export function queryMatchSignal(
   }
 
   const normalizedQuery = normalizeSearchText(query);
+  const locationQuery = locationOnlyQuery(query);
   const terms = query
     .trim()
     .split(/\s+/)
@@ -3101,6 +3137,19 @@ export function queryMatchSignal(
   const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
   let delta = 0;
+
+  if (locationQuery) {
+    const searchableText = [place.description, place.address, place.roadAddress].filter(Boolean).map((value) => normalizeSearchText(String(value)));
+    const locationMatched =
+      normalizedName.includes(normalizedQuery) ||
+      place.tags.some((tag) => normalizeSearchText(tag).includes(normalizedQuery)) ||
+      searchableText.some((value) => value.includes(normalizedQuery));
+
+    return {
+      delta: locationMatched ? 6 : 0,
+      reasonCodes: locationMatched ? ["LOCATION_QUERY_MATCH"] : []
+    };
+  }
 
   const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery;
   if (exactNameMatch) {

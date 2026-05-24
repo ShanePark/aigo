@@ -2134,6 +2134,7 @@ components:
               required:
                 - originalQuery
                 - normalizedQuery
+                - locationQuery
                 - temporalTerms
                 - suggestedExactNameQuery
                 - appliedPreferences
@@ -2147,6 +2148,11 @@ components:
                     - string
                     - "null"
                 normalizedQuery:
+                  type:
+                    - string
+                    - "null"
+                locationQuery:
+                  description: Location-only query token split from user intent when normalization leaves a region/place anchor such as 대전.
                   type:
                     - string
                     - "null"
