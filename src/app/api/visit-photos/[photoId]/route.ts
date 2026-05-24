@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { apiErrorResponse } from "@/lib/errors";
+import { requireUuidParam } from "@/lib/route-params";
 import { getVisitPhotoForStreaming } from "@/lib/visit-photos";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ type RouteContext = {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const { photoId } = await context.params;
+    const { photoId: rawPhotoId } = await context.params;
+    const photoId = requireUuidParam(rawPhotoId, "photoId");
     const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
     const result = await getVisitPhotoForStreaming(photoId, user?.id);
 

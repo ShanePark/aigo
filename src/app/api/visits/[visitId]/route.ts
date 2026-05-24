@@ -4,6 +4,7 @@ import { requireCurrentUser } from "@/lib/app-auth";
 import { apiErrorResponse } from "@/lib/errors";
 import { readJson } from "@/lib/http";
 import { updatePlaceVisit, updatePlaceVisitSchema } from "@/lib/place-visits";
+import { requireUuidParam } from "@/lib/route-params";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,8 +17,9 @@ type RouteContext = {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
+    const { visitId: rawVisitId } = await context.params;
+    const visitId = requireUuidParam(rawVisitId, "visitId");
     const user = await requireCurrentUser(request);
-    const { visitId } = await context.params;
     const input = updatePlaceVisitSchema.parse(await readJson(request));
     return NextResponse.json(await updatePlaceVisit(visitId, user.id, input));
   } catch (error) {

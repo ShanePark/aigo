@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireCurrentUser } from "@/lib/app-auth";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
+import { requireUuidParam } from "@/lib/route-params";
 import { createVisitPhoto, VISIT_PHOTO_MAX_BYTES } from "@/lib/visit-photos";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,9 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
+    const { visitId: rawVisitId } = await context.params;
+    const visitId = requireUuidParam(rawVisitId, "visitId");
     const user = await requireCurrentUser(request);
-    const { visitId } = await context.params;
     const formData = await request.formData();
     const file = formData.get("photo");
     const visibility = normalizeVisibility(formData.get("visibility"));
