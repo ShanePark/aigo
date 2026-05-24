@@ -4,8 +4,10 @@ import {
   createPlaceVisit,
   createPlaceVisitSchema,
   groupMyVisitLogRows,
+  listPlaceVisitSummaries,
   placeVisitSummaryFromRow,
   placeVisitItemFromRow,
+  updatePlaceVisit,
   updatePlaceVisitSchema
 } from "@/lib/place-visits";
 
@@ -141,5 +143,32 @@ describe("place visit privacy formatting", () => {
       publicPhotoCount: 2,
       latestVisitedOn: "2026-05-24"
     });
+  });
+});
+
+describe("place visit photo privacy", () => {
+  it("counts public summary photos only when the parent visit is public", async () => {
+    const { calls, executor } = fakeExecutor([]);
+
+    await listPlaceVisitSummaries([baseVisitRow.placeId], executor);
+
+    expect(calls[0]).toContain("join place_visits v on v.id = ph.visit_id");
+    expect(calls[0]).toContain("ph.visibility = 'public' and v.visibility = 'public'");
+  });
+
+  it("privatizes existing photos when a visit is changed to private", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
+      [{ ...baseVisitRow, visibility: "private", photoCount: 0 }],
+      []
+    ]);
+
+    await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { visibility: "private" }, executor)).resolves.toMatchObject({
+      item: {
+        visibility: "private"
+      }
+    });
+    expect(calls[2]).toContain("update place_visit_photos");
+    expect(calls[2]).toContain("set visibility = 'private'");
   });
 });

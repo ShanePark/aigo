@@ -35,6 +35,10 @@ type VisitPhotoRow = {
   createdAt: Date | string;
 };
 
+type VisitPhotoAccessRow = VisitPhotoRow & {
+  visitVisibility: VisitPhotoVisibility;
+};
+
 export type VisitPhotoItem = {
   id: string;
   visitId: string;
@@ -82,7 +86,7 @@ export async function createVisitPhoto(
   const photoId = randomUUID();
   const storageKey = `visit-photos/${visitId}/${photoId}.${extensionForMime(validation.mimeType)}`;
   const uploadPath = resolveVisitPhotoPath(storageKey);
-  const photoVisibility = visibility ?? visit.visibility;
+  const photoVisibility = visit.visibility === "private" ? "private" : visibility ?? visit.visibility;
 
   await mkdir(path.dirname(uploadPath), { recursive: true });
   await writeFile(uploadPath, file.bytes);
@@ -138,26 +142,28 @@ export async function createVisitPhoto(
 }
 
 export async function getVisitPhotoForStreaming(photoId: string, viewerUserId?: string | null, executor: SqlExecutor = pg) {
-  const rows = await executor<VisitPhotoRow[]>`
+  const rows = await executor<VisitPhotoAccessRow[]>`
     select
-      id::text as id,
-      visit_id::text as "visitId",
-      user_id::text as "userId",
-      place_id::text as "placeId",
-      storage_key as "storageKey",
-      original_filename as "originalFilename",
-      mime_type as "mimeType",
-      byte_size as "byteSize",
-      width,
-      height,
-      visibility,
-      created_at as "createdAt"
-    from place_visit_photos
-    where id = ${photoId}
+      ph.id::text as id,
+      ph.visit_id::text as "visitId",
+      ph.user_id::text as "userId",
+      ph.place_id::text as "placeId",
+      ph.storage_key as "storageKey",
+      ph.original_filename as "originalFilename",
+      ph.mime_type as "mimeType",
+      ph.byte_size as "byteSize",
+      ph.width,
+      ph.height,
+      ph.visibility,
+      ph.created_at as "createdAt",
+      v.visibility as "visitVisibility"
+    from place_visit_photos ph
+    join place_visits v on v.id = ph.visit_id
+    where ph.id = ${photoId}
     limit 1
   `;
   const photo = rows[0];
-  if (!photo || (photo.visibility === "private" && photo.userId !== viewerUserId)) {
+  if (!photo || ((photo.visibility === "private" || photo.visitVisibility === "private") && photo.userId !== viewerUserId)) {
     throw new ApiError(404, "Photo not found");
   }
 

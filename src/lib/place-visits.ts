@@ -115,7 +115,7 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
         count(ph.id)::int as "photoCount"
       from place_visits v
       join users u on u.id = v.user_id
-      left join place_visit_photos ph on ph.visit_id = v.id and (ph.visibility = 'public' or ph.user_id = ${viewerId})
+      left join place_visit_photos ph on ph.visit_id = v.id and ((v.visibility = 'public' and ph.visibility = 'public') or ph.user_id = ${viewerId})
       where v.place_id = ${placeId}
       group by v.id, u.display_name
       order by v.visited_on desc, v.created_at desc
@@ -160,11 +160,12 @@ export async function listPlaceVisitSummaries(placeIds: string[], executor: SqlE
     ),
     photo_summary as (
       select
-        place_id,
-        count(*) filter (where visibility = 'public')::int as "publicPhotoCount"
-      from place_visit_photos
-      where place_id = any(${uniquePlaceIds}::uuid[])
-      group by place_id
+        ph.place_id,
+        count(*) filter (where ph.visibility = 'public' and v.visibility = 'public')::int as "publicPhotoCount"
+      from place_visit_photos ph
+      join place_visits v on v.id = ph.visit_id
+      where ph.place_id = any(${uniquePlaceIds}::uuid[])
+      group by ph.place_id
     )
     select
       v.place_id::text as "placeId",
@@ -257,6 +258,15 @@ export async function updatePlaceVisit(visitId: string, userId: string, input: U
       updated_at as "updatedAt",
       0::int as "photoCount"
   `;
+
+  if (input.visibility === "private") {
+    await executor`
+      update place_visit_photos
+      set visibility = 'private'
+      where visit_id = ${visitId}
+        and visibility <> 'private'
+    `;
+  }
 
   return { item: placeVisitItemFromRow(rows[0], userId) };
 }
