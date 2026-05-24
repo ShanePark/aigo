@@ -1107,21 +1107,6 @@ h3 {
   pointer-events: auto;
 }
 
-.map-count-chip {
-  align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  box-shadow: var(--shadow-soft);
-  color: var(--mint);
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 900;
-  min-height: 34px;
-  padding: 0 11px;
-  white-space: nowrap;
-}
-
 .map-location-control {
   align-items: flex-start;
   display: flex;
@@ -1178,16 +1163,22 @@ h3 {
 
 .map-search-button {
   align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line-strong);
+  background: var(--mint);
+  border: 1px solid var(--mint);
   border-radius: 999px;
-  box-shadow: var(--shadow-soft);
-  color: var(--text);
+  box-shadow: 0 12px 28px rgba(25, 128, 89, 0.24), var(--shadow-soft);
+  color: white;
   display: inline-flex;
   font-size: 13px;
   font-weight: 900;
+  gap: 6px;
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.map-search-button.is-suggested {
+  animation: map-search-nudge 1.25s ease-out 2;
 }
 
 .map-search-button:disabled {
@@ -1196,14 +1187,29 @@ h3 {
 }
 
 .map-search-button:hover {
-  border-color: var(--mint);
-  color: var(--mint);
+  background: #0f6a49;
+  border-color: #0f6a49;
+  color: white;
+  transform: translateY(-1px);
 }
 
 .map-search-button:focus-visible {
   border-color: var(--focus-border);
   box-shadow: 0 0 0 4px var(--focus-ring), var(--shadow-soft);
-  color: var(--mint);
+  color: white;
+}
+
+@keyframes map-search-nudge {
+  0%,
+  100% {
+    box-shadow: 0 12px 28px rgba(25, 128, 89, 0.24), var(--shadow-soft);
+    transform: translateY(0) scale(1);
+  }
+
+  38% {
+    box-shadow: 0 0 0 5px rgba(25, 128, 89, 0.16), 0 16px 32px rgba(25, 128, 89, 0.28), var(--shadow-soft);
+    transform: translateY(-1px) scale(1.035);
+  }
 }
 
 .leaflet-map,

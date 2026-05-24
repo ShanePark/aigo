@@ -1,6 +1,6 @@
 "use client";
 
-import { LocateFixed } from "lucide-react";
+import { LocateFixed, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
@@ -303,15 +303,15 @@ export function PlacesMap({
     <aside className="map-card" aria-label="검색 결과 지도">
       <div className="map-canvas">
         <div className="map-overlay-strip">
-          <span className="map-count-chip">{places.length}곳</span>
           {viewportSearchRequest ? (
             <button
-              className="map-search-button"
+              className="map-search-button is-suggested"
               type="button"
               onClick={() => onViewportSearch?.(viewportSearchRequest)}
               disabled={isViewportSearchPending || !onViewportSearch}
             >
-              {isViewportSearchPending ? "검색 중" : "이 화면 검색"}
+              <RefreshCw size={15} aria-hidden="true" />
+              {isViewportSearchPending ? "검색 중" : "현재 지도에서 찾기"}
             </button>
           ) : null}
         </div>
