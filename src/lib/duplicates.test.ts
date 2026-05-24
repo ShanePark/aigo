@@ -6,7 +6,8 @@ import {
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
   duplicateReasonCodes,
-  duplicateSameBuildingReviewOnly
+  duplicateSameBuildingReviewOnly,
+  duplicateSameSidoGenericReviewOnly
 } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
@@ -200,6 +201,57 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["GENERIC_BRANCH_NAME", "REGION_MATCH", "ADDRESS_REGION_CONFLICT"]));
+  });
+
+  it("buckets same-sido generic public institutions as review-only noise", () => {
+    const signals = {
+      aliasMatch: false,
+      regionMatch: true,
+      sameSidoGenericReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 82000,
+      radiusMeters: 500,
+      nameSimilarity: 0.58
+    };
+
+    expect(
+      duplicateSameSidoGenericReviewOnly("충청북도교육문화원", "충주교육문화원", {
+        regionMatch: true,
+        sameSigunguMatch: false,
+        distanceMeters: 82000,
+        radiusMeters: 500
+      })
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "REGION_MATCH",
+        "SAME_SIDO_GENERIC_REVIEW_ONLY",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("does not bucket exact or same-district public institution matches as same-sido generic noise", () => {
+    expect(
+      duplicateSameSidoGenericReviewOnly("충청북도교육문화원", "충청북도교육문화원", {
+        regionMatch: true,
+        sameSigunguMatch: false,
+        distanceMeters: 82000,
+        radiusMeters: 500
+      })
+    ).toBe(false);
+    expect(
+      duplicateSameSidoGenericReviewOnly("충주교육문화원", "충주교육문화원 분원", {
+        regionMatch: true,
+        sameSigunguMatch: true,
+        distanceMeters: null,
+        radiusMeters: null
+      })
+    ).toBe(false);
   });
 
   it("allows generic branch-name candidates with strict same-district evidence", () => {

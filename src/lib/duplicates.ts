@@ -7,6 +7,7 @@ export type DuplicateCandidateSignals = {
   regionMatch?: boolean;
   genericBranchName?: boolean;
   sameBuildingReviewOnly?: boolean;
+  sameSidoGenericReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
   externalRefsMatch: boolean;
   kakaoPlaceIdMatch: boolean;
@@ -66,6 +67,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("SAME_BUILDING_REVIEW_ONLY");
   }
 
+  if (signals.sameSidoGenericReviewOnly) {
+    reasonCodes.push("SAME_SIDO_GENERIC_REVIEW_ONLY");
+  }
+
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
     reasonCodes.push("GEO_NEAR");
   } else if (
@@ -93,6 +98,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (duplicateOutsideRadiusReviewOnly(signals)) return "low";
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameBuildingReviewOnly && !signals.aliasMatch) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
   if (signals.aliasMatch && (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 1000) return "high";
@@ -130,6 +136,27 @@ export function duplicateSameBuildingReviewOnly(inputName: string, candidateName
   if (shorter.length < 5) return false;
   if (!longer.includes(shorter)) return false;
   return longer.length - shorter.length >= 3;
+}
+
+export function duplicateSameSidoGenericReviewOnly(
+  inputName: string,
+  candidateName: string,
+  signals: Pick<DuplicateCandidateSignals, "regionMatch" | "sameSigunguMatch" | "distanceMeters" | "radiusMeters">
+) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+  if (!signals.regionMatch || signals.sameSigunguMatch) return false;
+
+  const isOutsideRequestedRadius = Boolean(
+    signals.radiusMeters !== null &&
+      signals.radiusMeters !== undefined &&
+      signals.distanceMeters !== null &&
+      signals.distanceMeters > signals.radiusMeters
+  );
+  if (!isOutsideRequestedRadius && signals.distanceMeters !== null) return false;
+
+  return publicInstitutionGenericTerms.some((term) => input.includes(term) && candidate.includes(term));
 }
 
 export function duplicateLocationSignals(input: DuplicateLocationInput, candidate: DuplicateLocationCandidate) {
@@ -204,6 +231,19 @@ const genericBranchNameTerms = [
   "짬뽕",
   "설렁탕"
 ];
+
+const publicInstitutionGenericTerms = [
+  "교육문화원",
+  "육아종합지원센터",
+  "공동육아나눔터",
+  "아이사랑놀이터",
+  "장난감도서관",
+  "어린이도서관",
+  "청소년수련관",
+  "가족센터",
+  "문화원",
+  "도서관"
+].map(compactDuplicateText);
 
 const duplicateSidoAliases = [
   { canonical: "서울특별시", aliases: ["서울", "서울특별시"] },

@@ -18,7 +18,8 @@ import {
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
   duplicateReasonCodes,
-  duplicateSameBuildingReviewOnly
+  duplicateSameBuildingReviewOnly,
+  duplicateSameSidoGenericReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { listPlaceVisitSummaries } from "@/lib/place-visits";
@@ -1448,12 +1449,16 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         nameSimilarity: row.name_similarity,
         radiusMeters: hasCoordinates ? input.radiusMeters : null
       };
+      const duplicateSignals = {
+        ...signals,
+        sameSidoGenericReviewOnly: duplicateSameSidoGenericReviewOnly(input.name, row.name, signals)
+      };
 
       return {
         place: await getPlaceDetail(row.id),
-        confidence: duplicateConfidence(signals),
-        reasonCodes: duplicateReasonCodes(signals),
-        outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(signals),
+        confidence: duplicateConfidence(duplicateSignals),
+        reasonCodes: duplicateReasonCodes(duplicateSignals),
+        outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };
