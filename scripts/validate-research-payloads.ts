@@ -30,6 +30,9 @@ const registrationDataConfidence = new Set(["agent_collected", "official_verifie
 const acceptedCoordinateLevels = new Set(["official_embedded_map", "public_dataset_exact_address", "public_address_coordinate", "parent_building_coordinate"]);
 const operationalSourceTypes = new Set(["official_site", "operator_page", "public_agency", "public_tourism"]);
 const parentReviewSourceTypes = new Set(["public_listing", "public_news", "public_blog", "user_observation", "agent_observation"]);
+const privateKidsCafeCategories = new Set(["kids_cafe", "indoor_playground", "family_cafe"]);
+const privateKidsCafeIdentitySourceTypes = new Set(["official_site", "operator_page", "public_agency", "public_listing"]);
+const privateKidsCafeOperatorSourceTypes = new Set(["official_site", "operator_page"]);
 const parentReviewRecommendedCategories = new Set([
   "kids_cafe",
   "indoor_playground",
@@ -204,6 +207,7 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   collectOperationalStatusSignalIssues(payload, issues);
   collectPersonalizedPublicTextIssues(payload, issues);
   collectParentReviewEvidenceIssues(payload, issues);
+  collectPrivateKidsCafeSourceRoleIssues(payload, issues);
 }
 
 function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
@@ -271,6 +275,35 @@ function hasNonEmptyEvidenceValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(hasNonEmptyEvidenceValue);
   if (!isRecord(value)) return false;
   return Object.values(value).some(hasNonEmptyEvidenceValue);
+}
+
+function collectPrivateKidsCafeSourceRoleIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  if (!privateKidsCafeCategories.has(payload.primaryCategory)) return;
+
+  const hasIdentitySource = payload.sources.some((source) => privateKidsCafeIdentitySourceTypes.has(source.sourceType));
+  if (!hasIdentitySource) {
+    issues.push(
+      warning(
+        "sources",
+        "workflow_private_kids_cafe_blog_only",
+        "private kids cafe candidates should not be registered from blog-only or observation-only evidence; hold until a public listing, operator, official, or public-agency identity source confirms the exact branch"
+      )
+    );
+    return;
+  }
+
+  const hasOperatorEvidence =
+    Boolean(payload.officialUrl || payload.reservationUrl) || payload.sources.some((source) => privateKidsCafeOperatorSourceTypes.has(source.sourceType));
+  const hasPublicListing = payload.sources.some((source) => source.sourceType === "public_listing");
+  if (hasPublicListing && !hasOperatorEvidence) {
+    issues.push(
+      warning(
+        "sources",
+        "workflow_private_kids_cafe_operator_evidence",
+        "private kids cafe public-listing identity is stronger when paired with operator or booking evidence such as operator_page, official_site, officialUrl, or reservationUrl"
+      )
+    );
+  }
 }
 
 function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {

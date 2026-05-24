@@ -252,6 +252,63 @@ describe("research payload workflow lint", () => {
     expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_parent_review_evidence");
   });
 
+  it("warns when private kids cafe candidates rely only on blog evidence", () => {
+    const result = validateResearchPayload({
+      ...validPayload({
+        primaryCategory: "kids_cafe",
+        sources: [
+          {
+            sourceType: "public_blog",
+            title: "Parent visit note",
+            url: "https://example.com/parent-review",
+            summary: "Parent-facing note describes play equipment and crowding.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          }
+        ]
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_private_kids_cafe_blog_only",
+          path: "sources",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
+  it("accepts public listing plus booking evidence for private kids cafes", () => {
+    const result = validateResearchPayload({
+      ...validPayload({
+        primaryCategory: "kids_cafe",
+        reservationUrl: "https://example.com/booking",
+        sources: [
+          {
+            sourceType: "public_listing",
+            title: "Kids cafe listing",
+            url: "https://example.com/listing",
+            summary: "Public listing confirms the branch identity, address, and listing photos.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          },
+          {
+            sourceType: "public_blog",
+            title: "Parent visit note",
+            url: "https://example.com/parent-review",
+            summary: "Parent-facing note describes toddler fit and stroller friction.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          }
+        ]
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_private_kids_cafe_blog_only");
+    expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_private_kids_cafe_operator_evidence");
+  });
+
   it("parses CLI arguments", () => {
     expect(parseArgs(["--json", "a.json", "b.md"])).toEqual({
       json: true,
