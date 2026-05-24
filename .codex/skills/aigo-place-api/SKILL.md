@@ -83,6 +83,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Start with search-result snippets, official directory/list pages, public facility lists, parent review results, or category roundup pages to collect place names, branch names, rough area, and likely source URLs.
    - Before opening many pages for a candidate, query AiGo for duplicates and exact-name matches. If a strong existing record is found, stage it as `update` only when the shallow source shows a real data gap; otherwise record `skip_existing`.
    - When a regional slice has candidate names spread across several old research files or waves, run `pnpm tsx scripts/audit-region-candidates.ts --region=<region> --candidate=<name> --candidate=<name>` before deep research. The helper performs read-only exact-name lookup, duplicate checks, detail/version reads, image-health lookup, and source freshness summaries so agents can separate registered, update-ready, duplicate-review, and missing candidates without reopening every source page.
+   - When exact-name records already exist and the research value is enrichment rather than creation, run `pnpm tsx scripts/extract-update-ready-patches.ts --candidate=<existing name> --candidate=<existing name>`. The helper reads place detail, source freshness, latest version summary, image coverage, and missing family/logistics fields, then prints a PATCH handoff skeleton with field-level instructions. Treat the skeleton as a source-backed worklist, not as an API-ready payload until TODO source values are filled.
    - Deep-dive only candidates that are likely missing, likely stale, or have high-value missing family logistics. Deep research should collect address, coordinates with `coordinateProvenance`, family signals, source summaries, and image provenance.
    - Maintain a visited-page ledger in the active `agent-research/` context or slice file. Record source URLs and search queries already used so later agents avoid repeating the same page unless they are resolving a specific conflict or checking freshness.
 
@@ -170,6 +171,12 @@ Read-only regional candidate audit helper example:
 
 ```bash
 pnpm tsx scripts/audit-region-candidates.ts --region=부천시 --candidate="스타필드 시티 부천" --candidate="웅진플레이도시"
+```
+
+Read-only update-ready PATCH extraction helper example:
+
+```bash
+pnpm tsx scripts/extract-update-ready-patches.ts --candidate="롯데프리미엄아울렛 의왕점" --candidate="왕송호수공원"
 ```
 
 ## API Payload Rules
