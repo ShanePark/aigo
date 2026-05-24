@@ -31,16 +31,7 @@ AiGo's most important asset is the breadth and quality of real place data for fa
 
 Research and data updates must be source-backed. Do not invent amenities. Unknown is acceptable when evidence is weak.
 
-## Place Scoring Policy
-
-AiGo separates source-backed objective place quality from runtime search relevance:
-
-- `placeScore` is an agent-maintained 0-10 family-outing quality score for the place itself. It is not a user rating and should be backed by sources, `placeScoreRationale`, and structured `scoreSignals`.
-- Runtime search `score` is a 0-100 contextual recommendation score. It can change with query, origin, map viewport, visit context, planned visit date/time, child ages, preferences, distance profile, opening-hours confidence, and data readiness.
-- User visit ratings live in `place_visits` and appear as `userRatingSummary`; do not mix them into `placeScore` unless a future implementation explicitly changes that contract.
-- Keep `placeScoreRationale`, `parentNotes`, `safetyNotes`, and scoring evidence neutral and reusable. Do not encode one household's private ages, family composition, or home base in public place scoring fields.
-- Use conservative scores and caveats when current operation, baby logistics, safety, age fit, or parent-review evidence is weak. Do not hide user-requested registrations behind `needs_review`; keep uncertainty visible through `unknown` fields, notes, source summaries, and scoring rationale.
-- Record facility scale, free/low-cost public value, provider ratings, review-count confidence, source conflicts, freshness, and evidence caps in `scoreSignals` when those facts are source-backed.
+Scoring changes should keep source-backed place quality separate from runtime search relevance and user visit ratings. Keep detailed scoring workflow guidance in `.codex/skills/aigo-place-api/SKILL.md` and user/developer-facing behavior in `README.md`; `AGENTS.md` should only carry this repository-wide guardrail.
 
 ## Family Outing Patterns
 
