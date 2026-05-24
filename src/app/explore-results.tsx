@@ -482,10 +482,10 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         </div>
         <div className="result-card-title-row">
           <h3>{place.name}</h3>
-          <div className="result-score-row" aria-label="검색 관련도와 장소 자체 점수">
+          <div className="result-score-row" aria-label="검색 관련도와 장소 점수">
             <span className={`score-pill ${scoreTone(place.score)}`}>관련도 {place.score}</span>
             {place.placeQualityScore ? (
-              <span className={`score-pill place-quality-score-pill ${scoreTone(place.placeQualityScore.score)}`}>자체 {place.placeQualityScore.score}</span>
+              <span className={`score-pill place-quality-score-pill ${scoreTone(place.placeQualityScore.score)}`}>점수 {place.placeQualityScore.score}</span>
             ) : null}
           </div>
         </div>

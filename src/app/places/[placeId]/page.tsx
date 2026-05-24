@@ -86,6 +86,16 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
     <div className="page detail-page">
       <header className="detail-sticky-head">
         <BackToSearchLink href={backHref} />
+        <div className="detail-header-score">
+          <PlaceScoreDialog
+            breakdown={placeQualityScore.scoreBreakdown}
+            rationale={place.scoring.placeScoreRationale}
+            reasons={placeQualityReasons}
+            score={placeQualityScore.score}
+            storedPlaceScore={place.scoring.placeScore}
+            updatedAt={place.scoring.scoreUpdatedAt}
+          />
+        </div>
 
         <div className="detail-head">
           <div>
@@ -94,14 +104,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             </p>
             <div className="detail-title-row">
               <h1>{place.name}</h1>
-              <PlaceScoreDialog
-                breakdown={placeQualityScore.scoreBreakdown}
-                rationale={place.scoring.placeScoreRationale}
-                reasons={placeQualityReasons}
-                score={placeQualityScore.score}
-                storedPlaceScore={place.scoring.placeScore}
-                updatedAt={place.scoring.scoreUpdatedAt}
-              />
             </div>
           </div>
         </div>
