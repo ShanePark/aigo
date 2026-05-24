@@ -49,6 +49,49 @@ describe("coordinate provenance draft helper", () => {
     expect(draft.externalRefs.coordinateProvenance.basis).toContain("manual identity review");
   });
 
+  it("builds parent-building duplicate review evidence for tenant places", () => {
+    const draft = buildCoordinateProvenanceDraft({
+      placeName: "볼베어파크 부천점",
+      officialAddress: "경기도 부천시 조마루로 2 웅진플레이도시",
+      officialSourceUrl: "https://example.com/tenant",
+      officialSourceTitle: "Tenant listing",
+      coordinateAddress: "경기도 부천시 조마루로 2",
+      coordinateSourceUrl: "https://example.com/parent-coordinates",
+      coordinateSourceTitle: "Parent building coordinate page",
+      parentPlaceId: "parent-place-id",
+      parentPlaceName: "웅진플레이도시",
+      parentSourceUrl: "https://example.com/parent",
+      parentSourceTitle: "Parent building page",
+      tenantSourceUrl: "https://example.com/tenant",
+      tenantSourceTitle: "Tenant listing",
+      duplicateRadiusMeters: 75,
+      lat: 37.505,
+      lng: 126.744,
+      level: "parent_building_coordinate",
+      checkedAt: "2026-05-24T17:40:00.000+09:00"
+    });
+
+    expect(draft.externalRefs.coordinateProvenance).toMatchObject({
+      level: "parent_building_coordinate",
+      sourceUrl: "https://example.com/parent-coordinates",
+      officialSourceUrl: "https://example.com/tenant",
+      basis: expect.stringContaining("coordinate belongs to the parent building")
+    });
+    expect(draft.parentBuilding).toMatchObject({
+      tenantPlaceName: "볼베어파크 부천점",
+      tenantSourceUrl: "https://example.com/tenant",
+      parentPlaceId: "parent-place-id",
+      parentPlaceName: "웅진플레이도시",
+      parentSourceUrl: "https://example.com/parent",
+      duplicateReview: {
+        radiusMeters: 75,
+        reviewLabels: ["parent_building_coordinate", "same_building_review_only"]
+      },
+      warnings: []
+    });
+    expect(draft.parentBuilding?.duplicateReview.caution).toContain("do not merge tenant and parent records");
+  });
+
   it("parses required CLI flags with a default provenance level", () => {
     expect(
       parseArgs([
@@ -65,6 +108,31 @@ describe("coordinate provenance draft helper", () => {
       lat: 37.5665,
       lng: 126.978,
       level: "public_address_coordinate"
+    });
+  });
+
+  it("parses parent-building CLI flags", () => {
+    expect(
+      parseArgs([
+        "--place-name=브루미즈키즈카페 뉴코아아울렛 평촌점",
+        "--official-address=경기도 안양시 동안구 동안로 119",
+        "--coordinate-address=경기도 안양시 동안구 동안로 119",
+        "--coordinate-source-url=https://example.com/coords",
+        "--parent-place-name=뉴코아아울렛 평촌점",
+        "--parent-source-url=https://example.com/parent",
+        "--tenant-source-url=https://example.com/tenant",
+        "--duplicate-radius-meters=60",
+        "--lat=37.389",
+        "--lng=126.951",
+        "--level=parent_building_coordinate"
+      ])
+    ).toMatchObject({
+      placeName: "브루미즈키즈카페 뉴코아아울렛 평촌점",
+      parentPlaceName: "뉴코아아울렛 평촌점",
+      parentSourceUrl: "https://example.com/parent",
+      tenantSourceUrl: "https://example.com/tenant",
+      duplicateRadiusMeters: 60,
+      level: "parent_building_coordinate"
     });
   });
 });

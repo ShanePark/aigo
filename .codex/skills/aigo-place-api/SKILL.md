@@ -267,6 +267,8 @@ Mutation and duplicate-check rules:
 - `manual_hold` must not be used for create/update lat/lng or radius duplicate checks. Use `roadAddress`, `address`, `regionSigungu`, source URLs, or external refs for duplicate review instead.
 - When patching coordinates, include a `geocode`, `public_agency`, `official_site`, or other source entry whose summary states the coordinate provenance level and the address/name match.
 
+For tenant places that must use a parent mall/building coordinate, run `pnpm tsx scripts/build-coordinate-provenance.ts --level=parent_building_coordinate` with `--parent-place-name` or `--parent-place-id`, `--parent-source-url`, `--tenant-source-url`, and a conservative `--duplicate-radius-meters`. The helper outputs the `externalRefs.coordinateProvenance` draft plus a parent-building duplicate-review caution so agents do not accidentally merge a tenant with its parent site.
+
 Common writable fields:
 
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
