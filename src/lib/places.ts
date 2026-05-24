@@ -1983,7 +1983,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     };
   }
 
-  const query = stripLocalPlaygroundIntentTerms(stripPreferenceTerms(input.query));
+  const query = stripLocalPlaygroundIntentTerms(stripPreferenceTerms(stripTravelContextTerms(input.query) ?? ""));
   return {
     ...input,
     visitContext,
@@ -2464,6 +2464,7 @@ const indoorPreferenceTerms = new Set([
 const outdoorPreferenceTerms = new Set(["실외", "야외"]);
 const twinLogisticsTerms = new Set(["쌍둥이", "쌍둥이랑", "쌍둥이유모차", "twins"]);
 const literalFallbackTerms = new Set(["장난감도서관"]);
+const travelContextTerms = new Set(["근교", "근처", "주변", "인근", "기준"]);
 const locationOnlyTerms = new Set([
   "서울",
   "부산",
@@ -2834,7 +2835,7 @@ function inferVisitContextFromQuery(query: string): SearchPlacesInput["visitCont
   const terms = new Set(query.trim().split(/\s+/).filter(Boolean));
   if (terms.has("하원") || terms.has("하원후") || terms.has("방과후")) return "afterDaycare";
   if (terms.has("하원하고") || (terms.has("어린이집") && terms.has("끝나고"))) return "afterDaycare";
-  if (terms.has("당일치기") || terms.has("근교") || terms.has("1시간권")) return "dayTrip";
+  if (terms.has("당일치기") || terms.has("근교") || terms.has("1시간권") || Array.from(terms).some(isTravelDurationTerm)) return "dayTrip";
   if (["비", "비오는날", "비오는", "비오면", "비올때", "우천", "장마"].some((term) => terms.has(term))) return "rainyDay";
   if (terms.has("주말") || terms.has("이번주말") || terms.has("반나절")) return "weekendHalfDay";
   return undefined;
@@ -2888,6 +2889,28 @@ function stripPreferenceTerms(query: string) {
   return literalFallback.length > 0 ? literalFallback : undefined;
 }
 
+function stripTravelContextTerms(query: string | undefined) {
+  if (!query) return undefined;
+
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  const hasTravelContext = terms.some((term) => travelContextTerms.has(term) || isTravelDurationTerm(term));
+  if (!hasTravelContext) return query;
+
+  const stripped = terms
+    .filter((term, index) => !isTravelOriginAnchor(term, index))
+    .filter((term) => !travelContextTerms.has(term))
+    .filter((term) => !isTravelDurationTerm(term))
+    .join(" ")
+    .trim();
+
+  return stripped.length > 0 ? stripped : undefined;
+}
+
+function isTravelOriginAnchor(term: string, index: number) {
+  if (index !== 0) return false;
+  return locationOnlyTerms.has(term) || locationOnlyTerms.has(normalizeSearchText(term));
+}
+
 export function categoryClauseForKeywordTerm(term: string) {
   if (commercialKidsCafeIntentTerms.has(term)) return kidsCafeEvidenceClause();
   const categories = categoryKeywordMap[term];
@@ -2932,6 +2955,10 @@ const categoryKeywordMap: Record<string, string[]> = {
 
 function isQueryStopTerm(term: string) {
   if (queryStopTerms.has(term)) return true;
+  return /^[0-9]+(?:[-~][0-9]+)?(?:시간|분)(?:권|만)?$/.test(term);
+}
+
+function isTravelDurationTerm(term: string) {
   return /^[0-9]+(?:[-~][0-9]+)?(?:시간|분)(?:권|만)?$/.test(term);
 }
 

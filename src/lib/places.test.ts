@@ -1463,6 +1463,14 @@ describe("place search helpers", () => {
       visitContext: "dayTrip",
       query: "자연"
     });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "창원 근교 공룡 아이" })).toMatchObject({
+      visitContext: "dayTrip",
+      query: "공룡"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "창원 1시간 우포 아이 자연" })).toMatchObject({
+      visitContext: "dayTrip",
+      query: "우포 자연"
+    });
   });
 
   it("keeps special intent queries literal while still inferring preferences", () => {
