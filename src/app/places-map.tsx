@@ -25,7 +25,7 @@ export type MapOrigin = {
 type PlacesMapProps = {
   autoLocateOnInitialLoad?: boolean;
   isViewportSearchPending?: boolean;
-  onInitialLocationSearch?: (location: UserLocation) => void;
+  onLocationSearch?: (location: UserLocation) => void;
   onViewportSearch?: (request: ViewportSearchRequest) => void;
   origin: MapOrigin;
   places: MapPlace[];
@@ -69,7 +69,7 @@ let initialGeolocationRequest: Promise<GeolocationPosition> | null = null;
 export function PlacesMap({
   autoLocateOnInitialLoad = false,
   isViewportSearchPending = false,
-  onInitialLocationSearch,
+  onLocationSearch,
   onViewportSearch,
   origin,
   places,
@@ -111,7 +111,7 @@ export function PlacesMap({
       map.flyTo([target.lat, target.lng], targetZoom, { animate: true, duration: 0.65 });
 
       if (options.runSearch) {
-        onInitialLocationSearch?.(target);
+        onLocationSearch?.(target);
       } else {
         if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
         locationRequestTimerRef.current = window.setTimeout(() => {
@@ -121,7 +121,7 @@ export function PlacesMap({
       }
       setLocationStatus("idle");
     },
-    [onInitialLocationSearch]
+    [onLocationSearch]
   );
 
   const requestInitialLocation = useCallback(() => {
@@ -287,7 +287,7 @@ export function PlacesMap({
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         if (locationRequestTokenRef.current !== requestToken) return;
-        void focusCurrentLocation(coords.latitude, coords.longitude);
+        void focusCurrentLocation(coords.latitude, coords.longitude, { runSearch: true });
       },
       () => {
         if (locationRequestTokenRef.current !== requestToken) return;

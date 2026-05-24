@@ -9,7 +9,6 @@ import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import {
   MAP_LOCATION_PARAM_KEYS,
-  hasMapLocationParams,
   searchParamsForCurrentLocation,
   searchParamsForViewportSearch,
   type SearchParamsRecord
@@ -211,11 +210,9 @@ export function ExploreResults({
     [activeInput, activeParams, runClientSearch]
   );
 
-  const handleInitialLocationSearch = useCallback(
+  const handleLocationSearch = useCallback(
     (location: { lat: number; lng: number }) => {
-      if (hasMapLocationParams(activeParams)) return;
-
-      const sort = activeInput.sort ?? activeSort;
+      const sort = "distance";
       const nextParams = searchParamsForCurrentLocation(activeParams, location, { sort });
       const nextInput = {
         ...activeInput,
@@ -233,7 +230,7 @@ export function ExploreResults({
 
       void runClientSearch(nextInput, nextParams, "location");
     },
-    [activeInput, activeParams, activeSort, runClientSearch]
+    [activeInput, activeParams, runClientSearch]
   );
 
   const handlePage = useCallback(
@@ -260,7 +257,7 @@ export function ExploreResults({
     <section className="explore-layout">
       <PlacesMap
         isViewportSearchPending={isClientSearchPending}
-        onInitialLocationSearch={handleInitialLocationSearch}
+        onLocationSearch={handleLocationSearch}
         onViewportSearch={handleViewportSearch}
         origin={mapOrigin}
         places={mapPlaces}
