@@ -197,6 +197,12 @@ paths:
             type: string
             minLength: 1
           description: Optional primary category filter such as `family_restaurant` or `park`.
+        - name: placeIds
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates.
         - name: limit
           in: query
           required: false
@@ -1353,7 +1359,7 @@ components:
             $ref: "#/components/schemas/PlaceImageHealthItem"
         meta:
           type: object
-          required: [count, total, limit, offset, status, primaryCategory]
+          required: [count, total, limit, offset, status, placeIds, primaryCategory]
           properties:
             count:
               type: integer
@@ -1368,6 +1374,13 @@ components:
             status:
               type: string
               enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, all]
+            placeIds:
+              anyOf:
+                - type: array
+                  items:
+                    type: string
+                    format: uuid
+                - type: "null"
             primaryCategory:
               type:
                 - string

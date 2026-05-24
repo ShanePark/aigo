@@ -459,6 +459,17 @@ export const deletePlaceSchema = z.object({
 });
 
 export const placeImageHealthQuerySchema = z.object({
+  placeIds: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const ids = value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      return ids.length > 0 ? ids : undefined;
+    },
+    z.array(z.string().uuid()).max(200).optional()
+  ),
   primaryCategory: z.string().trim().min(1).optional(),
   status: z
     .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "all"])

@@ -834,6 +834,9 @@ export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {
   if (input.primaryCategory) {
     where.push(`p.primary_category = ${add(input.primaryCategory)}`);
   }
+  if (input.placeIds && input.placeIds.length > 0) {
+    where.push(`p.id = any(${add(input.placeIds)}::uuid[])`);
+  }
 
   const healthPredicate = imageHealthPredicate(input.status);
   const baseParams = [...params];
@@ -943,6 +946,7 @@ export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {
       limit: input.limit,
       offset: input.offset,
       status: input.status,
+      placeIds: input.placeIds ?? null,
       primaryCategory: input.primaryCategory ?? null
     }
   };

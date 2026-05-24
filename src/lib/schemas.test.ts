@@ -709,6 +709,7 @@ describe("place schemas", () => {
 
   it("parses image health query strings for agent queues", () => {
     const result = placeImageHealthQuerySchema.parse({
+      placeIds: "11111111-1111-4111-8111-111111111111, 22222222-2222-4222-8222-222222222222",
       primaryCategory: "family_restaurant",
       status: "no_active_image",
       limit: "25",
@@ -716,6 +717,7 @@ describe("place schemas", () => {
     });
 
     expect(result).toEqual({
+      placeIds: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"],
       primaryCategory: "family_restaurant",
       status: "no_active_image",
       limit: 25,
