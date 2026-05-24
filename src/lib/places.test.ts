@@ -181,6 +181,25 @@ describe("place search helpers", () => {
       query: "모래놀이터",
       originalQuery: "모래놀이터 유모차 화장실"
     });
+    const taxonomySupported = playgroundEvidenceScoreCapForTest(
+      88,
+      {
+        ...place,
+        playFeatures: {},
+        taxonomy: {
+          ...emptyPlaceTaxonomy(),
+          sourceBacked: {
+            ...emptyPlaceTaxonomy().sourceBacked,
+            activityTypes: ["sand_play"]
+          }
+        }
+      } as never,
+      {
+        playgroundOnly: true,
+        query: "모래놀이터",
+        originalQuery: "대전 모래놀이 놀이터"
+      }
+    );
 
     expect(capped.score).toBe(60);
     expect(capped.reasonCodes).toContain("EQUIPMENT_EVIDENCE_MISSING");
@@ -189,6 +208,9 @@ describe("place search helpers", () => {
     expect(missingToilet.reasonCodes).toContain("EQUIPMENT_EVIDENCE_MISSING");
     expect(supported.score).toBe(88);
     expect(supported.reasonCodes).not.toContain("EQUIPMENT_EVIDENCE_MISSING");
+    expect(taxonomySupported.score).toBe(88);
+    expect(taxonomySupported.reasonCodes).not.toContain("PLAYGROUND_FEATURES_UNKNOWN");
+    expect(taxonomySupported.reasonCodes).not.toContain("EQUIPMENT_EVIDENCE_MISSING");
   });
 
   it("caps route-break candidates without requested destination evidence", () => {

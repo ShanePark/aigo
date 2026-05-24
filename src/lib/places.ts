@@ -625,11 +625,11 @@ function playgroundEvidenceScoreCap(
   let cappedScore = score;
   const requestedFeatureGroups = requestedPlaygroundFeatureGroups(input.query, input.originalQuery);
 
-  if (!hasPositivePlaygroundFeature(place.playFeatures)) {
+  if (!hasPlaygroundFeatureEvidence(place)) {
     cappedScore = Math.min(cappedScore, 66);
     reasonCodes.push("PLAYGROUND_FEATURES_UNKNOWN");
   }
-  if (requestedFeatureGroups.some((keys) => !hasPositivePlaygroundFeature(place.playFeatures, keys))) {
+  if (requestedFeatureGroups.some((keys) => !hasPlaygroundFeatureEvidence(place, keys))) {
     cappedScore = Math.min(cappedScore, 60);
     reasonCodes.push("EQUIPMENT_EVIDENCE_MISSING");
   }
@@ -689,6 +689,25 @@ function requestedPlaygroundFeatureGroups(query?: string, originalQuery?: string
     }
   }
   return groups;
+}
+
+function hasPlaygroundFeatureEvidence(place: Pick<ReturnType<typeof mapPlace>, "playFeatures" | "taxonomy">, keys = playgroundFeatureKeys) {
+  return hasPositivePlaygroundFeature(place.playFeatures, keys) || playgroundTaxonomyMatchesFeatureKeys(place.taxonomy, keys);
+}
+
+const playgroundGeneralTaxonomyActivityTypes = new Set(["outdoor_playground", "sand_play", "water_play"]);
+const playgroundFeatureTaxonomyActivityTypes: Record<string, string[]> = {
+  sandPlay: ["sand_play"],
+  waterPlayground: ["water_play"]
+};
+
+function playgroundTaxonomyMatchesFeatureKeys(taxonomy: PlaceTaxonomy | null | undefined, keys: string[]) {
+  const activityTypes = new Set<string>([...(taxonomy?.sourceBacked?.activityTypes ?? []), ...(taxonomy?.inferred?.activityTypes ?? [])]);
+  if (activityTypes.size === 0) return false;
+  if (keys === playgroundFeatureKeys) {
+    return [...playgroundGeneralTaxonomyActivityTypes].some((type) => activityTypes.has(type));
+  }
+  return keys.some((key) => playgroundFeatureTaxonomyActivityTypes[key]?.some((type) => activityTypes.has(type)));
 }
 
 function routeBreakDestinationTermsInQuery(query: string) {
