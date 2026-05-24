@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
+import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLabel } from "@/lib/pricing";
@@ -124,6 +125,8 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           </div>
         </aside>
       </section>
+
+      <PlaceVisitPanel placeId={place.id} placeName={place.name} />
 
       <section className="detail-grid">
         <div className="info-block">

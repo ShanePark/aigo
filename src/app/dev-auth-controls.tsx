@@ -10,6 +10,8 @@ type MeResponse = {
   user: { displayName: string; email: string; id: string } | null;
 };
 
+const AUTH_CHANGE_EVENT = "aigo-auth-change";
+
 export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { devLoginEnabled: boolean }) {
   const [devLoginEnabled, setDevLoginEnabled] = useState(initialDevLoginEnabled);
   const [user, setUser] = useState<MeResponse["user"]>(null);
@@ -74,6 +76,7 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
       if (!response.ok) return;
       const body = (await response.json()) as Pick<MeResponse, "user">;
       setUser(body.user);
+      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
     } finally {
       setBusy(false);
       setLoading(false);
@@ -88,6 +91,7 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
         method: "POST"
       });
       setUser(null);
+      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: null } }));
     } finally {
       setBusy(false);
     }
