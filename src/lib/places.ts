@@ -9,7 +9,8 @@ import {
   type RelatedPlaceInput,
   type SearchPlacesInput,
   type SourceInput,
-  type UpdatePlaceInput
+  type UpdatePlaceInput,
+  placeImageHealthQuerySchema
 } from "@/lib/schemas";
 import {
   duplicateConfidence,
@@ -925,7 +926,22 @@ function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPl
   return value;
 }
 
-export async function listPlaceImageHealth(input: PlaceImageHealthQueryInput) {
+type PlaceImageHealthHelperInput = Omit<Partial<PlaceImageHealthQueryInput>, "placeIds" | "limit" | "offset"> & {
+  placeIds?: PlaceImageHealthQueryInput["placeIds"] | string | null;
+  limit?: PlaceImageHealthQueryInput["limit"] | string;
+  offset?: PlaceImageHealthQueryInput["offset"] | string;
+};
+
+function normalizePlaceImageHealthQuery(input: PlaceImageHealthQueryInput | PlaceImageHealthHelperInput) {
+  return placeImageHealthQuerySchema.parse(input);
+}
+
+export function normalizePlaceImageHealthQueryForTest(input: PlaceImageHealthQueryInput | PlaceImageHealthHelperInput) {
+  return normalizePlaceImageHealthQuery(input);
+}
+
+export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput | PlaceImageHealthHelperInput) {
+  const input = normalizePlaceImageHealthQuery(rawInput);
   const params: SqlParam[] = [];
   const where = ["p.status = 'active'"];
   const add = (value: unknown) => {

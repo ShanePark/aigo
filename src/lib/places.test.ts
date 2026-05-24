@@ -23,6 +23,7 @@ import {
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
   normalizeSearchInput,
+  normalizePlaceImageHealthQueryForTest,
   normalizedImagePrimaryForTest,
   playgroundEvidenceScoreCapForTest,
   queryMatchSignal,
@@ -691,6 +692,37 @@ describe("place search helpers", () => {
       suggestedAction: "none",
       hasPrimary: true,
       approvedCount: 1
+    });
+  });
+
+  it("normalizes direct image health helper placeIds like API query params", () => {
+    const singleId = "11111111-1111-4111-8111-111111111111";
+    const secondId = "22222222-2222-4222-8222-222222222222";
+
+    expect(
+      normalizePlaceImageHealthQueryForTest({
+        status: "attention",
+        placeIds: `${singleId}, ${secondId}`,
+        limit: "100"
+      })
+    ).toEqual({
+      placeIds: [singleId, secondId],
+      status: "attention",
+      limit: 100,
+      offset: 0
+    });
+    expect(
+      normalizePlaceImageHealthQueryForTest({
+        status: "healthy",
+        placeIds: [singleId],
+        limit: 25,
+        offset: 10
+      })
+    ).toEqual({
+      placeIds: [singleId],
+      status: "healthy",
+      limit: 25,
+      offset: 10
     });
   });
 
