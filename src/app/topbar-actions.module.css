@@ -1,0 +1,6 @@
+.actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}

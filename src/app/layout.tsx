@@ -3,7 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import "./globals.css";
-import { ThemeToggle } from "./theme-toggle";
+import { TopbarActions } from "./topbar-actions";
+import { isDevLoginEnabled } from "@/lib/app-auth";
 
 const themeInitScript = `
 (() => {
@@ -58,7 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
             <span>AiGo</span>
           </Link>
-          <ThemeToggle />
+          <TopbarActions devLoginEnabled={isDevLoginEnabled()} />
         </header>
         <main>{children}</main>
       </body>
