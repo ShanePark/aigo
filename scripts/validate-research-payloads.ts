@@ -30,6 +30,8 @@ const registrationDataConfidence = new Set(["agent_collected", "official_verifie
 const acceptedCoordinateLevels = new Set(["official_embedded_map", "public_dataset_exact_address", "public_address_coordinate", "parent_building_coordinate"]);
 const operationalSourceTypes = new Set(["official_site", "operator_page", "public_agency", "public_tourism"]);
 const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
+const personalizedPublicTextPattern =
+  /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
 
 if (isMain()) {
   void main();
@@ -183,6 +185,7 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
 
   collectCoordinateProvenanceIssues(payload, issues);
   collectOperationalStatusSignalIssues(payload, issues);
+  collectPersonalizedPublicTextIssues(payload, issues);
 }
 
 function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
@@ -200,6 +203,27 @@ function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues:
       )
     );
   });
+}
+
+function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  const fields: Array<[string, unknown]> = [
+    ["description", payload.description],
+    ["parentNotes", payload.parentNotes],
+    ["safetyNotes", payload.safetyNotes],
+    ["placeScoreRationale", payload.placeScoreRationale],
+    ["playFeatures.notes", recordValue(payload.playFeatures, "notes")]
+  ];
+
+  for (const [path, value] of fields) {
+    if (typeof value !== "string" || !personalizedPublicTextPattern.test(value)) continue;
+    issues.push(
+      error(
+        path,
+        "workflow_public_text_personalization",
+        "public place text must describe the place for all users; keep specific household context in research notes, not description, parentNotes, safetyNotes, or scoring rationale"
+      )
+    );
+  }
 }
 
 function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {

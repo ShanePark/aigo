@@ -68,7 +68,20 @@ const RESULT_CARD_PLAY_FEATURE_LABELS: Record<string, string> = {
   rideOnToys: "승용완구",
   playHouse: "놀이집"
 };
-const RELAXED_SEARCH_PARAM_KEYS = new Set(["babyChair", "indoor", "maxLat", "maxLng", "minLat", "minLng", "nursing", "offset", "page", "parking", "stroller"]);
+const RELAXED_SEARCH_PARAM_KEYS = new Set([
+  "babyChair",
+  "indoor",
+  "maxLat",
+  "maxLng",
+  "minLat",
+  "minLng",
+  "nursing",
+  "offset",
+  "page",
+  "parking",
+  "sandPlay",
+  "stroller"
+]);
 
 export type CategoryGroupSummary = {
   iconName: string;

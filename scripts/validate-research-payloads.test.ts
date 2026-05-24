@@ -156,6 +156,48 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("rejects personalized household wording in public place fields", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      parentNotes: "첫째가 뛰어놀기 좋고 쌍둥이 영아와 함께라면 유모차 산책 위주로 보는 것이 좋다.",
+      placeScoreRationale: "사용자의 가족 구성에는 맞지만 일반 추천에는 주의가 필요하다."
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_public_text_personalization",
+          path: "parentNotes",
+          severity: "error"
+        }),
+        expect.objectContaining({
+          code: "workflow_public_text_personalization",
+          path: "placeScoreRationale",
+          severity: "error"
+        })
+      ])
+    );
+  });
+
+  it("rejects birth-year and older-child shorthand in public place fields", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      description: "2023년생 첫 방문 후보이며 큰아이 활동량 해소에 좋다."
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_public_text_personalization",
+          path: "description",
+          severity: "error"
+        })
+      ])
+    );
+  });
+
   it("parses CLI arguments", () => {
     expect(parseArgs(["--json", "a.json", "b.md"])).toEqual({
       json: true,

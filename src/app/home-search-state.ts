@@ -39,6 +39,8 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     ? childProfilesToAgeMonths(parseChildProfiles(children, textParam(params.ages)))
     : parseChildAgeMonths(textParam(params.ages));
 
+  const taxonomyActivityTypes = params.sandPlay === "on" ? ["sand_play" as const] : undefined;
+
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
@@ -58,6 +60,12 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       nursingRoom: params.nursing === "on" ? true : undefined,
       babyChair: params.babyChair === "on" ? true : undefined
     },
+    taxonomy: taxonomyActivityTypes
+      ? {
+          mode: preferenceModeParam(params) ?? "soft",
+          activityTypes: taxonomyActivityTypes
+        }
+      : undefined,
     sort: sortParam(params),
     limit,
     offset: Math.min((page - 1) * limit, 1000)

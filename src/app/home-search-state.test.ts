@@ -88,4 +88,19 @@ describe("home search input", () => {
       }
     });
   });
+
+  it("passes sand play as a taxonomy facet from search params", () => {
+    expect(buildSearchInput({ sandPlay: "on" })).toMatchObject({
+      taxonomy: {
+        mode: "soft",
+        activityTypes: ["sand_play"]
+      }
+    });
+    expect(buildSearchInput({ sandPlay: "on", preferenceMode: "required" })).toMatchObject({
+      taxonomy: {
+        mode: "required",
+        activityTypes: ["sand_play"]
+      }
+    });
+  });
 });

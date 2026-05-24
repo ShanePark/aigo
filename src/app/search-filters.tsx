@@ -31,12 +31,13 @@ type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
 };
 
-type FilterKey = "babyChair" | "indoor" | "nursing" | "parking" | "stroller";
+type FilterKey = "babyChair" | "indoor" | "nursing" | "parking" | "sandPlay" | "stroller";
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "indoor", label: "실내" },
   { key: "parking", label: "주차" },
   { key: "stroller", label: "유모차" },
+  { key: "sandPlay", label: "모래놀이" },
   { key: "nursing", label: "수유실" },
   { key: "babyChair", label: "아기의자" }
 ];
