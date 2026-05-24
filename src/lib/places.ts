@@ -447,7 +447,10 @@ export async function searchPlaces(input: SearchPlacesInput) {
     const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);
     const querySignal = queryMatchSignal(place, normalizedInput.query);
     const baseScore = clampScore(applySearchEvidenceCaps(scoredPlace.score + querySignal.delta, place.scoring));
-    const playgroundEvidenceCap = playgroundEvidenceScoreCap(baseScore, place, normalizedInput);
+    const playgroundEvidenceCap = playgroundEvidenceScoreCap(baseScore, place, {
+      ...normalizedInput,
+      originalQuery: input.query
+    });
     const score = playgroundEvidenceCap.score;
     const reasonCodes = mergeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), playgroundEvidenceCap.reasonCodes);
 
@@ -566,7 +569,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
 function playgroundEvidenceScoreCap(
   score: number,
   place: ReturnType<typeof mapPlace>,
-  input: Pick<SearchPlacesInput, "childAgeMonths" | "playgroundOnly">
+  input: Pick<SearchPlacesInput, "childAgeMonths" | "playgroundOnly" | "query"> & { originalQuery?: string }
 ) {
   if (!input.playgroundOnly || place.primaryCategory !== "park") {
     return { score, reasonCodes: [] as string[] };
@@ -574,10 +577,15 @@ function playgroundEvidenceScoreCap(
 
   const reasonCodes: string[] = [];
   let cappedScore = score;
+  const requestedFeatureGroups = requestedPlaygroundFeatureGroups(input.query, input.originalQuery);
 
   if (!hasPositivePlaygroundFeature(place.playFeatures)) {
     cappedScore = Math.min(cappedScore, 66);
     reasonCodes.push("PLAYGROUND_FEATURES_UNKNOWN");
+  }
+  if (requestedFeatureGroups.some((keys) => !hasPositivePlaygroundFeature(place.playFeatures, keys))) {
+    cappedScore = Math.min(cappedScore, 60);
+    reasonCodes.push("EQUIPMENT_EVIDENCE_MISSING");
   }
 
   const hasInfant = input.childAgeMonths?.some((ageMonths) => ageMonths < 18) ?? false;
@@ -588,6 +596,29 @@ function playgroundEvidenceScoreCap(
   }
 
   return { score: cappedScore, reasonCodes };
+}
+
+export function playgroundEvidenceScoreCapForTest(
+  score: number,
+  place: Parameters<typeof playgroundEvidenceScoreCap>[1],
+  input: Parameters<typeof playgroundEvidenceScoreCap>[2]
+) {
+  return playgroundEvidenceScoreCap(score, place, input);
+}
+
+function requestedPlaygroundFeatureGroups(query?: string, originalQuery?: string) {
+  const terms = new Set(
+    [query, originalQuery]
+      .filter(isNonEmptyString)
+      .flatMap((value) => value.trim().split(/\s+/).filter(Boolean).map(normalizeSearchText))
+  );
+  const groups: string[][] = [];
+  for (const entry of playgroundQueryFeatureMap) {
+    if (entry.terms.some((term) => terms.has(normalizeSearchText(term)))) {
+      groups.push(entry.keys);
+    }
+  }
+  return groups;
 }
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
@@ -2213,6 +2244,16 @@ const playgroundIntentTerms = new Set([...broadPlaygroundIntentTerms, "실내놀
 const removableLocalPlaygroundIntentTerms = new Set(["동네놀이터", "어린이공원", "모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 const localPlaygroundSandTerms = new Set(["모래놀이터", "모래놀이", "모래놀이장", "모래"]);
 const playgroundEquipmentFeatureKeys = ["slide", "swing", "babySwing", "waterPlayground", "sandPlay", "climbing", "seesaw", "trampoline", "rideOnToys", "playHouse"];
+const playgroundQueryFeatureMap: Array<{ terms: string[]; keys: string[] }> = [
+  { terms: ["모래", "모래놀이터", "모래놀이", "모래놀이장"], keys: ["sandPlay"] },
+  { terms: ["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"], keys: ["waterPlayground"] },
+  { terms: ["화장실", "화장실근처", "화장실인근"], keys: ["toiletNearby"] },
+  { terms: ["그네"], keys: ["swing", "babySwing"] },
+  { terms: ["미끄럼틀"], keys: ["slide"] },
+  { terms: ["시소"], keys: ["seesaw"] },
+  { terms: ["암벽", "클라이밍"], keys: ["climbing"] },
+  { terms: ["트램폴린"], keys: ["trampoline"] }
+];
 const playgroundEvidenceTags = [
   "children_playground",
   "small_playground",
@@ -3808,9 +3849,9 @@ function hasMeaningfulPricing(pricing: Record<string, unknown>) {
   return ["summary", "basisDate", "checkedAt", "priceCheckedAt"].some((key) => typeof pricing[key] === "string" && pricing[key].trim().length > 0);
 }
 
-function hasPositivePlaygroundFeature(playFeatures: Record<string, unknown> | null | undefined) {
+function hasPositivePlaygroundFeature(playFeatures: Record<string, unknown> | null | undefined, keys = playgroundFeatureKeys) {
   if (!isPlainRecord(playFeatures)) return false;
-  return playgroundFeatureKeys.some((key) => {
+  return keys.some((key) => {
     const value = playFeatures[key];
     return value === "yes" || value === "partial" || value === true;
   });

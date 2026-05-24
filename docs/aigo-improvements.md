@@ -22,5 +22,4 @@ Data/API 후속 항목:
 
 Agent 사용성/검색 후속 항목:
 
-- [대기] 모래놀이터/물놀이터처럼 구체 장비를 요구하는 검색에서 근거 없는 일반 놀이터를 같은 수준의 후보로 반환하지 않도록 한다. 에이전트 사용성 점검(2026-05-24)에서 `POST /v1/places/search`에 `query: "모래놀이터 유모차 화장실"`, `origin: { lat: 36.3317, lng: 127.4348, label: "대전역" }`, `projection: "compact"`를 보내면 `normalizedQuery`는 `"모래놀이터"`가 되지만 상위권에 `PLAYGROUND_FEATURES_UNKNOWN`인 일반 어린이공원들이 다수 포함되고, `화장실`은 preference나 `playFeatures.toiletNearby` 의도로 남지 않는다. `sandPlay`, `waterPlayground`, `toiletNearby` 같은 장비/편의시설 facet을 required/soft로 요청할 수 있게 하고, 근거가 없는 fallback 결과에는 `EQUIPMENT_EVIDENCE_MISSING` 같은 caution reason을 붙인다.
 - [대기] 경로 중간 휴식 검색이 목적지 방향성과 실제 경로를 고려하지 못하는 문제를 개선한다. 에이전트 사용성 점검(2026-05-24)에서 `POST /v1/places/search`에 `query: "청남대 가는 길 수유실 기저귀 휴게소"`, `origin: { lat: 36.3317, lng: 127.4348, label: "대전역" }`, `projection: "compact"`를 보내면 청남대 경로와 직접성이 약한 `청주국제공항 유아휴게실`이 최상위로 나오고, 고속도로 방향/우회 부담/목적지까지 남은 거리 사유가 없다. route-break 검색에는 `destination` 또는 destination place id/좌표를 받을 수 있게 하고, 후보별 `routeDetourKm`, `routeDirectionFit`, `remainingDistanceKm`, `oppositeDirection` reason을 계산해 휴게소/공항/터미널이 실제 동선상 유효한지 설명한다.

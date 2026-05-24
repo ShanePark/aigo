@@ -24,6 +24,7 @@ import {
   isRouteBreakIntentQuery,
   normalizeSearchInput,
   normalizedImagePrimaryForTest,
+  playgroundEvidenceScoreCapForTest,
   queryMatchSignal,
   relatedPlacePair,
   retailAliasCompactTextsForTest,
@@ -154,6 +155,38 @@ describe("place search helpers", () => {
     expect(normalized.query).toBe("창원 장난감가게");
     expect(query.sql).toContain("primary_category = 'toy_store'");
     expect(query.params).toEqual(["%창원%", "%장난감가게%"]);
+  });
+
+  it("caps playground results when requested equipment evidence is missing", () => {
+    const place = {
+      primaryCategory: "park",
+      playFeatures: { slide: "yes", toiletNearby: "unknown" },
+      facilities: { strollerFriendly: "yes", parkingAvailable: "yes", kidsToilet: "yes" }
+    };
+
+    const capped = playgroundEvidenceScoreCapForTest(88, place as never, {
+      playgroundOnly: true,
+      query: "모래놀이터",
+      originalQuery: "모래놀이터 유모차 화장실"
+    });
+    const missingToilet = playgroundEvidenceScoreCapForTest(88, { ...place, playFeatures: { sandPlay: "yes", toiletNearby: "unknown" } } as never, {
+      playgroundOnly: true,
+      query: "모래놀이터",
+      originalQuery: "모래놀이터 유모차 화장실"
+    });
+    const supported = playgroundEvidenceScoreCapForTest(88, { ...place, playFeatures: { sandPlay: "partial", toiletNearby: "yes" } } as never, {
+      playgroundOnly: true,
+      query: "모래놀이터",
+      originalQuery: "모래놀이터 유모차 화장실"
+    });
+
+    expect(capped.score).toBe(60);
+    expect(capped.reasonCodes).toContain("EQUIPMENT_EVIDENCE_MISSING");
+    expect(capped.reasonCodes).not.toContain("PLAYGROUND_FEATURES_UNKNOWN");
+    expect(missingToilet.score).toBe(60);
+    expect(missingToilet.reasonCodes).toContain("EQUIPMENT_EVIDENCE_MISSING");
+    expect(supported.score).toBe(88);
+    expect(supported.reasonCodes).not.toContain("EQUIPMENT_EVIDENCE_MISSING");
   });
 
   it("can restrict playground searches to actual playground evidence", () => {
