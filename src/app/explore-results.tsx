@@ -97,7 +97,26 @@ type SearchResultMeta = {
     lat: number;
     lng: number;
   } | null;
+  search?: SearchMeta | null;
   total: number;
+};
+
+type SearchMeta = {
+  appliedPreferences: SearchPlacesInput["preferences"] | null;
+  locationQuery: string | null;
+  normalized: boolean;
+  normalizedQuery: string | null;
+  originalQuery: string | null;
+  preferenceSemantics: {
+    hardFilteringSupported: boolean;
+    mismatchesRemainEligible: boolean;
+    mode: "soft" | "required";
+    requestedKeys: string[];
+    unknownValuesRemainEligible: boolean;
+  };
+  suggestedExactNameQuery: string | null;
+  temporalTerms: string[];
+  visitContext: SearchPlacesInput["visitContext"] | null;
 };
 
 type SearchItem = {
@@ -274,6 +293,7 @@ export function ExploreResults({
             <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
+        <SearchInterpretation meta={result.meta.search} params={activeParams} />
 
         <div className="results-scroll" data-results-scroll>
           {pendingSearchKind ? <div className="results-inline-status">{pendingStatusLabel(pendingSearchKind)}</div> : null}
@@ -288,6 +308,31 @@ export function ExploreResults({
         </div>
         <Pagination meta={result.meta} onPage={handlePage} />
       </div>
+    </section>
+  );
+}
+
+function SearchInterpretation({ meta, params }: { meta: SearchMeta | null | undefined; params: Record<string, string | string[]> }) {
+  const chips = searchInterpretationChips(meta);
+  const requiredHref = meta?.preferenceSemantics.mode === "soft" && meta.preferenceSemantics.requestedKeys.length > 0 ? requiredPreferenceModeHref(params) : null;
+
+  if (chips.length === 0 && !requiredHref) return null;
+
+  return (
+    <section className="search-interpretation-panel" aria-label="검색 해석">
+      <div className="search-interpretation-chips">
+        {chips.map((chip, index) => (
+          <span className={chip.tone ? `search-interpretation-chip ${chip.tone}` : "search-interpretation-chip"} key={`${chip.label}-${chip.value}-${index}`}>
+            <strong>{chip.label}</strong>
+            {chip.value}
+          </span>
+        ))}
+      </div>
+      {requiredHref ? (
+        <Link className="search-interpretation-action" href={requiredHref}>
+          필수 조건으로
+        </Link>
+      ) : null}
     </section>
   );
 }
@@ -563,6 +608,60 @@ function resultLimitParam(params: Record<string, string | string[]>) {
   return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? RESULT_LIMIT_OPTIONS[0];
 }
 
+function searchInterpretationChips(meta: SearchMeta | null | undefined) {
+  if (!meta) return [];
+
+  const chips: Array<{ label: string; tone?: "is-soft" | "is-required"; value: string }> = [];
+  if (meta.locationQuery) chips.push({ label: "지역", value: meta.locationQuery });
+  if (meta.normalizedQuery && meta.normalizedQuery !== meta.locationQuery) chips.push({ label: "검색어", value: meta.normalizedQuery });
+  if (meta.visitContext) chips.push({ label: "상황", value: visitContextLabel(meta.visitContext) });
+  for (const term of meta.temporalTerms) chips.push({ label: "시점", value: temporalTermLabel(term) });
+  for (const preference of preferenceLabels(meta.appliedPreferences, meta.preferenceSemantics.requestedKeys)) {
+    chips.push({
+      label: preference,
+      tone: meta.preferenceSemantics.mode === "required" ? "is-required" : "is-soft",
+      value: meta.preferenceSemantics.mode === "required" ? "필수" : "소프트"
+    });
+  }
+  if (meta.suggestedExactNameQuery) chips.push({ label: "장소명", value: meta.suggestedExactNameQuery });
+
+  return chips.slice(0, 8);
+}
+
+function preferenceLabels(preferences: SearchPlacesInput["preferences"] | null, requestedKeys: string[]) {
+  const keys = requestedKeys.length > 0 ? requestedKeys : Object.keys(preferences ?? {});
+  const labels: Record<string, string> = {
+    babyChair: "아기의자",
+    indoorTypes: "실내",
+    kidsToilet: "유아화장실",
+    nursingRoom: "수유실",
+    parkingAvailable: "주차",
+    strollerFriendly: "유모차"
+  };
+
+  return keys.map((key) => labels[key] ?? formatKeyword(key)).filter(Boolean);
+}
+
+function temporalTermLabel(term: string) {
+  const labels: Record<string, string> = {
+    비오는날: "비오는 날",
+    우천: "비오는 날",
+    장마: "비오는 날"
+  };
+  return labels[term] ?? term;
+}
+
+function visitContextLabel(context: NonNullable<SearchPlacesInput["visitContext"]>) {
+  const labels: Record<NonNullable<SearchPlacesInput["visitContext"]>, string> = {
+    afterDaycare: "하원 후",
+    dayTrip: "당일치기",
+    nearbyNow: "근처",
+    rainyDay: "비오는 날",
+    weekendHalfDay: "주말 반나절"
+  };
+  return labels[context];
+}
+
 function homeSort(sort: SearchPlacesInput["sort"], fallback: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
   return sort === "recommended" || sort === "distance" ? sort : fallback;
 }
@@ -739,6 +838,12 @@ function sortHref(params: Record<string, string | string[]>, sort: Extract<Searc
 function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number]): UrlObject {
   const query = queryWithout(params, ["page", "offset", "limit", "visitContext"]);
   query.limit = String(limit);
+  return { pathname: "/", query };
+}
+
+function requiredPreferenceModeHref(params: Record<string, string | string[]>): UrlObject {
+  const query = queryWithout(params, ["page", "offset", "preferenceMode", "visitContext"]);
+  query.preferenceMode = "required";
   return { pathname: "/", query };
 }
 

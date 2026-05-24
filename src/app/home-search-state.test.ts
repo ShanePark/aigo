@@ -42,4 +42,13 @@ describe("home search input", () => {
       radiusKm: 80
     });
   });
+
+  it("passes required preference mode from search params", () => {
+    expect(buildSearchInput({ nursing: "on", preferenceMode: "required" })).toMatchObject({
+      preferenceMode: "required",
+      preferences: {
+        nursingRoom: true
+      }
+    });
+  });
 });

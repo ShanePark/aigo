@@ -171,8 +171,11 @@ async function safeSearch(input: SearchPlacesInput) {
         search: {
           originalQuery: input.query ?? null,
           normalizedQuery: input.query ?? null,
+          locationQuery: null,
+          temporalTerms: [],
+          suggestedExactNameQuery: null,
           appliedPreferences: input.preferences ?? null,
-          preferenceSemantics: buildSearchPreferenceSemantics(input.preferences),
+          preferenceSemantics: buildSearchPreferenceSemantics(input.preferences, input.preferenceMode),
           visitContext: input.visitContext ?? null,
           normalized: false
         }

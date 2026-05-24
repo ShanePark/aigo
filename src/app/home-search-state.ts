@@ -49,6 +49,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     playgroundOnly: categoryGroup === "playground" ? true : undefined,
     kidsCafeOnly: categoryGroup === "kidsCafe" ? true : undefined,
     childAgeMonths: ages,
+    preferenceMode: preferenceModeParam(params),
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
       parkingAvailable: params.parking === "on" ? true : undefined,
@@ -73,6 +74,11 @@ export function sortParam(params: Record<string, string | string[] | undefined>)
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
+}
+
+export function preferenceModeParam(params: Record<string, string | string[] | undefined>): SearchPlacesInput["preferenceMode"] {
+  const value = textParam(params.preferenceMode);
+  return value === "required" ? "required" : undefined;
 }
 
 export function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {
