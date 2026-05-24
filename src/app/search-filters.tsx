@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import {
@@ -157,20 +157,30 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
       <summary>
         <span className="advanced-summary-title">
           <SlidersHorizontal size={16} aria-hidden="true" />
-          세부 조건
-        </span>
-        {activeChipCount > 0 ? (
-          <span className="advanced-active-chips" aria-label="적용된 세부 조건">
-            {activeFilterChips.map((chip) => (
-              <span key={chip}>{chip}</span>
-            ))}
-            {childProfiles.map((profile) => (
-              <span className="advanced-child-chip" key={childProfileKey(profile)} aria-label={formatChildProfile(profile)}>
-                <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={34} height={34} />
-              </span>
-            ))}
+          <span>
+            <strong>세부 조건</strong>
+            <small>{activeChipCount > 0 ? `${activeChipCount}개 적용` : "아이/편의 조건"}</small>
           </span>
-        ) : null}
+        </span>
+        <span className="advanced-summary-trailing">
+          {activeChipCount > 0 ? (
+            <span className="advanced-active-chips" aria-label="적용된 세부 조건">
+              {activeFilterChips.map((chip) => (
+                <span key={chip}>{chip}</span>
+              ))}
+              {childProfiles.map((profile) => (
+                <span className="advanced-child-chip" key={childProfileKey(profile)} aria-label={formatChildProfile(profile)}>
+                  <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={34} height={34} />
+                </span>
+              ))}
+            </span>
+          ) : null}
+          <span className="advanced-toggle-label" aria-hidden="true">
+            <span className="advanced-toggle-open">열기</span>
+            <span className="advanced-toggle-close">접기</span>
+            <ChevronDown size={16} />
+          </span>
+        </span>
       </summary>
 
       <div className="advanced-checks" aria-label="선호 조건">
