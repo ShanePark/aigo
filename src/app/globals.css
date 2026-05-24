@@ -1117,17 +1117,30 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-flex;
-  gap: 4px;
+  gap: 3px;
   min-height: 38px;
   padding: 3px;
 }
 
 .sort-control-label {
+  align-items: center;
+  align-self: stretch;
   color: var(--muted);
+  display: inline-flex;
   font-size: 12px;
-  font-weight: 900;
-  padding: 0 7px 0 9px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 2px 0 8px;
   white-space: nowrap;
+}
+
+.sort-control-label::after {
+  background: color-mix(in srgb, var(--line) 78%, transparent);
+  content: "";
+  display: inline-block;
+  height: 18px;
+  margin-left: 10px;
+  width: 1px;
 }
 
 .sort-option,
