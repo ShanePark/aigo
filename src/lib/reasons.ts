@@ -28,6 +28,7 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   QUERY_PLAY_FEATURE_MATCH: { labelKo: "놀이시설 조건 일치", group: "match", tone: "positive", basePriority: 40 },
   QUERY_ROUTE_SUPPORT_MATCH: { labelKo: "이동 지원 조건 일치", group: "match", tone: "positive", basePriority: 40 },
   QUERY_TEXT_MATCH: { labelKo: "본문/주소에 검색어 포함", group: "match", tone: "positive", basePriority: 58 },
+  ROUTE_DESTINATION_FIT_MISSING: { labelKo: "목적지 경로 근거 부족", group: "context", tone: "partial", basePriority: 16 },
   LOCATION_QUERY_MATCH: { labelKo: "지역 기준 일치", group: "match", tone: "neutral", basePriority: 60 },
   PLAYGROUND_FEATURES_UNKNOWN: { labelKo: "놀이터 장비 정보 부족", group: "confidence", tone: "unknown", basePriority: 17 },
   EQUIPMENT_EVIDENCE_MISSING: { labelKo: "요청한 놀이시설 근거 부족", group: "confidence", tone: "partial", basePriority: 16 },

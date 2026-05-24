@@ -21,5 +21,3 @@ Data/API 후속 항목:
 - [대기] retail alias exact-name 매칭에서 같은 브랜드/복합몰 계열이라도 지역이 다른 지점은 false hit로 돌려보내지 않도록 한다. Wave37/Wave38 리서치에서 `타임빌라스 수원` 계열 alias가 `롯데프리미엄아울렛 의왕점`(`47bd2d06-f613-4adb-8cbd-4b479eb140d3`)과 섞일 수 있었다. 실제 수원점은 별도 record(`8621ad1d-7861-4263-8785-598c33246443`)로 생성했으므로, 검색/중복 판단에서 지점명, 주소, 시군구 충돌을 reason으로 노출해야 한다. 재현: `POST /v1/places/search`에 `query: "타임빌라스 수원"`, `matchMode: "exactName"`, `projection: "compact"`를 보내고 반환 item의 alias reason/지역 충돌을 확인한다.
 
 Agent 사용성/검색 후속 항목:
-
-- [대기] 경로 중간 휴식 검색이 목적지 방향성과 실제 경로를 고려하지 못하는 문제를 개선한다. 에이전트 사용성 점검(2026-05-24)에서 `POST /v1/places/search`에 `query: "청남대 가는 길 수유실 기저귀 휴게소"`, `origin: { lat: 36.3317, lng: 127.4348, label: "대전역" }`, `projection: "compact"`를 보내면 청남대 경로와 직접성이 약한 `청주국제공항 유아휴게실`이 최상위로 나오고, 고속도로 방향/우회 부담/목적지까지 남은 거리 사유가 없다. route-break 검색에는 `destination` 또는 destination place id/좌표를 받을 수 있게 하고, 후보별 `routeDetourKm`, `routeDirectionFit`, `remainingDistanceKm`, `oppositeDirection` reason을 계산해 휴게소/공항/터미널이 실제 동선상 유효한지 설명한다.

@@ -28,6 +28,7 @@ import {
   queryMatchSignal,
   relatedPlacePair,
   retailAliasCompactTextsForTest,
+  routeBreakDestinationFitCapForTest,
   searchEvaluationDate,
   searchTermPatterns,
   suggestedExactNameQueryForTest,
@@ -187,6 +188,35 @@ describe("place search helpers", () => {
     expect(missingToilet.reasonCodes).toContain("EQUIPMENT_EVIDENCE_MISSING");
     expect(supported.score).toBe(88);
     expect(supported.reasonCodes).not.toContain("EQUIPMENT_EVIDENCE_MISSING");
+  });
+
+  it("caps route-break candidates without requested destination evidence", () => {
+    const airport = {
+      primaryCategory: "rest_area",
+      name: "청주국제공항 유아휴게실",
+      description: null,
+      address: "충청북도 청주시 청원구",
+      roadAddress: null,
+      tags: ["route_break", "airport", "nursing_room"],
+      routeSupport: { routeSupportRole: "route_break" }
+    };
+    const cheongnamdaeRoute = {
+      ...airport,
+      name: "문의청남대휴게소 청주방향",
+      tags: ["routeBreak", "청남대경로", "nursingRoom"]
+    };
+
+    const capped = routeBreakDestinationFitCapForTest(43, airport as never, {
+      query: "청남대 가는 길 수유실 기저귀 휴게소"
+    });
+    const matched = routeBreakDestinationFitCapForTest(43, cheongnamdaeRoute as never, {
+      query: "청남대 가는 길 수유실 기저귀 휴게소"
+    });
+
+    expect(capped.score).toBe(38);
+    expect(capped.reasonCodes).toContain("ROUTE_DESTINATION_FIT_MISSING");
+    expect(matched.score).toBe(43);
+    expect(matched.reasonCodes).not.toContain("ROUTE_DESTINATION_FIT_MISSING");
   });
 
   it("can restrict playground searches to actual playground evidence", () => {

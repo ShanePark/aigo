@@ -451,8 +451,12 @@ export async function searchPlaces(input: SearchPlacesInput) {
       ...normalizedInput,
       originalQuery: input.query
     });
-    const score = playgroundEvidenceCap.score;
-    const reasonCodes = mergeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), playgroundEvidenceCap.reasonCodes);
+    const routeBreakFitCap = routeBreakDestinationFitCap(playgroundEvidenceCap.score, place, normalizedInput);
+    const score = routeBreakFitCap.score;
+    const reasonCodes = mergeReasonCodes(
+      mergeReasonCodes(mergeReasonCodes(scoredPlace.reasonCodes, querySignal.reasonCodes), playgroundEvidenceCap.reasonCodes),
+      routeBreakFitCap.reasonCodes
+    );
 
     return {
       id: place.id,
@@ -606,6 +610,30 @@ export function playgroundEvidenceScoreCapForTest(
   return playgroundEvidenceScoreCap(score, place, input);
 }
 
+function routeBreakDestinationFitCap(score: number, place: ReturnType<typeof mapPlace>, input: Pick<SearchPlacesInput, "query">) {
+  if (place.primaryCategory !== "rest_area" || !input.query || !isRouteBreakIntentQuery(input.query)) {
+    return { score, reasonCodes: [] as string[] };
+  }
+
+  const destinationTerms = routeBreakDestinationTermsInQuery(input.query);
+  if (destinationTerms.length === 0 || routeBreakPlaceMatchesDestination(place, destinationTerms)) {
+    return { score, reasonCodes: [] as string[] };
+  }
+
+  return {
+    score: Math.min(score, 38),
+    reasonCodes: ["ROUTE_DESTINATION_FIT_MISSING"]
+  };
+}
+
+export function routeBreakDestinationFitCapForTest(
+  score: number,
+  place: Parameters<typeof routeBreakDestinationFitCap>[1],
+  input: Parameters<typeof routeBreakDestinationFitCap>[2]
+) {
+  return routeBreakDestinationFitCap(score, place, input);
+}
+
 function requestedPlaygroundFeatureGroups(query?: string, originalQuery?: string) {
   const terms = new Set(
     [query, originalQuery]
@@ -619,6 +647,26 @@ function requestedPlaygroundFeatureGroups(query?: string, originalQuery?: string
     }
   }
   return groups;
+}
+
+function routeBreakDestinationTermsInQuery(query: string) {
+  return uniqueStrings(query.trim().split(/\s+/).filter((term) => routeBreakDestinationTerms.has(term)));
+}
+
+function routeBreakPlaceMatchesDestination(place: ReturnType<typeof mapPlace>, destinationTerms: string[]) {
+  const text = normalizeSearchText(
+    [
+      place.name,
+      place.description,
+      place.address,
+      place.roadAddress,
+      ...place.tags,
+      JSON.stringify(place.routeSupport ?? {})
+    ]
+      .filter(isNonEmptyString)
+      .join(" ")
+  );
+  return destinationTerms.some((term) => text.includes(normalizeSearchText(term)));
 }
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
