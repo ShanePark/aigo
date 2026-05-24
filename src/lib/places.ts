@@ -2977,18 +2977,31 @@ function isQueryPreferenceTerm(term: string) {
 
 function inferLiteralQueryAlias(query: string) {
   const terms = query.trim().split(/\s+/).filter(Boolean);
-  if (terms.includes("키즈") && terms.some((term) => ["카페", "까페"].includes(term))) return "키즈카페";
-  if (terms.includes("장난감") && terms.includes("도서관")) return "장난감도서관";
-  if (terms.includes("장난감") && terms.some((term) => ["가게", "매장", "샵", "숍"].includes(term))) return "장난감가게";
-  if (terms.includes("완구") && terms.some((term) => ["가게", "매장", "샵", "숍", "점"].includes(term))) return "완구점";
-  if (terms.includes("레고") && terms.some((term) => ["스토어", "가게", "매장", "샵", "숍"].includes(term))) return "레고스토어";
+  const withRegion = (alias: string) => prependLocationAnchors(terms, alias);
+  if (terms.includes("키즈") && terms.some((term) => ["카페", "까페"].includes(term))) return withRegion("키즈카페");
+  if (terms.includes("장난감") && terms.includes("도서관")) return withRegion("장난감도서관");
+  if (terms.includes("장난감") && terms.some((term) => ["가게", "매장", "샵", "숍"].includes(term))) return withRegion("장난감가게");
+  if (terms.includes("완구") && terms.some((term) => ["가게", "매장", "샵", "숍", "점"].includes(term))) return withRegion("완구점");
+  if (terms.includes("레고") && terms.some((term) => ["스토어", "가게", "매장", "샵", "숍"].includes(term))) return withRegion("레고스토어");
   const hasMealTerm = terms.some((term) => mealPlayMealTerms.has(term));
   const hasPlayTerm = terms.some((term) => mealPlayActivityTerms.has(term));
   if (hasMealTerm && hasPlayTerm) {
     const contextTerms = terms.filter((term) => mealPlayContextTerms.has(term));
-    return [...contextTerms, "놀이방식당"].join(" ");
+    return withRegion([...contextTerms, "놀이방식당"].join(" "));
   }
   return undefined;
+}
+
+function prependLocationAnchors(terms: string[], alias: string) {
+  const anchors = uniqueStrings(terms.filter(isLocationAnchorTerm));
+  if (anchors.length === 0) return alias;
+  const aliasTerms = new Set(alias.split(/\s+/).filter(Boolean).map(normalizeSearchText));
+  return [...anchors.filter((term) => !aliasTerms.has(normalizeSearchText(term))), alias].join(" ");
+}
+
+function isLocationAnchorTerm(term: string) {
+  const normalized = normalizeSearchText(term);
+  return locationOnlyTerms.has(term) || locationOnlyTerms.has(normalized);
 }
 
 function playgroundEvidenceClause() {

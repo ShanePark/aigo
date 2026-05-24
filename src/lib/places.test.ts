@@ -144,6 +144,18 @@ describe("place search helpers", () => {
     expect(query.sql).not.toContain("limit $");
   });
 
+  it("keeps region anchors when category aliases are searched", () => {
+    const normalized = normalizeSearchInput({
+      ...baseSearchInput,
+      query: "창원 장난감 가게"
+    });
+    const query = buildSearchQuery(normalized);
+
+    expect(normalized.query).toBe("창원 장난감가게");
+    expect(query.sql).toContain("primary_category = 'toy_store'");
+    expect(query.params).toEqual(["%창원%", "%장난감가게%"]);
+  });
+
   it("can restrict playground searches to actual playground evidence", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,
@@ -1412,6 +1424,12 @@ describe("place search helpers", () => {
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "서구 어린이도서관 간식 음식불가 그림책방" })).toMatchObject({
       query: "서구 어린이도서관 음식불가 그림책방"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "창원 장난감 가게" })).toMatchObject({
+      query: "창원 장난감가게"
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "김해 놀이방 식당" })).toMatchObject({
+      query: "김해 놀이방식당"
     });
   });
 
