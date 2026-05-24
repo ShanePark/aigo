@@ -25,6 +25,20 @@ Do not use direct database writes for real place data. Real mutations go through
 - For user-requested registrations, create/update directly as searchable data. Use `status: "active"` and `dataConfidence: "agent_collected"` or `"user_reported"`; do not use `status: "needs_review"`, `dataConfidence: "needs_check"`, or image `reviewStatus: "needs_review"` in API payloads. Capture uncertainty with `unknown` fields, conservative scores, `parentNotes`, and `safetyNotes` instead of hiding the place from search.
 - During place research, data collection, or API registration waves, do not stop to fix product/API/schema/tooling issues discovered along the way. Add an actionable `[대기]` proposal to `docs/aigo-improvements.md` with enough context for the separate improvement automation to pick it up later.
 
+## Scoring Contract
+
+AiGo has two different score concepts:
+
+- `placeScore` is a source-backed 0-10 objective family-outing quality score for the place itself. It is agent-maintained, visible in place detail, and should be explained by `placeScoreRationale` plus structured `scoreSignals`.
+- Search response `score` is a 0-100 runtime recommendation score. It changes with query, origin, viewport, visit context, planned visit time, child ages, preferences, distance profile, opening-hours confidence, and data readiness.
+
+When preparing place payloads:
+
+- Do not treat user visit ratings or third-party ratings as `placeScore`. Store third-party evidence in `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, and `scoreSignals`; user visit aggregates come back as `userRatingSummary`.
+- Keep `placeScoreRationale` neutral, public, and reusable. Do not mention the user's specific household, children, home base, or private age anchors.
+- Use conservative scoring when current operation, age fit, baby logistics, safety, parent-review evidence, or image/source confidence is weak. Preserve uncertainty in notes and signals rather than inflating the score.
+- Capture source-backed facility scale, free or low-cost public value, provider ratings, review-count confidence, source conflicts, freshness, and evidence caps in `scoreSignals` when useful.
+
 ## Family-Fit Gate
 
 Before recommending `create` for a real place, explicitly record why it belongs in a public family outing database. A place should normally pass at least one of these gates:
@@ -167,6 +181,8 @@ pnpm tsx scripts/validate-research-payloads.ts <payload.json|research.md>
 ```
 
 This helper checks the raw API schema plus AiGo collection rules that the schema intentionally leaves flexible: explicit `status: "active"`, `dataConfidence` limited to `agent_collected`, `official_verified`, or `user_reported`, at least one structured `images` item, workflow-approved `images[].reviewStatus: "approved"`, source-backed image provenance, taxonomy v1 shape when supplied, and `externalRefs.coordinateProvenance.level` strong enough for mutation. Fix blocking lint errors before calling `POST /v1/places`.
+
+It also warns on workflow risks that should be resolved or intentionally documented before mutation: parent-review evidence missing for family-facing categories, public text that contains personalized household assumptions, and private kids cafe or indoor-playground candidates that rely only on blog/observation evidence. For private kids cafes, anchor branch identity with an official/operator/public-agency/public-listing source, and prefer pairing public-listing identity with operator or booking evidence such as `officialUrl`, `reservationUrl`, `official_site`, or `operator_page`.
 
 Images are optional by the raw API contract, but required by this skill for user-requested place registration:
 

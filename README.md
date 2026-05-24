@@ -102,17 +102,32 @@ Real place data should be created and updated through the AiGo API, not direct d
 
 ## Search And Scoring
 
-Search uses PostGIS distance filtering plus text/tag/play-feature matching and a scoring layer in [`src/lib/scoring.ts`](src/lib/scoring.ts). Scores and reason codes are influenced by:
+Search uses PostGIS distance filtering plus text/tag/play-feature matching and a scoring layer split between [`src/lib/scoring.ts`](src/lib/scoring.ts) and [`src/lib/recommendation-scoring.ts`](src/lib/recommendation-scoring.ts). The visible 0-100 search score is contextual, not a permanent rating for the place. It blends stored source-backed place quality with the user's current query, distance, visit context, preferences, and data readiness.
+
+Stored objective place scoring is separate from user ratings:
+
+- `placeScore` is an agent-maintained 0-10 family-outing quality score backed by sources and rationale. It is shown on detail pages and contributes to search ranking through the `placeQuality` component.
+- `externalRatingScore`, `externalReviewCount`, and `searchEvidenceScore` capture citeable third-party review/prominence evidence and feed the `externalEvidence` component.
+- `scoreSignals` stores structured scoring evidence such as provider ratings, source observations, conflicts, caps, facility scale, free-admission evidence, and freshness notes.
+- User visit ratings are stored in `place_visits` and returned as `userRatingSummary`; they are not the same as `placeScore`.
+
+Runtime search scores and reason codes are influenced by:
 
 - Distance from the requested origin
+- Search-intent-sensitive distance profiles: nearby playgrounds are expected to be close, shopping malls can tolerate a short drive, and museums, parks, lodging, or day-trip destinations can remain viable at longer distances
 - Optional `viewportBounds`, which restricts candidates to the visible map area while keeping `origin` for distance labels and scoring
 - Visit context: `afterDaycare`, `nearbyNow`, `rainyDay`, `weekendHalfDay`, or `dayTrip`
 - Category, tag, and taxonomy facet matches
 - Recommended child-age fit
 - Family logistics preferences
+- Source-backed objective place score and external evidence
+- Opening-hours confidence and planned visit date/time when provided
+- Visit-fit fields such as average stay, parent effort, child engagement, and weather fit
 - Data confidence
 
 Age or amenity mismatches usually reduce score or add cautionary reason codes; they do not automatically remove a candidate.
+
+The `scoreBreakdown` response separates components such as `placeQuality`, `externalEvidence`, `distance`, `context`, `match`, `age`, `preferences`, `openingHours`, `visitFit`, and `confidence`. Evidence caps keep under-sourced records, generic family spaces for immediate kid-activity searches, uncertain opening hours, and lodging with weak infant-logistics evidence from over-ranking.
 
 Taxonomy search facets use `soft` mode by default, so unknown records remain eligible with reason-code context. Use `taxonomy.mode: "required"` only when every requested facet must appear in either `sourceBacked` or `inferred` taxonomy.
 
