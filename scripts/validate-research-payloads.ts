@@ -49,6 +49,32 @@ const parentReviewRecommendedCategories = new Set([
   "sports_venue",
   "shopping_mall"
 ]);
+const richPublicDestinationCategories = new Set([
+  "park",
+  "library",
+  "museum",
+  "science_museum",
+  "experience_center",
+  "aquarium_zoo",
+  "sports_venue",
+  "shopping_mall",
+  "accommodation"
+]);
+const subfacilitySweepTerms = [
+  "놀이터",
+  "실내놀이터",
+  "키즈카페",
+  "어린이자료실",
+  "도서관",
+  "장난감",
+  "수유실",
+  "기저귀",
+  "유아화장실",
+  "주차",
+  "입장료",
+  "무료",
+  "시설안내"
+];
 const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
 const personalizedPublicTextPattern =
   /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
@@ -209,6 +235,7 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   collectPersonalizedPublicTextIssues(payload, issues);
   collectParentReviewEvidenceIssues(payload, issues);
   collectPrivateKidsCafeSourceRoleIssues(payload, issues);
+  collectRichPublicDestinationSweepIssues(payload, issues);
 }
 
 function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
@@ -324,6 +351,13 @@ function hasNonEmptyStringList(value: unknown): boolean {
   return Array.isArray(value) && value.some((item) => typeof item === "string" && Boolean(item.trim()));
 }
 
+function collectStrings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(collectStrings);
+  if (!isRecord(value)) return [];
+  return Object.values(value).flatMap(collectStrings);
+}
+
 function collectPrivateKidsCafeSourceRoleIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
   if (!privateKidsCafeCategories.has(payload.primaryCategory)) return;
 
@@ -351,6 +385,81 @@ function collectPrivateKidsCafeSourceRoleIssues(payload: CreatePlaceInput, issue
       )
     );
   }
+}
+
+function collectRichPublicDestinationSweepIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  if (!richPublicDestinationCategories.has(payload.primaryCategory)) return;
+
+  const sweep = recordValue(payload.externalRefs, "subfacilitySweep");
+  if (!hasSubfacilitySweepChecklist(sweep)) {
+    issues.push(
+      warning(
+        "externalRefs.subfacilitySweep",
+        "workflow_subfacility_sweep_missing",
+        "rich public destinations should record a subfacility sweep with exact-place child/logistics queries such as playground, kids cafe, library, nursing room, diaper, parking, fee, free, and facility-guide terms"
+      )
+    );
+    return;
+  }
+
+  if (!hasSubfacilityStructuredEvidence(payload)) {
+    issues.push(
+      warning(
+        "externalRefs.subfacilitySweep",
+        "workflow_subfacility_sweep_unstructured",
+        "subfacility sweep findings should be reflected in playFeatures, pricing, scoreSignals, parentNotes, or source summaries instead of staying only in raw research notes"
+      )
+    );
+  }
+}
+
+function hasSubfacilitySweepChecklist(sweep: Record<string, unknown> | null) {
+  if (!sweep) return false;
+
+  const terms = matchingSubfacilityTerms(sweep);
+  return terms.length >= 3 || hasNotFoundParentReviewEvidence(sweep);
+}
+
+function hasSubfacilityStructuredEvidence(payload: CreatePlaceInput) {
+  if (hasMeaningfulPlayFeatures(payload.playFeatures)) return true;
+  if (hasMeaningfulPricing(payload.pricing)) return true;
+
+  const scoreSignals = isRecord(payload.scoreSignals) ? payload.scoreSignals : null;
+  if (hasNonEmptyEvidenceValue(scoreSignals?.facilityScale) || hasNonEmptyEvidenceValue(scoreSignals?.freeAdmission)) return true;
+
+  const text = [
+    payload.parentNotes,
+    payload.placeScoreRationale,
+    isRecord(payload.playFeatures) ? payload.playFeatures.notes : undefined,
+    isRecord(payload.pricing) ? payload.pricing.summary : undefined,
+    isRecord(payload.pricing) ? payload.pricing.notes : undefined,
+    ...payload.sources.flatMap((source) => [source.title, source.summary])
+  ].join(" ");
+  return subfacilitySweepTerms.some((term) => text.includes(term));
+}
+
+function matchingSubfacilityTerms(value: unknown) {
+  const text = collectStrings(value).join(" ");
+  return subfacilitySweepTerms.filter((term) => text.includes(term));
+}
+
+function hasMeaningfulPlayFeatures(value: unknown) {
+  if (!isRecord(value)) return false;
+
+  return Object.entries(value).some(([key, item]) => {
+    if (key === "schemaVersion") return false;
+    if (key === "notes") return typeof item === "string" && subfacilitySweepTerms.some((term) => item.includes(term));
+    if (key === "evidence") return Array.isArray(item) && item.length > 0;
+    if (typeof item === "string") return item === "yes" || item === "partial";
+    if (typeof item === "boolean") return item;
+    return Array.isArray(item) ? item.length > 0 : isRecord(item) && Object.keys(item).length > 0;
+  });
+}
+
+function hasMeaningfulPricing(value: unknown) {
+  if (!isRecord(value)) return false;
+  if (Array.isArray(value.items) && value.items.length > 0) return true;
+  return ["summary", "basisDate", "checkedAt", "sourceUrl", "notes"].some((key) => hasNonEmptyEvidenceValue(value[key]));
 }
 
 function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {

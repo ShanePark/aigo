@@ -311,6 +311,76 @@ describe("research payload workflow lint", () => {
     expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_parent_review_evidence");
   });
 
+  it("warns when rich public destinations omit subfacility sweep queries", () => {
+    const result = validateResearchPayload({
+      ...validPayload({
+        primaryCategory: "park",
+        externalRefs: {
+          coordinateProvenance: validPayload().externalRefs.coordinateProvenance
+        },
+        pricing: undefined,
+        scoreSignals: undefined,
+        parentNotes: "공식 페이지는 넓은 야외 시설을 안내한다."
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_subfacility_sweep_missing",
+          path: "externalRefs.subfacilitySweep",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
+  it("warns when subfacility sweep findings are not reflected in structured fields", () => {
+    const result = validateResearchPayload({
+      ...validPayload({
+        primaryCategory: "park",
+        externalRefs: {
+          ...validPayload().externalRefs,
+          subfacilitySweep: {
+            attemptedQueries: ["테스트 공원 놀이터", "테스트 공원 수유실", "테스트 공원 주차"]
+          }
+        },
+        pricing: undefined,
+        scoreSignals: undefined,
+        parentNotes: "공식 페이지는 넓은 야외 시설을 안내한다.",
+        playFeatures: undefined,
+        sources: [
+          {
+            sourceType: "official_site",
+            title: "Official place page",
+            url: "https://example.com/place",
+            summary: "Official page confirms the address and family facilities.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          },
+          {
+            sourceType: "public_blog",
+            title: "Parent visit note",
+            url: "https://example.com/parent-review",
+            summary: "Parent-facing note describes stroller access and toddler fit.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          }
+        ]
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_subfacility_sweep_unstructured",
+          path: "externalRefs.subfacilitySweep",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
   it("warns when private kids cafe candidates rely only on blog evidence", () => {
     const result = validateResearchPayload({
       ...validPayload({
@@ -398,8 +468,22 @@ function validPayload(overrides: Record<string, unknown> = {}) {
         addressMatched: "서울특별시 중구 세종대로 110",
         confidence: "high",
         checkedAt: "2026-05-23T14:00:00.000+09:00"
+      },
+      subfacilitySweep: {
+        attemptedQueries: ["테스트 쇼핑몰 놀이터", "테스트 쇼핑몰 수유실", "테스트 쇼핑몰 무료"],
+        checkedAt: "2026-05-23T14:00:00.000+09:00"
       }
     },
+    pricing: {
+      summary: "건물 입장은 무료이며 매장별 비용은 별도다.",
+      checkedAt: "2026-05-23T14:00:00.000+09:00",
+      sourceUrl: "https://example.com/place"
+    },
+    scoreSignals: {
+      facilityScale: "large_multi_floor_mall",
+      freeAdmission: true
+    },
+    parentNotes: "주차, 유모차 이동, 수유실 확인이 필요한 대형 실내 fallback 후보다.",
     taxonomy: {
       sourceBacked: {
         familyFitGates: ["retail_fallback"],
