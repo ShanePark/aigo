@@ -195,6 +195,7 @@ paths:
           required: false
           schema:
             type: string
+            minLength: 1
           description: Optional primary category filter such as `family_restaurant` or `park`.
         - name: limit
           in: query
@@ -569,31 +570,37 @@ components:
           default: soft
         familyFitGates:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [child_primary, baby_logistics, retail_fallback, route_break, user_signal]
         activityTypes:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [indoor_play, outdoor_playground, water_play, sand_play, nature_walk, reading_books, toy_borrowing, shopping_browse, meal_play, science_exhibit, culture_exhibit, hands_on_experience, animals_aquarium, lodging_play]
         visitUseCases:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [after_daycare, nearby_now, rainy_day, weekend_half_day, day_trip, hot_day, cold_day]
         ageBands:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [infant, toddler, preschool, school_age]
         logisticsTags:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [parking, low_parking_friction, stroller, double_stroller, elevator, nursing_room, diaper_table, kids_toilet, baby_chair, food_support, reservation, session_based]
         riskTags:
           type: array
+          maxItems: 20
           items:
             type: string
             enum: [water_edge, road_nearby, steep_path, crowding, fire_grill, current_operation_uncertain, seasonal_operation, infant_amenity_gap]
@@ -712,6 +719,7 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
         slug:
           type: string
         primaryCategory:
@@ -723,6 +731,7 @@ components:
           maxItems: 50
         description:
           type: string
+          maxLength: 5000
         address:
           type: string
         roadAddress:
@@ -770,6 +779,7 @@ components:
           type: array
           deprecated: true
           description: Backward-compatible shorthand. New agents should use `images`; these URLs are translated into `place_images` records.
+          maxItems: 20
           items:
             type: string
             format: uri
@@ -798,6 +808,7 @@ components:
           description: Source-backed objective 0-10 place score assigned by agents for the family outing use case. This is not an AiGo user rating.
         placeScoreRationale:
           type: string
+          maxLength: 5000
           description: Concise agent-written rationale for the objective place score.
         externalRatingScore:
           type: number
@@ -807,6 +818,7 @@ components:
         externalReviewCount:
           type: integer
           minimum: 0
+          maximum: 1000000
           description: Approximate source-backed external review count used to weight rating confidence.
         searchEvidenceScore:
           type: number
@@ -873,6 +885,8 @@ components:
           description: Whether same-day availability can be checked from source-backed public information.
         averageStayMinutes:
           type: integer
+          minimum: 0
+          maximum: 1440
         parentEffortLevel:
           type: integer
           minimum: 1
@@ -895,8 +909,10 @@ components:
           maximum: 5
         safetyNotes:
           type: string
+          maxLength: 5000
         parentNotes:
           type: string
+          maxLength: 5000
         openingHours: {}
     CreatePlaceRequest:
       allOf:
@@ -918,6 +934,7 @@ components:
               default: agent
             changeSummary:
               type: string
+              maxLength: 2000
     UpdatePlaceRequest:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
@@ -955,6 +972,7 @@ components:
               default: agent
             changeSummary:
               type: string
+              maxLength: 2000
     SearchPlacesRequest:
       type: object
       properties:
@@ -1015,6 +1033,7 @@ components:
               description: Maximum number of results per primary category before pagination.
         query:
           type: string
+          minLength: 1
         matchMode:
           type: string
           enum: [keyword, exactName]
@@ -1022,6 +1041,7 @@ components:
           description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, and known retail-chain alias place names instead of broad keyword/tag text.
         primaryCategories:
           type: array
+          maxItems: 30
           items:
             type: string
         playgroundOnly:
@@ -1035,6 +1055,7 @@ components:
         tags:
           type: array
           description: Soft matching signal. Tags do not exclude candidates.
+          maxItems: 30
           items:
             type: string
         taxonomy:
@@ -1042,6 +1063,7 @@ components:
         childAgeMonths:
           type: array
           description: Soft matching signal. Age mismatch does not exclude candidates.
+          maxItems: 10
           items:
             type: integer
             minimum: 0
@@ -1050,6 +1072,7 @@ components:
           type: array
           deprecated: true
           description: Backward-compatible alias for `childAgeMonths`; prefer `childAgeMonths`.
+          maxItems: 10
           items:
             type: integer
             minimum: 0
@@ -1652,6 +1675,7 @@ components:
         - lat
         - lng
         - distanceKm
+        - score
         - reasonCodes
         - reasons
         - dataConfidence
@@ -1727,8 +1751,16 @@ components:
           $ref: "#/components/schemas/Facilities"
         visit:
           type: object
-          required: [averageStayMinutes, parentEffortLevel, childEngagementLevel]
+          required: [reservationRequired, walkInAvailable, sessionBased, sameDayAvailabilityKnown, averageStayMinutes, parentEffortLevel, childEngagementLevel]
           properties:
+            reservationRequired:
+              $ref: "#/components/schemas/TriState"
+            walkInAvailable:
+              $ref: "#/components/schemas/TriState"
+            sessionBased:
+              $ref: "#/components/schemas/TriState"
+            sameDayAvailabilityKnown:
+              $ref: "#/components/schemas/TriState"
             averageStayMinutes:
               type:
                 - integer
@@ -2076,7 +2108,7 @@ components:
               - $ref: "#/components/schemas/CompactSearchPlaceItem"
         meta:
           type: object
-          required: [count, total, limit, offset, projection, origin, search]
+          required: [count, total, limit, offset, projection, origin, coursePlan, search]
           properties:
             count:
               type: integer
@@ -2167,6 +2199,7 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
         lat:
           type: number
           description: Latitude for radius-based duplicate checks. Must be sent with `lng`.
@@ -2175,28 +2208,34 @@ components:
           description: Longitude for radius-based duplicate checks. Must be sent with `lat`.
         address:
           type: string
+          minLength: 1
           description: Source-backed 지번/지명 address used for read-only duplicate checks when coordinates are unknown.
         roadAddress:
           type: string
+          minLength: 1
           description: Source-backed road address used for read-only duplicate checks when coordinates are unknown.
         regionSido:
           type: string
           description: Optional normalized province/city hint for address-based duplicate checks.
         regionSigungu:
           type: string
+          minLength: 1
           description: Optional city/district hint for address-based duplicate checks when coordinates are unknown.
         radiusMeters:
           type: number
+          exclusiveMinimum: 0
           default: 500
           maximum: 5000
         kakaoPlaceId:
           type: string
         externalRefs:
           type: object
+          minProperties: 1
           description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
           additionalProperties: true
         limit:
           type: integer
+          minimum: 1
           default: 10
           maximum: 20
     DeletePlaceRequest:

@@ -73,7 +73,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it.
 
 5. Check duplicates before mutation.
-   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng` or source-backed `roadAddress`/`address`/`regionSigungu`; include optional `kakaoPlaceId`, optional `externalRefs`, and a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address-only duplicate checks for `manual_hold` or uncertain coordinates.
+   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng`, source-backed `roadAddress`/`address`/`regionSigungu`, `kakaoPlaceId`, or non-empty `externalRefs`. Include a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address/provider-id/external-ref duplicate checks for `manual_hold` or uncertain coordinates.
    - For generic branch names such as common food chains or category-like restaurant names, treat `GENERIC_BRANCH_NAME` and `ADDRESS_REGION_CONFLICT` reason codes as strong caution. A same-province fuzzy name is not enough for high confidence; prefer same address, same 시군구, nearby coordinates, external refs, or a provider id before calling it a duplicate.
    - When coordinates are supplied, duplicate checks compare both the stored geography point and the raw `lat`/`lng` columns so self-checks and recent coordinate updates remain stable. Duplicate responses may still include low-confidence address/region/name candidates outside the requested radius for review. Treat `GEO_OUTSIDE_REQUEST_RADIUS`, `OUTSIDE_RADIUS_REVIEW_ONLY`, or `outsideRadiusReviewOnly: true` as a caution that the candidate matched by non-radius evidence and should not be accepted as a duplicate without stronger identity evidence.
    - If a likely candidate exists, call `GET /v1/places/{placeId}`, compare current data, and usually `PATCH`.
@@ -145,18 +145,19 @@ Before registering create payloads copied from `agent-research/`, run the read-o
 pnpm tsx scripts/validate-research-payloads.ts <payload.json|research.md>
 ```
 
-This helper checks the raw API schema plus AiGo collection rules that the schema intentionally leaves flexible: explicit `status: "active"`, `dataConfidence` limited to `agent_collected`, `official_verified`, or `user_reported`, at least one structured `images` item, `images[].reviewStatus: "approved"`, source-backed image provenance, taxonomy v1 shape when supplied, and `externalRefs.coordinateProvenance.level` strong enough for mutation. Fix blocking lint errors before calling `POST /v1/places`.
+This helper checks the raw API schema plus AiGo collection rules that the schema intentionally leaves flexible: explicit `status: "active"`, `dataConfidence` limited to `agent_collected`, `official_verified`, or `user_reported`, at least one structured `images` item, workflow-approved `images[].reviewStatus: "approved"`, source-backed image provenance, taxonomy v1 shape when supplied, and `externalRefs.coordinateProvenance.level` strong enough for mutation. Fix blocking lint errors before calling `POST /v1/places`.
 
 Images are optional by the raw API contract, but required by this skill for user-requested place registration:
 
 - Include structured `images` with at least one citeable, place-specific image.
 - Use source-backed `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus: "approved"`, and useful `altText` or `description`.
+- The raw API accepts `pending_review`, `approved`, `needs_review`, and `rejected`; this workflow uses `approved` only after the agent has checked the source and visual fit. If the image cannot be approved with confidence, hold the candidate or ask for a no-image/no-approved-image exception.
 - If no usable image can be found after reasonable searching, keep the candidate in `agent-research/` as `hold_for_later` with `noImageFoundReason`; do not create/update it unless the user explicitly approves a no-image exception.
 
 Update requires:
 
 - `sources` with at least one source
-- Any writable fields that actually changed
+- Optional changed writable fields, structured `images`, or `relatedPlaces`. Source-only audit updates are valid when the source list, version history, or change summary is the intended update.
 
 Image enrichment updates require:
 
@@ -182,7 +183,7 @@ Rules for `sources`:
 - `sourceType` is required.
 - Either `url` or `externalId` is required.
 - `summary` must be the agent's own concise summary, not copied source text.
-- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `geocode`, `map_service`, `official_image_source`, or `public_listing_image_source`.
+- Use source types that explain provenance, such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `geocode`, `map_service`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, or `unknown`.
 
 ## Coordinate Provenance
 

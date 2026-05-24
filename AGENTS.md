@@ -81,7 +81,7 @@ Use one file per research slice, for example:
 Each researched place should include:
 
 - Place name
-- Suggested action: `create`, `update`, `skip`, or `hold_for_later`
+- Suggested action: `create`, `update`, `skip_existing`, `skip`, or `hold_for_later`
 - Category and tags
 - Address/region and coordinates if confidently found
 - Child/family signals: age fit, indoor/outdoor, stroller, parking, nursing room, diaper table, kids toilet, elevator, baby chair, food/snack handling, stay duration, parent effort, safety notes
@@ -140,11 +140,10 @@ Avoid or mark as low-confidence:
 
 For each image candidate, research notes should include:
 
-- `imageUrls` candidate list.
-- `imageSourceUrl` and source title.
-- Whether the image is official/public-listing/generic.
+- Structured `images[]` candidates with `url`, `sourceUrl`, `sourceType`, `sourceTitle`, `displayTier`, `reviewStatus`, `altText` or `description`, and `checkedAt` when available.
+- Whether the image is official/public-agency/public-listing/generic.
 - Confidence and hotlink/rendering caveats.
-- A possible API `PATCH` fragment that appends image URLs and a source entry.
+- A possible API `PATCH` fragment that appends structured `images` and a source entry. Use `imageUrls` only as a legacy shorthand when preserving existing linkage is enough.
 
 Actual DB image updates must go through the normal AiGo API update flow, with at least one source entry summarizing the image provenance. Keep image collection constraints and operational notes out of committed docs/code.
 

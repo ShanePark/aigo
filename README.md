@@ -60,11 +60,12 @@ Main endpoints:
 - `POST /v1/places` - create a source-backed place and publish it immediately
 - `GET /v1/places/{placeId}` - fetch place detail
 - `PATCH /v1/places/{placeId}` - update a place and append a new version
+- `DELETE /v1/places/{placeId}` - source-backed soft delete that closes a place while preserving audit history
 - `GET /v1/places/{placeId}/versions` - list place versions
 - `GET /v1/places/{placeId}/versions/{versionId}` - inspect a specific version
 - `GET /v1/places/image-health` - list image coverage and review queues
 
-All API routes require bearer auth:
+All `/v1` agent API routes require bearer auth:
 
 ```bash
 Authorization: Bearer $AIGO_API_KEY
