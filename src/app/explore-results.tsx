@@ -477,7 +477,7 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         </div>
         <div className="result-card-title-row">
           <h3>{place.name}</h3>
-          <span className={`score-pill ${scoreTone(place.score)}`}>추천 {place.score}</span>
+          <span className={`score-pill ${scoreTone(place.score)}`}>관련도 {place.score}</span>
         </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (

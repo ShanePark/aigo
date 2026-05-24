@@ -68,6 +68,20 @@ type ScoreOptions = {
   now?: Date;
 };
 
+const intrinsicScoreInput: SearchPlacesInput = {
+  radiusKm: 80,
+  preferences: {
+    parkingAvailable: true,
+    strollerFriendly: true,
+    nursingRoom: true,
+    kidsToilet: true,
+    babyChair: true
+  },
+  sort: "recommended",
+  limit: 20,
+  offset: 0
+};
+
 const baselineScore = 24;
 
 const confidenceScore: Record<string, number> = {
@@ -81,6 +95,58 @@ const confidenceScore: Record<string, number> = {
 const taxonomyFacetKeys = Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[];
 
 export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, options: ScoreOptions = {}) {
+  return scorePlaceInternal(place, input, options);
+}
+
+export function scorePlaceIntrinsic(place: ScoreablePlace, options: ScoreOptions = {}) {
+  const result = scorePlaceInternal(place, intrinsicScoreInput, options, {
+    includeAge: false,
+    includeContext: false,
+    includeDistance: false,
+    includeMatch: false,
+    includeOpeningHours: false,
+    includePreferences: true
+  });
+  const storedPlaceScore = normalizeZeroToTen(place.scoring?.placeScore);
+  if (storedPlaceScore === null) return result;
+
+  const evidenceBonus =
+    Math.max(0, result.scoreBreakdown.externalEvidence) * 0.7 +
+    Math.max(0, result.scoreBreakdown.preferences) * 0.5 +
+    Math.max(0, result.scoreBreakdown.visitFit) * 0.5 +
+    Math.max(0, result.scoreBreakdown.confidence) * 0.7;
+  const intrinsicScore = clampScore(storedPlaceScore * 8.5 + evidenceBonus);
+
+  return {
+    ...result,
+    score: intrinsicScore,
+    scoreBreakdown: {
+      ...result.scoreBreakdown,
+      total: intrinsicScore
+    }
+  };
+}
+
+function scorePlaceInternal(
+  place: ScoreablePlace,
+  input: SearchPlacesInput,
+  options: ScoreOptions = {},
+  mode: {
+    includeAge: boolean;
+    includeContext: boolean;
+    includeDistance: boolean;
+    includeMatch: boolean;
+    includeOpeningHours: boolean;
+    includePreferences: boolean;
+  } = {
+    includeAge: true,
+    includeContext: true,
+    includeDistance: true,
+    includeMatch: true,
+    includeOpeningHours: true,
+    includePreferences: true
+  }
+) {
   const reasonCodes = new Set<string>();
   const breakdown = emptyBreakdown();
   let score = baselineScore;
@@ -94,45 +160,57 @@ export function scorePlace(place: ScoreablePlace, input: SearchPlacesInput, opti
 
   applyPlaceQualitySignal(place, reasonCodes, (delta) => addScore("placeQuality", delta), (delta) => addScore("externalEvidence", delta));
 
-  applyDistanceSignal(place, input, reasonCodes, (delta) => addScore("distance", delta));
-
-  applyVisitContextSignal(place, input, reasonCodes, (delta) => addScore("context", delta));
-
-  if (input.primaryCategories?.includes(place.primaryCategory)) {
-    addScore("match", 6);
-    reasonCodes.add("CATEGORY_MATCH");
+  if (mode.includeDistance) {
+    applyDistanceSignal(place, input, reasonCodes, (delta) => addScore("distance", delta));
   }
 
-  const requestedTags = new Set(input.tags ?? []);
-  const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
-  if (matchedTags.length > 0) {
-    addScore("match", Math.min(4, matchedTags.length * 1.5));
-    reasonCodes.add("TAG_MATCH");
+  if (mode.includeContext) {
+    applyVisitContextSignal(place, input, reasonCodes, (delta) => addScore("context", delta));
   }
-  applyTaxonomySignal(place.taxonomy, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
 
-  applyAgeSignal(place, input.childAgeMonths, reasonCodes, (delta) => addScore("age", delta));
-
-  const indoorTypes = input.preferences?.indoorTypes;
-  if (indoorTypes?.length) {
-    if (indoorTypes.includes(place.indoorType as never)) {
-      addScore("preferences", 5);
-      reasonCodes.add("INDOOR_TYPE_MATCH");
-    } else if (place.indoorType === "unknown") {
-      reasonCodes.add("INDOOR_TYPE_UNKNOWN");
-    } else {
-      addScore("preferences", -4);
-      reasonCodes.add("INDOOR_TYPE_MISMATCH");
+  if (mode.includeMatch) {
+    if (input.primaryCategories?.includes(place.primaryCategory)) {
+      addScore("match", 6);
+      reasonCodes.add("CATEGORY_MATCH");
     }
+
+    const requestedTags = new Set(input.tags ?? []);
+    const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
+    if (matchedTags.length > 0) {
+      addScore("match", Math.min(4, matchedTags.length * 1.5));
+      reasonCodes.add("TAG_MATCH");
+    }
+    applyTaxonomySignal(place.taxonomy, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
   }
 
-  applyTriStatePreference("parkingAvailable", "PARKING", place.parkingAvailable, input, reasonCodes, (delta) => addScore("preferences", delta));
-  applyTriStatePreference("strollerFriendly", "STROLLER", place.strollerFriendly, input, reasonCodes, (delta) => addScore("preferences", delta));
-  applyTriStatePreference("nursingRoom", "NURSING_ROOM", place.nursingRoom, input, reasonCodes, (delta) => addScore("preferences", delta));
-  applyTriStatePreference("kidsToilet", "KIDS_TOILET", place.kidsToilet, input, reasonCodes, (delta) => addScore("preferences", delta));
-  applyTriStatePreference("babyChair", "BABY_CHAIR", place.babyChair, input, reasonCodes, (delta) => addScore("preferences", delta));
+  if (mode.includeAge) {
+    applyAgeSignal(place, input.childAgeMonths, reasonCodes, (delta) => addScore("age", delta));
+  }
 
-  applyOpeningHoursSignal(place.openingHours, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
+  if (mode.includePreferences) {
+    const indoorTypes = input.preferences?.indoorTypes;
+    if (indoorTypes?.length) {
+      if (indoorTypes.includes(place.indoorType as never)) {
+        addScore("preferences", 5);
+        reasonCodes.add("INDOOR_TYPE_MATCH");
+      } else if (place.indoorType === "unknown") {
+        reasonCodes.add("INDOOR_TYPE_UNKNOWN");
+      } else {
+        addScore("preferences", -4);
+        reasonCodes.add("INDOOR_TYPE_MISMATCH");
+      }
+    }
+
+    applyTriStatePreference("parkingAvailable", "PARKING", place.parkingAvailable, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("strollerFriendly", "STROLLER", place.strollerFriendly, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("nursingRoom", "NURSING_ROOM", place.nursingRoom, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("kidsToilet", "KIDS_TOILET", place.kidsToilet, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("babyChair", "BABY_CHAIR", place.babyChair, input, reasonCodes, (delta) => addScore("preferences", delta));
+  }
+
+  if (mode.includeOpeningHours) {
+    applyOpeningHoursSignal(place.openingHours, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
+  }
   applyVisitFitSignal(place.visit, input, reasonCodes, (delta) => addScore("visitFit", delta));
   applyLodgingEvidenceGate(place, reasonCodes, (delta) => addScore("confidence", delta));
 

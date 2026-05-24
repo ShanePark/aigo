@@ -45,7 +45,7 @@ export function SearchResultTrustBadges({ openingHoursSummary, recommendationRea
 
   return createElement(
     "div",
-    { "aria-label": "출처와 추천 확인 상태", className: "trust-row" },
+    { "aria-label": "출처와 관련도 확인 상태", className: "trust-row" },
     badges.map((badge) =>
       createElement(
         "span",
@@ -164,7 +164,7 @@ function recommendationReadinessBadges(readiness: SearchResultBadgeRecommendatio
   if (!readiness.readyForWeekendRecommendation && badges.length === 0) {
     badges.push({
       key: "recommendation-readiness-gap",
-      label: "추천 확인 필요",
+      label: "관련도 확인 필요",
       title: readiness.agentSummary,
       tone: "warning"
     });

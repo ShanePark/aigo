@@ -6,10 +6,13 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
+import { PlaceScoreDialog } from "@/app/places/place-score-dialog";
 import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLabel } from "@/lib/pricing";
+import { describeReasonCodes } from "@/lib/reasons";
+import { scorePlaceIntrinsic } from "@/lib/scoring";
 
 type PlaceDetailProps = {
   params: Promise<{
@@ -58,6 +61,26 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const familySignalChips = detailFamilySignalChips(place);
   const visitSignalChips = detailVisitSignalChips(place);
   const playFeatures = playFeatureEntries(place.playFeatures);
+  const placeQualityScore = scorePlaceIntrinsic({
+    primaryCategory: place.primaryCategory,
+    tags: place.tags,
+    dataConfidence: place.dataConfidence,
+    scoring: place.scoring,
+    minRecommendedAgeMonths: place.recommendedAgeMonths.min,
+    maxRecommendedAgeMonths: place.recommendedAgeMonths.max,
+    indoorType: place.facilities.indoorType,
+    parkingAvailable: place.facilities.parkingAvailable,
+    strollerFriendly: place.facilities.strollerFriendly,
+    nursingRoom: place.facilities.nursingRoom,
+    diaperChangingTable: place.facilities.diaperChangingTable,
+    kidsToilet: place.facilities.kidsToilet,
+    elevator: place.facilities.elevator,
+    babyChair: place.facilities.babyChair,
+    foodAllowed: place.facilities.foodAllowed,
+    visit: place.visit,
+    taxonomy: place.taxonomy
+  });
+  const placeQualityReasons = describeReasonCodes(placeQualityScore.reasonCodes);
 
   return (
     <div className="page detail-page">
@@ -69,7 +92,17 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             <p className="category" title={place.primaryCategory}>
               {categoryLabel(place.primaryCategory)}
             </p>
-            <h1>{place.name}</h1>
+            <div className="detail-title-row">
+              <h1>{place.name}</h1>
+              <PlaceScoreDialog
+                breakdown={placeQualityScore.scoreBreakdown}
+                rationale={place.scoring.placeScoreRationale}
+                reasons={placeQualityReasons}
+                score={placeQualityScore.score}
+                storedPlaceScore={place.scoring.placeScore}
+                updatedAt={place.scoring.scoreUpdatedAt}
+              />
+            </div>
           </div>
         </div>
       </header>

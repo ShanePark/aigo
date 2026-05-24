@@ -3978,7 +3978,7 @@ export function buildSearchRecommendationReadiness(
     agentSummary:
       gapList.length === 0
         ? "운영, 예약, 이미지 핵심 신호가 갖춰져 바로 비교 후보로 사용할 수 있습니다."
-        : `핵심 확인값 ${gapList.length}개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.`
+        : `핵심 확인값 ${gapList.length}개가 비어 있어 검색 결과 문구에 확인 필요 사유를 함께 표시해야 합니다.`
   };
 }
 

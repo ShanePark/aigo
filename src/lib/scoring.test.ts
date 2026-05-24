@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scorePlace } from "@/lib/scoring";
+import { scorePlace, scorePlaceIntrinsic } from "@/lib/scoring";
 import type { SearchPlacesInput } from "@/lib/schemas";
 import { emptyPlaceTaxonomy } from "@/lib/taxonomy";
 
@@ -21,6 +21,60 @@ const baseInput: SearchPlacesInput = {
 };
 
 describe("scorePlace", () => {
+  it("scores place quality without search relevance inputs", () => {
+    const shared = {
+      primaryCategory: "park",
+      tags: ["children_playground"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 120,
+      indoorType: "outdoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "yes",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "partial",
+      distanceKm: 1,
+      visit: {
+        averageStayMinutes: 90,
+        parentEffortLevel: 2,
+        childEngagementLevel: 5,
+        rainyDayScore: 1,
+        hotDayScore: 3,
+        coldDayScore: 2
+      },
+      scoring: {
+        placeScore: 8.8,
+        placeScoreRationale: "놀이시설과 주차 근거가 강한 야외 놀이터.",
+        externalRatingScore: null,
+        externalReviewCount: null,
+        searchEvidenceScore: null,
+        scoreSignals: {},
+        scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+      }
+    };
+
+    const intrinsic = scorePlaceIntrinsic(shared);
+    const search = scorePlace(shared, {
+      ...baseInput,
+      query: "대전 모래놀이 놀이터",
+      primaryCategories: ["park"],
+      taxonomy: { mode: "soft", activityTypes: ["sand_play"] }
+    });
+
+    expect(intrinsic.reasonCodes).toContain("PLACE_SCORE_HIGH");
+    expect(intrinsic.reasonCodes).toContain("PARKING_YES");
+    expect(intrinsic.reasonCodes).not.toContain("CATEGORY_MATCH");
+    expect(intrinsic.reasonCodes).not.toContain("DISTANCE_NEAR");
+    expect(intrinsic.score).toBeGreaterThan(75);
+    expect(intrinsic.scoreBreakdown.match).toBe(0);
+    expect(intrinsic.scoreBreakdown.distance).toBe(0);
+    expect(search.score).not.toBe(intrinsic.score);
+  });
+
   it("uses requested taxonomy facets as soft match signals", () => {
     const input = {
       ...baseInput,

@@ -42,7 +42,7 @@ describe("search result trust badges", () => {
 
     expect(html).toContain("출처 없음");
     expect(html).toContain("확인일 없음");
-    expect(html).toContain("출처와 추천 확인 상태");
+    expect(html).toContain("출처와 관련도 확인 상태");
   });
 
   it("marks stale public-listing records as needing recheck", () => {
@@ -80,7 +80,7 @@ describe("search result trust badges", () => {
         structuredDataGaps: []
       },
       {
-        agentSummary: "핵심 확인값 3개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.",
+        agentSummary: "핵심 확인값 3개가 비어 있어 검색 결과 문구에 확인 필요 사유를 함께 표시해야 합니다.",
         blockingGaps: ["reservationRequired", "sessionBased", "sameDayAvailabilityKnown", "primaryImage"],
         cautionNotes: ["유료 가능성이 높은 장소라 가격이나 회차 정보를 별도로 확인해야 합니다."],
         readinessMode: "familyWeekend",
@@ -106,7 +106,7 @@ describe("search result trust badges", () => {
         structuredDataGaps: []
       },
       {
-        agentSummary: "핵심 확인값 4개가 비어 있어 추천 문구에 확인 필요 사유를 함께 표시해야 합니다.",
+        agentSummary: "핵심 확인값 4개가 비어 있어 검색 결과 문구에 확인 필요 사유를 함께 표시해야 합니다.",
         blockingGaps: ["playFeatures", "strollerFriendly", "parkingAvailable", "kidsToilet", "primaryImage"],
         cautionNotes: ["놀이기구, 그늘, 울타리, 바닥, 화장실 근접성 같은 놀이터 장비 정보가 부족해 가까운 후보라도 현장 검증이 필요합니다."],
         readinessMode: "familyWeekend",
