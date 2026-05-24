@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   AIGO_SESSION_COOKIE,
+  cleanupExpiredAuthSessions,
   expiredSessionCookieOptions,
   hashSessionToken,
   isDevLoginEnabled,
@@ -17,8 +18,22 @@ function setNodeEnv(value: string | undefined) {
   (process.env as Record<string, string | undefined>).NODE_ENV = value;
 }
 
+function fakeExecutor(options: { reject?: boolean } = {}) {
+  const calls: string[] = [];
+  const executor = (async (strings: TemplateStringsArray) => {
+    calls.push(strings.join("?").replace(/\s+/g, " ").trim());
+    if (options.reject) {
+      throw new Error("database unavailable");
+    }
+    return [];
+  }) as never;
+
+  return { calls, executor };
+}
+
 describe("app auth helpers", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     setNodeEnv(originalNodeEnv);
     if (originalDevLoginEnabled === undefined) {
       delete process.env.AIGO_DEV_LOGIN_ENABLED;
@@ -94,5 +109,22 @@ describe("app auth helpers", () => {
       sameSite: "lax",
       secure: true
     });
+  });
+
+  it("cleans up expired auth sessions", async () => {
+    const { calls, executor } = fakeExecutor();
+
+    await cleanupExpiredAuthSessions(executor);
+
+    expect(calls[0]).toContain("delete from auth_sessions");
+    expect(calls[0]).toContain("expires_at <= now()");
+  });
+
+  it("does not throw when expired session cleanup fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { executor } = fakeExecutor({ reject: true });
+
+    await expect(cleanupExpiredAuthSessions(executor)).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith("Failed to clean up expired auth sessions", expect.any(Error));
   });
 });

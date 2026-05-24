@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
+import type postgres from "postgres";
 
 import { ApiError } from "@/lib/errors";
 
@@ -22,6 +23,8 @@ type UserRow = {
   displayName: string;
   role: string;
 };
+
+type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export function isDevLoginEnabled(env: NodeJS.ProcessEnv = process.env) {
   if (env.NODE_ENV !== "production") {
@@ -70,12 +73,25 @@ export async function createDevLoginSession() {
   const expiresAt = sessionExpiresAt();
   const pg = await getPg();
 
+  await cleanupExpiredAuthSessions(pg);
+
   await pg`
     insert into auth_sessions (user_id, token_hash, expires_at)
     values (${user.id}, ${tokenHash}, ${expiresAt.toISOString()})
   `;
 
   return { token, expiresAt, user };
+}
+
+export async function cleanupExpiredAuthSessions(executor: SqlExecutor) {
+  try {
+    await executor`
+      delete from auth_sessions
+      where expires_at <= now()
+    `;
+  } catch (error) {
+    console.warn("Failed to clean up expired auth sessions", error);
+  }
 }
 
 export async function currentUserFromSessionToken(token: string | undefined | null) {
