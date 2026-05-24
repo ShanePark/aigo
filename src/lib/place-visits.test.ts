@@ -156,19 +156,40 @@ describe("place visit photo privacy", () => {
     expect(calls[0]).toContain("ph.visibility = 'public' and v.visibility = 'public'");
   });
 
+  it("returns the current photo count after updating a visit", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
+      [{ ...baseVisitRow, visibility: "public", rating: 4, photoCount: 0 }],
+      [{ photoCount: 2 }]
+    ]);
+
+    await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { rating: 4 }, executor)).resolves.toMatchObject({
+      item: {
+        photoCount: 2,
+        rating: 4,
+        visibility: "public"
+      }
+    });
+    expect(calls[2]).toContain('select count(*)::int as "photoCount"');
+    expect(calls[2]).toContain("from place_visit_photos");
+  });
+
   it("privatizes existing photos when a visit is changed to private", async () => {
     const { calls, executor } = fakeExecutor([
       [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
       [{ ...baseVisitRow, visibility: "private", photoCount: 0 }],
-      []
+      [],
+      [{ photoCount: 2 }]
     ]);
 
     await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { visibility: "private" }, executor)).resolves.toMatchObject({
       item: {
+        photoCount: 2,
         visibility: "private"
       }
     });
     expect(calls[2]).toContain("update place_visit_photos");
     expect(calls[2]).toContain("set visibility = 'private'");
+    expect(calls[3]).toContain('select count(*)::int as "photoCount"');
   });
 });

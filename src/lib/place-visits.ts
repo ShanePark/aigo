@@ -268,7 +268,13 @@ export async function updatePlaceVisit(visitId: string, userId: string, input: U
     `;
   }
 
-  return { item: placeVisitItemFromRow(rows[0], userId) };
+  const photoCountRows = await executor<{ photoCount: number | string }[]>`
+    select count(*)::int as "photoCount"
+    from place_visit_photos
+    where visit_id = ${visitId}
+  `;
+
+  return { item: placeVisitItemFromRow({ ...rows[0], photoCount: photoCountRows[0]?.photoCount ?? 0 }, userId) };
 }
 
 export async function listMyVisitLog(userId: string, executor: SqlExecutor = pg) {
