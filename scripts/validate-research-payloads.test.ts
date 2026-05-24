@@ -336,6 +336,54 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("accepts structured subfacility sweep queries, findings, and source URLs", () => {
+    const result = validateResearchPayload({
+      ...validPayload({
+        primaryCategory: "museum",
+        externalRefs: {
+          ...validPayload().externalRefs,
+          subfacilitySweep: {
+            checkedAt: "2026-05-25T05:26:30+09:00",
+            queries: [
+              "국립항공박물관 어린이 체험",
+              "국립항공박물관 체험 프로그램 예약",
+              "국립항공박물관 수유실 유모차",
+              "국립항공박물관 주차",
+              "국립항공박물관 전망대 아이랑"
+            ],
+            findings: [
+              "Official experience page confirms hands-on aviation program fit.",
+              "Parent review evidence supports children airport experience and airport runway viewing value.",
+              "Reservation/session friction remains partial because popular experiences have limited capacity."
+            ],
+            sourceUrls: ["https://www.aviation.or.kr/contents.do?menuno=311&tabno=4", "https://example.com/parent-review"]
+          }
+        },
+        parentNotes: "어린이 체험 프로그램은 예약과 정원 확인이 필요하고, 주차 혼잡 가능성이 있다.",
+        sources: [
+          {
+            sourceType: "official_site",
+            title: "Official place page",
+            url: "https://example.com/place",
+            summary: "Official page confirms child experience program details and parking.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          },
+          {
+            sourceType: "public_blog",
+            title: "Parent visit note",
+            url: "https://example.com/parent-review",
+            summary: "Parent-facing note describes child experience fit and stroller access.",
+            checkedAt: "2026-05-23T14:00:00.000+09:00"
+          }
+        ]
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_subfacility_sweep_missing");
+    expect(result.issues.map((issue) => issue.code)).not.toContain("workflow_subfacility_sweep_unstructured");
+  });
+
   it("warns when subfacility sweep findings are not reflected in structured fields", () => {
     const result = validateResearchPayload({
       ...validPayload({
@@ -362,7 +410,7 @@ describe("research payload workflow lint", () => {
             sourceType: "public_blog",
             title: "Parent visit note",
             url: "https://example.com/parent-review",
-            summary: "Parent-facing note describes stroller access and toddler fit.",
+            summary: "Parent-facing note describes general toddler fit.",
             checkedAt: "2026-05-23T14:00:00.000+09:00"
           }
         ]

@@ -64,16 +64,35 @@ const subfacilitySweepTerms = [
   "놀이터",
   "실내놀이터",
   "키즈카페",
+  "어린이",
   "어린이자료실",
+  "체험",
+  "프로그램",
+  "예약",
   "도서관",
   "장난감",
   "수유실",
+  "유모차",
   "기저귀",
   "유아화장실",
   "주차",
   "입장료",
   "무료",
-  "시설안내"
+  "시설안내",
+  "전망대",
+  "playground",
+  "kids",
+  "child",
+  "experience",
+  "program",
+  "reservation",
+  "stroller",
+  "nursing",
+  "diaper",
+  "parking",
+  "fee",
+  "free",
+  "facility guide"
 ];
 const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
 const personalizedPublicTextPattern =
@@ -396,7 +415,7 @@ function collectRichPublicDestinationSweepIssues(payload: CreatePlaceInput, issu
       warning(
         "externalRefs.subfacilitySweep",
         "workflow_subfacility_sweep_missing",
-        "rich public destinations should record a subfacility sweep with exact-place child/logistics queries such as playground, kids cafe, library, nursing room, diaper, parking, fee, free, and facility-guide terms"
+        "rich public destinations should record externalRefs.subfacilitySweep with exact-place child/logistics queries such as playground, kids cafe, child experience/program, stroller, nursing room, diaper, parking, fee, free, and facility-guide terms"
       )
     );
     return;
@@ -417,7 +436,15 @@ function hasSubfacilitySweepChecklist(sweep: Record<string, unknown> | null) {
   if (!sweep) return false;
 
   const terms = matchingSubfacilityTerms(sweep);
-  return terms.length >= 3 || hasNotFoundParentReviewEvidence(sweep);
+  return terms.length >= 3 || (hasStructuredSubfacilitySweep(sweep) && terms.length >= 2) || hasNotFoundParentReviewEvidence(sweep);
+}
+
+function hasStructuredSubfacilitySweep(sweep: Record<string, unknown>) {
+  const hasQueries =
+    hasNonEmptyStringList(sweep.attemptedQueries) || hasNonEmptyStringList(sweep.searchQueries) || hasNonEmptyStringList(sweep.queries);
+  const hasFindings = hasNonEmptyStringList(sweep.findings) || hasNonEmptyStringList(sweep.results);
+  const hasSourceUrls = hasNonEmptyStringList(sweep.sourceUrls) || hasParentReviewUrlEvidence(sweep.sources);
+  return hasQueries && (hasFindings || hasSourceUrls);
 }
 
 function hasSubfacilityStructuredEvidence(payload: CreatePlaceInput) {
