@@ -82,6 +82,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - For a targeted local slice, do not call research complete just because 3-5 easy create-ready candidates were found. First produce a broad candidate inventory across categories, then dedupe and deep-dive the strongest candidates. Record skipped/held candidates and why they were not registration-ready so later agents can continue instead of restarting from scratch.
    - Start with search-result snippets, official directory/list pages, public facility lists, parent review results, or category roundup pages to collect place names, branch names, rough area, and likely source URLs.
    - Before opening many pages for a candidate, query AiGo for duplicates and exact-name matches. If a strong existing record is found, stage it as `update` only when the shallow source shows a real data gap; otherwise record `skip_existing`.
+   - When a regional slice has candidate names spread across several old research files or waves, run `pnpm tsx scripts/audit-region-candidates.ts --region=<region> --candidate=<name> --candidate=<name>` before deep research. The helper performs read-only exact-name lookup, duplicate checks, detail/version reads, image-health lookup, and source freshness summaries so agents can separate registered, update-ready, duplicate-review, and missing candidates without reopening every source page.
    - Deep-dive only candidates that are likely missing, likely stale, or have high-value missing family logistics. Deep research should collect address, coordinates with `coordinateProvenance`, family signals, source summaries, and image provenance.
    - Maintain a visited-page ledger in the active `agent-research/` context or slice file. Record source URLs and search queries already used so later agents avoid repeating the same page unless they are resolving a specific conflict or checking freshness.
 
@@ -163,6 +164,12 @@ import { exactNameSearchReadOnly } from "./lib/aigo-search";
 
 const { items, meta } = await exactNameSearchReadOnly("국립광주과학관");
 console.log({ count: meta?.count, firstId: items[0]?.id });
+```
+
+Read-only regional candidate audit helper example:
+
+```bash
+pnpm tsx scripts/audit-region-candidates.ts --region=부천시 --candidate="스타필드 시티 부천" --candidate="웅진플레이도시"
 ```
 
 ## API Payload Rules
