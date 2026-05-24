@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { Gauge, X } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import type { ReasonMetadata } from "@/lib/reasons";
 import type { ScoreBreakdown } from "@/lib/scoring";
@@ -17,7 +18,7 @@ type PlaceScoreDialogProps = {
 
 const componentLabels: Array<[keyof ScoreBreakdown, string]> = [
   ["placeQuality", "장소 자체 평가"],
-  ["externalEvidence", "외부/검색 근거"],
+  ["externalEvidence", "출처 근거"],
   ["preferences", "가족 편의시설"],
   ["visitFit", "방문 경험 신호"],
   ["confidence", "데이터 신뢰도"]
@@ -26,18 +27,26 @@ const componentLabels: Array<[keyof ScoreBreakdown, string]> = [
 export function PlaceScoreDialog({ breakdown, rationale, reasons, score, storedPlaceScore, updatedAt }: PlaceScoreDialogProps) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
+  const scoreStyle = { "--score-value": `${score * 3.6}deg` } as CSSProperties;
 
   return (
     <>
       <button
         className={`detail-score-button ${scoreTone(score)}`}
+        style={scoreStyle}
         type="button"
+        aria-label={`장소 점수 ${score}점 설명 보기`}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
-        <span>점수</span>
-        <strong>{score}</strong>
+        <span className="detail-score-ring">
+          <strong>{score}</strong>
+        </span>
+        <span className="detail-score-copy">
+          <span>점수</span>
+          <small>보기</small>
+        </span>
       </button>
 
       {open ? (

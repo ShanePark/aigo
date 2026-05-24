@@ -177,7 +177,17 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             <dt>장소 평가</dt>
             <dd>{tenPointScoreLabel(place.scoring.placeScore)}</dd>
             <dt>태그</dt>
-            <dd>{place.tags.join(", ") || "없음"}</dd>
+            <dd>
+              {place.tags.length > 0 ? (
+                <div className="detail-tag-list">
+                  {place.tags.slice(0, 12).map((tag) => (
+                    <span key={tag}>{tagLabel(tag)}</span>
+                  ))}
+                </div>
+              ) : (
+                "없음"
+              )}
+            </dd>
           </dl>
         </div>
 
@@ -836,6 +846,24 @@ function confidenceLabel(value: string) {
     unknown: "미확인"
   };
   return labels[value] ?? value;
+}
+
+function tagLabel(value: string) {
+  const labels: Record<string, string> = {
+    adventure_playground: "어드벤처 놀이",
+    ballpark_adjacent: "야구장 옆",
+    children_playground: "어린이 놀이터",
+    daejeon_junggu: "대전 중구",
+    indoor_play: "실내 놀이",
+    outdoor_playground: "야외 놀이터",
+    parking: "주차",
+    photo_spot: "사진 스팟",
+    sand_play: "모래놀이",
+    stroller_walk: "유모차 산책",
+    toilet_nearby: "화장실 가까움",
+    water_play: "물놀이"
+  };
+  return labels[value] ?? value.replaceAll("_", " ");
 }
 
 function playFeatureEntries(playFeatures: Record<string, unknown>) {
