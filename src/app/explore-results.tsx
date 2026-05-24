@@ -212,7 +212,7 @@ export function ExploreResults({
 
   const handleLocationSearch = useCallback(
     (location: { lat: number; lng: number }) => {
-      const sort = "distance";
+      const sort = homeSort(activeInput.sort, activeSort);
       const nextParams = searchParamsForCurrentLocation(activeParams, location, { sort });
       const nextInput = {
         ...activeInput,
@@ -230,7 +230,7 @@ export function ExploreResults({
 
       void runClientSearch(nextInput, nextParams, "location");
     },
-    [activeInput, activeParams, runClientSearch]
+    [activeInput, activeParams, activeSort, runClientSearch]
   );
 
   const handlePage = useCallback(
@@ -270,7 +270,7 @@ export function ExploreResults({
             {compactResultCountLabel(result.meta)}
           </span>
           <div className="result-actions">
-            <SortControls activeSort={activeSort} params={activeParams} />
+            <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
             <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
@@ -561,6 +561,10 @@ function emptyStateCategoryGroups(activeCategoryGroup: string) {
 function resultLimitParam(params: Record<string, string | string[]>) {
   const requested = Number(textParam(params.limit) || RESULT_LIMIT_OPTIONS[0]);
   return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? RESULT_LIMIT_OPTIONS[0];
+}
+
+function homeSort(sort: SearchPlacesInput["sort"], fallback: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
+  return sort === "recommended" || sort === "distance" ? sort : fallback;
 }
 
 function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
