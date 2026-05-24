@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSearchInput } from "@/app/home-search-state";
+import { buildSearchInput, resultLimitParam, sortParam } from "@/app/home-search-state";
 
 describe("home search input", () => {
   it("does not apply the default radius filter to a plain text search", () => {
@@ -86,6 +86,19 @@ describe("home search input", () => {
       preferences: {
         nursingRoom: true
       }
+    });
+  });
+
+  it("uses the supported result page sizes", () => {
+    expect(resultLimitParam({})).toBe(50);
+    expect(resultLimitParam({ limit: "30" })).toBe(50);
+    expect(resultLimitParam({ limit: "100" })).toBe(100);
+  });
+
+  it("accepts rating sort for place evaluation ordering", () => {
+    expect(sortParam({ sort: "rating" })).toBe("rating");
+    expect(buildSearchInput({ sort: "rating" })).toMatchObject({
+      sort: "rating"
     });
   });
 

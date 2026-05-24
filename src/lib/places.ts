@@ -530,6 +530,12 @@ export async function searchPlaces(input: SearchPlacesInput) {
       return (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY);
     }
 
+    if (input.sort === "rating") {
+      if (b.placeQualityScore.score !== a.placeQualityScore.score) return b.placeQualityScore.score - a.placeQualityScore.score;
+      if (b.score !== a.score) return b.score - a.score;
+      return (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY);
+    }
+
     if (input.sort === "updatedAt") {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     }

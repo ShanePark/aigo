@@ -1,9 +1,9 @@
 export function searchRelevanceScoreLabel(score: number) {
-  return `검색 ${score}`;
+  return `관련도 ${score}`;
 }
 
 export function placeQualityScoreLabel(score: number) {
-  return `장소 ${score}`;
+  return `평가 ${score}`;
 }
 
 export function searchRelevanceScoreTitle(score: number) {
@@ -11,7 +11,7 @@ export function searchRelevanceScoreTitle(score: number) {
 }
 
 export function placeQualityScoreTitle(score: number) {
-  return `장소 자체 품질 점수 ${score}점`;
+  return `장소 자체 평가 점수 ${score}점`;
 }
 
 export function resultScoreRowLabel(searchScore: number, placeQualityScore?: number | null) {

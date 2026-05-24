@@ -1122,6 +1122,14 @@ h3 {
   padding: 3px;
 }
 
+.sort-control-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 7px 0 9px;
+  white-space: nowrap;
+}
+
 .sort-option,
 .limit-option {
   align-items: center;
@@ -3993,6 +4001,10 @@ dd {
   .limit-control {
     justify-content: space-between;
     width: 100%;
+  }
+
+  .sort-control-label {
+    flex: 0 0 auto;
   }
 
   .sort-option,

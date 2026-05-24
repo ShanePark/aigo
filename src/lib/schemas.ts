@@ -395,7 +395,7 @@ const searchPlacesBaseSchema = z.object({
       babyChair: z.boolean().optional()
     })
     .optional(),
-  sort: z.enum(["recommended", "distance", "updatedAt"]).default("recommended"),
+  sort: z.enum(["recommended", "distance", "rating", "updatedAt"]).default("recommended"),
   projection: z.enum(["full", "compact"]).optional(),
   coursePlan: z.boolean().optional(),
   limit: z.number().int().min(1).max(100).default(20),

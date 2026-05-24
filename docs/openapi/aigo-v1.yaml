@@ -1109,8 +1109,9 @@ components:
           description: Controls whether `preferences` are soft ranking signals or required filters. In `required` mode, positive search filter preferences require `yes` or `partial` evidence and indoorTypes must match.
         sort:
           type: string
-          enum: [recommended, distance, updatedAt]
+          enum: [recommended, distance, rating, updatedAt]
           default: recommended
+          description: Sort order. `recommended` is shown as 관련도 and ranks by contextual search relevance. `distance` is shown as 거리 and ranks nearest first. `rating` is shown as 평가 and ranks by the source-backed place evaluation score, not user visit star ratings. `updatedAt` is for operational/API use.
         projection:
           type: string
           enum: [full, compact]
@@ -1644,7 +1645,7 @@ components:
           type: integer
           minimum: 0
           maximum: 100
-          description: Runtime search relevance score. This changes with query, origin, filters, visit context, child ages, and planned time.
+          description: Runtime search relevance score shown as 관련도. This changes with query, origin, filters, visit context, child ages, and planned time.
         placeQualityScore:
           $ref: "#/components/schemas/PlaceQualityScore"
         scoreBreakdown:
@@ -1743,7 +1744,7 @@ components:
           type: integer
           minimum: 0
           maximum: 100
-          description: Runtime search relevance score. This changes with query, origin, filters, visit context, child ages, and planned time.
+          description: Runtime search relevance score shown as 관련도. This changes with query, origin, filters, visit context, child ages, and planned time.
         placeQualityScore:
           $ref: "#/components/schemas/PlaceQualityScore"
         reasonCodes:
@@ -2414,7 +2415,7 @@ components:
           nullable: true
     PlaceQualityScore:
       type: object
-      description: Objective 0-100 place-quality score for the place itself, excluding search relevance inputs such as query match, distance, filters, visit context, child ages, and current opening-hours timing.
+      description: Objective 0-100 place-quality score shown as 평가 for the place itself, excluding search relevance inputs such as query match, distance, filters, visit context, child ages, and current opening-hours timing.
       required: [score, scoreBreakdown, reasonCodes, reasons, storedScore, rationale, updatedAt]
       properties:
         score:

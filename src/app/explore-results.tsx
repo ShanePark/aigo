@@ -7,7 +7,7 @@ import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, Sear
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
-import { buildSearchInput } from "@/app/home-search-state";
+import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import {
   placeQualityScoreLabel,
   placeQualityScoreTitle,
@@ -37,7 +37,6 @@ const DEFAULT_ORIGIN = {
   lng: 127.8,
   label: "전국 지도 중심"
 };
-const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
 const TAG_LABELS: Record<string, string> = {
   babyChair: "아기의자",
   childrenRoom: "어린이자료실",
@@ -98,7 +97,7 @@ export type CategoryGroupSummary = {
 type ExploreResultsProps = {
   activeCategoryGroup: string;
   activeCategoryGroupLabel: string;
-  activeSort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">;
+  activeSort: HomeSearchSort;
   categoryGroups: Record<string, CategoryGroupSummary>;
   initialInput: SearchPlacesInput;
   initialParams: Record<string, string | string[]>;
@@ -538,16 +537,20 @@ function SortControls({
   activeSort,
   params
 }: {
-  activeSort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">;
+  activeSort: HomeSearchSort;
   params: Record<string, string | string[]>;
 }) {
   return (
     <nav className="sort-control" aria-label="목록 정렬">
+      <span className="sort-control-label">정렬기준</span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
-        관련도순
+        관련도
       </Link>
       <Link className={`sort-option ${activeSort === "distance" ? "is-active" : ""}`} href={sortHref(params, "distance")}>
-        거리순
+        거리
+      </Link>
+      <Link className={`sort-option ${activeSort === "rating" ? "is-active" : ""}`} href={sortHref(params, "rating")}>
+        평가
       </Link>
     </nav>
   );
@@ -738,8 +741,8 @@ function visitContextLabel(context: NonNullable<SearchPlacesInput["visitContext"
   return labels[context];
 }
 
-function homeSort(sort: SearchPlacesInput["sort"], fallback: Extract<SearchPlacesInput["sort"], "recommended" | "distance">) {
-  return sort === "recommended" || sort === "distance" ? sort : fallback;
+function homeSort(sort: SearchPlacesInput["sort"], fallback: HomeSearchSort) {
+  return sort === "recommended" || sort === "distance" || sort === "rating" ? sort : fallback;
 }
 
 function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
@@ -905,7 +908,7 @@ function categoryGroupHref(params: Record<string, string | string[]>, group: str
   return { pathname: "/", query };
 }
 
-function sortHref(params: Record<string, string | string[]>, sort: Extract<SearchPlacesInput["sort"], "recommended" | "distance">): UrlObject {
+function sortHref(params: Record<string, string | string[]>, sort: HomeSearchSort): UrlObject {
   const query = queryWithout(params, ["page", "offset", "sort", "visitContext"]);
   query.sort = sort;
   return { pathname: "/", query };

@@ -102,11 +102,17 @@ Real place data should be created and updated through the AiGo API, not direct d
 
 ## Search And Scoring
 
-Search uses PostGIS distance filtering plus text/tag/play-feature matching and a scoring layer split between [`src/lib/scoring.ts`](src/lib/scoring.ts) and [`src/lib/recommendation-scoring.ts`](src/lib/recommendation-scoring.ts). The visible 0-100 search score is contextual, not a permanent rating for the place. It blends stored source-backed place quality with the user's current query, distance, visit context, preferences, and data readiness.
+Search uses PostGIS distance filtering plus text/tag/play-feature matching and a scoring layer split between [`src/lib/scoring.ts`](src/lib/scoring.ts) and [`src/lib/recommendation-scoring.ts`](src/lib/recommendation-scoring.ts). The visible 0-100 `관련도` score is contextual, not a permanent rating for the place. It blends stored source-backed place quality with the user's current query, distance, visit context, preferences, and data readiness.
+
+Search result sorting uses explicit user-facing names:
+
+- `관련도` (`sort=recommended`) ranks by the current contextual relevance score.
+- `거리` (`sort=distance`) ranks by distance from the active origin.
+- `평가` (`sort=rating`) ranks by the source-backed place evaluation score shown on cards. This is the place's objective quality evaluation, not user visit star ratings.
 
 Stored objective place scoring is separate from user ratings:
 
-- `placeScore` is an agent-maintained 0-10 family-outing quality score backed by sources and rationale. It is shown on detail pages and contributes to search ranking through the `placeQuality` component.
+- `placeScore` is an agent-maintained 0-10 family-outing quality score backed by sources and rationale. It is shown in the UI as `평가`, appears on detail pages, and contributes to search ranking through the `placeQuality` component.
 - `externalRatingScore`, `externalReviewCount`, and `searchEvidenceScore` capture citeable third-party review/prominence evidence and feed the `externalEvidence` component.
 - `scoreSignals` stores structured scoring evidence such as provider ratings, source observations, conflicts, caps, facility scale, free-admission evidence, and freshness notes.
 - User visit ratings are stored in `place_visits` and returned as `userRatingSummary`; they are not the same as `placeScore`.

@@ -6,8 +6,8 @@ export const DEFAULT_ORIGIN = {
   lng: 127.8,
   label: "전국 지도 중심"
 };
-export const DEFAULT_RESULT_LIMIT = 30;
-export const RESULT_LIMIT_OPTIONS = [30, 50, 100] as const;
+export const DEFAULT_RESULT_LIMIT = 50;
+export const RESULT_LIMIT_OPTIONS = [50, 100] as const;
 export const CATEGORY_GROUP_CATEGORY_FILTERS = {
   all: undefined,
   stay: ["accommodation"],
@@ -77,9 +77,11 @@ export function resultLimitParam(params: Record<string, string | string[] | unde
   return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? DEFAULT_RESULT_LIMIT;
 }
 
-export function sortParam(params: Record<string, string | string[] | undefined>): Extract<SearchPlacesInput["sort"], "recommended" | "distance"> {
+export type HomeSearchSort = Extract<SearchPlacesInput["sort"], "recommended" | "distance" | "rating">;
+
+export function sortParam(params: Record<string, string | string[] | undefined>): HomeSearchSort {
   const value = textParam(params.sort);
-  if (value === "recommended" || value === "distance") {
+  if (value === "recommended" || value === "distance" || value === "rating") {
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
