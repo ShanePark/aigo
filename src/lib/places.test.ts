@@ -31,6 +31,7 @@ import {
   routeBreakDestinationFitCapForTest,
   searchEvaluationDate,
   searchTermPatterns,
+  shoppingMallRelatedPlaceScoreAdjustmentForTest,
   suggestedExactNameQueryForTest,
   shouldUseAnyKeywordMatch,
   shouldSearchAddressForTerm
@@ -217,6 +218,35 @@ describe("place search helpers", () => {
     expect(capped.reasonCodes).toContain("ROUTE_DESTINATION_FIT_MISSING");
     expect(matched.score).toBe(43);
     expect(matched.reasonCodes).not.toContain("ROUTE_DESTINATION_FIT_MISSING");
+  });
+
+  it("de-emphasizes generic shopping malls unless related places add destination value", () => {
+    const genericMall = { name: "이마트 대전터미널점", primaryCategory: "shopping_mall", tags: ["마트"] };
+    const outletMall = { name: "현대프리미엄아울렛 대전점", primaryCategory: "shopping_mall", tags: ["아울렛"] };
+    const noRelated = shoppingMallRelatedPlaceScoreAdjustmentForTest(genericMall);
+    const childDestination = shoppingMallRelatedPlaceScoreAdjustmentForTest(genericMall, {
+      childDestinationWeight: 1,
+      supportDestinationWeight: 0,
+      meaningfulCount: 1,
+      relationTypes: ["same_building"],
+      categories: ["kids_cafe"]
+    });
+    const clusterDestination = shoppingMallRelatedPlaceScoreAdjustmentForTest(genericMall, {
+      childDestinationWeight: 2,
+      supportDestinationWeight: 1.4,
+      meaningfulCount: 3,
+      relationTypes: ["same_building", "same_site", "parent_child"],
+      categories: ["kids_cafe", "indoor_playground", "family_restaurant"]
+    });
+    const outletNoRelated = shoppingMallRelatedPlaceScoreAdjustmentForTest(outletMall);
+
+    expect(noRelated.delta).toBeLessThan(0);
+    expect(noRelated.reasonCodes).toContain("SHOPPING_MALL_BASE_DEEMPHASIZED");
+    expect(childDestination.delta).toBeGreaterThan(noRelated.delta);
+    expect(childDestination.reasonCodes).toContain("RELATED_CHILD_DESTINATION_BOOST");
+    expect(clusterDestination.delta).toBeGreaterThan(childDestination.delta);
+    expect(clusterDestination.reasonCodes).toContain("RELATED_PLACE_CLUSTER_BOOST");
+    expect(outletNoRelated.delta).toBeGreaterThan(noRelated.delta);
   });
 
   it("can restrict playground searches to actual playground evidence", () => {

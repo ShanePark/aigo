@@ -2388,6 +2388,8 @@ components:
         - visitFit
         - confidence
         - queryMatch
+        - shoppingMallBase
+        - relatedPlaces
         - total
       properties:
         baseline:
@@ -2414,6 +2416,12 @@ components:
           type: number
         queryMatch:
           type: number
+        shoppingMallBase:
+          type: number
+          description: Search-time adjustment that de-emphasizes shopping mall parent records when the mall itself is not a strong destination.
+        relatedPlaces:
+          type: number
+          description: Search-time bonus from related places, currently used to boost shopping malls with meaningful child/family destinations in the same building/site and weaker nearby clusters.
         total:
           type: integer
           minimum: 0
