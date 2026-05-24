@@ -36,10 +36,25 @@ describe("home search input", () => {
     });
   });
 
-  it("keeps category browsing within the default radius", () => {
-    expect(buildSearchInput({ categoryGroup: "kidsCafe" })).toMatchObject({
+  it("keeps kids cafe category browsing within the general local radius", () => {
+    expect(buildSearchInput({ categoryGroup: "kidsCafe", lat: "36.35", lng: "127.38" })).toMatchObject({
       filterByRadius: true,
       radiusKm: 80
+    });
+  });
+
+  it("uses category-specific default radii for distance-sensitive browsing", () => {
+    expect(buildSearchInput({ categoryGroup: "playground", lat: "36.35", lng: "127.38" })).toMatchObject({
+      filterByRadius: true,
+      radiusKm: 20
+    });
+    expect(buildSearchInput({ categoryGroup: "visit", lat: "36.35", lng: "127.38" })).toMatchObject({
+      filterByRadius: true,
+      radiusKm: 220
+    });
+    expect(buildSearchInput({ categoryGroup: "stay", lat: "36.35", lng: "127.38" })).toMatchObject({
+      filterByRadius: true,
+      radiusKm: 300
     });
   });
 

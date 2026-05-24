@@ -1,5 +1,6 @@
 import type { Place } from "@/db/schema";
 import { seoulWallClockParts } from "@/lib/korea-time";
+import { distanceSignalForPlace } from "@/lib/recommendation-scoring";
 import type { SearchPlacesInput } from "@/lib/schemas";
 import { taxonomyFacetFamilies, type PlaceTaxonomy, type TaxonomyFacetFamily } from "@/lib/taxonomy";
 
@@ -65,17 +66,6 @@ export type ScoreBreakdown = Record<ScoreComponent, number> & {
 
 type ScoreOptions = {
   now?: Date;
-};
-
-type DistanceBand = {
-  maxKm: number;
-  delta: number;
-  reasonCode: "DISTANCE_NEAR" | "DISTANCE_REASONABLE" | "DISTANCE_DAY_TRIP" | "DISTANCE_FAR";
-};
-
-type DistanceProfile = {
-  id: "neighborhoodPlay" | "localMeal" | "kidsCafe" | "localFallback" | "destination" | "stayDestination";
-  bands: DistanceBand[];
 };
 
 const baselineScore = 24;
@@ -167,94 +157,17 @@ function applyDistanceSignal(
 ) {
   if (!input.origin || typeof place.distanceKm !== "number") return;
 
-  const distanceKm = place.distanceKm;
-  const profile = distanceProfileFor(place, input);
-  const band = profile.bands.find((candidate) => distanceKm <= candidate.maxKm) ?? profile.bands[profile.bands.length - 1];
-  addScore(band.delta);
-  reasonCodes.add(band.reasonCode);
-}
-
-const distanceProfiles: Record<DistanceProfile["id"], DistanceProfile> = {
-  neighborhoodPlay: {
-    id: "neighborhoodPlay",
-    bands: [
-      { maxKm: 1.5, delta: 14, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 3, delta: 12, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 5, delta: 7, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 8, delta: 2, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 15, delta: -6, reasonCode: "DISTANCE_FAR" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -16, reasonCode: "DISTANCE_FAR" }
-    ]
-  },
-  localMeal: {
-    id: "localMeal",
-    bands: [
-      { maxKm: 3, delta: 12, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 6, delta: 8, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 10, delta: 3, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 15, delta: -2, reasonCode: "DISTANCE_FAR" },
-      { maxKm: 25, delta: -8, reasonCode: "DISTANCE_FAR" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -15, reasonCode: "DISTANCE_FAR" }
-    ]
-  },
-  kidsCafe: {
-    id: "kidsCafe",
-    bands: [
-      { maxKm: 3, delta: 11, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 8, delta: 7, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 15, delta: 3, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 30, delta: -2, reasonCode: "DISTANCE_FAR" },
-      { maxKm: 50, delta: -6, reasonCode: "DISTANCE_FAR" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -12, reasonCode: "DISTANCE_FAR" }
-    ]
-  },
-  localFallback: {
-    id: "localFallback",
-    bands: [
-      { maxKm: 3, delta: 9, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 8, delta: 6, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 15, delta: 1, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 30, delta: -4, reasonCode: "DISTANCE_FAR" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -10, reasonCode: "DISTANCE_FAR" }
-    ]
-  },
-  destination: {
-    id: "destination",
-    bands: [
-      { maxKm: 8, delta: 2, reasonCode: "DISTANCE_NEAR" },
-      { maxKm: 30, delta: 5, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 80, delta: 4, reasonCode: "DISTANCE_DAY_TRIP" },
-      { maxKm: 150, delta: 0, reasonCode: "DISTANCE_DAY_TRIP" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -5, reasonCode: "DISTANCE_FAR" }
-    ]
-  },
-  stayDestination: {
-    id: "stayDestination",
-    bands: [
-      { maxKm: 30, delta: 1, reasonCode: "DISTANCE_REASONABLE" },
-      { maxKm: 80, delta: 3, reasonCode: "DISTANCE_DAY_TRIP" },
-      { maxKm: 180, delta: 2, reasonCode: "DISTANCE_DAY_TRIP" },
-      { maxKm: 300, delta: 0, reasonCode: "DISTANCE_DAY_TRIP" },
-      { maxKm: Number.POSITIVE_INFINITY, delta: -4, reasonCode: "DISTANCE_FAR" }
-    ]
-  }
-};
-
-function distanceProfileFor(place: ScoreablePlace, input: SearchPlacesInput): DistanceProfile {
-  const category = place.primaryCategory;
-  const tags = new Set(place.tags);
-
-  if (category === "accommodation") return distanceProfiles.stayDestination;
-  if (isNeighborhoodPlayIntent(category, tags, input)) return distanceProfiles.neighborhoodPlay;
-  if (category === "family_restaurant" && tags.has("놀이방식당")) return distanceProfiles.localMeal;
-  if (category === "kids_cafe" || category === "indoor_playground") return distanceProfiles.kidsCafe;
-  if (isDestinationCategory(category) || (category === "park" && (input.visitContext === "dayTrip" || input.visitContext === "weekendHalfDay"))) {
-    return distanceProfiles.destination;
-  }
-  if (["family_cafe", "shopping_mall", "library", "toy_library", "toy_store", "family_restaurant"].includes(category)) {
-    return distanceProfiles.localFallback;
-  }
-  return distanceProfiles.destination;
+  const signal = distanceSignalForPlace(
+    {
+      primaryCategory: place.primaryCategory,
+      tags: place.tags,
+      distanceKm: place.distanceKm
+    },
+    input
+  );
+  if (!signal.reasonCode) return;
+  addScore(signal.delta);
+  reasonCodes.add(signal.reasonCode);
 }
 
 function emptyBreakdown(): Record<ScoreComponent, number> {
@@ -605,21 +518,6 @@ function isImmediateKidActivityIntent(input: SearchPlacesInput) {
 
   const query = (input.query ?? "").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
   return ["kids", "kid", "키즈", "키즈카페", "어린이", "아이", "실내놀이터", "놀이터"].some((token) => query.includes(token));
-}
-
-function isNeighborhoodPlayIntent(category: string, tags: Set<string>, input: SearchPlacesInput) {
-  if (category !== "park") return false;
-  if (queryIncludes(input, ["놀이터", "유아놀이터", "실내놀이터", "물놀이터", "playground"])) return true;
-  return (input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare") && tags.has("children_playground");
-}
-
-function isDestinationCategory(category: string) {
-  return ["science_museum", "museum", "experience_center", "aquarium_zoo", "rest_area"].includes(category);
-}
-
-function queryIncludes(input: SearchPlacesInput, tokens: string[]) {
-  const query = (input.query ?? "").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
-  return tokens.some((token) => query.includes(token));
 }
 
 function applyAgeSignal(

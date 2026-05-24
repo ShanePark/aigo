@@ -31,6 +31,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
   const query = textParam(params.query)?.trim();
   const viewportBounds = viewportBoundsFromParams(params);
   const shouldFilterByRadius = viewportBounds ? false : shouldApplyRadiusFilter(params, categoryGroup, Boolean(query));
+  const radiusKm = Number(textParam(params.radiusKm) || defaultRadiusKmForCategoryGroup(categoryGroup));
   const lat = Number(textParam(params.lat) || DEFAULT_ORIGIN.lat);
   const lng = Number(textParam(params.lng) || DEFAULT_ORIGIN.lng);
   const children = textParam(params.children);
@@ -41,7 +42,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
-    radiusKm: shouldFilterByRadius ? Number(textParam(params.radiusKm) || 80) : undefined,
+    radiusKm: shouldFilterByRadius ? radiusKm : undefined,
     filterByRadius: shouldFilterByRadius,
     viewportBounds,
     query: query || undefined,
@@ -102,6 +103,19 @@ function hasExplicitLocationParams(params: Record<string, string | string[] | un
 function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, categoryGroup: CategoryGroupId, hasQuery: boolean) {
   if (!hasQuery) return hasExplicitLocationParams(params);
   return textParam(params.nearby) === "1" || Boolean(textParam(params.radiusKm));
+}
+
+function defaultRadiusKmForCategoryGroup(categoryGroup: CategoryGroupId) {
+  switch (categoryGroup) {
+    case "playground":
+      return 20;
+    case "visit":
+      return 220;
+    case "stay":
+      return 300;
+    default:
+      return 80;
+  }
 }
 
 function numberParam(value: string | string[] | undefined) {

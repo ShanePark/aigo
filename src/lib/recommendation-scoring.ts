@@ -1,9 +1,15 @@
 // Search candidate collection lives in places.ts; recommendation policies live here.
 // Keep product-tuning constants named and close to the rules they explain.
+import type { SearchPlacesInput } from "@/lib/schemas";
+
 export type RecommendationPlace = {
   name: string;
   primaryCategory: string;
   tags: string[];
+};
+
+export type DistanceScoringPlace = Pick<RecommendationPlace, "primaryCategory" | "tags"> & {
+  distanceKm?: number | null;
 };
 
 export type RelatedPlaceScoringRow = {
@@ -39,6 +45,126 @@ const relatedChildDestinationCategories = new Set(["kids_cafe", "indoor_playgrou
 const relatedSupportDestinationCategories = new Set(["toy_store", "family_cafe", "family_restaurant", "library"]);
 const relatedChildDestinationTags = new Set(["키즈카페", "실내놀이터", "어린이체험", "어린이박물관", "어린이도서관", "kids", "kidscafe", "indoorplayground"]);
 const relatedSupportDestinationTags = new Set(["놀이방식당", "playroom", "토이저러스", "장난감", "유아휴게실"]);
+
+type DistanceReasonCode = "DISTANCE_NEAR" | "DISTANCE_REASONABLE" | "DISTANCE_DAY_TRIP" | "DISTANCE_FAR";
+
+type DistanceBand = {
+  maxKm: number;
+  delta: number;
+  reasonCode: DistanceReasonCode;
+};
+
+type DistanceProfile = {
+  id: "nearbyPlayground" | "localMeal" | "kidsCafe" | "shoppingMallDrive" | "localFallback" | "visitDestination" | "stayDestination" | "destination";
+  bands: DistanceBand[];
+};
+
+const distanceProfiles: Record<DistanceProfile["id"], DistanceProfile> = {
+  nearbyPlayground: {
+    id: "nearbyPlayground",
+    bands: [
+      { maxKm: 1.5, delta: 16, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 3, delta: 13, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 5, delta: 6, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 8, delta: -2, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 15, delta: -12, reasonCode: "DISTANCE_FAR" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -24, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  localMeal: {
+    id: "localMeal",
+    bands: [
+      { maxKm: 3, delta: 12, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 6, delta: 8, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 10, delta: 3, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 15, delta: -2, reasonCode: "DISTANCE_FAR" },
+      { maxKm: 25, delta: -8, reasonCode: "DISTANCE_FAR" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -15, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  kidsCafe: {
+    id: "kidsCafe",
+    bands: [
+      { maxKm: 3, delta: 11, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 8, delta: 7, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 15, delta: 3, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 30, delta: -2, reasonCode: "DISTANCE_FAR" },
+      { maxKm: 50, delta: -6, reasonCode: "DISTANCE_FAR" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -12, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  shoppingMallDrive: {
+    id: "shoppingMallDrive",
+    bands: [
+      { maxKm: 5, delta: 4, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 20, delta: 7, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 35, delta: 3, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 60, delta: -8, reasonCode: "DISTANCE_FAR" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -20, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  localFallback: {
+    id: "localFallback",
+    bands: [
+      { maxKm: 3, delta: 9, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 8, delta: 6, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 15, delta: 1, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 30, delta: -4, reasonCode: "DISTANCE_FAR" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -10, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  visitDestination: {
+    id: "visitDestination",
+    bands: [
+      { maxKm: 15, delta: 2, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 60, delta: 6, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 120, delta: 5, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: 220, delta: 2, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -4, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  stayDestination: {
+    id: "stayDestination",
+    bands: [
+      { maxKm: 30, delta: 1, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 80, delta: 3, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: 180, delta: 4, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: 300, delta: 2, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -3, reasonCode: "DISTANCE_FAR" }
+    ]
+  },
+  destination: {
+    id: "destination",
+    bands: [
+      { maxKm: 8, delta: 2, reasonCode: "DISTANCE_NEAR" },
+      { maxKm: 30, delta: 5, reasonCode: "DISTANCE_REASONABLE" },
+      { maxKm: 80, delta: 4, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: 150, delta: 0, reasonCode: "DISTANCE_DAY_TRIP" },
+      { maxKm: Number.POSITIVE_INFINITY, delta: -5, reasonCode: "DISTANCE_FAR" }
+    ]
+  }
+};
+
+const playgroundIntentCategories = new Set(["park", "indoor_playground"]);
+const shoppingIntentTerms = ["쇼핑몰", "백화점", "아울렛", "몰", "마트"];
+const playgroundIntentTerms = ["놀이터", "유아놀이터", "실내놀이터", "물놀이터", "playground"];
+const visitIntentTerms = ["방문", "체험", "박물관", "과학관", "아쿠아리움", "동물원", "수목원", "나들이"];
+const visitSearchCategories = new Set(["science_museum", "museum", "experience_center", "aquarium_zoo", "sports_venue"]);
+const visitDestinationCategories = new Set(["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "sports_venue"]);
+
+export function distanceSignalForPlace(place: DistanceScoringPlace, input: SearchPlacesInput) {
+  if (!input.origin || typeof place.distanceKm !== "number") {
+    return { delta: 0, reasonCode: null as DistanceReasonCode | null, profileId: null as DistanceProfile["id"] | null };
+  }
+
+  const profile = distanceProfileFor(place, input);
+  const band = profile.bands.find((candidate) => place.distanceKm! <= candidate.maxKm) ?? profile.bands[profile.bands.length - 1];
+  return {
+    delta: band.delta,
+    reasonCode: band.reasonCode,
+    profileId: profile.id
+  };
+}
 
 export function summarizeRelatedPlaceScoringRows(rows: RelatedPlaceScoringRow[]) {
   const summaryMap = new Map<string, RelatedPlaceScoringSummary>();
@@ -109,6 +235,54 @@ export function shoppingMallRelatedPlaceScoreAdjustment(place: RecommendationPla
     relatedPlaces: delta - baseDelta,
     reasonCodes: Array.from(reasonCodes).sort()
   };
+}
+
+function distanceProfileFor(place: DistanceScoringPlace, input: SearchPlacesInput): DistanceProfile {
+  const category = place.primaryCategory;
+  const tags = new Set(place.tags);
+
+  if (category === "accommodation") return distanceProfiles.stayDestination;
+  if (isPlaygroundSearchIntent(input) && playgroundIntentCategories.has(category)) return distanceProfiles.nearbyPlayground;
+  if (category === "family_restaurant" && tags.has("놀이방식당")) return distanceProfiles.localMeal;
+  if (category === "kids_cafe" || category === "indoor_playground") return distanceProfiles.kidsCafe;
+  if (category === "shopping_mall") {
+    return isShoppingSearchIntent(input) ? distanceProfiles.shoppingMallDrive : distanceProfiles.localFallback;
+  }
+  if (visitDestinationCategories.has(category) && (isVisitSearchIntent(input) || input.visitContext === "dayTrip" || input.visitContext === "weekendHalfDay")) {
+    return distanceProfiles.visitDestination;
+  }
+  if (isDestinationCategory(category)) return distanceProfiles.destination;
+  if (["family_cafe", "library", "toy_library", "toy_store", "family_restaurant"].includes(category)) {
+    return distanceProfiles.localFallback;
+  }
+  return distanceProfiles.destination;
+}
+
+function isPlaygroundSearchIntent(input: SearchPlacesInput) {
+  return input.playgroundOnly === true || queryIncludes(input, playgroundIntentTerms);
+}
+
+function isShoppingSearchIntent(input: SearchPlacesInput) {
+  const categories = new Set(input.primaryCategories ?? []);
+  return categories.has("shopping_mall") || queryIncludes(input, shoppingIntentTerms);
+}
+
+function isVisitSearchIntent(input: SearchPlacesInput) {
+  const categories = new Set(input.primaryCategories ?? []);
+  return setHasAny(categories, visitSearchCategories) || queryIncludes(input, visitIntentTerms);
+}
+
+function isDestinationCategory(category: string) {
+  return ["science_museum", "museum", "experience_center", "aquarium_zoo", "rest_area"].includes(category);
+}
+
+function queryIncludes(input: SearchPlacesInput, tokens: string[]) {
+  const query = compactSearchText(input.query ?? "");
+  return tokens.some((token) => query.includes(compactSearchText(token)));
+}
+
+function setHasAny<T>(values: Set<T>, candidates: Set<T>) {
+  return Array.from(candidates).some((candidate) => values.has(candidate));
 }
 
 function isDestinationShoppingMall(place: Pick<RecommendationPlace, "name" | "tags">) {

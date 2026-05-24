@@ -1,12 +1,49 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  distanceSignalForPlace,
   shoppingMallRelatedPlaceScoreAdjustment,
   summarizeRelatedPlaceScoringRows,
   type RelatedPlaceScoringRow
 } from "@/lib/recommendation-scoring";
 
 describe("recommendation scoring policy", () => {
+  const inputWithOrigin = {
+    origin: { lat: 36.3504, lng: 127.3845, label: "대전" },
+    radiusKm: 80,
+    sort: "recommended" as const,
+    limit: 20,
+    offset: 0
+  };
+
+  it("uses a steep distance curve for playground searches", () => {
+    const input = { ...inputWithOrigin, playgroundOnly: true, primaryCategories: ["park", "indoor_playground"], query: "놀이터" };
+    const nearby = distanceSignalForPlace({ primaryCategory: "indoor_playground", tags: [], distanceKm: 2 }, input);
+    const far = distanceSignalForPlace({ primaryCategory: "indoor_playground", tags: [], distanceKm: 12 }, input);
+
+    expect(nearby).toMatchObject({ delta: 13, reasonCode: "DISTANCE_NEAR", profileId: "nearbyPlayground" });
+    expect(far).toMatchObject({ delta: -12, reasonCode: "DISTANCE_FAR", profileId: "nearbyPlayground" });
+  });
+
+  it("keeps shopping mall searches tolerant up to a short drive and harsh past about an hour", () => {
+    const input = { ...inputWithOrigin, primaryCategories: ["shopping_mall"], query: "쇼핑몰" };
+    const shortDrive = distanceSignalForPlace({ primaryCategory: "shopping_mall", tags: [], distanceKm: 25 }, input);
+    const tooFar = distanceSignalForPlace({ primaryCategory: "shopping_mall", tags: [], distanceKm: 70 }, input);
+
+    expect(shortDrive).toMatchObject({ delta: 3, reasonCode: "DISTANCE_REASONABLE", profileId: "shoppingMallDrive" });
+    expect(tooFar).toMatchObject({ delta: -20, reasonCode: "DISTANCE_FAR", profileId: "shoppingMallDrive" });
+  });
+
+  it("keeps visit and lodging destination searches open to two-hour-plus candidates", () => {
+    const visitInput = { ...inputWithOrigin, primaryCategories: ["science_museum", "museum", "experience_center", "aquarium_zoo"] };
+    const stayInput = { ...inputWithOrigin, primaryCategories: ["accommodation"] };
+    const visit = distanceSignalForPlace({ primaryCategory: "museum", tags: [], distanceKm: 180 }, visitInput);
+    const stay = distanceSignalForPlace({ primaryCategory: "accommodation", tags: [], distanceKm: 220 }, stayInput);
+
+    expect(visit).toMatchObject({ delta: 2, reasonCode: "DISTANCE_DAY_TRIP", profileId: "visitDestination" });
+    expect(stay).toMatchObject({ delta: 2, reasonCode: "DISTANCE_DAY_TRIP", profileId: "stayDestination" });
+  });
+
   it("de-emphasizes generic shopping malls unless related places add destination value", () => {
     const genericMall = { name: "이마트 대전터미널점", primaryCategory: "shopping_mall", tags: ["마트"] };
     const outletMall = { name: "현대프리미엄아울렛 대전점", primaryCategory: "shopping_mall", tags: ["아울렛"] };
