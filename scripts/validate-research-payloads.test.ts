@@ -227,6 +227,65 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("warns when parent review evidence omits review URLs and not_found query detail", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "Official place page",
+          url: "https://example.com/place",
+          summary: "Official page confirms the address and family facilities.",
+          checkedAt: "2026-05-23T14:00:00.000+09:00"
+        }
+      ],
+      externalRefs: {
+        ...validPayload().externalRefs,
+        reviewLinks: ["부모 후기 요약은 확인했지만 URL을 보존하지 못했다."]
+      }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_parent_review_evidence_detail",
+          path: "externalRefs.parentReviewEvidence",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
+  it("accepts parent review URLs preserved in externalRefs reviewLinks", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "Official place page",
+          url: "https://example.com/place",
+          summary: "Official page confirms the address and family facilities.",
+          checkedAt: "2026-05-23T14:00:00.000+09:00"
+        }
+      ],
+      externalRefs: {
+        ...validPayload().externalRefs,
+        reviewLinks: [
+          {
+            title: "Parent-facing place review",
+            url: "https://example.com/parent-review"
+          }
+        ]
+      }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues.map((issue) => issue.code)).not.toEqual(
+      expect.arrayContaining(["workflow_parent_review_evidence", "workflow_parent_review_evidence_detail"])
+    );
+  });
+
   it("accepts explicit not_found parent review evidence after research", () => {
     const result = validateResearchPayload({
       ...validPayload(),

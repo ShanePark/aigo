@@ -52,6 +52,7 @@ const parentReviewRecommendedCategories = new Set([
 const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
 const personalizedPublicTextPattern =
   /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
+const urlPattern = /^https?:\/\//i;
 
 if (isMain()) {
   void main();
@@ -250,7 +251,19 @@ function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: 
 
 function collectParentReviewEvidenceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
   if (!parentReviewRecommendedCategories.has(payload.primaryCategory)) return;
-  if (hasParentReviewEvidence(payload)) return;
+  const evidenceStatus = parentReviewEvidenceStatus(payload);
+  if (evidenceStatus === "present") return;
+
+  if (evidenceStatus === "incomplete") {
+    issues.push(
+      warning(
+        "externalRefs.parentReviewEvidence",
+        "workflow_parent_review_evidence_detail",
+        "parent-facing review evidence must preserve at least one review/listing/blog URL, or record parentReviewEvidence status not_found with attempted parent-intent queries"
+      )
+    );
+    return;
+  }
 
   issues.push(
     warning(
@@ -261,13 +274,43 @@ function collectParentReviewEvidenceIssues(payload: CreatePlaceInput, issues: Re
   );
 }
 
-function hasParentReviewEvidence(payload: CreatePlaceInput) {
-  if (payload.sources.some((source) => parentReviewSourceTypes.has(source.sourceType))) {
-    return true;
+function parentReviewEvidenceStatus(payload: CreatePlaceInput): "present" | "incomplete" | "missing" {
+  const hasParentReviewSource = payload.sources.some((source) => parentReviewSourceTypes.has(source.sourceType));
+  if (payload.sources.some((source) => parentReviewSourceTypes.has(source.sourceType) && stringLooksLikeUrl(source.url))) {
+    return "present";
   }
 
   const externalRefs = isRecord(payload.externalRefs) ? payload.externalRefs : null;
-  return hasNonEmptyEvidenceValue(externalRefs?.parentReviewEvidence) || hasNonEmptyEvidenceValue(externalRefs?.reviewLinks);
+  const evidenceValues = [externalRefs?.parentReviewEvidence, externalRefs?.reviewLinks];
+  if (evidenceValues.some(hasParentReviewUrlEvidence) || hasNotFoundParentReviewEvidence(externalRefs?.parentReviewEvidence)) {
+    return "present";
+  }
+
+  if (hasParentReviewSource || evidenceValues.some(hasNonEmptyEvidenceValue)) {
+    return "incomplete";
+  }
+
+  return "missing";
+}
+
+function hasParentReviewUrlEvidence(value: unknown): boolean {
+  if (typeof value === "string") return stringLooksLikeUrl(value);
+  if (Array.isArray(value)) return value.some(hasParentReviewUrlEvidence);
+  if (!isRecord(value)) return false;
+
+  const directUrl = stringValue(value, "url") ?? stringValue(value, "sourceUrl");
+  if (stringLooksLikeUrl(directUrl)) return true;
+
+  return Object.values(value).some(hasParentReviewUrlEvidence);
+}
+
+function hasNotFoundParentReviewEvidence(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+
+  const status = stringValue(value, "status") ?? stringValue(value, "result");
+  if (status?.toLowerCase() !== "not_found") return false;
+
+  return hasNonEmptyStringList(value.attemptedQueries) || hasNonEmptyStringList(value.searchQueries) || hasNonEmptyStringList(value.queries);
 }
 
 function hasNonEmptyEvidenceValue(value: unknown): boolean {
@@ -275,6 +318,10 @@ function hasNonEmptyEvidenceValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(hasNonEmptyEvidenceValue);
   if (!isRecord(value)) return false;
   return Object.values(value).some(hasNonEmptyEvidenceValue);
+}
+
+function hasNonEmptyStringList(value: unknown): boolean {
+  return Array.isArray(value) && value.some((item) => typeof item === "string" && Boolean(item.trim()));
 }
 
 function collectPrivateKidsCafeSourceRoleIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
@@ -391,6 +438,10 @@ function recordValue(value: unknown, key: string): Record<string, unknown> | nul
 function stringValue(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function stringLooksLikeUrl(value: unknown): boolean {
+  return typeof value === "string" && urlPattern.test(value.trim());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
