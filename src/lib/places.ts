@@ -3746,18 +3746,19 @@ export function buildSearchSourceSummary(
   sourceRows: Array<Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">> & { checked_at: Date | string | null; created_at: Date | string }>,
   options: { now?: Date } = {}
 ) {
-  const sourceTypes = Array.from(new Set(sourceRows.map((row) => row.source_type))).sort(compareSourceTypes);
-  const openingHoursSources = sourceRows.filter(isOpeningHoursEvidenceSource);
-  const strongestSource = sourceRows
+  const normalizedSourceRows = normalizeStoredSourceRows(sourceRows);
+  const sourceTypes = Array.from(new Set(normalizedSourceRows.map((row) => row.source_type))).sort(compareSourceTypes);
+  const openingHoursSources = normalizedSourceRows.filter(isOpeningHoursEvidenceSource);
+  const strongestSource = normalizedSourceRows
     .slice()
     .sort((a, b) => sourceTierRank(sourceTrustTier(b.source_type)) - sourceTierRank(sourceTrustTier(a.source_type)) || a.source_type.localeCompare(b.source_type))[0];
-  const latestChecked = sourceRows
+  const latestChecked = normalizedSourceRows
     .filter((row): row is typeof row & { checked_at: Date | string } => Boolean(row.checked_at))
     .sort((a, b) => dateMillis(b.checked_at) - dateMillis(a.checked_at))[0];
-  const latestCreated = sourceRows.slice().sort((a, b) => dateMillis(b.created_at) - dateMillis(a.created_at))[0];
+  const latestCreated = normalizedSourceRows.slice().sort((a, b) => dateMillis(b.created_at) - dateMillis(a.created_at))[0];
 
   return {
-    sourceCount: sourceRows.length,
+    sourceCount: normalizedSourceRows.length,
     sourceTypes,
     bestSourceType: strongestSource?.source_type ?? null,
     bestSourceTier: strongestSource ? sourceTrustTier(strongestSource.source_type) : "none",
@@ -3773,21 +3774,29 @@ function buildOpeningHoursEvidenceSummary(
   sourceRows: Array<Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">> & { checked_at: Date | string | null; created_at: Date | string }>,
   now: Date
 ) {
-  const strongestSource = sourceRows
+  const normalizedSourceRows = normalizeStoredSourceRows(sourceRows);
+  const strongestSource = normalizedSourceRows
     .slice()
     .sort((a, b) => sourceTierRank(sourceTrustTier(b.source_type)) - sourceTierRank(sourceTrustTier(a.source_type)) || a.source_type.localeCompare(b.source_type))[0];
-  const latestChecked = sourceRows
+  const latestChecked = normalizedSourceRows
     .filter((row): row is typeof row & { checked_at: Date | string } => Boolean(row.checked_at))
     .sort((a, b) => dateMillis(b.checked_at) - dateMillis(a.checked_at))[0];
 
   return {
-    sourceCount: sourceRows.length,
-    sourceTypes: Array.from(new Set(sourceRows.map((row) => row.source_type))).sort(compareSourceTypes),
+    sourceCount: normalizedSourceRows.length,
+    sourceTypes: Array.from(new Set(normalizedSourceRows.map((row) => row.source_type))).sort(compareSourceTypes),
     bestSourceType: strongestSource?.source_type ?? null,
     bestSourceTier: strongestSource ? sourceTrustTier(strongestSource.source_type) : "none",
     latestCheckedAt: latestChecked ? toIso(latestChecked.checked_at) : null,
     freshnessStatus: sourceFreshnessStatus(latestChecked?.checked_at ?? null, now)
   };
+}
+
+function normalizeStoredSourceRows<T extends { source_type: string }>(sourceRows: T[]): T[] {
+  return sourceRows.map((row) => {
+    const sourceType = canonicalStoredSourceType(row.source_type);
+    return sourceType === row.source_type ? row : { ...row, source_type: sourceType };
+  });
 }
 
 function isOpeningHoursEvidenceSource(source: Pick<SourceRow, "source_type"> & Partial<Pick<SourceRow, "title" | "summary">>) {
@@ -4198,7 +4207,7 @@ function mapPlaceImage(row: PlaceImageRow) {
     isPrimary: row.is_primary,
     sourceId: row.source_id,
     sourceUrl: row.source_url,
-    sourceType: row.source_type,
+    sourceType: canonicalStoredNullableSourceType(row.source_type),
     sourceTitle: row.source_title,
     displayTier: row.display_tier,
     creditText: row.credit_text ?? imageCreditText(imageRowSource(row), row.display_tier),
@@ -4219,7 +4228,7 @@ function mapPlaceImage(row: PlaceImageRow) {
 function imageRowSource(row: PlaceImageRow): ImageMetadataSource {
   return {
     id: row.source_id,
-    sourceType: row.source_type ?? "unknown",
+    sourceType: canonicalStoredNullableSourceType(row.source_type) ?? "unknown",
     title: row.source_title,
     url: row.source_url,
     checkedAt: row.checked_at ? toIso(row.checked_at) : null
@@ -4229,7 +4238,7 @@ function imageRowSource(row: PlaceImageRow): ImageMetadataSource {
 function mapSource(row: SourceRow) {
   return {
     id: row.id,
-    sourceType: row.source_type,
+    sourceType: canonicalStoredSourceType(row.source_type),
     title: row.title,
     url: row.url,
     externalId: row.external_id,
@@ -4237,6 +4246,14 @@ function mapSource(row: SourceRow) {
     checkedAt: row.checked_at ? toIso(row.checked_at) : null,
     createdAt: toIso(row.created_at)
   };
+}
+
+function canonicalStoredSourceType(sourceType: string) {
+  return normalizeSourceType(sourceType) ?? sourceType;
+}
+
+function canonicalStoredNullableSourceType(sourceType: string | null) {
+  return sourceType ? canonicalStoredSourceType(sourceType) : null;
 }
 
 export function buildImageMetadata(imageUrls: string[], sources: ImageMetadataSource[] = []) {

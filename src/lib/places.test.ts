@@ -815,6 +815,41 @@ describe("place search helpers", () => {
       buildSearchSourceSummary(
         [
           {
+            source_type: "public_data",
+            checked_at: new Date("2026-05-20T00:00:00.000Z"),
+            created_at: new Date("2026-05-20T00:00:00.000Z")
+          },
+          {
+            source_type: "news",
+            checked_at: new Date("2026-05-21T00:00:00.000Z"),
+            created_at: new Date("2026-05-21T00:00:00.000Z")
+          },
+          {
+            source_type: "official",
+            title: "Official opening hours",
+            summary: "Official page confirms operating hours.",
+            checked_at: new Date("2026-05-22T06:00:00.000Z"),
+            created_at: new Date("2026-05-22T06:00:00.000Z")
+          }
+        ],
+        { now }
+      )
+    ).toMatchObject({
+      sourceCount: 3,
+      sourceTypes: ["official_site", "public_agency", "public_news"],
+      bestSourceType: "official_site",
+      bestSourceTier: "official",
+      latestSourceType: "official_site",
+      openingHoursEvidence: {
+        sourceTypes: ["official_site"],
+        bestSourceType: "official_site"
+      }
+    });
+
+    expect(
+      buildSearchSourceSummary(
+        [
+          {
             source_type: "operator_page",
             title: "Operator opening hours",
             summary: "Operator page confirms opening hours.",
