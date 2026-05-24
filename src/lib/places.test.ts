@@ -339,9 +339,23 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("lower(name) = ");
     expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g')");
+    expect(query.sql).toContain("external_refs->'aliases'");
     expect(query.sql).not.toContain("description ilike");
     expect(query.sql).not.toContain("exists (select 1 from unnest(tags)");
     expect(query.params).toEqual(["국립부여박물관 어린이박물관", "국립부여박물관어린이박물관"]);
+  });
+
+  it("can restrict exact-name lookup to external reference aliases", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "국립세종어린이박물관",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("jsonb_array_elements_text");
+    expect(query.sql).toContain("where lower(external_alias.value) = $1");
+    expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = $2");
+    expect(query.params).toEqual(["국립세종어린이박물관", "국립세종어린이박물관"]);
   });
 
   it("expands exact-name retail branch aliases for mall and outlet names", () => {
@@ -1810,6 +1824,25 @@ describe("place search helpers", () => {
     expect(exactBuyeo.delta).toBeGreaterThanOrEqual(partialSejong.delta + 8);
     expect(exactBuyeo.reasonCodes).toContain("QUERY_NAME_EXACT");
     expect(partialSejong.reasonCodes).toContain("QUERY_NAME_MATCH");
+  });
+
+  it("boosts exact external reference aliases like exact place-name matches", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "세종 국립어린이박물관",
+        tags: ["어린이박물관"],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: {
+          aliases: ["국립세종어린이박물관", "국립박물관단지 국립어린이박물관"]
+        }
+      },
+      "국립세종어린이박물관"
+    );
+
+    expect(signal.delta).toBeGreaterThanOrEqual(24);
+    expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
   });
 
   it("boosts retail alias name matches across chain naming variants", () => {

@@ -2274,9 +2274,23 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const exactParam = add(normalizeSearchText(query));
   const compactParam = add(compactSearchText(query));
   const retailAliasCompacts = retailAliasCompactTexts(query);
+  const retailAliasParam = retailAliasCompacts.length > 1 ? add(retailAliasCompacts) : null;
   const retailAliasClause =
-    retailAliasCompacts.length > 1 ? ` or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = any(${add(retailAliasCompacts)}::text[])` : "";
-  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause})`;
+    retailAliasParam ? ` or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = any(${retailAliasParam}::text[])` : "";
+  const externalAliasRetailClause = retailAliasParam
+    ? ` or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = any(${retailAliasParam}::text[])`
+    : "";
+  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause} or exists (
+    select 1
+    from jsonb_array_elements_text(
+      case
+        when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
+        else '[]'::jsonb
+      end
+    ) as external_alias(value)
+    where lower(external_alias.value) = ${exactParam}
+      or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}${externalAliasRetailClause}
+  ))`;
 }
 
 function requiredPreferenceClauses(preferences: SearchPlacesInput["preferences"] | undefined, add: (value: unknown) => string) {
@@ -3384,6 +3398,7 @@ export function shouldSearchAddressForTerm(query: string, term: string) {
 
 export function queryMatchSignal(
   place: Pick<ReturnType<typeof mapPlace>, "name" | "tags" | "description" | "address" | "roadAddress"> & {
+    externalRefs?: Record<string, unknown> | null;
     playFeatures?: Record<string, unknown>;
     routeSupport?: Record<string, unknown>;
   },
@@ -3408,6 +3423,11 @@ export function queryMatchSignal(
   const compactName = compactSearchText(place.name);
   const compactQuery = compactSearchText(query);
   const retailAliasMatched = retailAliasCompactTexts(query).some((alias) => retailAliasCompactTexts(place.name).includes(alias));
+  const externalAliasExactMatched = externalRefsAliasTexts(place.externalRefs).some((alias) => {
+    const normalizedAlias = normalizeSearchText(alias);
+    const compactAlias = compactSearchText(alias);
+    return normalizedAlias === normalizedQuery || compactAlias === compactQuery;
+  });
   const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
   let delta = 0;
@@ -3425,7 +3445,7 @@ export function queryMatchSignal(
     };
   }
 
-  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery;
+  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || externalAliasExactMatched;
   if (exactNameMatch) {
     delta += 24;
     reasonCodes.add("QUERY_NAME_EXACT");
@@ -3505,6 +3525,15 @@ function compactSearchText(value: string) {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function externalRefsAliasTexts(externalRefs: unknown) {
+  if (!isRecord(externalRefs) || !Array.isArray(externalRefs.aliases)) return [];
+  return externalRefs.aliases.filter(isNonEmptyString);
 }
 
 export function retailAliasCompactTextsForTest(value: string) {
