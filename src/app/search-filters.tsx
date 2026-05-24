@@ -166,7 +166,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             ))}
             {childProfiles.map((profile) => (
               <span className="advanced-child-chip" key={childProfileKey(profile)} aria-label={formatChildProfile(profile)}>
-                <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={28} height={28} />
+                <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={34} height={34} />
               </span>
             ))}
           </span>
@@ -225,7 +225,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
                       aria-pressed={draftGender === gender.id}
                     >
                       <span className="child-profile-segmented-icon">
-                        <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={38} height={38} />
+                        <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={52} height={52} />
                       </span>
                       <span className="child-profile-segmented-label">{gender.label}</span>
                     </button>
@@ -250,7 +250,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
                     disabled={isApplied}
                   >
                     <span className="child-profile-option-icon">
-                      <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={56} height={56} />
+                      <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={88} height={88} />
                     </span>
                     <span className="child-profile-option-copy">
                       <strong>{band.label}</strong>
@@ -301,7 +301,7 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
   return (
     <article className={`child-profile-card tone-${band.tone}`}>
       <div className="child-profile-icon">
-        <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={56} height={56} />
+        <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={88} height={88} />
       </div>
       <div className="child-profile-copy">
         <strong>{formatChildProfile(profile)}</strong>
