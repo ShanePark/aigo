@@ -16,6 +16,7 @@ Do not use direct database writes for real place data. Real mutations go through
 - Treat source evidence as part of the data, not an afterthought. Every create/update requires at least one `sources` item.
 - Treat image evidence as required metadata for this workflow. For user-requested AiGo registrations, every create/update that registers or enriches a place through the API must include at least one citeable, place-specific structured `images` item unless the user explicitly overrides the requirement for that single operation.
 - Unknown is acceptable. Do not invent amenities, ages, coordinates, opening hours, or image provenance.
+- Keep public place text neutral and reusable. `description`, `parentNotes`, `safetyNotes`, `placeScoreRationale`, and `playFeatures.notes` are visible or reusable place data for all users, so do not mention the user's specific household composition or private age anchors such as "first child", "older child", "twins", "2023-born", "our child", or "the user's family" there. Put household-specific reasoning only in ignored `agent-research/` notes or private task context.
 - Prefer broad public internet research: official facility/operator pages, public agency pages, library/tourism/mall pages, and public local listings or blogs only as support.
 - Avoid high-volume map/vendor automation. Do not run repeated Kakao Map/API loops. If a map URL is used, keep it sparse and manual-style, and store only URL/external ID/summary.
 - Never log in, create accounts, bypass access controls, or send private user data to third-party sites.
@@ -25,10 +26,10 @@ Do not use direct database writes for real place data. Real mutations go through
 
 ## Family-Fit Gate
 
-Before recommending `create` for a real place, explicitly record why it belongs in a toddler plus twin-infant family outing database. A place should normally pass at least one of these gates:
+Before recommending `create` for a real place, explicitly record why it belongs in a public family outing database. A place should normally pass at least one of these gates:
 
 - Child-primary destination: kids cafe, indoor playground, children's museum, toy library, children's room/library, playground, water/sand/sensory play, or an official child/family program.
-- Baby-logistics destination: source-backed nursing room, diaper-changing table, stroller/elevator route, baby chair, food/snack handling, or a mall/public facility where first-child activity and infant care can be solved together.
+- Care-logistics destination: source-backed nursing room, diaper-changing table, stroller/elevator route, baby chair, food/snack handling, or a mall/public facility where child activity and caregiver needs can be solved together.
 - User-requested short retail fallback: toy stores or character stores can be registered under `toy_store` when they are source-backed and useful for child-focused shopping, rainy-day browsing, or a practical stop inside a mall/outlet with family logistics. Keep play value and stay duration conservative unless sources show real play/experience zones.
 - Route-break utility: highway rest area, public facility, or route stop with source-backed toilets, nursing/diaper support, parking, and a clear route context such as family travel routes, regional day trips, or long-distance kid-friendly itineraries.
 - User-signal exception: the user explicitly mentioned or visited the place, but weak family fit must still be documented with cautionary notes and conservative scores.
@@ -47,7 +48,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 ## Workflow
 
 1. Scope the research slice.
-   - For broad expansion, collect family-useful places nationwide across Korea. Use the user's configured/current base context and prior coverage only as personalization references, not geographic limits.
+   - For broad expansion, collect family-useful places nationwide across Korea. Use runtime user context and prior coverage only as personalization references, not hard-coded geographic or household limits.
    - Split nationwide work into region blocks so coverage grows evenly: Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize major cities, tourism corridors, and family-travel routes before smaller long-tail areas.
    - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
    - Apply the Family-Fit Gate before staging a create candidate. If the only positive evidence is "official/indoor/free/nearby/tourism", stage as `skip` or hold it in research notes, not `create`, unless the user explicitly asked to register it.
@@ -104,7 +105,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Search results include compact `imageHealth` so agents can notice missing primary images or review-needed images before recommending cards; use `/v1/places/image-health` for the full audit queue, and pass comma-separated `placeIds` to focus the queue on current search or recommendation candidates.
    - Search results include `userRatingSummary` for user-submitted visit ratings. `averageRating` and `ratingCount` include private ratings, while `publicReviewCount` and `publicPhotoCount` expose only public text/photo content counts.
    - Search results include compact `sourceSummary` so agents and clients can distinguish official/public-agency sources, public-listing-backed records, and recently checked records without fetching each detail page. Search cards display source tier and freshness badges from this summary.
-   - Search results include `infantLogistics`, a separate evidence/support signal for twin-infant practical logistics; use it alongside, not as a replacement for, toddler-oriented `childEngagementLevel`.
+   - Search results include `infantLogistics`, a separate evidence/support signal for baby-care practical logistics; use it alongside, not as a replacement for, child-oriented `childEngagementLevel`.
    - Search and detail responses include top-level `structuredDataGaps` for source-backed family logistics, booking, and operating-hours fields that are still unknown on the record. Use it with `infantLogistics.missingSignals` and `openingHoursSummary`; when a listed field is confirmed by sources, patch the structured field instead of leaving the fact only in source summaries.
    - Search and detail responses include `openingHoursSummary` so source-backed operating-hours, reservation, walk-in, and session evidence remains visible even when runtime scoring cannot evaluate `OPEN_NOW` from structured hours.
    - Search results include `recommendationReadiness`, an agent-facing summary derived from structured data gaps, opening-hours evidence, image health, pricing, and visit-planning fields. Use `readyForWeekendRecommendation`, `blockingGaps`, `cautionNotes`, and `agentSummary` before presenting a confident weekend/rainy-day/day-trip recommendation.
@@ -353,12 +354,12 @@ When creating or meaningfully refreshing a place, score it when the evidence is 
 - `scoreSignals`: structured evidence such as provider, rating, review count, observed search/listing position, source URLs, conflicts, caps, and freshness notes.
 - `scoreUpdatedAt`: ISO datetime with timezone for the last score review.
 
-Suggested `placeScore` rubric for the current family context:
+Suggested `placeScore` rubric for public family-outing usefulness:
 
 - Family purpose and child value: child-primary, baby-logistics, route-break utility, or explicit user signal.
 - Facility scale and breadth: named playgrounds, indoor play rooms, libraries/children's rooms, kids cafes, lawns/water play, cafes, and other on-site subfacilities that let one stop solve multiple family needs.
 - Cost value: source-backed free admission or very-low-cost public service value, balanced against crowding, reservation friction, and whether paid activities are optional.
-- Age fit: toddler engagement plus infant-safe logistics; partial age fit should not be treated as a full match.
+- Age fit: source-backed suitability for babies, toddlers, preschoolers, and/or older children; partial age fit should not be treated as a full match.
 - Practical logistics: stroller, elevator, parking, nursing room, diaper table, kids toilet, baby chair, food/snack handling.
 - Parent effort and safety: line-of-sight, water/road/fire/steepness risk, crowding, floor changes, shade/toilets.
 - Operating reliability: active status, structured hours, recent hours/source check, special-day caveats.
@@ -401,7 +402,7 @@ Use provider labels such as `Naver`, `Naver Blog`, `Kakao`, `Google`, `Tripadvis
 
 Capture the practical parent tradeoffs in structured fields and notes:
 
-- Fit for current family: toddler born 2023-09 plus twin infants born 2025-10.
+- Family fit: supported child age ranges, caregiver effort, and whether the place is useful for one or more common family outing scenarios.
 - Facility scope: whether the destination has multiple child-use zones such as indoor play, outdoor playground, water/sand play, children's library/material room, kids cafe, exhibit/experience rooms, cafe/food, or stroller-walk areas.
 - Free-entry and fee model: free admission, free-but-paid-extras, reservation-only free programs, paid sessions, guardian/child pricing, parking validation, and date/source of the fee evidence.
 - Stroller route/elevator/floor changes, nursing room, diaper table, kids toilet, baby chair.
@@ -414,7 +415,7 @@ Capture the practical parent tradeoffs in structured fields and notes:
 - Safety notes: water edge, roads, steep paths, grill/fire, crowded playrooms, line-of-sight, age separation.
 - Day-trip fallback: toilets, shade, feeding/change fallback, route/time burden, rest areas.
 
-Use `parentNotes` for practical advice and uncertainty. Use `safetyNotes` for hazards. Do not hide user-requested registrations behind `needs_check`; when important operation or amenity evidence is weak, keep structured fields `unknown` and write the caution in notes.
+Use `parentNotes` for practical advice and uncertainty. Use `safetyNotes` for hazards. Keep both neutral for all families; do not write notes that assume one specific household, child order, sibling structure, or the user's private family configuration. Do not hide user-requested registrations behind `needs_check`; when important operation or amenity evidence is weak, keep structured fields `unknown` and write the caution in notes.
 
 ## Play Features
 

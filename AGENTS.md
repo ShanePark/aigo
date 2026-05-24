@@ -14,7 +14,7 @@ Keep commit guidance synchronized with the project skill. When commit workflow b
 
 For AiGo place-data work, read and follow the committed repo skill at `.codex/skills/aigo-place-api/SKILL.md` before researching places, preparing payloads, delegating data research, or calling the AiGo API.
 
-Use this skill whenever a task involves family outing place research across Korea, source-backed place creation or enrichment, duplicate review, AiGo API data mutations, image URL provenance, `agent-research/` staging files, or place-data quality review. The skill is also the handoff document for subagents: subagents should use it to understand how to search, what evidence to record, what fields matter for the family context, and where their responsibility ends before the main agent performs API mutations.
+Use this skill whenever a task involves family outing place research across Korea, source-backed place creation or enrichment, duplicate review, AiGo API data mutations, image URL provenance, `agent-research/` staging files, or place-data quality review. The skill is also the handoff document for subagents: subagents should use it to understand how to search, what evidence to record, what fields matter for public family-outing data, and where their responsibility ends before the main agent performs API mutations.
 
 Keep detailed, evolving AiGo data workflow instructions in the skill rather than scattering them across code comments or unrelated docs. `AGENTS.md` should state the trigger and repository-wide rules; `.codex/skills/aigo-place-api/SKILL.md` should carry the operational workflow, API request sequence, payload expectations, source/image provenance rules, and verification checklist.
 
@@ -22,24 +22,23 @@ When any change affects the place-data workflow, update the skill in the same co
 
 ## AiGo Data Mission
 
-AiGo's most important asset is the breadth and quality of real place data for family outings across Korea. Data work should now collect nationwide, while preserving the user's actual family context as the strongest personalization signal:
+AiGo's most important asset is the breadth and quality of real place data for family outings across Korea. Data work should collect nationwide and keep place records neutral enough to serve many households:
 
 - Collection scope: nationwide Korea. Do not limit discovery to a single city or one-hour driving range when the task is broad place expansion.
-- Personalization anchor: use the user's configured/current base context for scoring, examples, and local fallback value; do not present any one region as the product boundary.
-- Children: one toddler born 2023-09 and twin infants born 2025-10.
-- Strong preference signals: indoor options after daycare, nearby kids cafes, stroller practicality, nursing room, diaper changing table, parking, snack/meal handling, public child-friendly facilities, nature/day-trip destinations.
-- User-visited reference places should be treated as strong leads for research and either enriched if already registered or created if missing.
+- Personalization should come from runtime user preferences, location, child ages, and visit context, not from hard-coded household assumptions in repository guidance.
+- Strong family-outing signals include indoor options, kids cafes, stroller practicality, nursing room, diaper changing table, parking, snack/meal handling, public child-friendly facilities, outdoor play, and nature/day-trip destinations.
+- User-requested or user-visited reference places can be treated as useful leads, but public place data should remain broadly reusable and source-backed.
 
 Research and data updates must be source-backed. Do not invent amenities. Unknown is acceptable when evidence is weak.
 
-## User Preference Patterns
+## Family Outing Patterns
 
-Treat the user's visited/reference places as product-shaping signals, not just a checklist. The apparent preference pattern is:
+Treat user-requested and user-visited places as product feedback, but do not encode one household's needs as the default product boundary. Public data collection should cover a broad range of family outing patterns:
 
 - Low-friction indoor fallback: department stores, outlets, malls, kids cafes inside malls, and facilities where parking/elevator/baby lounge/food can be solved in one building.
-- First-child play value plus twin-infant logistics: active kids cafes and playgrounds matter, but recommendations must still expose stroller, nursing, diaper, safety, and parent-effort tradeoffs.
+- Age-inclusive play value plus care logistics: active kids cafes and playgrounds matter, but recommendations must still expose stroller, nursing, diaper, safety, and parent-effort tradeoffs.
 - Public child-friendly half-day options: science museums, children's halls, libraries, toy libraries, arboretums, parks, and municipal/national facilities are high value because they are repeatable and often cheaper.
-- Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially when close to a user's base area, lodging, transit hub, or easy parking.
+- Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially near dense residential areas, lodging, transit hubs, or easy parking.
 - Day-trip nature with practical stops: nationwide nature/travel candidates should include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
 - Playroom/family restaurants: these are useful after daycare or for meal+play combinations, but grill/fire risks, playroom line-of-sight, baby chairs, parking, and floor changes should be explicit.
 
