@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateOutsideRadiusReviewOnly, duplicateReasonCodes } from "@/lib/duplicates";
+import {
+  duplicateConfidence,
+  duplicateGenericBranchName,
+  duplicateLocationSignals,
+  duplicateOutsideRadiusReviewOnly,
+  duplicateReasonCodes,
+  duplicateSameBuildingReviewOnly
+} from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
   it("treats kakao place id match as high confidence", () => {
@@ -129,6 +136,23 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("high");
     expect(duplicateReasonCodes(signals)).toContain("ADDRESS_MATCH");
+  });
+
+  it("keeps same-building parent and tenant matches at review confidence", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.72,
+      sameBuildingReviewOnly: true
+    };
+
+    expect(duplicateSameBuildingReviewOnly("챔피언 스타필드 시티 명지", "스타필드 시티 명지")).toBe(true);
+    expect(duplicateSameBuildingReviewOnly("스타필드 시티 명지점", "스타필드 시티 명지")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
   });
 
   it("treats exact self-check signals as high confidence", () => {

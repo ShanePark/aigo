@@ -6,6 +6,7 @@ export type DuplicateCandidateSignals = {
   addressRegionConflict?: boolean;
   regionMatch?: boolean;
   genericBranchName?: boolean;
+  sameBuildingReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
   externalRefsMatch: boolean;
   kakaoPlaceIdMatch: boolean;
@@ -61,6 +62,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("ADDRESS_REGION_CONFLICT");
   }
 
+  if (signals.sameBuildingReviewOnly) {
+    reasonCodes.push("SAME_BUILDING_REVIEW_ONLY");
+  }
+
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
     reasonCodes.push("GEO_NEAR");
   } else if (
@@ -88,6 +93,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (duplicateOutsideRadiusReviewOnly(signals)) return "low";
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.sameBuildingReviewOnly && !signals.aliasMatch) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
   if (signals.aliasMatch && (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 1000) return "high";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.85) return "high";
@@ -113,6 +119,17 @@ export function duplicateGenericBranchName(inputName: string, candidateName: str
   const input = compactDuplicateText(inputName);
   const candidate = compactDuplicateText(candidateName);
   return genericBranchNameTerms.some((term) => input.includes(term) && candidate.includes(term));
+}
+
+export function duplicateSameBuildingReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  const [shorter, longer] = input.length <= candidate.length ? [input, candidate] : [candidate, input];
+  if (shorter.length < 5) return false;
+  if (!longer.includes(shorter)) return false;
+  return longer.length - shorter.length >= 3;
 }
 
 export function duplicateLocationSignals(input: DuplicateLocationInput, candidate: DuplicateLocationCandidate) {
@@ -167,6 +184,10 @@ function normalizeDuplicateSido(value: string) {
 
 function compactDuplicateText(value: string) {
   return value.trim().toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
+}
+
+function compactDuplicateName(value: string) {
+  return compactDuplicateText(value).replace(/점$/, "");
 }
 
 const genericBranchNameTerms = [

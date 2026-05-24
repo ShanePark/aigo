@@ -11,7 +11,14 @@ import {
   type SourceInput,
   type UpdatePlaceInput
 } from "@/lib/schemas";
-import { duplicateConfidence, duplicateGenericBranchName, duplicateLocationSignals, duplicateOutsideRadiusReviewOnly, duplicateReasonCodes } from "@/lib/duplicates";
+import {
+  duplicateConfidence,
+  duplicateGenericBranchName,
+  duplicateLocationSignals,
+  duplicateOutsideRadiusReviewOnly,
+  duplicateReasonCodes,
+  duplicateSameBuildingReviewOnly
+} from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
@@ -1246,6 +1253,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         addressMatch: row.address_match,
         regionMatch: row.region_match,
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
+        sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
         ...locationSignals,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
