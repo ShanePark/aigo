@@ -1,6 +1,12 @@
 export type SearchParamsRecord = Record<string, string | string[]>;
 type SearchParamsLike = Record<string, string | string[] | undefined>;
 
+export const CLIENT_SEARCH_EVENT = "aigo:client-search";
+
+export type ClientSearchEventDetail = {
+  params: SearchParamsRecord;
+};
+
 export type MapViewportSearchRequest = {
   bounds: {
     maxLat: number;
@@ -85,6 +91,21 @@ export function searchParamsWithCurrentLocationState(search: string, formData: F
 
   for (const key of RESET_ON_SEARCH_PARAM_KEYS) params.delete(key);
   return params;
+}
+
+export function searchParamsRecordFromURLSearchParams(params: URLSearchParams): SearchParamsRecord {
+  const record: SearchParamsRecord = {};
+
+  for (const key of params.keys()) {
+    const values = params.getAll(key).filter((value) => value.trim().length > 0);
+    if (values.length === 1) {
+      record[key] = values[0];
+    } else if (values.length > 1) {
+      record[key] = values;
+    }
+  }
+
+  return record;
 }
 
 function currentLocationSearchParams(search: string) {

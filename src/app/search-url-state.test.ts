@@ -4,6 +4,7 @@ import {
   clearMapLocationParamsForTextSearch,
   hasMapLocationParams,
   searchParamsForCurrentLocation,
+  searchParamsRecordFromURLSearchParams,
   searchParamsForViewportSearch,
   searchParamsWithCurrentLocationState
 } from "@/app/search-url-state";
@@ -162,6 +163,21 @@ describe("search URL state", () => {
     expect(hasMapLocationParams({ query: "키즈카페" })).toBe(false);
     expect(hasMapLocationParams({ lat: "37.566500" })).toBe(true);
     expect(hasMapLocationParams({ maxLat: ["", "37.600000"] })).toBe(true);
+  });
+
+  it("converts URLSearchParams to the client search event record shape", () => {
+    const params = new URLSearchParams();
+    params.set("query", "아이랑 실내");
+    params.append("category", "kids_cafe");
+    params.append("category", "library");
+    params.set("children", "boy:12-24,girl:0-6");
+    params.set("empty", " ");
+
+    expect(searchParamsRecordFromURLSearchParams(params)).toEqual({
+      category: ["kids_cafe", "library"],
+      children: "boy:12-24,girl:0-6",
+      query: "아이랑 실내"
+    });
   });
 
   it("clears carried map location params for an explicit text search", () => {

@@ -7,10 +7,13 @@ import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, Sear
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
+import { buildSearchInput } from "@/app/home-search-state";
 import {
+  CLIENT_SEARCH_EVENT,
   MAP_LOCATION_PARAM_KEYS,
   searchParamsForCurrentLocation,
   searchParamsForViewportSearch,
+  type ClientSearchEventDetail,
   type SearchParamsRecord
 } from "@/app/search-url-state";
 import {
@@ -20,7 +23,7 @@ import {
   type SearchResultBadgeSourceSummary
 } from "@/app/search-result-badges";
 import { pricingSummaryLabel } from "@/lib/pricing";
-import type { SearchPlacesInput } from "@/lib/schemas";
+import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
 const DEFAULT_ORIGIN = {
   lat: 36.3322,
@@ -87,6 +90,8 @@ type SearchResult = {
   items: SearchItem[];
   meta: SearchResultMeta;
 };
+
+type PendingSearchKind = "filters" | "location" | "viewport";
 
 type SearchResultMeta = {
   count: number;
@@ -163,7 +168,7 @@ export function ExploreResults({
   const [result, setResult] = useState(initialResult);
   const [activeInput, setActiveInput] = useState(initialInput);
   const [activeParams, setActiveParams] = useState(initialParams);
-  const [pendingSearchKind, setPendingSearchKind] = useState<"location" | "viewport" | null>(null);
+  const [pendingSearchKind, setPendingSearchKind] = useState<PendingSearchKind | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const searchReturnHref = useMemo(() => currentSearchHref(activeParams), [activeParams]);
   const isClientSearchPending = pendingSearchKind !== null;
@@ -176,7 +181,7 @@ export function ExploreResults({
     setPendingSearchKind(null);
   }, [initialInput, initialParams, initialResult]);
 
-  const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord, pendingKind: "location" | "viewport" = "viewport") => {
+  const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord, pendingKind: PendingSearchKind = "viewport") => {
     const scrollY = window.scrollY;
     setPendingSearchKind(pendingKind);
     setClientError(null);
@@ -208,6 +213,19 @@ export function ExploreResults({
       restoreScrollPosition(scrollY);
     }
   }, []);
+
+  useEffect(() => {
+    function handleClientSearch(event: Event) {
+      const params = (event as CustomEvent<ClientSearchEventDetail>).detail?.params;
+      if (!params) return;
+
+      const input = searchPlacesSchema.parse(buildSearchInput(params));
+      void runClientSearch(input, params, "filters");
+    }
+
+    window.addEventListener(CLIENT_SEARCH_EVENT, handleClientSearch);
+    return () => window.removeEventListener(CLIENT_SEARCH_EVENT, handleClientSearch);
+  }, [runClientSearch]);
 
   const handleViewportSearch = useCallback(
     (request: ViewportSearchRequest) => {
@@ -590,8 +608,10 @@ function compactResultCountLabel(meta: SearchResultMeta) {
   return meta.total === meta.count ? `${meta.total}곳` : `${start}-${end} / ${meta.total}`;
 }
 
-function pendingStatusLabel(kind: "location" | "viewport") {
-  return kind === "location" ? "현재 위치 기준으로 장소를 찾는 중입니다" : "현재 지도 화면 안의 장소를 찾는 중입니다";
+function pendingStatusLabel(kind: PendingSearchKind) {
+  if (kind === "location") return "현재 위치 기준으로 장소를 찾는 중입니다";
+  if (kind === "filters") return "조건을 반영해 장소를 다시 찾는 중입니다";
+  return "현재 지도 화면 안의 장소를 찾는 중입니다";
 }
 
 function currentResultPage(meta: SearchResultMeta) {

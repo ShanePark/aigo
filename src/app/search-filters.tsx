@@ -20,7 +20,12 @@ import {
   type ChildGender,
   type ChildProfile
 } from "@/lib/child-ages";
-import { searchParamsWithCurrentLocationState } from "@/app/search-url-state";
+import {
+  CLIENT_SEARCH_EVENT,
+  searchParamsRecordFromURLSearchParams,
+  searchParamsWithCurrentLocationState,
+  type ClientSearchEventDetail
+} from "@/app/search-url-state";
 
 type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
@@ -74,6 +79,11 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     params.delete("offset");
 
     const query = params.toString();
+    window.dispatchEvent(
+      new CustomEvent<ClientSearchEventDetail>(CLIENT_SEARCH_EVENT, {
+        detail: { params: searchParamsRecordFromURLSearchParams(params) }
+      })
+    );
     startTransition(() => {
       router.push(query ? `/?${query}` : "/", { scroll: false });
     });
