@@ -24,7 +24,11 @@ type UserRow = {
 };
 
 export function isDevLoginEnabled(env: NodeJS.ProcessEnv = process.env) {
-  return env.NODE_ENV !== "production" || env.AIGO_DEV_LOGIN_ENABLED === "true";
+  if (env.NODE_ENV !== "production") {
+    return true;
+  }
+
+  return env.AIGO_DEV_LOGIN_ENABLED === "true" && (env.AIGO_ENV === "local" || env.AIGO_ENV === "staging");
 }
 
 export function createSessionToken() {

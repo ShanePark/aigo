@@ -189,7 +189,7 @@ AIGO_UPLOAD_DIR=./data/uploads
 
 `AIGO_API_KEY=change-me` is accepted only as a local development convenience. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
 
-Dev login is available automatically outside production and can also be enabled with `AIGO_DEV_LOGIN_ENABLED=true`. Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
+Dev login is available automatically outside production. In `NODE_ENV=production`, `AIGO_DEV_LOGIN_ENABLED=true` is ignored unless `AIGO_ENV` is `local` or `staging`, so real production cannot expose the shared dev user by flipping a single flag. Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
 
 ## Useful Commands
 
