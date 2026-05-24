@@ -130,6 +130,32 @@ describe("research payload workflow lint", () => {
     expect(formatted).toContain("[warning] images.0.altText");
   });
 
+  it("warns when official sources mention closure signals on active payloads", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "브릭캠퍼스 제주 공식 안내",
+          url: "https://example.com/brickcampus",
+          summary: "공식 사이트에 제주 지점은 종료 상태로 안내되어 있다.",
+          checkedAt: "2026-05-24T17:30:00.000+09:00"
+        }
+      ]
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_closed_source_signal",
+          path: "sources.0.summary",
+          severity: "warning"
+        })
+      ])
+    );
+  });
+
   it("parses CLI arguments", () => {
     expect(parseArgs(["--json", "a.json", "b.md"])).toEqual({
       json: true,

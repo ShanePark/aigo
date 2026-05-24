@@ -28,6 +28,8 @@ type PayloadEntry = {
 
 const registrationDataConfidence = new Set(["agent_collected", "official_verified", "user_reported"]);
 const acceptedCoordinateLevels = new Set(["official_embedded_map", "public_dataset_exact_address", "public_address_coordinate", "parent_building_coordinate"]);
+const operationalSourceTypes = new Set(["official_site", "operator_page", "public_agency", "public_tourism"]);
+const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|임시\s*휴장|휴업|폐관|closed|permanently\s*closed|temporarily\s*closed)/i;
 
 if (isMain()) {
   void main();
@@ -180,6 +182,24 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   }
 
   collectCoordinateProvenanceIssues(payload, issues);
+  collectOperationalStatusSignalIssues(payload, issues);
+}
+
+function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  payload.sources.forEach((source, index) => {
+    if (!operationalSourceTypes.has(source.sourceType)) return;
+
+    const text = [source.title, source.summary].filter(Boolean).join(" ");
+    if (!closedSignalPattern.test(text)) return;
+
+    issues.push(
+      warning(
+        `sources.${index}.summary`,
+        "workflow_closed_source_signal",
+        "official/operator source text appears to mention closure, end of operation, or suspension; hold the active registration until current operation is confirmed"
+      )
+    );
+  });
 }
 
 function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
