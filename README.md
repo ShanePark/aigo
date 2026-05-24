@@ -120,7 +120,7 @@ Runtime search scores and reason codes are influenced by:
 - Category, tag, and taxonomy facet matches
 - Recommended child-age fit
 - Family logistics preferences
-- Source-backed objective place score and external evidence
+- Source-backed objective place score and external evidence, including conservative bonuses for free or low-cost admission and broad facility scale when those signals are source-backed
 - Opening-hours confidence and planned visit date/time when provided
 - Visit-fit fields such as average stay, parent effort, child engagement, and weather fit
 - Data confidence

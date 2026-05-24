@@ -452,6 +452,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       openingHours: place.openingHours,
       visit: place.visit,
       taxonomy: place.taxonomy,
+      pricing: place.pricing,
       distanceKm: place.distanceKm
     } satisfies Parameters<typeof scorePlace>[0];
     const scoredPlace = scorePlace(scoringPlace, normalizedInput, scoringNow ? { now: scoringNow } : undefined);

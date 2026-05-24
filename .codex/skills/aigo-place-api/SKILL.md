@@ -38,7 +38,7 @@ When preparing place payloads:
 - Do not treat user visit ratings or third-party ratings as `placeScore`. Store third-party evidence in `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, and `scoreSignals`; user visit aggregates come back as `userRatingSummary`.
 - Keep `placeScoreRationale` neutral, public, and reusable. Do not mention the user's specific household, children, home base, or private age anchors.
 - Use conservative scoring when current operation, age fit, baby logistics, safety, parent-review evidence, or image/source confidence is weak. Preserve uncertainty in notes and signals rather than inflating the score.
-- Capture source-backed facility scale, free or low-cost public value, provider ratings, review-count confidence, source conflicts, freshness, and evidence caps in `scoreSignals` when useful.
+- Capture source-backed facility scale, free or low-cost public value, provider ratings, review-count confidence, source conflicts, freshness, and evidence caps in `scoreSignals` when useful. The runtime scorer gives a small `externalEvidence` bonus for `scoreSignals.facilityScale`, `scoreSignals.freeAdmission`, `scoreSignals.lowCost`, and source-backed free/low-cost `pricing`; keep these signals conservative and source-backed.
 
 ## Family-Fit Gate
 

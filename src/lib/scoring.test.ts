@@ -488,6 +488,109 @@ describe("scorePlace", () => {
     expect(high.scoreBreakdown.externalEvidence).toBeGreaterThan(0);
   });
 
+  it("adds conservative public value for free large public destinations", () => {
+    const input = {
+      ...baseInput,
+      query: "가족 나들이",
+      visitContext: "weekendHalfDay" as const,
+      preferences: {
+        parkingAvailable: true,
+        strollerFriendly: true,
+        diaperChangingTable: true
+      }
+    };
+    const shared = {
+      primaryCategory: "park",
+      tags: ["children_playground"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "outdoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "partial",
+      kidsToilet: "yes",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "partial",
+      distanceKm: 30,
+      scoring: {
+        placeScore: 7.2,
+        placeScoreRationale: "공공 야외 복합시설.",
+        externalRatingScore: null,
+        externalReviewCount: null,
+        searchEvidenceScore: 7,
+        scoreSignals: {},
+        scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+      }
+    };
+    const plain = scorePlace(shared, input);
+    const publicValue = scorePlace(
+      {
+        ...shared,
+        pricing: {
+          summary: "입장료 무료",
+          items: [{ label: "입장료", amount: 0, currency: "KRW" }]
+        },
+        scoring: {
+          ...shared.scoring,
+          scoreSignals: {
+            facilityScale: "large",
+            freeAdmission: true
+          }
+        }
+      },
+      input
+    );
+
+    expect(publicValue.score).toBeGreaterThan(plain.score);
+    expect(publicValue.scoreBreakdown.externalEvidence).toBeGreaterThan(plain.scoreBreakdown.externalEvidence);
+    expect(publicValue.reasonCodes).toEqual(expect.arrayContaining(["PUBLIC_FREE_ADMISSION", "FACILITY_SCALE_LARGE"]));
+  });
+
+  it("recognizes low-cost public pricing without over-ranking it as free", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "experience_center",
+        tags: ["children_experience"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 96,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "partial",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 12,
+        pricing: {
+          items: [
+            { label: "어린이 입장", amount: 3_000, currency: "KRW" },
+            { label: "보호자 입장", amount: 2_000, currency: "KRW" }
+          ]
+        },
+        scoring: {
+          placeScore: 7,
+          placeScoreRationale: "저렴한 공공 체험시설.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 7,
+          scoreSignals: { facilityScale: { level: "medium" } },
+          scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "weekendHalfDay" }
+    );
+
+    expect(result.reasonCodes).toContain("PUBLIC_LOW_COST");
+    expect(result.reasonCodes).toContain("FACILITY_SCALE_MEDIUM");
+    expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
+  });
+
   it("prevents unscored places from saturating the ranking", () => {
     const strongLogistics = {
       primaryCategory: "kids_cafe",

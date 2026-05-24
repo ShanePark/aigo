@@ -44,6 +44,7 @@ type ScoreablePlace = Pick<
   openingHours?: unknown | null;
   visit?: VisitScores;
   scoring?: PlaceScoringSignals;
+  pricing?: Record<string, unknown> | null;
   taxonomy?: PlaceTaxonomy | null;
 };
 
@@ -159,6 +160,7 @@ function scorePlaceInternal(
   };
 
   applyPlaceQualitySignal(place, reasonCodes, (delta) => addScore("placeQuality", delta), (delta) => addScore("externalEvidence", delta));
+  applyPublicValueSignal(place, reasonCodes, (delta) => addScore("externalEvidence", delta));
 
   if (mode.includeDistance) {
     applyDistanceSignal(place, input, reasonCodes, (delta) => addScore("distance", delta));
@@ -311,6 +313,28 @@ function applyPlaceQualitySignal(
   }
 }
 
+function applyPublicValueSignal(place: ScoreablePlace, reasonCodes: Set<string>, addScore: (delta: number) => void) {
+  let delta = 0;
+  if (hasFreeAdmissionSignal(place)) {
+    delta += 3;
+    reasonCodes.add("PUBLIC_FREE_ADMISSION");
+  } else if (hasLowCostSignal(place)) {
+    delta += 1.5;
+    reasonCodes.add("PUBLIC_LOW_COST");
+  }
+
+  const facilityScale = facilityScaleSignal(place.scoring?.scoreSignals);
+  if (facilityScale === "large") {
+    delta += 2.5;
+    reasonCodes.add("FACILITY_SCALE_LARGE");
+  } else if (facilityScale === "medium") {
+    delta += 1;
+    reasonCodes.add("FACILITY_SCALE_MEDIUM");
+  }
+
+  addScore(Math.min(5, delta));
+}
+
 function reviewCountWeight(reviewCount: number | null | undefined) {
   if (typeof reviewCount !== "number" || reviewCount <= 0) return 0.35;
   return Math.min(1, 0.35 + Math.log10(reviewCount + 1) / 3);
@@ -319,6 +343,97 @@ function reviewCountWeight(reviewCount: number | null | undefined) {
 function normalizeZeroToTen(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return Math.max(0, Math.min(10, value));
+}
+
+function hasFreeAdmissionSignal(place: ScoreablePlace) {
+  return truthySignal(place.scoring?.scoreSignals?.freeAdmission) || truthySignal(place.scoring?.scoreSignals?.freeEntry) || pricingHasFreeAdmission(place.pricing);
+}
+
+function hasLowCostSignal(place: ScoreablePlace) {
+  return lowCostSignal(place.scoring?.scoreSignals?.freeAdmission) || lowCostSignal(place.scoring?.scoreSignals?.lowCost) || pricingHasLowCostAdmission(place.pricing);
+}
+
+function truthySignal(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return /^(?:yes|true|free|free_admission|무료|무료입장)$/i.test(value.trim());
+  if (Array.isArray(value)) return value.some(truthySignal);
+  if (isRecord(value)) {
+    return ["value", "free", "isFree", "confirmed", "sourceBacked"].some((key) => truthySignal(value[key]));
+  }
+  return false;
+}
+
+function lowCostSignal(value: unknown): boolean {
+  if (typeof value === "string") return /(?:low[_\s-]?cost|cheap|affordable|저렴|저비용|공공요금)/i.test(value);
+  if (Array.isArray(value)) return value.some(lowCostSignal);
+  if (isRecord(value)) {
+    return ["value", "level", "type", "cost"].some((key) => lowCostSignal(value[key]));
+  }
+  return false;
+}
+
+function facilityScaleSignal(scoreSignals: Record<string, unknown> | undefined): "large" | "medium" | null {
+  const value = scoreSignals?.facilityScale ?? scoreSignals?.scale;
+  const tokens = signalTokens(value);
+  if (tokens.some((token) => ["large", "very_large", "major", "regional", "destination", "campus", "multi_use", "complex", "broad"].includes(token))) {
+    return "large";
+  }
+  if (tokens.some((token) => ["medium", "moderate"].includes(token))) return "medium";
+  return null;
+}
+
+function signalTokens(value: unknown): string[] {
+  if (typeof value === "string") return [normalizeSignalToken(value)];
+  if (Array.isArray(value)) return value.flatMap(signalTokens);
+  if (isRecord(value)) {
+    return ["value", "level", "type", "scale", "kind"].flatMap((key) => signalTokens(value[key]));
+  }
+  return [];
+}
+
+function normalizeSignalToken(value: string) {
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function pricingHasFreeAdmission(pricing: unknown) {
+  const record = isRecord(pricing) ? pricing : null;
+  if (!record) return false;
+  const text = pricingText(record);
+  if (/(?:무료\s*(?:입장|관람|이용)?|입장료\s*무료|free\s*(?:admission|entry)?)/i.test(text)) return true;
+
+  const admissionItems = pricingAdmissionItems(record);
+  return admissionItems.length > 0 && admissionItems.every((item) => item.amount === 0);
+}
+
+function pricingHasLowCostAdmission(pricing: unknown) {
+  const record = isRecord(pricing) ? pricing : null;
+  if (!record) return false;
+  const text = pricingText(record);
+  if (/(?:저렴|저비용|공공요금|low\s*cost|affordable)/i.test(text)) return true;
+
+  const amounts = pricingAdmissionItems(record)
+    .map((item) => item.amount)
+    .filter((amount): amount is number => typeof amount === "number" && amount > 0);
+  return amounts.length > 0 && Math.max(...amounts) <= 5_000;
+}
+
+function pricingText(record: Record<string, unknown>) {
+  return ["summary", "notes", "sourceTitle"]
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
+}
+
+function pricingAdmissionItems(record: Record<string, unknown>) {
+  const items = Array.isArray(record.items) ? record.items.filter(isRecord) : [];
+  return items.flatMap((item) => {
+    const label = [item.label, item.unit, item.notes].filter((value): value is string => typeof value === "string").join(" ");
+    const amount = typeof item.amount === "number" && Number.isFinite(item.amount) ? item.amount : null;
+    if (amount === null) return [];
+    if (!/(?:입장|입장료|이용|관람|admission|entry|ticket|어린이|아동|성인|보호자)/i.test(label)) return [];
+    if (/(?:주차|parking)/i.test(label)) return [];
+    return [{ amount }];
+  });
 }
 
 function applyTaxonomySignal(
