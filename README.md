@@ -19,21 +19,21 @@ The data model intentionally treats parent logistics as first-class signals:
 - Stroller practicality, elevator access, parking, nursing rooms, diaper changing tables, kids toilets, baby chairs, and food/snack handling
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
 - Public child-friendly facilities, indoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, kid-primary accommodations, and short nature trips
-- Source-backed place records, image provenance, and wiki-style version history
+- Source-backed place records, image provenance, wiki-style version history, and user visit feedback
 - Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, logistics, and risk semantics
 
 Unknown is an acceptable value when evidence is weak. AiGo should not invent amenities just to make a place look complete.
 
 ## MVP Boundary
 
-The MVP focuses on structured place data, source-backed updates, duplicate review, search, details, image provenance, and version history.
+The MVP focuses on structured place data, source-backed updates, duplicate review, search, details, image provenance, version history, and a lightweight visit/review loop. It includes the database and app APIs needed for dev-only login, place visits, integer ratings, short reviews, private/public visibility, local visit-photo uploads, and a personal visit log.
 
 Out of scope for the current MVP:
 
-- User accounts and family profiles
-- Saved lists, reviews, visit logs, and community features
+- Public signup, social login, account recovery, family sharing, and account-backed family profiles
+- Saved lists and broad community/social features
 - Full natural-language trip planning as an API responsibility
-- Full itinerary generation, real-time crowding, reservations, payments, and lodging booking flows
+- Full itinerary generation, real-time crowding, reservations, payments, lodging booking flows, photo resizing, HEIC conversion, CDN storage, and moderation workflows
 - Admin data-entry UI
 
 ## Current App
@@ -42,10 +42,12 @@ The web app provides a Korean place-search UI with:
 
 - Keyword, category, age, map-viewport/distance, and family-logistics filters
 - Local-only child profile preference restore through `localStorage` while account-backed family profiles remain a future feature
+- Development-only one-click login as `dev@aigo.local` for exercising user-owned visit features without building public signup yet
 - Map-first browsing: the first landing view uses browser geolocation when available, then pan or zoom the map and tap `현 지도에서 검색` to refresh the list from the visible map area without changing results during casual map movement
 - Soft matching instead of hard exclusion for age and amenity mismatches
-- Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, and reason codes
-- Place detail pages with source links, image audit information, child-friendly signals, play features, visit judgment, notes, and recent versions
+- Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, reason codes, and user rating summaries
+- Place detail pages with source links, image audit information, child-friendly signals, play features, visit judgment, notes, recent versions, and a signed-in visit/review/photo form
+- A `/visits` page that groups the signed-in user's visit log by date with place, rating, review, revisit, and photo-count summaries
 
 The UI uses the browser's current location as the initial origin when permission is available, and otherwise falls back to a neutral default origin that users can change.
 
@@ -71,6 +73,19 @@ All `/v1` agent API routes require bearer auth:
 Authorization: Bearer $AIGO_API_KEY
 ```
 
+## App Auth And Visits
+
+User-facing app routes use the `aigo_session` httpOnly, sameSite=lax cookie instead of the `/v1` bearer token. In development, `POST /api/auth/dev-login` creates or reuses the `dev@aigo.local` user and issues a local session; `POST /api/auth/logout` clears it; `GET /api/me` returns the current viewer.
+
+Visit and review endpoints are intentionally app-scoped APIs:
+
+- `GET /api/places/[placeId]/visits` - return public visit content, aggregate ratings, and the current user's visits for a place
+- `POST /api/places/[placeId]/visits` - create today's visit with a required 1-5 rating, optional short review, and visibility; repeat visits are inferred server-side
+- `PATCH /api/visits/[visitId]` - update the signed-in user's own rating, review text, or visibility
+- `POST /api/visits/[visitId]/photos` - upload jpeg/png/webp visit photos up to 10MB
+- `GET /api/visit-photos/[photoId]` - stream public photos to anyone and private photos only to the owner
+- `GET /api/visits` - return the signed-in user's date-grouped visit log
+
 ## Data Model
 
 AiGo stores places in PostgreSQL/PostGIS with Drizzle schema definitions in [`src/db/schema.ts`](src/db/schema.ts). The main tables are:
@@ -79,6 +94,9 @@ AiGo stores places in PostgreSQL/PostGIS with Drizzle schema definitions in [`sr
 - `place_sources` - source evidence attached to a place
 - `place_images` - remote image URLs with provenance, display tier, review status, visual features, and primary-image selection
 - `place_versions` - wiki-style snapshots created after create/update actions
+- `users` and `auth_sessions` - future-compatible user/session foundations, currently used for the dev-only local login flow
+- `place_visits` - user-owned visit records with server-owned visit dates, inferred revisit status, 1-5 ratings, short review text, and visibility
+- `place_visit_photos` - metadata for visit photos stored under the local upload directory
 
 Real place data should be created and updated through the AiGo API, not direct database writes. The seed script intentionally inserts no real places.
 
@@ -144,9 +162,13 @@ The app has local defaults for development:
 ```bash
 DATABASE_URL=postgres://aigo:aigo@localhost:5431/aigo
 AIGO_API_KEY=change-me
+AIGO_DEV_LOGIN_ENABLED=true
+AIGO_UPLOAD_DIR=./data/uploads
 ```
 
 `AIGO_API_KEY=change-me` is accepted only as a local development convenience. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
+
+Dev login is available automatically outside production and can also be enabled with `AIGO_DEV_LOGIN_ENABLED=true`. Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
 
 ## Useful Commands
 
