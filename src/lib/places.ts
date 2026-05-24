@@ -20,6 +20,12 @@ import {
   duplicateSameBuildingReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
+import {
+  shoppingMallRelatedPlaceScoreAdjustment,
+  summarizeRelatedPlaceScoringRows,
+  type RelatedPlaceScoringRow,
+  type RelatedPlaceScoringSummary
+} from "@/lib/recommendation-scoring";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlace } from "@/lib/scoring";
 import {
@@ -145,23 +151,6 @@ type RelatedPlaceRow = {
   lng: number;
   status: string;
   distance_meters: number | null;
-};
-
-type RelatedPlaceScoringRow = {
-  place_id: string;
-  related_place_id: string;
-  relation_type: string;
-  related_name: string;
-  related_primary_category: string;
-  related_tags: string[];
-};
-
-type RelatedPlaceScoringSummary = {
-  childDestinationWeight: number;
-  supportDestinationWeight: number;
-  meaningfulCount: number;
-  relationTypes: string[];
-  categories: string[];
 };
 
 type SourceRow = {
@@ -661,92 +650,6 @@ export function routeBreakDestinationFitCapForTest(
   return routeBreakDestinationFitCap(score, place, input);
 }
 
-function shoppingMallRelatedPlaceScoreAdjustment(place: Pick<ReturnType<typeof mapPlace>, "name" | "primaryCategory" | "tags">, summary?: RelatedPlaceScoringSummary) {
-  if (place.primaryCategory !== "shopping_mall") {
-    return { delta: 0, shoppingMallBase: 0, relatedPlaces: 0, reasonCodes: [] as string[] };
-  }
-
-  const reasonCodes = new Set<string>(["SHOPPING_MALL_BASE_DEEMPHASIZED"]);
-  const baseDelta = isDestinationShoppingMall(place) ? -3 : -10;
-  const childWeight = summary?.childDestinationWeight ?? 0;
-  const supportWeight = summary?.supportDestinationWeight ?? 0;
-  let bonus = 0;
-
-  if (childWeight > 0) {
-    bonus += Math.min(12, Math.round(childWeight * 6));
-    reasonCodes.add("RELATED_CHILD_DESTINATION_BOOST");
-  }
-
-  if (supportWeight > 0) {
-    const supportBonus = childWeight > 0 ? Math.min(3, Math.ceil(supportWeight)) : Math.min(4, Math.ceil(supportWeight * 2));
-    bonus += supportBonus;
-    reasonCodes.add("RELATED_SUPPORT_DESTINATION_BOOST");
-  }
-
-  if ((summary?.meaningfulCount ?? 0) >= 3) {
-    bonus += 1;
-    reasonCodes.add("RELATED_PLACE_CLUSTER_BOOST");
-  }
-
-  const delta = Math.max(-10, Math.min(8, Math.round(baseDelta + bonus)));
-  return {
-    delta,
-    shoppingMallBase: baseDelta,
-    relatedPlaces: delta - baseDelta,
-    reasonCodes: Array.from(reasonCodes).sort()
-  };
-}
-
-export function shoppingMallRelatedPlaceScoreAdjustmentForTest(
-  place: Parameters<typeof shoppingMallRelatedPlaceScoreAdjustment>[0],
-  summary?: RelatedPlaceScoringSummary
-) {
-  return shoppingMallRelatedPlaceScoreAdjustment(place, summary);
-}
-
-function isDestinationShoppingMall(place: Pick<ReturnType<typeof mapPlace>, "name" | "tags">) {
-  const compactName = compactSearchText(place.name);
-  const compactTags = place.tags.map(compactSearchText);
-  return (
-    ["아울렛", "프리미엄아울렛", "복합쇼핑몰", "스타필드", "타임빌라스"].some((term) => compactName.includes(term)) ||
-    compactTags.some((tag) => ["outlet", "premiumoutlet", "destinationmall", "complexmall", "아울렛", "복합쇼핑몰"].includes(tag))
-  );
-}
-
-function relatedPlaceDestinationContribution(row: RelatedPlaceScoringRow) {
-  const relationMultiplier = relatedPlaceRelationMultiplier(row.relation_type);
-  if (relationMultiplier <= 0) return { kind: "none" as const, weight: 0 };
-
-  const category = row.related_primary_category;
-  const tags = new Set(row.related_tags.map(compactSearchText));
-  if (relatedChildDestinationCategories.has(category) || relatedTagsIncludeChildDestination(tags)) {
-    return { kind: "childDestination" as const, weight: relationMultiplier };
-  }
-  if (relatedSupportDestinationCategories.has(category) || relatedTagsIncludeSupportDestination(tags)) {
-    return { kind: "supportDestination" as const, weight: relationMultiplier * 0.7 };
-  }
-  return { kind: "none" as const, weight: 0 };
-}
-
-function relatedPlaceRelationMultiplier(relationType: string) {
-  if (["same_building", "same_site", "parent_child"].includes(relationType)) return 1;
-  if (relationType === "nearby") return 0.45;
-  return 0;
-}
-
-const relatedChildDestinationCategories = new Set(["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium_zoo"]);
-const relatedSupportDestinationCategories = new Set(["toy_store", "family_cafe", "family_restaurant", "library"]);
-
-function relatedTagsIncludeChildDestination(tags: Set<string>) {
-  return ["키즈카페", "실내놀이터", "어린이체험", "어린이박물관", "어린이도서관", "kids", "kidscafe", "indoorplayground"].some((tag) =>
-    tags.has(tag)
-  );
-}
-
-function relatedTagsIncludeSupportDestination(tags: Set<string>) {
-  return ["놀이방식당", "playroom", "토이저러스", "장난감", "유아휴게실"].some((tag) => tags.has(tag));
-}
-
 function requestedPlaygroundFeatureGroups(query?: string, originalQuery?: string) {
   const terms = new Set(
     [query, originalQuery]
@@ -1197,7 +1100,16 @@ async function getRelatedPlaceScoringSummaryMap(placeIds: string[]) {
   const summaryMap = new Map<string, RelatedPlaceScoringSummary>();
   if (placeIds.length === 0) return summaryMap;
 
-  const rows = await pg<RelatedPlaceScoringRow[]>`
+  const rows = await pg<
+    {
+      place_id: string;
+      related_place_id: string;
+      relation_type: string;
+      related_name: string;
+      related_primary_category: string;
+      related_tags: string[];
+    }[]
+  >`
     select
       r.place_id,
       related.id as related_place_id,
@@ -1223,31 +1135,16 @@ async function getRelatedPlaceScoringSummaryMap(placeIds: string[]) {
       and related.status = 'active'
   `;
 
-  for (const row of rows) {
-    const summary =
-      summaryMap.get(row.place_id) ??
-      ({
-        childDestinationWeight: 0,
-        supportDestinationWeight: 0,
-        meaningfulCount: 0,
-        relationTypes: [],
-        categories: []
-      } satisfies RelatedPlaceScoringSummary);
-    const contribution = relatedPlaceDestinationContribution(row);
-    if (contribution.kind !== "none") {
-      summary.meaningfulCount += 1;
-      if (contribution.kind === "childDestination") {
-        summary.childDestinationWeight += contribution.weight;
-      } else {
-        summary.supportDestinationWeight += contribution.weight;
-      }
-    }
-    summary.relationTypes.push(row.relation_type);
-    summary.categories.push(row.related_primary_category);
-    summaryMap.set(row.place_id, summary);
-  }
-
-  return summaryMap;
+  return summarizeRelatedPlaceScoringRows(
+    rows.map((row): RelatedPlaceScoringRow => ({
+      placeId: row.place_id,
+      relatedPlaceId: row.related_place_id,
+      relationType: row.relation_type,
+      relatedName: row.related_name,
+      relatedPrimaryCategory: row.related_primary_category,
+      relatedTags: row.related_tags
+    }))
+  );
 }
 
 function imageHealthPredicate(status: PlaceImageHealthQueryInput["status"]) {
