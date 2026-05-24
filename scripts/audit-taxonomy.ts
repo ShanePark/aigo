@@ -1,4 +1,5 @@
-import { pg } from "@/db/client";
+import { pathToFileURL } from "node:url";
+
 import {
   normalizePrimaryCategory,
   normalizeRegionSido,
@@ -30,6 +31,7 @@ type SourceTypeRow = {
 };
 
 type CountMap = Record<string, number>;
+type PgClient = typeof import("@/db/client")["pg"];
 
 const taxonomyFacetKeys = Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[];
 const knownRegionSido = new Set([
@@ -52,16 +54,24 @@ const knownRegionSido = new Set([
   "제주특별자치도"
 ]);
 
-const args = parseArgs(process.argv.slice(2));
+let pgClient: PgClient | null = null;
 
-try {
-  const results = await runAudit(args);
-  console.log(args.json ? JSON.stringify(results, null, 2) : formatMarkdown(results));
-} finally {
-  await pg.end({ timeout: 5 });
+if (isMain()) {
+  void main();
 }
 
-function parseArgs(argv: string[]): AuditArgs {
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+
+  try {
+    const results = await runAudit(args);
+    console.log(args.json ? JSON.stringify(results, null, 2) : formatMarkdown(results));
+  } finally {
+    if (pgClient) await pgClient.end({ timeout: 5 });
+  }
+}
+
+export function parseArgs(argv: string[]): AuditArgs {
   const args: AuditArgs = { json: false };
   for (const arg of argv) {
     if (arg === "--json") {
@@ -75,7 +85,8 @@ function parseArgs(argv: string[]): AuditArgs {
   return args;
 }
 
-async function runAudit(args: AuditArgs) {
+export async function runAudit(args: AuditArgs) {
+  const pg = await getPg();
   const places = await loadPlaces(args);
   const sourceRows = await pg<SourceTypeRow[]>`
     select source_type, count(*)::int as count
@@ -97,6 +108,7 @@ async function runAudit(args: AuditArgs) {
 }
 
 async function loadPlaces(args: AuditArgs) {
+  const pg = await getPg();
   if (args.category) {
     return pg<PlaceTaxonomyAuditRow[]>`
       select id, name, primary_category, tags, region_sido, taxonomy
@@ -166,15 +178,19 @@ function auditSourceTypes(rows: SourceTypeRow[]) {
   };
 }
 
-function auditRegions(places: PlaceTaxonomyAuditRow[]) {
-  const regionValues = Array.from(new Set(places.map((place) => place.region_sido).filter((value): value is string => Boolean(value)))).sort();
+export function auditRegions(places: Array<Pick<PlaceTaxonomyAuditRow, "region_sido">>) {
+  const rawDistribution = countBy(places.map((place) => place.region_sido ?? "unknown"));
+  const regionValues = Object.keys(rawDistribution).filter((value) => value !== "unknown").sort();
   const aliases = regionValues
-    .map((region) => ({ region, canonical: normalizeRegionSido(region) }))
+    .map((region) => ({ region, canonical: normalizeRegionSido(region), count: rawDistribution[region] ?? 0 }))
     .filter((row) => row.canonical !== row.region);
-  const unknown = regionValues.filter((region) => !knownRegionSido.has(normalizeRegionSido(region)));
+  const unknown = regionValues
+    .map((region) => ({ region, normalized: normalizeRegionSido(region), count: rawDistribution[region] ?? 0 }))
+    .filter((row) => !knownRegionSido.has(row.normalized));
 
   return {
-    distribution: countBy(places.map((place) => place.region_sido ?? "unknown")),
+    distribution: rawDistribution,
+    normalizedDistribution: countBy(places.map((place) => (place.region_sido ? normalizeRegionSido(place.region_sido) : "unknown"))),
     aliases,
     unknown
   };
@@ -235,7 +251,7 @@ function isProcessLikeTag(tag: string) {
   return /batch|migration|migrated|audit|seed|source|geocode|import|agent|taxonomy|수집|마이그|검수|출처/i.test(tag);
 }
 
-function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
+export function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
   const lines: string[] = [];
   lines.push("# AiGo Taxonomy Audit");
   lines.push("");
@@ -263,8 +279,14 @@ function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
   lines.push("");
   lines.push("## Regions");
   lines.push("");
-  lines.push(`Aliases: ${results.regions.aliases.map((row) => `${row.region}->${row.canonical}`).join(", ") || "none"}`);
-  lines.push(`Unknown: ${results.regions.unknown.join(", ") || "none"}`);
+  lines.push("Raw distribution:");
+  lines.push(formatKeyCounts(results.regions.distribution));
+  lines.push("");
+  lines.push("Normalized distribution:");
+  lines.push(formatKeyCounts(results.regions.normalizedDistribution));
+  lines.push("");
+  lines.push(`Aliases: ${results.regions.aliases.map((row) => `${row.region}->${row.canonical} (${row.count})`).join(", ") || "none"}`);
+  lines.push(`Unknown: ${results.regions.unknown.map((row) => `${row.region}->${row.normalized} (${row.count})`).join(", ") || "none"}`);
   lines.push("");
   lines.push("## Taxonomy Facets");
   lines.push("");
@@ -279,6 +301,18 @@ function formatMarkdown(results: Awaited<ReturnType<typeof runAudit>>) {
   lines.push(`Broad mapped: ${results.taxonomy.migration.broadMappedExamples.join(", ") || "none"}`);
   lines.push(`Unmapped: ${results.taxonomy.migration.unmappedExamples.join(", ") || "none"}`);
   return lines.join("\n");
+}
+
+async function getPg(): Promise<PgClient> {
+  if (!pgClient) {
+    pgClient = (await import("@/db/client")).pg;
+  }
+  return pgClient;
+}
+
+function isMain() {
+  const entry = process.argv[1];
+  return entry ? import.meta.url === pathToFileURL(entry).href : false;
 }
 
 function formatKeyCounts(counts: CountMap) {

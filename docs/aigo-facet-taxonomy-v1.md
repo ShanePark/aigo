@@ -135,6 +135,8 @@ Read-only audit:
 pnpm tsx scripts/audit-taxonomy.ts --json
 ```
 
+The region section reports raw `region_sido` counts and normalized counts together. Use normalized counts for coverage planning, and raw alias counts to decide which stored values need cleanup.
+
 Dry-run migration planning:
 
 ```bash

@@ -25,7 +25,16 @@ describe("taxonomy catalog", () => {
     expect(normalizeSourceType("official_library_image_source")).toBe("official_image_source");
     expect(normalizeSourceType("made_up_source")).toBeNull();
     expect(normalizeRegionSido("대전")).toBe("대전광역시");
+    expect(normalizeRegionSido("서울")).toBe("서울특별시");
+    expect(normalizeRegionSido("부산")).toBe("부산광역시");
+    expect(normalizeRegionSido("경기")).toBe("경기도");
     expect(normalizeRegionSido("충남")).toBe("충청남도");
+    expect(normalizeRegionSido("충북")).toBe("충청북도");
+    expect(normalizeRegionSido("강원도")).toBe("강원특별자치도");
+    expect(normalizeRegionSido("강원특별자치도특별자치도")).toBe("강원특별자치도");
+    expect(normalizeRegionSido("전라북도")).toBe("전북특별자치도");
+    expect(normalizeRegionSido("경북")).toBe("경상북도");
+    expect(normalizeRegionSido("제주도")).toBe("제주특별자치도");
   });
 
   it("maps legacy tags while preserving unmapped audit values", () => {
