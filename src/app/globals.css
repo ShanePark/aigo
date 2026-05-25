@@ -490,7 +490,7 @@ h3 {
   border: 1px solid var(--line);
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(92px, auto);
   padding: 8px;
 }
 
@@ -647,7 +647,8 @@ h3 {
   color: var(--mint);
 }
 
-.primary-button {
+.primary-button,
+.reset-search-button {
   background: var(--mint);
   border: 0;
   color: var(--accent-text);
@@ -660,6 +661,24 @@ h3 {
 
 .primary-button:hover {
   background: var(--button-hover);
+}
+
+.reset-search-button {
+  background: var(--control-bg);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  padding: 0 14px;
+}
+
+.reset-search-button:hover {
+  background: var(--panel);
+  border-color: var(--hover-border);
+  color: var(--text);
+}
+
+.reset-search-button:disabled {
+  color: var(--disabled-text);
+  cursor: progress;
 }
 
 .advanced-search {

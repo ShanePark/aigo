@@ -27,6 +27,7 @@ import {
 } from "@/app/home-search-state";
 import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
+import { SearchResetButton } from "@/app/search-reset-button";
 import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
@@ -99,6 +100,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <Search size={17} aria-hidden="true" />
               검색
             </button>
+            <SearchResetButton />
           </div>
 
           <div className="category-tabs" aria-label="큰 분류 다중 선택">
