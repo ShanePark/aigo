@@ -3,15 +3,14 @@
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
-const DEFAULT_SEARCH_MAP_VIEW_KEY = "36.5000,127.8000";
-const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v4";
-const RESET_MAP_ZOOM = 12;
+import { DEFAULT_SEARCH_MAP_CENTER, saveResetMapViewToStorage } from "@/app/search-reset-map-view";
 
 export function SearchResetButton() {
   const [isResetting, setIsResetting] = useState(false);
 
   function resetSearch() {
     if (!navigator.geolocation) {
+      saveResetMapView(DEFAULT_SEARCH_MAP_CENTER.lat, DEFAULT_SEARCH_MAP_CENTER.lng);
       window.location.href = "/";
       return;
     }
@@ -23,6 +22,7 @@ export function SearchResetButton() {
         window.location.href = "/";
       },
       () => {
+        saveResetMapView(DEFAULT_SEARCH_MAP_CENTER.lat, DEFAULT_SEARCH_MAP_CENTER.lng);
         window.location.href = "/";
       },
       { enableHighAccuracy: true, maximumAge: 300000, timeout: 5000 }
@@ -46,19 +46,7 @@ export function SearchResetButton() {
 
 function saveResetMapView(lat: number, lng: number) {
   try {
-    const saved = window.localStorage.getItem(MAP_VIEW_STORAGE_KEY);
-    const parsed = saved ? (JSON.parse(saved) as Record<string, unknown>) : {};
-    window.localStorage.setItem(
-      MAP_VIEW_STORAGE_KEY,
-      JSON.stringify({
-        ...parsed,
-        [DEFAULT_SEARCH_MAP_VIEW_KEY]: {
-          lat: Number(lat.toFixed(6)),
-          lng: Number(lng.toFixed(6)),
-          zoom: RESET_MAP_ZOOM
-        }
-      })
-    );
+    saveResetMapViewToStorage(window.sessionStorage, lat, lng);
   } catch {
     // Reset should still clear search state when storage is unavailable.
   }

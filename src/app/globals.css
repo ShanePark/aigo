@@ -1901,6 +1901,7 @@ h3 {
   outline: 2px solid transparent;
   outline-offset: 2px;
   overflow: hidden;
+  position: relative;
   scroll-margin: 16px;
   transition:
     background-color var(--motion-fast),
@@ -2055,6 +2056,7 @@ h3 {
   justify-content: space-between;
   min-height: 28px;
   min-width: 0;
+  padding-right: 76px;
 }
 
 .place-save-controls {
@@ -2068,6 +2070,15 @@ h3 {
 .result-card > .place-save-controls {
   border-top: 1px solid var(--line);
   padding: 0 12px 12px;
+}
+
+.result-card > .place-save-controls.is-compact {
+  border-top: 0;
+  padding: 0;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 4;
 }
 
 .place-save-button,
@@ -2133,6 +2144,24 @@ h3 {
 .place-save-controls.is-compact .place-save-heart-count {
   min-height: 30px;
   padding: 0 8px;
+}
+
+.place-save-controls.is-compact .place-save-button {
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  box-shadow: 0 8px 18px rgba(24, 33, 29, 0.13);
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.place-save-controls.is-compact .place-save-button.is-active {
+  background: color-mix(in srgb, var(--mint-soft) 90%, white);
+}
+
+.place-save-controls.is-compact .place-save-heart-count {
+  display: none;
 }
 
 .detail-decision-actions .place-save-controls {

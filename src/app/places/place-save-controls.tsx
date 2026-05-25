@@ -224,18 +224,20 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
       {items.map((item) => {
         const Icon = item.icon;
         const pending = pendingTarget === item.target;
+        const buttonLabel = status === "login" ? "로그인 후 저장할 수 있어요" : pending ? `${item.label} 저장 중` : item.label;
         return (
           <button
+            aria-label={buttonLabel}
             aria-pressed={item.active}
             className={`place-save-button ${item.active ? "is-active" : ""}`}
             disabled={!state || Boolean(pendingTarget)}
             key={item.target}
             onClick={() => void toggle(item.target)}
-            title={status === "login" ? "로그인 후 저장할 수 있어요" : item.label}
+            title={buttonLabel}
             type="button"
           >
             <Icon size={compact ? 14 : 15} aria-hidden="true" fill={item.target === "hearted" && item.active ? "currentColor" : "none"} />
-            <span>{pending ? "저장 중" : item.label}</span>
+            <span className={compact ? "sr-only" : ""}>{pending ? "저장 중" : item.label}</span>
           </button>
         );
       })}
@@ -243,7 +245,7 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
         <Heart size={compact ? 13 : 14} aria-hidden="true" fill="currentColor" />
         {state?.heartCount ?? 0}
       </span>
-      {status === "error" ? <span className="place-save-status">저장 실패</span> : null}
+      {status === "error" ? <span className={`place-save-status ${compact ? "sr-only" : ""}`}>저장 실패</span> : null}
     </div>
   );
 }
