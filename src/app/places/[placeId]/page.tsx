@@ -17,6 +17,8 @@ import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLab
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlaceIntrinsic } from "@/lib/scoring";
 
+export const dynamic = "force-dynamic";
+
 type PlaceDetailProps = {
   params: Promise<{
     placeId: string;
@@ -58,12 +60,11 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
   const backHref = searchBackHref(query.returnTo);
-  const decisionChips = detailDecisionChips(place);
-  const decisionNote = place.notes.parent ?? place.scoring.placeScoreRationale;
   const primaryInfoLink = infoLinks[0];
   const familySignalChips = detailFamilySignalChips(place);
   const visitSignalChips = detailVisitSignalChips(place);
   const playFeatures = playFeatureEntries(place.playFeatures);
+  const addressLabel = place.address ?? place.roadAddress;
   const placeQualityScore = scorePlaceIntrinsic({
     primaryCategory: place.primaryCategory,
     tags: place.tags,
@@ -112,6 +113,46 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             <div className="detail-title-row">
               <h1>{place.name}</h1>
             </div>
+            <div className="detail-head-meta" aria-label="장소 핵심 정보">
+              {addressLabel ? (
+                <span className="detail-head-address">
+                  <MapPin size={14} aria-hidden="true" />
+                  {addressLabel}
+                </span>
+              ) : null}
+              {place.tags.length > 0 ? (
+                <div className="detail-head-tags" aria-label="태그">
+                  {place.tags.slice(0, 8).map((tag) => (
+                    <span key={tag}>{tagLabel(tag)}</span>
+                  ))}
+                </div>
+              ) : null}
+              {familySignalChips.length > 0 ? (
+                <div className="detail-head-signals" aria-label="아이 동반 신호">
+                  {familySignalChips.slice(0, 8).map((chip) => (
+                    <span className={`detail-feature-chip ${chip.tone}`} key={chip.label}>
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {naverMapLink || primaryInfoLink ? (
+                <div className="detail-head-links" aria-label="외부 정보">
+                  {naverMapLink ? (
+                    <a href={naverMapLink.url} target="_blank" rel="noreferrer">
+                      <MapPin size={14} aria-hidden="true" />
+                      지도
+                    </a>
+                  ) : null}
+                  {primaryInfoLink ? (
+                    <a href={primaryInfoLink.url} target="_blank" rel="noreferrer">
+                      <ExternalLink size={14} aria-hidden="true" />
+                      정보
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
@@ -137,85 +178,8 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </section>
       ) : null}
 
-      <section className="detail-summary">
-        <aside className="detail-decision-card" aria-label="방문 핵심 정보">
-          <div className="detail-decision-header">
-            <span>{categoryLabel(place.primaryCategory)}</span>
-            <strong>{tenPointScoreLabel(place.scoring.placeScore)}</strong>
-          </div>
-          <div className="detail-decision-chips">
-            {decisionChips.map((chip) => (
-              <span className={`detail-decision-chip ${chip.tone}`} key={chip.label}>
-                {chip.label}
-              </span>
-            ))}
-          </div>
-          {decisionNote ? <p className="detail-decision-note">{decisionNote}</p> : null}
-          <div className="detail-decision-actions">
-            {naverMapLink ? (
-              <a className="detail-decision-action is-primary" href={naverMapLink.url} target="_blank" rel="noreferrer">
-                <MapPin size={15} aria-hidden="true" />
-                네이버 지도에서 보기
-              </a>
-            ) : null}
-            {primaryInfoLink ? (
-              <a className="detail-decision-action" href={primaryInfoLink.url} target="_blank" rel="noreferrer">
-                <ExternalLink size={15} aria-hidden="true" />
-                정보 확인
-              </a>
-            ) : null}
-          </div>
-        </aside>
-      </section>
-
       <PlaceVisitPanel placeId={place.id} placeName={place.name} />
       <PlacePublicMemoPanel placeId={place.id} placeName={place.name} />
-
-      <section className="detail-grid">
-        <div className="info-block">
-          <h2>기본 정보</h2>
-          <dl>
-            <dt>주소</dt>
-            <dd>{place.address ?? place.roadAddress ?? "미등록"}</dd>
-            <dt>좌표</dt>
-            <dd>
-              <MapPin size={14} aria-hidden="true" />
-              {place.lat}, {place.lng}
-            </dd>
-            <dt>신뢰도</dt>
-            <dd>{confidenceLabel(place.dataConfidence)}</dd>
-            <dt>장소 평가</dt>
-            <dd>{tenPointScoreLabel(place.scoring.placeScore)}</dd>
-            <dt>태그</dt>
-            <dd>
-              {place.tags.length > 0 ? (
-                <div className="detail-tag-list">
-                  {place.tags.slice(0, 12).map((tag) => (
-                    <span key={tag}>{tagLabel(tag)}</span>
-                  ))}
-                </div>
-              ) : (
-                "없음"
-              )}
-            </dd>
-          </dl>
-        </div>
-
-        <div className="info-block">
-          <h2>아이 동반 신호</h2>
-          {familySignalChips.length > 0 ? (
-            <div className="detail-chip-grid">
-              {familySignalChips.map((chip) => (
-                <span className={`detail-feature-chip ${chip.tone}`} key={chip.label}>
-                  {chip.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="muted-copy">확인된 편의시설 정보가 아직 없습니다.</p>
-          )}
-        </div>
-      </section>
 
       {visitSignalChips.length > 0 ? (
         <section className="info-block full">
@@ -489,17 +453,6 @@ type ReviewLink = {
   url: string;
 };
 
-function detailDecisionChips(place: PlaceDetail) {
-  return uniqueChips(
-    [
-      recommendedAgeChip(place.recommendedAgeMonths),
-      stayChip(place.visit.averageStayMinutes),
-      indoorChip(place.facilities.indoorType),
-      ...knownAmenityChips(place.facilities)
-    ].filter(isDetailChip)
-  );
-}
-
 function detailFamilySignalChips(place: PlaceDetail) {
   return uniqueChips([recommendedAgeChip(place.recommendedAgeMonths), indoorChip(place.facilities.indoorType), ...knownAmenityChips(place.facilities)].filter(isDetailChip));
 }
@@ -523,10 +476,6 @@ function recommendedAgeChip(value: PlaceDetail["recommendedAgeMonths"]): DetailC
 function indoorChip(value: string): DetailChip | null {
   if (value === "unknown") return null;
   return { label: indoorLabel(value), tone: "neutral" };
-}
-
-function stayChip(value: number | null): DetailChip | null {
-  return value === null ? null : { label: `체류 ${minutesLabel(value)}`, tone: "neutral" };
 }
 
 function knownAmenityChips(facilities: PlaceDetail["facilities"]) {
@@ -814,10 +763,6 @@ function scoreLabel(value: number | null) {
   return value === null ? "미확인" : `${value}/5`;
 }
 
-function tenPointScoreLabel(value: number | null) {
-  return value === null ? "미평가" : `${value}/10`;
-}
-
 function metersLabel(value: number) {
   return value < 1000 ? `${value}m` : `${(value / 1000).toFixed(1)}km`;
 }
@@ -852,18 +797,6 @@ function categoryLabel(value: string) {
     shopping_mall: "쇼핑/몰",
     rest_area: "휴게소/쉼터",
     accommodation: "키즈 숙소"
-  };
-  return labels[value] ?? value;
-}
-
-function confidenceLabel(value: string) {
-  const labels: Record<string, string> = {
-    official_verified: "공식 확인",
-    operator_curated: "운영자 확인",
-    agent_collected: "에이전트 수집",
-    user_reported: "사용자 제보",
-    needs_check: "확인 필요",
-    unknown: "미확인"
   };
   return labels[value] ?? value;
 }

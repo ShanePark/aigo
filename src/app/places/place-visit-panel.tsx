@@ -2,7 +2,6 @@
 
 import {
   Camera,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Edit3,
@@ -109,15 +108,25 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [visitHelpOpen, setVisitHelpOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [publicVisitPage, setPublicVisitPage] = useState(1);
-  const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
+  const [visitSearchQuery, setVisitSearchQuery] = useState("");
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine) ?? [], [visits]);
-  const hasPublicVisits = publicVisits.length > 0;
-  const publicVisitPageCount = Math.max(1, Math.ceil(publicVisits.length / PUBLIC_VISITS_PER_PAGE));
+  const normalizedVisitSearchQuery = normalizeListSearchText(visitSearchQuery);
+  const filteredMyVisits = useMemo(() => {
+    const myVisits = user ? visits?.myVisits ?? [] : [];
+    if (!normalizedVisitSearchQuery) return myVisits;
+    return myVisits.filter((visit) => visitSearchText(visit).includes(normalizedVisitSearchQuery));
+  }, [normalizedVisitSearchQuery, user, visits]);
+  const filteredPublicVisits = useMemo(() => {
+    if (!normalizedVisitSearchQuery) return publicVisits;
+    return publicVisits.filter((visit) => visitSearchText(visit).includes(normalizedVisitSearchQuery));
+  }, [normalizedVisitSearchQuery, publicVisits]);
+  const totalVisitCount = (user ? visits?.myVisits.length ?? 0 : 0) + publicVisits.length;
+  const filteredVisitCount = filteredMyVisits.length + filteredPublicVisits.length;
+  const publicVisitPageCount = Math.max(1, Math.ceil(filteredPublicVisits.length / PUBLIC_VISITS_PER_PAGE));
   const pagedPublicVisits = useMemo(
-    () => publicVisits.slice((publicVisitPage - 1) * PUBLIC_VISITS_PER_PAGE, publicVisitPage * PUBLIC_VISITS_PER_PAGE),
-    [publicVisitPage, publicVisits]
+    () => filteredPublicVisits.slice((publicVisitPage - 1) * PUBLIC_VISITS_PER_PAGE, publicVisitPage * PUBLIC_VISITS_PER_PAGE),
+    [publicVisitPage, filteredPublicVisits]
   );
-  const visibleVisitCount = (user ? visits?.myVisits.length ?? 0 : 0) + pagedPublicVisits.length;
   const refreshVisits = useCallback(async () => {
     const response = await fetch(`/api/places/${placeId}/visits`, { credentials: "same-origin" });
     if (!response.ok) return;
@@ -160,7 +169,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
 
   useEffect(() => {
     setPublicVisitPage(1);
-  }, [placeId]);
+  }, [placeId, visitSearchQuery]);
 
   useEffect(() => {
     setPublicVisitPage((currentPage) => Math.min(currentPage, publicVisitPageCount));
@@ -172,7 +181,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         <div>
           <h2>
             <Star size={18} aria-hidden="true" />
-            방문했어요
+            방문 기록
             <InfoButton label="방문 기록 안내" onClick={() => setVisitHelpOpen(true)} />
           </h2>
           <p>
@@ -180,21 +189,45 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
               ? `방문평가 ${visits.summary.averageRating?.toFixed(1) ?? "-"}점 · ${visits.summary.ratingCount}건`
               : "첫 방문 기록을 남겨보세요"}
           </p>
-          {visits?.summary.ratingCount ? (
-            <div className="trust-row place-visit-header-summary" aria-label="방문 평가 요약">
-              <span className="trust-badge neutral">공개리뷰 {visits.summary.publicReviewCount}</span>
-              <span className="trust-badge neutral">공개사진 {visits.summary.publicPhotoCount}</span>
-              {visits.summary.latestVisitedOn ? (
+          {status ? <p className="place-visit-action-status">{status}</p> : null}
+        </div>
+        {totalVisitCount > 0 ? (
+          <ListSearchField
+            label="방문 기록 검색"
+            onClear={() => setVisitSearchQuery("")}
+            onChange={setVisitSearchQuery}
+            placeholder="방문 기록 검색"
+            value={visitSearchQuery}
+          />
+        ) : null}
+        {visits?.summary.ratingCount || user ? (
+          <div className="place-section-toolbar" aria-label="방문 평가 요약">
+            <div className="trust-row place-visit-header-summary">
+              {visits?.summary.ratingCount ? (
+                <>
+                  <span className="trust-badge neutral">공개리뷰 {visits.summary.publicReviewCount}</span>
+                  <span className="trust-badge neutral">공개사진 {visits.summary.publicPhotoCount}</span>
+                </>
+              ) : null}
+              {visits?.summary.latestVisitedOn ? (
                 <span className="trust-badge neutral">최근 방문 {visits.summary.latestVisitedOn}</span>
               ) : null}
             </div>
-          ) : null}
-        </div>
-        {myLatestVisit ? (
-          <span className="place-visit-owned">
-            <CheckCircle2 size={15} aria-hidden="true" />
-            내 기록 있음
-          </span>
+            {user ? (
+              <button
+                className="primary-button place-visit-open-button"
+                disabled={busy || loading}
+                onClick={() => {
+                  setStatus(null);
+                  setVisitDialogOpen(true);
+                }}
+                type="button"
+              >
+                <Star size={16} aria-hidden="true" />
+                방문 기록 등록
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -205,26 +238,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             <p>로그인 상태와 공개 방문 기록을 확인하고 있어요.</p>
           </div>
         </div>
-      ) : user ? (
-        <div className="place-visit-action-card">
-          <div className="place-visit-action-copy">
-            <strong>별점, 리뷰, 사진 기록</strong>
-          </div>
-          <button
-            className="primary-button place-visit-open-button"
-            disabled={busy || loading}
-            onClick={() => {
-              setStatus(null);
-              setVisitDialogOpen(true);
-            }}
-            type="button"
-          >
-            <Star size={16} aria-hidden="true" />
-            방문 기록 등록
-          </button>
-          {status ? <p className="place-visit-action-status">{status}</p> : null}
-        </div>
-      ) : (
+      ) : !user ? (
         <div className="place-visit-login-card">
           <div className="place-visit-login-copy">
             <strong>방문 기록은 로그인 후 남길 수 있어요.</strong>
@@ -241,7 +255,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             </Link>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="place-visit-lists">
         {loading ? (
@@ -249,18 +263,11 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             <strong>공개 기록 미리보기</strong>
             <p>공개 방문 기록을 불러오는 중입니다.</p>
           </div>
-        ) : visibleVisitCount > 0 ? (
+        ) : totalVisitCount > 0 ? (
           <div className="place-visit-public-list">
-            <div className="place-visit-list-head">
-              <h3>방문 기록</h3>
-              {hasPublicVisits ? (
-                <span>
-                  공개 기록 {publicVisitPage}/{publicVisitPageCount}
-                </span>
-              ) : null}
-            </div>
-            {user
-              ? visits?.myVisits.map((visit) => (
+            {filteredVisitCount > 0 ? (
+              <div className="place-visit-summary-grid">
+                {filteredMyVisits.map((visit) => (
                   <VisitSummary
                     key={visit.id}
                     visit={visit}
@@ -269,45 +276,51 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
                     onDeletePhoto={requestDeletePhoto}
                     onSave={saveVisitEdit}
                   />
-                ))
-              : null}
-            {pagedPublicVisits.map((visit) => (
-              <VisitSummary key={visit.id} visit={visit} />
-            ))}
-            {publicVisitPageCount > 1 ? (
-              <div className="place-visit-pagination" aria-label="공개 방문 기록 페이지">
-                <button
-                  className={`page-control ${publicVisitPage <= 1 ? "is-disabled" : ""}`}
-                  disabled={publicVisitPage <= 1}
-                  onClick={() => setPublicVisitPage((page) => Math.max(1, page - 1))}
-                  type="button"
-                >
-                  <ChevronLeft size={15} aria-hidden="true" />
-                  이전
-                </button>
-                <span className="place-visit-page-status">
-                  {publicVisitPage} / {publicVisitPageCount}
+                ))}
+                {pagedPublicVisits.map((visit) => (
+                  <VisitSummary key={visit.id} visit={visit} />
+                ))}
+              </div>
+            ) : (
+              <p className="place-visit-empty">검색어와 일치하는 방문 기록이 없습니다.</p>
+            )}
+            {filteredVisitCount > 0 ? (
+              <div className="place-list-footer">
+                <span className="place-list-count">
+                  {filteredVisitCount}/{totalVisitCount}건
                 </span>
-                <button
-                  className={`page-control ${publicVisitPage >= publicVisitPageCount ? "is-disabled" : ""}`}
-                  disabled={publicVisitPage >= publicVisitPageCount}
-                  onClick={() => setPublicVisitPage((page) => Math.min(publicVisitPageCount, page + 1))}
-                  type="button"
-                >
-                  다음
-                  <ChevronRight size={15} aria-hidden="true" />
-                </button>
+                {publicVisitPageCount > 1 ? (
+                  <div className="place-visit-pagination" aria-label="공개 방문 기록 페이지">
+                    <button
+                      className={`page-control ${publicVisitPage <= 1 ? "is-disabled" : ""}`}
+                      disabled={publicVisitPage <= 1}
+                      onClick={() => setPublicVisitPage((page) => Math.max(1, page - 1))}
+                      type="button"
+                    >
+                      <ChevronLeft size={15} aria-hidden="true" />
+                      이전
+                    </button>
+                    <span className="place-visit-page-status">
+                      {publicVisitPage} / {publicVisitPageCount}
+                    </span>
+                    <button
+                      className={`page-control ${publicVisitPage >= publicVisitPageCount ? "is-disabled" : ""}`}
+                      disabled={publicVisitPage >= publicVisitPageCount}
+                      onClick={() => setPublicVisitPage((page) => Math.min(publicVisitPageCount, page + 1))}
+                      type="button"
+                    >
+                      다음
+                      <ChevronRight size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
         ) : (
           <div className="place-visit-public-preview">
             <strong>공개 기록 미리보기</strong>
-            <p>
-              {hasPublicVisits
-                ? "로그인하지 않아도 공개 리뷰는 먼저 살펴볼 수 있어요."
-                : "아직 공개된 방문 기록이 없습니다."}
-            </p>
+            <p>아직 공개된 방문 기록이 없습니다.</p>
           </div>
         )}
       </div>
@@ -532,6 +545,7 @@ function VisitSummary({
 }) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<{ index: number; photo: VisitPhoto } | null>(null);
+  const [dateDialogOpen, setDateDialogOpen] = useState(false);
   const [draftRating, setDraftRating] = useState(visit.rating ?? 5);
   const [draftVisibility, setDraftVisibility] = useState<"public" | "private">(visit.visibility);
   const [draftReviewText, setDraftReviewText] = useState(visit.reviewText ?? "");
@@ -564,18 +578,19 @@ function VisitSummary({
   }
 
   return (
-    <article className="place-visit-summary">
+    <article className={`place-visit-summary ${visit.isMine ? "is-mine" : ""}`}>
       <div className="place-visit-summary-top">
         <div>
           {title ? <h3>{title}</h3> : null}
           <div className="place-visit-summary-head">
             <strong>{visit.rating === null ? "비공개" : `${formatRating(visit.rating)}/5`}</strong>
-            <span>{visit.visitedOn}</span>
-            {visit.isMine ? <span>내 기록</span> : null}
+            <button className="summary-date-button" onClick={() => setDateDialogOpen(true)} type="button">
+              <time dateTime={visit.visitedOn}>{formatRelativeDate(visit.visitedOn)}</time>
+            </button>
+            {visit.isMine ? <span className="mine-chip">내 방문 기록</span> : null}
             {visit.displayName && !visit.isMine ? <span>{visit.displayName}</span> : null}
             {visit.isRevisit ? <span>재방문</span> : null}
             {visit.visibility === "private" ? <span>비공개</span> : null}
-            {visit.photoCount > 0 ? <span>사진 {visit.photoCount}</span> : null}
           </div>
         </div>
         {canEdit ? (
@@ -617,6 +632,11 @@ function VisitSummary({
           ))}
         </div>
       ) : null}
+      <AppModal onClose={() => setDateDialogOpen(false)} open={dateDialogOpen} title="방문 날짜">
+        <div className="app-modal-copy">
+          <p>{formatExactVisitDate(visit.visitedOn)}</p>
+        </div>
+      </AppModal>
       <AppModal
         description={`${visit.visitedOn} 방문 기록을 수정합니다.`}
         disabled={busy}
@@ -644,7 +664,7 @@ function VisitSummary({
         onClose={() => setSelectedPhoto(null)}
         open={selectedPhoto !== null}
         size="media"
-        title={selectedPhoto ? `방문 사진 ${selectedPhoto.index + 1}` : "방문 사진"}
+        title="방문 사진"
       >
         {selectedPhoto ? (
           <figure className="place-visit-photo-viewer">
@@ -891,6 +911,64 @@ function InfoButton({ label, onClick }: { label: string; onClick: () => void }) 
   );
 }
 
+function ListSearchField({
+  label,
+  onChange,
+  onClear,
+  placeholder,
+  value
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <div className="place-list-search">
+      <label>
+        <Search size={15} aria-hidden="true" />
+        <span className="sr-only">{label}</span>
+        <input
+          aria-label={label}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          placeholder={placeholder}
+          type="search"
+          value={value}
+        />
+      </label>
+      {value ? (
+        <button aria-label={`${label} 초기화`} onClick={onClear} type="button">
+          <X size={15} aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function visitSearchText(visit: VisitItem) {
+  return normalizeListSearchText(
+    [
+      visit.reviewText,
+      visit.displayName,
+      visit.visitedOn,
+      formatRelativeDate(visit.visitedOn),
+      visit.isMine ? "내 기록 내가 쓴 기록" : "",
+      visit.isPrivatePlaceholder ? "비공개 리뷰" : "",
+      visit.visibility === "private" ? "비공개 private" : "공개 public",
+      visit.isRevisit ? "재방문 다시 방문" : "첫방문 첫 방문",
+      visit.photoCount > 0 ? `사진 ${visit.photoCount}장 사진 있음` : "사진 없음",
+      visit.rating === null ? "별점 비공개" : `별점 ${formatRating(visit.rating)}점 평점 ${formatRating(visit.rating)}점`
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function normalizeListSearchText(value: string) {
+  return value.trim().toLocaleLowerCase("ko-KR").replace(/\s+/g, " ");
+}
+
 async function errorMessage(response: Response) {
   try {
     const body = (await response.json()) as { error?: string };
@@ -913,4 +991,35 @@ function clampRating(value: number) {
 
 function formatRating(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatRelativeDate(value: string) {
+  const date = parseVisitDate(value);
+  if (!date) return value;
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) return "오늘";
+  const hourMs = 60 * 60 * 1000;
+  const dayMs = 24 * hourMs;
+  if (diffMs < hourMs) return "방금 전";
+  if (diffMs < dayMs) return `${Math.floor(diffMs / hourMs)}시간 전`;
+  const days = Math.floor(diffMs / dayMs);
+  if (days < 30) return `${days}일 전`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}달 전`;
+  return `${Math.floor(months / 12)}년 전`;
+}
+
+function formatExactVisitDate(value: string) {
+  const date = parseVisitDate(value);
+  if (!date) return value;
+  return new Intl.DateTimeFormat("ko-KR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function parseVisitDate(value: string) {
+  const date = new Date(value.includes("T") ? value : `${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Info, Lightbulb, LogIn, MessageSquareText, Search, Trash2 } from "lucide-react";
+import { Edit3, Info, LogIn, MessageSquareText, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
@@ -57,8 +57,14 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [memoHelpOpen, setMemoHelpOpen] = useState(false);
   const [memoDialogOpen, setMemoDialogOpen] = useState(false);
+  const [memoSearchQuery, setMemoSearchQuery] = useState("");
   const myMemo = useMemo(() => memos?.items.find((memo) => memo.isMine) ?? null, [memos]);
-  const publicMemos = memos?.items ?? [];
+  const publicMemos = useMemo(() => memos?.items ?? [], [memos]);
+  const normalizedMemoSearchQuery = normalizeListSearchText(memoSearchQuery);
+  const filteredPublicMemos = useMemo(() => {
+    if (!normalizedMemoSearchQuery) return publicMemos;
+    return publicMemos.filter((memo) => memoSearchText(memo).includes(normalizedMemoSearchQuery));
+  }, [normalizedMemoSearchQuery, publicMemos]);
 
   const refreshMemos = useCallback(async () => {
     const response = await fetch(`/api/places/${placeId}/memos`, { credentials: "same-origin" });
@@ -109,7 +115,33 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
             장소 이용 팁
             <InfoButton label="장소 이용 팁 안내" onClick={() => setMemoHelpOpen(true)} />
           </h2>
+          {status ? <p className="place-memo-action-status">{status}</p> : null}
         </div>
+        {publicMemos.length > 0 ? (
+          <ListSearchField
+            label="장소 이용 팁 검색"
+            onClear={() => setMemoSearchQuery("")}
+            onChange={setMemoSearchQuery}
+            placeholder="장소 이용 팁 검색"
+            value={memoSearchQuery}
+          />
+        ) : null}
+        {user && !myMemo ? (
+          <div className="place-section-toolbar place-memo-header-summary" aria-label="장소 이용 팁 작업">
+            <button
+              className="primary-button place-memo-open-button"
+              disabled={busy}
+              onClick={() => {
+                setStatus(null);
+                setMemoDialogOpen(true);
+              }}
+              type="button"
+            >
+              <Edit3 size={16} aria-hidden="true" />
+              장소 팁 등록
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {loading ? (
@@ -119,33 +151,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
             <p>공개 메모와 로그인 상태를 확인하고 있어요.</p>
           </div>
         </div>
-      ) : user && !myMemo ? (
-        <div className="place-memo-action-card">
-          <div className="place-memo-action-copy">
-            <strong>주차, 동선, 준비물 팁 공유</strong>
-          </div>
-          <button
-            className="primary-button place-memo-open-button"
-            disabled={busy}
-            onClick={() => {
-              setStatus(null);
-              setMemoDialogOpen(true);
-            }}
-            type="button"
-          >
-            <Edit3 size={16} aria-hidden="true" />
-            장소 팁 등록
-          </button>
-          {status ? <p className="place-memo-action-status">{status}</p> : null}
-        </div>
-      ) : user ? (
-        <div className="place-memo-hint">
-          <Lightbulb size={16} aria-hidden="true" />
-          <p>내 공개 팁은 하나만 유지됩니다.</p>
-          <InfoButton label="공개 팁 수정 안내" onClick={() => setMemoHelpOpen(true)} />
-          {status ? <span>{status}</span> : null}
-        </div>
-      ) : (
+      ) : !user ? (
         <div className="place-memo-login-card">
           <div className="place-memo-login-copy">
             <strong>공개 팁은 로그인 후 남길 수 있어요.</strong>
@@ -162,28 +168,35 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
             </Link>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="place-memo-list">
-        <div className="place-memo-list-head">
-          <h3>공개 팁</h3>
-          <span>{publicMemos.length}개</span>
-        </div>
         {loading ? (
           <p className="place-memo-empty">공개 팁을 불러오는 중입니다.</p>
+        ) : filteredPublicMemos.length > 0 ? (
+          <div className="place-memo-summary-grid">
+            {filteredPublicMemos.map((memo) => (
+              <MemoSummary
+                busy={busy}
+                key={memo.id}
+                memo={memo}
+                onDelete={memo.isMine ? requestDeleteMemo : undefined}
+                onSave={memo.isMine ? saveMemoEdit : undefined}
+              />
+            ))}
+          </div>
         ) : publicMemos.length > 0 ? (
-          publicMemos.map((memo) => (
-            <MemoSummary
-              busy={busy}
-              key={memo.id}
-              memo={memo}
-              onDelete={memo.isMine ? requestDeleteMemo : undefined}
-              onSave={memo.isMine ? saveMemoEdit : undefined}
-            />
-          ))
+          <p className="place-memo-empty">검색어와 일치하는 장소 이용 팁이 없습니다.</p>
         ) : (
           <p className="place-memo-empty">아직 공개된 장소 이용 팁이 없습니다.</p>
         )}
+        {publicMemos.length > 0 ? (
+          <div className="place-list-footer">
+            <span className="place-list-count">
+              {filteredPublicMemos.length}/{publicMemos.length}개
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <ConfirmDialog
@@ -204,7 +217,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
         <div className="app-modal-copy">
           <p>방문 여부와 별점에는 반영하지 않는 공개 메모입니다.</p>
           <p>주차, 동선, 준비물, 유모차, 대기처럼 다른 가족이 바로 참고할 수 있는 정보를 남겨주세요.</p>
-          <p>장소당 내 공개 팁은 하나만 유지되며, 아래 내 팁에서 언제든 수정하거나 삭제할 수 있습니다.</p>
+          <p>내 공개 팁은 장소당 하나만 유지되며, 내 팁에서 언제든 수정하거나 삭제할 수 있습니다.</p>
         </div>
       </AppModal>
       <AppModal
@@ -321,6 +334,7 @@ function MemoSummary({
   onSave?: (memo: PublicMemoItem, body: string) => Promise<boolean>;
 }) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dateDialogOpen, setDateDialogOpen] = useState(false);
   const [draftBody, setDraftBody] = useState(memo.body);
 
   useEffect(() => {
@@ -335,12 +349,14 @@ function MemoSummary({
   }
 
   return (
-    <article className="place-memo-summary">
+    <article className={`place-memo-summary ${memo.isMine ? "is-mine" : ""}`}>
       <div className="place-memo-summary-top">
         <div className="place-memo-summary-head">
-          {memo.isMine ? <strong>내 팁</strong> : null}
+          {memo.isMine ? <strong className="mine-chip">내 장소 팁</strong> : null}
           {memo.displayName && !memo.isMine ? <span>{memo.displayName}</span> : null}
-          <time dateTime={memo.updatedAt}>{formatMemoDate(memo.updatedAt)}</time>
+          <button className="summary-date-button" onClick={() => setDateDialogOpen(true)} type="button">
+            <time dateTime={memo.updatedAt}>{formatRelativeDate(memo.updatedAt)}</time>
+          </button>
         </div>
         {memo.isMine && onSave && onDelete ? (
           <div className="place-memo-summary-actions">
@@ -356,6 +372,11 @@ function MemoSummary({
         ) : null}
       </div>
       <p>{memo.body}</p>
+      <AppModal onClose={() => setDateDialogOpen(false)} open={dateDialogOpen} title="작성 시각">
+        <div className="app-modal-copy">
+          <p>{formatExactMemoDate(memo.updatedAt)}</p>
+        </div>
+      </AppModal>
       <AppModal
         description="공개 장소 이용 팁은 방문 기록과 별점에는 반영되지 않습니다."
         disabled={busy}
@@ -414,6 +435,53 @@ function InfoButton({ label, onClick }: { label: string; onClick: () => void }) 
   );
 }
 
+function ListSearchField({
+  label,
+  onChange,
+  onClear,
+  placeholder,
+  value
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <div className="place-list-search">
+      <label>
+        <Search size={15} aria-hidden="true" />
+        <span className="sr-only">{label}</span>
+        <input
+          aria-label={label}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          placeholder={placeholder}
+          type="search"
+          value={value}
+        />
+      </label>
+      {value ? (
+        <button aria-label={`${label} 초기화`} onClick={onClear} type="button">
+          <X size={15} aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function memoSearchText(memo: PublicMemoItem) {
+  return normalizeListSearchText(
+    [memo.body, memo.displayName, memo.isMine ? "내 팁 내가 쓴 팁" : "", formatRelativeDate(memo.updatedAt), formatExactMemoDate(memo.updatedAt)]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function normalizeListSearchText(value: string) {
+  return value.trim().toLocaleLowerCase("ko-KR").replace(/\s+/g, " ");
+}
+
 async function errorMessage(response: Response) {
   try {
     const body = (await response.json()) as { error?: string };
@@ -423,11 +491,31 @@ async function errorMessage(response: Response) {
   }
 }
 
-function formatMemoDate(value: string) {
+function formatRelativeDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) return "방금 전";
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+  if (diffMs < hourMs) return "방금 전";
+  if (diffMs < dayMs) return `${Math.floor(diffMs / hourMs)}시간 전`;
+  const days = Math.floor(diffMs / dayMs);
+  if (days < 30) return `${days}일 전`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}달 전`;
+  return `${Math.floor(months / 12)}년 전`;
+}
+
+function formatExactMemoDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", {
     day: "numeric",
-    month: "short"
+    hour: "numeric",
+    minute: "2-digit",
+    month: "long",
+    year: "numeric"
   }).format(date);
 }
