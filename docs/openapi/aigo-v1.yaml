@@ -2452,7 +2452,7 @@ components:
           type: array
           items:
             type: object
-            required: [place, confidence, reasonCodes, outsideRadiusReviewOnly, distanceMeters, nameSimilarity]
+            required: [place, confidence, reasonCodes, suggestedAction, outsideRadiusReviewOnly, distanceMeters, nameSimilarity]
             properties:
               place:
                 $ref: "#/components/schemas/PlaceDetail"
@@ -2464,6 +2464,10 @@ components:
                 description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
                 items:
                   type: string
+              suggestedAction:
+                type: string
+                enum: [update_existing, manual_duplicate_review, hold_duplicate_review]
+                description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district.
               outsideRadiusReviewOnly:
                 type: boolean
                 description: True when the candidate matched by weak name/alias/region evidence outside the requested radius without strict identity evidence such as same address, external refs, or provider id.

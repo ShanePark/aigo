@@ -86,6 +86,7 @@ type DuplicateAuditSummary = {
   roadAddress: string | null;
   confidence: string | null;
   reasonCodes: string[];
+  suggestedAction: string | null;
   outsideRadiusReviewOnly: boolean | null;
   distanceMeters: number | null;
 };
@@ -246,7 +247,7 @@ export function buildCandidateAudit(input: {
     const hasUpdateNeed = input.exactMatches.some(placeNeedsUpdate);
     status = hasUpdateNeed ? "needs_update" : "registered";
     suggestedAction = hasUpdateNeed ? "update_existing" : "skip_existing";
-  } else if (input.duplicateCandidates.some(isMeaningfulDuplicateCandidate)) {
+  } else if (input.duplicateCandidates.some(requiresDuplicateReview)) {
     status = "duplicate_review";
     suggestedAction = "manual_duplicate_review";
   } else if (errors.length > 0) {
@@ -333,7 +334,8 @@ export function formatRegionCandidateAuditReport(report: RegionCandidateAuditRep
       lines.push("  duplicate candidates:");
       for (const duplicate of candidate.duplicateCandidates) {
         const codes = duplicate.reasonCodes.length > 0 ? ` [${duplicate.reasonCodes.join(", ")}]` : "";
-        lines.push(`    - ${duplicate.name ?? "unknown"} (${duplicate.id ?? "no id"}) ${duplicate.confidence ?? "unknown"}${codes}`);
+        const action = duplicate.suggestedAction ? ` action=${duplicate.suggestedAction}` : "";
+        lines.push(`    - ${duplicate.name ?? "unknown"} (${duplicate.id ?? "no id"}) ${duplicate.confidence ?? "unknown"}${action}${codes}`);
       }
     }
   }
@@ -497,6 +499,7 @@ function toDuplicateAuditSummary(item: Record<string, unknown>): DuplicateAuditS
     roadAddress: stringField(place, "roadAddress"),
     confidence: stringField(item, "confidence"),
     reasonCodes: stringArrayField(item, "reasonCodes"),
+    suggestedAction: stringField(item, "suggestedAction"),
     outsideRadiusReviewOnly: booleanField(item, "outsideRadiusReviewOnly"),
     distanceMeters: numberField(item, "distanceMeters")
   };
@@ -521,7 +524,8 @@ function placeNeedsUpdate(place: PlaceAuditSummary) {
   return Boolean(imageStatus && imageStatus !== "healthy");
 }
 
-function isMeaningfulDuplicateCandidate(candidate: DuplicateAuditSummary) {
+function requiresDuplicateReview(candidate: DuplicateAuditSummary) {
+  if (candidate.suggestedAction === "hold_duplicate_review") return true;
   return candidate.confidence === "high" || candidate.confidence === "medium";
 }
 

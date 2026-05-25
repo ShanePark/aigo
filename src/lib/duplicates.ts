@@ -16,6 +16,8 @@ export type DuplicateCandidateSignals = {
   radiusMeters?: number | null;
 };
 
+export type DuplicateCandidateSuggestedAction = "update_existing" | "manual_duplicate_review" | "hold_duplicate_review";
+
 export type DuplicateLocationInput = {
   address?: string | null;
   regionSido?: string | null;
@@ -109,6 +111,13 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   return "low";
 }
 
+export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): DuplicateCandidateSuggestedAction {
+  const confidence = duplicateConfidence(signals);
+  if (shouldHoldDuplicateReview(signals, confidence)) return "hold_duplicate_review";
+  if (confidence === "high" && hasStrongIdentityEvidence(signals)) return "update_existing";
+  return "manual_duplicate_review";
+}
+
 export function duplicateOutsideRadiusReviewOnly(signals: DuplicateCandidateSignals) {
   return Boolean(
     signals.radiusMeters !== null &&
@@ -188,6 +197,23 @@ function hasStrictLocationMatch(signals: DuplicateCandidateSignals) {
     signals.addressMatch ||
       signals.sameSigunguMatch ||
       (signals.distanceMeters !== null && signals.distanceMeters <= 1000)
+  );
+}
+
+function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidence: string) {
+  if (duplicateOutsideRadiusReviewOnly(signals)) return true;
+  if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
+  if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
+  return confidence === "low" && Boolean(signals.aliasMatch) && !hasStrongIdentityEvidence(signals);
+}
+
+function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    signals.externalRefsMatch ||
+      signals.kakaoPlaceIdMatch ||
+      signals.addressMatch ||
+      signals.sameSigunguMatch ||
+      (signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85)
   );
 }
 

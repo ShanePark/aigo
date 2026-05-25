@@ -7,7 +7,8 @@ import {
   duplicateOutsideRadiusReviewOnly,
   duplicateReasonCodes,
   duplicateSameBuildingReviewOnly,
-  duplicateSameSidoGenericReviewOnly
+  duplicateSameSidoGenericReviewOnly,
+  duplicateSuggestedAction
 } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
@@ -68,6 +69,7 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("hold_duplicate_review");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
   });
 
@@ -84,6 +86,7 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("high");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(false);
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("keeps same-building substring matches below high confidence", () => {
@@ -122,6 +125,7 @@ describe("duplicate helpers", () => {
     };
 
     expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("hold_duplicate_review");
     expect(duplicateReasonCodes(signals)).toContain("ALIAS_MATCH");
   });
 
@@ -184,6 +188,7 @@ describe("duplicate helpers", () => {
     };
 
     expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
     expect(duplicateReasonCodes(signals)).toContain("REGION_MATCH");
   });
 

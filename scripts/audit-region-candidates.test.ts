@@ -49,6 +49,7 @@ function duplicate(overrides: Partial<DuplicateAuditSummaryInput> = {}): Duplica
     roadAddress: "경기 부천시 옥길로 1",
     confidence: "high",
     reasonCodes: ["ALIAS_MATCH", "REGION_MATCH"],
+    suggestedAction: "update_existing",
     outsideRadiusReviewOnly: false,
     distanceMeters: null,
     ...overrides
@@ -135,6 +136,27 @@ describe("region candidate audit helper", () => {
     expect(audit.suggestedAction).toBe("manual_duplicate_review");
   });
 
+  it("holds review-only duplicate candidates for manual review instead of creation", () => {
+    const audit = buildCandidateAudit({
+      query: "서울식물원 어린이자료실",
+      region: "서울",
+      exactSearchCount: 0,
+      exactMatches: [],
+      duplicateCandidates: [
+        duplicate({
+          confidence: "low",
+          reasonCodes: ["ALIAS_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY"],
+          suggestedAction: "hold_duplicate_review",
+          outsideRadiusReviewOnly: true,
+          distanceMeters: 12000
+        })
+      ]
+    });
+
+    expect(audit.status).toBe("duplicate_review");
+    expect(audit.suggestedAction).toBe("manual_duplicate_review");
+  });
+
   it("extracts the latest version by version number", () => {
     const latest = latestVersionSummary({
       items: [
@@ -169,6 +191,7 @@ describe("region candidate audit helper", () => {
     expect(formatted).toContain("source: 2026-05-01T00:00:00.000Z fresh");
     expect(formatted).toContain("image: healthy");
     expect(formatted).toContain("duplicate candidates:");
+    expect(formatted).toContain("action=update_existing");
     expect(formatted).toContain("ALIAS_MATCH");
   });
 });

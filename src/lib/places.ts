@@ -19,7 +19,8 @@ import {
   duplicateOutsideRadiusReviewOnly,
   duplicateReasonCodes,
   duplicateSameBuildingReviewOnly,
-  duplicateSameSidoGenericReviewOnly
+  duplicateSameSidoGenericReviewOnly,
+  duplicateSuggestedAction
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { listPlaceVisitSummaries } from "@/lib/place-visits";
@@ -1578,6 +1579,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         place: await getPlaceDetail(row.id),
         confidence: duplicateConfidence(duplicateSignals),
         reasonCodes: duplicateReasonCodes(duplicateSignals),
+        suggestedAction: duplicateSuggestedAction(duplicateSignals),
         outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
