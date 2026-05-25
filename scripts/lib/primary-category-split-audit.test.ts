@@ -103,6 +103,19 @@ describe("suggestPrimaryCategorySplit", () => {
     expect(suggestion.suggestedPrimaryCategory).toBe("art_museum");
     expect(suggestion.confidence).toBe("high");
   });
+
+  it("keeps generic museum rows when art evidence only appears outside the name", () => {
+    const suggestion = suggestPrimaryCategorySplit(
+      row({
+        primary_category: "museum",
+        name: "목포자연사박물관",
+        description: "주변 미술관과 함께 방문할 수 있는 자연사 중심 박물관"
+      })
+    );
+
+    expect(suggestion.suggestedPrimaryCategory).toBe("museum");
+    expect(suggestion.reasonCodes).toContain("ART_MUSEUM_CONTEXT_ONLY");
+  });
 });
 
 describe("buildPrimaryCategorySplitAudit", () => {

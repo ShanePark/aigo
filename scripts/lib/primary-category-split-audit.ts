@@ -136,10 +136,16 @@ export function suggestPrimaryCategorySplit(row: PrimaryCategorySplitAuditRow): 
 
   if (row.primary_category === "museum") {
     const termEvidence = matchingTerms(text, artMuseumTerms);
-    if (termEvidence.length > 0) {
+    const nameTermEvidence = matchingTerms(row.name.toLowerCase(), artMuseumTerms);
+    if (nameTermEvidence.length > 0) {
       suggestedPrimaryCategory = "art_museum";
-      confidence = termEvidence.some((term) => row.name.toLowerCase().includes(term.toLowerCase())) ? "high" : "medium";
+      confidence = "high";
       reasonCodes.push("ART_MUSEUM_TERM_MATCH");
+      evidence.push(...formatTermEvidence("art_museum", nameTermEvidence));
+    } else if (termEvidence.length > 0) {
+      suggestedPrimaryCategory = "museum";
+      confidence = "medium";
+      reasonCodes.push("ART_MUSEUM_CONTEXT_ONLY");
       evidence.push(...formatTermEvidence("art_museum", termEvidence));
     } else {
       suggestedPrimaryCategory = "museum";
