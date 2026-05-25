@@ -1434,7 +1434,12 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           case
             when exists (
               select 1
-              from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
+              from jsonb_array_elements_text(
+                case when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases' else '[]'::jsonb end
+                || case when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases' else '[]'::jsonb end
+                || case when jsonb_typeof(external_refs->'englishName') = 'string' then jsonb_build_array(external_refs->>'englishName') else '[]'::jsonb end
+                || case when jsonb_typeof(external_refs->'localName') = 'string' then jsonb_build_array(external_refs->>'localName') else '[]'::jsonb end
+              ) as external_alias(value)
               where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
             )
             then 0.9
@@ -1472,7 +1477,12 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
           or exists (
             select 1
-            from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
+            from jsonb_array_elements_text(
+              case when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases' else '[]'::jsonb end
+              || case when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases' else '[]'::jsonb end
+              || case when jsonb_typeof(external_refs->'englishName') = 'string' then jsonb_build_array(external_refs->>'englishName') else '[]'::jsonb end
+              || case when jsonb_typeof(external_refs->'localName') = 'string' then jsonb_build_array(external_refs->>'localName') else '[]'::jsonb end
+            ) as external_alias(value)
             where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
           )
         ) as alias_match,
