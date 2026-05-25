@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { emptyPlaceTaxonomy } from "@/lib/taxonomy";
 import { buildPrimaryCategorySplitAudit, suggestPrimaryCategorySplit, type PrimaryCategorySplitAuditRow } from "./primary-category-split-audit";
 
 describe("suggestPrimaryCategorySplit", () => {
@@ -82,6 +83,20 @@ describe("suggestPrimaryCategorySplit", () => {
     expect(suggestion.reasonCodes).toContain("NO_PLAYGROUND_EVIDENCE");
   });
 
+  it("does not make broad park rows high-confidence from taxonomy alone", () => {
+    const suggestion = suggestPrimaryCategorySplit(
+      row({
+        primary_category: "park",
+        name: "거제식물원",
+        taxonomy: taxonomyWithActivity("outdoor_playground")
+      })
+    );
+
+    expect(suggestion.suggestedPrimaryCategory).toBe("playground");
+    expect(suggestion.confidence).toBe("medium");
+    expect(suggestion.evidence).toContain("taxonomy.activityTypes:outdoor_playground");
+  });
+
   it("splits art museums from generic museum rows", () => {
     const suggestion = suggestPrimaryCategorySplit(row({ primary_category: "museum", name: "대전시립미술관" }));
 
@@ -123,4 +138,10 @@ function row(overrides: Partial<PrimaryCategorySplitAuditRow>): PrimaryCategoryS
     road_address: null,
     ...overrides
   };
+}
+
+function taxonomyWithActivity(activityType: "outdoor_playground") {
+  const taxonomy = emptyPlaceTaxonomy();
+  taxonomy.sourceBacked.activityTypes = [activityType];
+  return taxonomy;
 }

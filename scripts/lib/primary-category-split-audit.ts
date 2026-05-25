@@ -122,7 +122,7 @@ export function suggestPrimaryCategorySplit(row: PrimaryCategorySplitAuditRow): 
     const taxonomyEvidence = taxonomyActivityTypes.filter((value) => /playground|sand_play|water_play|outdoor_play/.test(value));
     if (termEvidence.length > 0 || playFeatureEvidence.length > 0 || taxonomyEvidence.length > 0) {
       suggestedPrimaryCategory = "playground";
-      confidence = termEvidence.some((term) => row.name.includes(term)) || taxonomyEvidence.includes("outdoor_playground") ? "high" : "medium";
+      confidence = termEvidence.some((term) => row.name.includes(term)) ? "high" : "medium";
       reasonCodes.push("PLAYGROUND_EVIDENCE");
       evidence.push(...formatTermEvidence("playground", termEvidence));
       evidence.push(...playFeatureEvidence.map((key) => `playFeatures:${key}`));
