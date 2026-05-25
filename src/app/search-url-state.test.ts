@@ -98,7 +98,7 @@ describe("search URL state", () => {
     formData.set("maxLat", "35.100000");
     formData.set("maxLng", "126.100000");
 
-    clearMapLocationParamsForTextSearch(formData);
+    clearMapLocationParamsForTextSearch(formData, "?query=%EC%88%98%EC%9C%A0%EC%8B%A4");
     const params = searchParamsWithCurrentLocationState(
       "?lat=36.330000&lng=127.440000&minLat=36.300000&minLng=127.400000&maxLat=36.360000&maxLng=127.480000",
       formData
@@ -199,12 +199,48 @@ describe("search URL state", () => {
       sort: "distance"
     });
 
-    clearMapLocationParamsForTextSearch(params);
+    clearMapLocationParamsForTextSearch(params, "?query=%EA%B8%B0%EC%A1%B4");
 
     expect(Object.fromEntries(params.entries())).toEqual({
       categoryGroup: "kidsCafe",
       query: "서울 키즈카페",
       sort: "distance"
+    });
+  });
+
+  it("clears category filters when a blank search becomes an explicit text search", () => {
+    const formData = new FormData();
+    formData.set("query", "놀이터");
+    formData.set("sort", "recommended");
+    formData.append("categoryGroups", "visit");
+    formData.append("categoryGroups", "stay");
+    formData.set("categoryGroup", "playground");
+    formData.set("category", "park");
+    formData.set("lat", "36.330000");
+    formData.set("lng", "127.440000");
+    formData.set("nursing", "on");
+
+    clearMapLocationParamsForTextSearch(formData, "");
+
+    expect(Object.fromEntries(formData.entries())).toEqual({
+      query: "놀이터",
+      sort: "recommended",
+      nursing: "on"
+    });
+    expect(formData.getAll("categoryGroups")).toEqual([]);
+  });
+
+  it("keeps category filters when refining an existing text search", () => {
+    const formData = new FormData();
+    formData.set("query", "물놀이터");
+    formData.append("categoryGroups", "playground");
+    formData.set("lat", "36.330000");
+
+    clearMapLocationParamsForTextSearch(formData, "?query=%EB%86%80%EC%9D%B4%ED%84%B0");
+
+    expect(Object.fromEntries(formData.entries())).toEqual({
+      query: "물놀이터",
+      categoryGroups: "playground"
     });
   });
 

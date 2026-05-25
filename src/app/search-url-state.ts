@@ -23,6 +23,7 @@ export type MapViewportSearchRequest = {
 export const MAP_LOCATION_PARAM_KEYS = ["lat", "lng", "radiusKm", "nearby", "minLat", "minLng", "maxLat", "maxLng"] as const;
 
 const RESET_ON_SEARCH_PARAM_KEYS = ["page", "offset"] as const;
+const CATEGORY_PARAM_KEYS = ["category", "categoryGroup", "categoryGroups"] as const;
 const VIEWPORT_PARAM_KEYS = ["minLat", "minLng", "maxLat", "maxLng"] as const;
 
 export function searchParamsForViewportSearch(params: SearchParamsRecord, request: MapViewportSearchRequest): SearchParamsRecord {
@@ -70,11 +71,14 @@ export function hasMapLocationParams(params: SearchParamsLike) {
   return MAP_LOCATION_PARAM_KEYS.some((key) => hasParamValue(params[key]));
 }
 
-export function clearMapLocationParamsForTextSearch(params: URLSearchParams | FormData) {
+export function clearMapLocationParamsForTextSearch(params: URLSearchParams | FormData, previousSearch = "") {
   const query = params.get("query");
   if (typeof query !== "string" || query.trim().length === 0) return params;
 
   for (const key of MAP_LOCATION_PARAM_KEYS) params.delete(key);
+  if (!hasPreviousTextQuery(previousSearch)) {
+    for (const key of CATEGORY_PARAM_KEYS) params.delete(key);
+  }
   return params;
 }
 
@@ -148,6 +152,11 @@ function cloneSearchParamsRecord(params: SearchParamsRecord): SearchParamsRecord
 
 function coordinateParam(value: number) {
   return value.toFixed(6);
+}
+
+function hasPreviousTextQuery(search: string) {
+  if (!search) return false;
+  return Boolean(new URLSearchParams(search).get("query")?.trim());
 }
 
 function hasParamValue(value: string | string[] | undefined) {

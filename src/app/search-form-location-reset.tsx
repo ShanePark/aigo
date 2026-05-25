@@ -10,7 +10,7 @@ export function SearchFormLocationReset() {
     if (!form) return;
 
     function handleFormData(event: FormDataEvent) {
-      clearMapLocationParamsForTextSearch(event.formData);
+      clearMapLocationParamsForTextSearch(event.formData, window.location.search);
     }
 
     form.addEventListener("formdata", handleFormData);
