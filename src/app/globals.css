@@ -2445,6 +2445,12 @@ h3 {
   color: var(--coral);
 }
 
+.trust-badge.saved-place-badge.is-hearted {
+  background: var(--coral-soft);
+  border-color: var(--line-strong);
+  color: var(--coral);
+}
+
 .meta-row {
   color: var(--muted);
   display: flex;
@@ -5313,6 +5319,19 @@ h3 {
   min-height: 30px;
   padding: 0 9px;
   white-space: nowrap;
+}
+
+.visits-summary .saved-place-summary-pill.is-want-to-go {
+  background: var(--mint-soft);
+  border-color: var(--line-strong);
+  color: var(--mint);
+}
+
+.visits-summary .saved-place-summary-pill.is-hearted,
+.visit-log-card-stats > .saved-place-stat.is-hearted:not(.score-pill) {
+  background: var(--coral-soft);
+  border-color: var(--line-strong);
+  color: var(--coral);
 }
 
 .visit-log-groups {

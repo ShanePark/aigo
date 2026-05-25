@@ -66,11 +66,11 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
         </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="저장한 장소 요약">
-            <span>
+            <span className="saved-place-summary-pill is-want-to-go">
               <Bookmark size={15} aria-hidden="true" />
               가고 싶음 {summary.wantToGoCount}
             </span>
-            <span>
+            <span className="saved-place-summary-pill is-hearted">
               <Heart size={15} aria-hidden="true" fill="currentColor" />
               하트 {summary.heartedCount}
             </span>
@@ -135,7 +135,7 @@ function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
             </span>
           ) : null}
           {item.hearted ? (
-            <span className="trust-badge neutral">
+            <span className="trust-badge saved-place-badge is-hearted">
               <Heart size={13} aria-hidden="true" fill="currentColor" />
               하트
             </span>
@@ -148,7 +148,7 @@ function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
         </p>
       </div>
       <div className="visit-log-card-stats">
-        <span>
+        <span className="saved-place-stat is-hearted">
           <Heart size={13} aria-hidden="true" fill="currentColor" />
           {item.heartCount}
         </span>
