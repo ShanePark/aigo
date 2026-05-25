@@ -10,6 +10,7 @@ import {
   ImagePlus,
   Lock,
   LogIn,
+  Maximize2,
   Search,
   Star,
   Trash2,
@@ -20,6 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ChangeEvent, FormEvent, KeyboardEvent, PointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppModal, AppModalActions } from "../app-modal";
 import { ConfirmDialog } from "../confirm-dialog";
 
 type User = {
@@ -103,6 +105,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [publicVisitPage, setPublicVisitPage] = useState(1);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine) ?? [], [visits]);
@@ -200,19 +203,25 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           </div>
         </div>
       ) : user ? (
-        <form className="place-visit-form" onSubmit={submitVisit}>
-          <VisitRatingInput disabled={busy} label="평점" onChange={setRating} value={rating} />
-          <VisitVisibilitySwitch disabled={busy} onChange={setVisibility} value={visibility} />
-          <VisitReviewField disabled={busy} onChange={setReviewText} value={reviewText} />
-          <VisitPhotoPicker disabled={busy} files={photoFiles} idPrefix={`visit-new-${placeId}`} onChange={setPhotoFiles} />
-
-          <div className="place-visit-submit">
-            <button className="primary-button" disabled={busy || loading} type="submit">
-              {busy ? "저장 중" : "방문 기록 저장"}
-            </button>
-            {status ? <p>{status}</p> : null}
+        <div className="place-visit-action-card">
+          <div className="place-visit-action-copy">
+            <strong>방문 날짜의 기록, 별점, 사진을 따로 남길 수 있어요.</strong>
+            <p>등록 버튼을 누르면 입력창이 열리고, 공개 범위는 저장 전에 고를 수 있습니다.</p>
           </div>
-        </form>
+          <button
+            className="primary-button place-visit-open-button"
+            disabled={busy || loading}
+            onClick={() => {
+              setStatus(null);
+              setVisitDialogOpen(true);
+            }}
+            type="button"
+          >
+            <Star size={16} aria-hidden="true" />
+            방문 기록 등록
+          </button>
+          {status ? <p className="place-visit-action-status">{status}</p> : null}
+        </div>
       ) : (
         <div className="place-visit-login-card">
           <div className="place-visit-login-copy">
@@ -317,6 +326,29 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         title={confirmAction?.title ?? ""}
         tone={confirmAction?.tone}
       />
+      <AppModal
+        description="별점과 짧은 리뷰를 남기고, 사진과 공개 범위를 함께 정할 수 있습니다."
+        disabled={busy}
+        onClose={() => setVisitDialogOpen(false)}
+        open={visitDialogOpen}
+        title={`${placeName} 방문 기록 등록`}
+      >
+        <form className="place-visit-form is-modal" onSubmit={submitVisit}>
+          <VisitRatingInput disabled={busy} label="평점" onChange={setRating} value={rating} />
+          <VisitVisibilitySwitch disabled={busy} onChange={setVisibility} value={visibility} />
+          <VisitReviewField disabled={busy} onChange={setReviewText} value={reviewText} />
+          <VisitPhotoPicker disabled={busy} files={photoFiles} idPrefix={`visit-new-${placeId}`} onChange={setPhotoFiles} />
+
+          <AppModalActions status={status}>
+            <button className="app-modal-cancel" disabled={busy} onClick={() => setVisitDialogOpen(false)} type="button">
+              취소
+            </button>
+            <button className="app-modal-submit" disabled={busy || loading} type="submit">
+              {busy ? "저장 중" : "저장"}
+            </button>
+          </AppModalActions>
+        </form>
+      </AppModal>
     </section>
   );
 
@@ -354,6 +386,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
 
       setStatus("저장했습니다.");
       resetVisitForm();
+      setVisitDialogOpen(false);
       await refreshVisits();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "저장하지 못했습니다.");
@@ -491,20 +524,21 @@ function VisitSummary({
   title?: string;
   visit: VisitItem;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ index: number; photo: VisitPhoto } | null>(null);
   const [draftRating, setDraftRating] = useState(visit.rating ?? 5);
   const [draftVisibility, setDraftVisibility] = useState<"public" | "private">(visit.visibility);
   const [draftReviewText, setDraftReviewText] = useState(visit.reviewText ?? "");
   const [draftPhotoFiles, setDraftPhotoFiles] = useState<File[]>([]);
 
   useEffect(() => {
-    if (!isEditing) {
+    if (!editDialogOpen) {
       setDraftRating(visit.rating ?? 5);
       setDraftVisibility(visit.visibility);
       setDraftReviewText(visit.reviewText ?? "");
       setDraftPhotoFiles([]);
     }
-  }, [isEditing, visit.rating, visit.reviewText, visit.visibility]);
+  }, [editDialogOpen, visit.rating, visit.reviewText, visit.visibility]);
 
   const canEdit = visit.isMine && onSave && onDelete;
 
@@ -520,11 +554,11 @@ function VisitSummary({
       },
       draftPhotoFiles
     );
-    if (saved) setIsEditing(false);
+    if (saved) setEditDialogOpen(false);
   }
 
   return (
-    <article className={`place-visit-summary ${isEditing ? "is-editing" : ""}`}>
+    <article className="place-visit-summary">
       <div className="place-visit-summary-top">
         <div>
           {title ? <h3>{title}</h3> : null}
@@ -540,7 +574,7 @@ function VisitSummary({
         </div>
         {canEdit ? (
           <div className="place-visit-summary-actions">
-            <button disabled={busy || isEditing} onClick={() => setIsEditing(true)} type="button">
+            <button disabled={busy || editDialogOpen} onClick={() => setEditDialogOpen(true)} type="button">
               <Edit3 size={14} aria-hidden="true" />
               수정
             </button>
@@ -551,33 +585,25 @@ function VisitSummary({
           </div>
         ) : null}
       </div>
-      {isEditing ? (
-        <form className="place-visit-inline-edit" onSubmit={submitEdit}>
-          <VisitRatingInput disabled={busy} label="평점 수정" onChange={setDraftRating} value={draftRating} />
-          <VisitVisibilitySwitch disabled={busy} onChange={setDraftVisibility} value={draftVisibility} />
-          <VisitReviewField disabled={busy} onChange={setDraftReviewText} value={draftReviewText} />
-          <VisitPhotoPicker disabled={busy} files={draftPhotoFiles} idPrefix={`visit-edit-${visit.id}`} onChange={setDraftPhotoFiles} />
-          <div className="place-visit-edit-actions">
-            <button className="primary-button" disabled={busy} type="submit">
-              {busy ? "저장 중" : "수정 저장"}
-            </button>
-            <button className="place-visit-cancel-edit" disabled={busy} onClick={() => setIsEditing(false)} type="button">
-              취소
-            </button>
-          </div>
-        </form>
-      ) : (
-        <>
-          {visit.reviewText ? <p>{visit.reviewText}</p> : visit.isPrivatePlaceholder ? <p>비공개 리뷰입니다.</p> : null}
-        </>
-      )}
+      {visit.reviewText ? <p>{visit.reviewText}</p> : visit.isPrivatePlaceholder ? <p>비공개 리뷰입니다.</p> : null}
       {visit.photos.length > 0 ? (
         <div className="place-visit-photo-grid" aria-label="방문 사진">
           {visit.photos.map((photo, index) => (
             <figure className="place-visit-photo-thumb" key={photo.id}>
-              <Image alt={`방문 사진 ${index + 1}`} fill sizes="120px" src={photo.url} unoptimized />
+              <button className="place-visit-photo-open" onClick={() => setSelectedPhoto({ index, photo })} type="button">
+                <Image alt={`방문 사진 ${index + 1}`} fill sizes="120px" src={photo.url} unoptimized />
+                <span aria-hidden="true">
+                  <Maximize2 size={14} />
+                </span>
+              </button>
               {visit.isMine && onDeletePhoto ? (
-                <button disabled={busy} onClick={() => onDeletePhoto(photo)} type="button" aria-label={`방문 사진 ${index + 1} 삭제`}>
+                <button
+                  className="place-visit-photo-delete"
+                  disabled={busy}
+                  onClick={() => onDeletePhoto(photo)}
+                  type="button"
+                  aria-label={`방문 사진 ${index + 1} 삭제`}
+                >
                   <Trash2 size={13} aria-hidden="true" />
                 </button>
               ) : null}
@@ -585,6 +611,41 @@ function VisitSummary({
           ))}
         </div>
       ) : null}
+      <AppModal
+        description={`${visit.visitedOn} 방문 기록을 수정합니다.`}
+        disabled={busy}
+        onClose={() => setEditDialogOpen(false)}
+        open={editDialogOpen}
+        title="방문 기록 수정"
+      >
+        <form className="place-visit-form is-modal" onSubmit={submitEdit}>
+          <VisitRatingInput disabled={busy} label="평점" onChange={setDraftRating} value={draftRating} />
+          <VisitVisibilitySwitch disabled={busy} onChange={setDraftVisibility} value={draftVisibility} />
+          <VisitReviewField disabled={busy} onChange={setDraftReviewText} value={draftReviewText} />
+          <VisitPhotoPicker disabled={busy} files={draftPhotoFiles} idPrefix={`visit-edit-${visit.id}`} onChange={setDraftPhotoFiles} />
+          <AppModalActions>
+            <button className="app-modal-cancel" disabled={busy} onClick={() => setEditDialogOpen(false)} type="button">
+              취소
+            </button>
+            <button className="app-modal-submit" disabled={busy} type="submit">
+              {busy ? "저장 중" : "저장"}
+            </button>
+          </AppModalActions>
+        </form>
+      </AppModal>
+      <AppModal
+        disabled={busy}
+        onClose={() => setSelectedPhoto(null)}
+        open={selectedPhoto !== null}
+        size="media"
+        title={selectedPhoto ? `방문 사진 ${selectedPhoto.index + 1}` : "방문 사진"}
+      >
+        {selectedPhoto ? (
+          <figure className="place-visit-photo-viewer">
+            <Image alt={`방문 사진 ${selectedPhoto.index + 1} 크게 보기`} fill sizes="min(92vw, 960px)" src={selectedPhoto.photo.url} unoptimized />
+          </figure>
+        ) : null}
+      </AppModal>
     </article>
   );
 }

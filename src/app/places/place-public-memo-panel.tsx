@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AppModal, AppModalActions } from "@/app/app-modal";
 import { ConfirmDialog } from "@/app/confirm-dialog";
 
 type User = {
@@ -54,6 +55,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [memoDialogOpen, setMemoDialogOpen] = useState(false);
   const myMemo = useMemo(() => memos?.items.find((memo) => memo.isMine) ?? null, [memos]);
   const publicMemos = memos?.items ?? [];
 
@@ -117,15 +119,25 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
           </div>
         </div>
       ) : user && !myMemo ? (
-        <form className="place-memo-form" onSubmit={submitMemo}>
-          <MemoBodyField disabled={busy} onChange={setBody} value={body} />
-          <div className="place-memo-submit">
-            <button className="primary-button" disabled={busy || body.trim().length === 0} type="submit">
-              {busy ? "저장 중" : "장소 팁 저장"}
-            </button>
-            {status ? <p>{status}</p> : null}
+        <div className="place-memo-action-card">
+          <div className="place-memo-action-copy">
+            <strong>주차, 동선, 준비물 팁을 공유할 수 있어요.</strong>
+            <p>버튼을 누르면 입력창이 열리고, 저장 전까지 상세 화면은 그대로 유지됩니다.</p>
           </div>
-        </form>
+          <button
+            className="primary-button place-memo-open-button"
+            disabled={busy}
+            onClick={() => {
+              setStatus(null);
+              setMemoDialogOpen(true);
+            }}
+            type="button"
+          >
+            <Edit3 size={16} aria-hidden="true" />
+            장소 팁 등록
+          </button>
+          {status ? <p className="place-memo-action-status">{status}</p> : null}
+        </div>
       ) : user ? (
         <div className="place-memo-hint">
           <Lightbulb size={16} aria-hidden="true" />
@@ -187,6 +199,25 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
         title={confirmAction?.title ?? ""}
         tone={confirmAction?.tone}
       />
+      <AppModal
+        description="방문 기록과 별점에는 반영하지 않는 공개 장소 이용 팁입니다."
+        disabled={busy}
+        onClose={() => setMemoDialogOpen(false)}
+        open={memoDialogOpen}
+        title="장소 이용 팁 등록"
+      >
+        <form className="place-memo-form is-modal" onSubmit={submitMemo}>
+          <MemoBodyField disabled={busy} onChange={setBody} value={body} />
+          <AppModalActions status={status}>
+            <button className="app-modal-cancel" disabled={busy} onClick={() => setMemoDialogOpen(false)} type="button">
+              취소
+            </button>
+            <button className="app-modal-submit" disabled={busy || body.trim().length === 0} type="submit">
+              {busy ? "저장 중" : "저장"}
+            </button>
+          </AppModalActions>
+        </form>
+      </AppModal>
     </section>
   );
 
@@ -206,6 +237,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
       if (!response.ok) throw new Error(await errorMessage(response));
       setBody("");
       setStatus("저장했습니다.");
+      setMemoDialogOpen(false);
       await refreshMemos();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "저장하지 못했습니다.");
@@ -280,22 +312,22 @@ function MemoSummary({
   onDelete?: (memo: PublicMemoItem) => void;
   onSave?: (memo: PublicMemoItem, body: string) => Promise<boolean>;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [draftBody, setDraftBody] = useState(memo.body);
 
   useEffect(() => {
-    if (!isEditing) setDraftBody(memo.body);
-  }, [isEditing, memo.body]);
+    if (!editDialogOpen) setDraftBody(memo.body);
+  }, [editDialogOpen, memo.body]);
 
   async function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!onSave) return;
     const saved = await onSave(memo, draftBody);
-    if (saved) setIsEditing(false);
+    if (saved) setEditDialogOpen(false);
   }
 
   return (
-    <article className={`place-memo-summary ${isEditing ? "is-editing" : ""}`}>
+    <article className="place-memo-summary">
       <div className="place-memo-summary-top">
         <div className="place-memo-summary-head">
           {memo.isMine ? <strong>내 팁</strong> : null}
@@ -304,7 +336,7 @@ function MemoSummary({
         </div>
         {memo.isMine && onSave && onDelete ? (
           <div className="place-memo-summary-actions">
-            <button disabled={busy || isEditing} onClick={() => setIsEditing(true)} type="button">
+            <button disabled={busy || editDialogOpen} onClick={() => setEditDialogOpen(true)} type="button">
               <Edit3 size={14} aria-hidden="true" />
               수정
             </button>
@@ -315,21 +347,26 @@ function MemoSummary({
           </div>
         ) : null}
       </div>
-      {isEditing ? (
-        <form className="place-memo-inline-edit" onSubmit={submitEdit}>
+      <p>{memo.body}</p>
+      <AppModal
+        description="공개 장소 이용 팁은 방문 기록과 별점에는 반영되지 않습니다."
+        disabled={busy}
+        onClose={() => setEditDialogOpen(false)}
+        open={editDialogOpen}
+        title="장소 이용 팁 수정"
+      >
+        <form className="place-memo-form is-modal" onSubmit={submitEdit}>
           <MemoBodyField disabled={busy} onChange={setDraftBody} value={draftBody} />
-          <div className="place-memo-edit-actions">
-            <button className="primary-button" disabled={busy || draftBody.trim().length === 0} type="submit">
-              {busy ? "저장 중" : "수정 저장"}
-            </button>
-            <button className="place-memo-cancel-edit" disabled={busy} onClick={() => setIsEditing(false)} type="button">
+          <AppModalActions>
+            <button className="app-modal-cancel" disabled={busy} onClick={() => setEditDialogOpen(false)} type="button">
               취소
             </button>
-          </div>
+            <button className="app-modal-submit" disabled={busy || draftBody.trim().length === 0} type="submit">
+              {busy ? "저장 중" : "저장"}
+            </button>
+          </AppModalActions>
         </form>
-      ) : (
-        <p>{memo.body}</p>
-      )}
+      </AppModal>
     </article>
   );
 }
