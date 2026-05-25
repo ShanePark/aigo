@@ -10,6 +10,8 @@ The user owns the local Next.js development server on port 3000 during normal wo
 
 Only start `pnpm dev` yourself when no suitable server is running on port 3000. Do not let Next.js fall back to an arbitrary alternate port such as 3001, because multiple dev servers in the same checkout share `.next` and can corrupt or race on route and page build artifacts. If port 3000 is occupied by an unrelated process, stop and ask the user how to proceed instead of starting on another port.
 
+If the port 3000 server is confirmed to be this repository's Next.js dev server and it repeatedly reports `.next` artifact errors such as missing `route.js`, `page.js`, or `app-build-manifest.json`, the agent may recover it without asking again: stop only that confirmed dev-server process, remove `.next`, and restart `pnpm dev` on port 3000. Do not kill unrelated processes, and do not use an alternate port as a workaround.
+
 ## Git Commit Skill
 
 For commit-related work in this repository, read and follow the committed repo skill at `.codex/skills/git-commit/SKILL.md` before inspecting, staging, committing, or reporting git changes. This project-local skill should be used instead of relying on a personal local skill path such as `/Users/shane/.codex/skills/git-commit/SKILL.md`.
