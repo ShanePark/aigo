@@ -17,27 +17,14 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  kids_cafe: "키즈카페",
-  indoor_playground: "실내놀이터",
-  toy_store: "장난감 가게",
-  toy_library: "장난감도서관",
-  library: "도서관",
-  museum: "박물관/미술관",
-  science_museum: "과학관",
-  experience_center: "체험관",
-  aquarium_zoo: "동물/아쿠아리움",
-  park: "공원/놀이터",
-  family_cafe: "가족 카페",
-  family_restaurant: "놀이방/가족 식당",
-  sports_venue: "스포츠/야구장",
-  shopping_mall: "쇼핑/몰",
-  rest_area: "휴게소/쉼터",
-  accommodation: "키즈 숙소"
-};
+import { placeCategoryLabel } from "@/app/place-category";
+
+export { placeCategoryLabel } from "@/app/place-category";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   accommodation: Hotel,
+  aquarium: PawPrint,
+  art_museum: Landmark,
   aquarium_zoo: PawPrint,
   experience_center: FerrisWheel,
   family_cafe: Coffee,
@@ -55,17 +42,14 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   sports_venue: Dumbbell,
   theme_park: FerrisWheel,
   toy_library: Puzzle,
-  toy_store: Puzzle
+  toy_store: Puzzle,
+  zoo: PawPrint
 };
 
 type PlaceCategoryBadgeProps = {
   category: string;
   className?: string;
 };
-
-export function placeCategoryLabel(value: string) {
-  return CATEGORY_LABELS[value] ?? value;
-}
 
 export function placeCategoryIcon(value: string): LucideIcon {
   return CATEGORY_ICONS[value] ?? MapPin;

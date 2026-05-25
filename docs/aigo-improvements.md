@@ -15,7 +15,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 ## Backlog
 
-`[대기]` 최우선: `primaryCategory`를 실제 사용자 인식 기준으로 분리하고 기존 장소 데이터를 전수 재분류한다.
+`[개선 중]` 최우선: `primaryCategory`를 실제 사용자 인식 기준으로 분리하고 기존 장소 데이터를 전수 재분류한다.
 
 현재 `primaryCategory`가 너무 넓게 묶인 값 때문에 검색 결과, 상세 헤더, 저장/최근/방문 목록의 카테고리 뱃지가 장황하거나 부정확하게 보인다. 특히 `aquarium_zoo`는 동물원과 아쿠아리움이 완전히 다른 방문 경험인데 `동물/아쿠아리움`으로 묶여 있고, `park`는 공원과 놀이터가 섞여 있으며, `museum`은 박물관과 미술관이 섞여 있다. `shopping_mall`은 분리 대상은 아니지만 사용자-facing 라벨을 `쇼핑/몰`이 아니라 `쇼핑몰`로 정리한다. 이 작업은 장소 데이터 계약과 기존 DB 데이터에 영향을 주므로 다른 UI 개선보다 먼저 처리한다.
 
@@ -36,6 +36,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 구현 체크리스트:
 
+- 진행 메모: 2026-05-26 첫 slice로 사용자-facing 카테고리 라벨 helper를 분리하고, 기존 통합 카테고리의 슬래시 라벨을 제거했다. `aquarium`, `zoo`, `playground`, `art_museum` 라벨/아이콘/placeholder fallback도 먼저 받을 수 있게 준비했으며, 아직 스키마 enum과 DB 데이터는 변경하지 않았다.
 - `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
 - `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
 - `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.
