@@ -7,8 +7,8 @@ describe("parseChildAgeMonths", () => {
     expect(parseChildAgeMonths(undefined)).toEqual([]);
   });
 
-  it("deduplicates repeated age months from params", () => {
-    expect(parseChildAgeMonths("32,7,7")).toEqual([32, 7]);
+  it("preserves repeated age months from params", () => {
+    expect(parseChildAgeMonths("32,7,7")).toEqual([32, 7, 7]);
   });
 
   it("allows an explicit empty child-age filter", () => {
@@ -23,19 +23,21 @@ describe("parseChildProfiles", () => {
 
   it("derives profile bands from legacy exact age params", () => {
     expect(parseChildProfiles(undefined, "32,7,7")).toEqual([
+      { ageBand: "24-48", gender: "boy" },
       { ageBand: "6-12", gender: "girl" },
-      { ageBand: "24-48", gender: "boy" }
+      { ageBand: "6-12", gender: "boy" }
     ]);
   });
 
-  it("keeps gender-specific profiles while using one representative search age per band", () => {
-    const profiles = parseChildProfiles("boy:6-12,girl:6-12,boy:48-84");
+  it("keeps duplicate child profiles and search ages", () => {
+    const profiles = parseChildProfiles("boy:6-12,boy:6-12,girl:6-12,boy:48-84");
 
     expect(profiles).toEqual([
+      { ageBand: "6-12", gender: "boy" },
       { ageBand: "6-12", gender: "boy" },
       { ageBand: "6-12", gender: "girl" },
       { ageBand: "48-84", gender: "boy" }
     ]);
-    expect(childProfilesToAgeMonths(profiles)).toEqual([7, 60]);
+    expect(childProfilesToAgeMonths(profiles)).toEqual([7, 7, 7, 60]);
   });
 });

@@ -55,6 +55,12 @@ describe("home search input", () => {
     });
   });
 
+  it("preserves duplicate child profiles as separate search age signals", () => {
+    expect(buildSearchInput({ children: "girl:6-12,girl:6-12,boy:24-48" })).toMatchObject({
+      childAgeMonths: [7, 7, 32]
+    });
+  });
+
   it("uses category-specific default radii for distance-sensitive browsing", () => {
     expect(buildSearchInput({ categoryGroup: "playground", lat: "36.35", lng: "127.38" })).toMatchObject({
       filterByRadius: true,

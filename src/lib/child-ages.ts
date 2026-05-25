@@ -31,7 +31,7 @@ export function parseChildAgeMonths(value: string | null | undefined): number[] 
     .map((age) => Number(age.trim()))
     .filter((age) => Number.isInteger(age) && age >= 0 && age <= MAX_CHILD_AGE_MONTHS);
 
-  return Array.from(new Set(ages)).slice(0, 10);
+  return ages.slice(0, 12);
 }
 
 export function parseChildProfiles(childrenValue: string | null | undefined, ageValue?: string | null | undefined): ChildProfile[] {
@@ -56,16 +56,10 @@ export function parseChildProfiles(childrenValue: string | null | undefined, age
 }
 
 export function normalizeChildProfiles(profiles: readonly ChildProfile[]): ChildProfile[] {
-  const byProfile = new Map<string, ChildProfile>();
-  for (const profile of profiles) {
-    if (isChildGender(profile.gender) && isChildAgeBandId(profile.ageBand)) {
-      byProfile.set(childProfileKey(profile), { ageBand: profile.ageBand, gender: profile.gender });
-    }
-  }
-
-  return CHILD_AGE_BANDS.flatMap((band) => CHILD_GENDERS.map((gender) => byProfile.get(childProfileKey({ ageBand: band.id, gender: gender.id })))).filter(
-    (profile): profile is ChildProfile => Boolean(profile)
-  );
+  return profiles
+    .filter((profile) => isChildGender(profile.gender) && isChildAgeBandId(profile.ageBand))
+    .map((profile) => ({ ageBand: profile.ageBand, gender: profile.gender }))
+    .slice(0, 12);
 }
 
 export function profilesFromAgeMonths(ages: readonly number[]): ChildProfile[] {
@@ -78,8 +72,7 @@ export function profilesFromAgeMonths(ages: readonly number[]): ChildProfile[] {
 }
 
 export function childProfilesToAgeMonths(profiles: readonly ChildProfile[]): number[] {
-  const ages = normalizeChildProfiles(profiles).map((profile) => childAgeBandById(profile.ageBand).ageMonths);
-  return Array.from(new Set(ages));
+  return normalizeChildProfiles(profiles).map((profile) => childAgeBandById(profile.ageBand).ageMonths);
 }
 
 export function serializeChildProfiles(profiles: readonly ChildProfile[]) {

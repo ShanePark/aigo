@@ -24,8 +24,29 @@ describe("account child defaults", () => {
       childParamSource: "account",
       params: {
         query: "키즈카페",
-        children: "boy:6-12,girl:24-48",
+        children: "girl:24-48,boy:6-12",
         ages: "32,7"
+      }
+    });
+  });
+
+  it("preserves twins as separate account child defaults", () => {
+    expect(
+      applyAccountChildDefaults(
+        { query: "실내" },
+        [
+          { birthYearMonth: "2025-10", gender: "girl" },
+          { birthYearMonth: "2025-10", gender: "girl" },
+          { birthYearMonth: "2023-09", gender: "boy" }
+        ],
+        now
+      )
+    ).toEqual({
+      childParamSource: "account",
+      params: {
+        query: "실내",
+        children: "girl:6-12,girl:6-12,boy:24-48",
+        ages: "7,7,32"
       }
     });
   });

@@ -48,7 +48,7 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 const DEFAULT_DRAFT_GENDER: ChildGender = "boy";
 const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
 const CHILD_PROFILE_STORAGE_KEY = "aigo-child-profiles";
-const MAX_CHILD_PROFILE_COUNT = CHILD_AGE_BANDS.length * CHILD_GENDERS.length;
+const MAX_CHILD_PROFILE_COUNT = 12;
 
 export function SearchFilters({ childParamSource = "none", initialParams }: SearchFiltersProps) {
   const router = useRouter();
@@ -64,7 +64,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const activeFilterChips = FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label);
   const activeChipCount = activeFilterChips.length + childProfiles.length;
   const profileAges = childProfilesToAgeMonths(childProfiles);
-  const draftProfileAlreadyExists = childProfiles.some((profile) => isSameChildProfile(profile, { ageBand: draftAgeBand, gender: draftGender }));
   const isAtProfileLimit = childProfiles.length >= MAX_CHILD_PROFILE_COUNT;
 
   function applyCurrentForm(overrides: { filters?: FilterOverrides; profiles?: ChildProfile[] } = {}) {
@@ -112,7 +111,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   }
 
   function addDraftProfile() {
-    if (isAtProfileLimit || draftProfileAlreadyExists) return;
+    if (isAtProfileLimit) return;
     commitProfiles([...childProfiles, { ageBand: draftAgeBand, gender: draftGender }]);
     setIsPickerOpen(false);
   }
@@ -129,12 +128,8 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
     if (isAtProfileLimit) return;
 
-    const nextProfile =
-      CHILD_AGE_BANDS.flatMap((band) => CHILD_GENDERS.map((gender) => ({ ageBand: band.id, gender: gender.id }))).find(
-        (candidate) => !childProfiles.some((profile) => isSameChildProfile(profile, candidate))
-      ) ?? { ageBand: DEFAULT_DRAFT_AGE_BAND, gender: DEFAULT_DRAFT_GENDER };
-    setDraftAgeBand(nextProfile.ageBand);
-    setDraftGender(nextProfile.gender);
+    setDraftAgeBand(childProfiles.at(-1)?.ageBand ?? DEFAULT_DRAFT_AGE_BAND);
+    setDraftGender(childProfiles.at(-1)?.gender ?? DEFAULT_DRAFT_GENDER);
     setIsPickerOpen(true);
   }
 
@@ -192,8 +187,8 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               {activeFilterChips.map((chip) => (
                 <span key={chip}>{chip}</span>
               ))}
-              {childProfiles.map((profile) => (
-                <span className="advanced-child-chip" key={childProfileKey(profile)} aria-label={formatChildProfile(profile)}>
+              {childProfiles.map((profile, index) => (
+                <span className="advanced-child-chip" key={`${childProfileKey(profile)}-${index}`} aria-label={formatChildProfile(profile)}>
                   <Image src={childProfileIconSrc(profile)} alt="" aria-hidden="true" width={34} height={34} />
                 </span>
               ))}
@@ -273,16 +268,14 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               {CHILD_AGE_BANDS.map((band) => {
                 const optionProfile = { ageBand: band.id, gender: draftGender };
                 const isSelected = draftAgeBand === band.id;
-                const isApplied = childProfiles.some((profile) => isSameChildProfile(profile, optionProfile));
 
                 return (
                   <button
-                    className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""} ${isApplied ? "is-applied" : ""}`}
+                    className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
                     type="button"
                     key={band.id}
                     onClick={() => setDraftAgeBand(band.id)}
                     aria-pressed={isSelected}
-                    disabled={isApplied}
                   >
                     <span className="child-profile-option-icon">
                       <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={88} height={88} />
@@ -290,12 +283,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                     <span className="child-profile-option-copy">
                       <strong>{band.label}</strong>
                     </span>
-                    {isApplied ? (
-                      <span className="child-profile-applied" aria-label="이미 등록됨">
-                        <Check size={11} aria-hidden="true" />
-                        이미 등록됨
-                      </span>
-                    ) : null}
                   </button>
                 );
               })}
@@ -306,9 +293,9 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                 <X size={15} aria-hidden="true" />
                 취소
               </button>
-              <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit || draftProfileAlreadyExists}>
+              <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
                 <Check size={15} aria-hidden="true" />
-                {draftProfileAlreadyExists ? "이미 등록됨" : "아이 적용"}
+                아이 적용
               </button>
             </div>
           </div>
@@ -316,11 +303,11 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
         {childProfiles.length > 0 ? (
           <div className="child-profile-grid">
-            {childProfiles.map((profile) => (
+            {childProfiles.map((profile, index) => (
               <ChildProfileCard
                 profile={profile}
-                key={childProfileKey(profile)}
-                onRemove={() => commitProfiles(childProfiles.filter((item) => !isSameChildProfile(item, profile)))}
+                key={`${childProfileKey(profile)}-${index}`}
+                onRemove={() => commitProfiles(childProfiles.filter((_, itemIndex) => itemIndex !== index))}
               />
             ))}
           </div>
@@ -361,10 +348,6 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
 
 function childProfileIconSrc(profile: ChildProfile) {
   return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.webp`;
-}
-
-function isSameChildProfile(left: ChildProfile, right: ChildProfile) {
-  return left.gender === right.gender && left.ageBand === right.ageBand;
 }
 
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {
