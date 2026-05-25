@@ -6,6 +6,7 @@ import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
+import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
 import { PlaceSaveControls, PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
 import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
@@ -528,7 +529,7 @@ function SearchEmptyState({
 function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
-  const category = categoryLabel(place.primaryCategory);
+  const category = placeCategoryLabel(place.primaryCategory);
   const summary = resultCardSummary(place, category, keywords);
   const metrics = resultCardMetrics(place);
 
@@ -550,12 +551,12 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         </div>
         <div className="result-card-body">
           <div className="result-card-topline">
-            <span className="category-pill">{category}</span>
+            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
             <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
               {metrics.map((metric) => (
-                <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
+                <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.title}>
                   {metric.icon ? metric.icon : null}
-                  <span>{metric.label}</span>
+                  {metric.label ? <span>{metric.label}</span> : null}
                   <strong>{metric.value}</strong>
                 </span>
               ))}
@@ -839,7 +840,7 @@ function resultCardMetrics(place: SearchItem) {
   return [
     {
       icon: <MapPin size={13} aria-hidden="true" />,
-      label: "거리",
+      label: "",
       title: "검색 기준점에서의 직선 거리",
       tone: distanceTone(place.distanceKm),
       value: distanceLabel(place.distanceKm)
@@ -914,29 +915,7 @@ function formatKeyword(value: string) {
 }
 
 function distanceLabel(value: number | null) {
-  return value === null ? "거리 미계산" : `${value.toFixed(1)}km`;
-}
-
-function categoryLabel(value: string) {
-  const labels: Record<string, string> = {
-    kids_cafe: "키즈카페",
-    indoor_playground: "실내놀이터",
-    toy_store: "장난감 가게",
-    toy_library: "장난감도서관",
-    library: "도서관",
-    museum: "박물관/미술관",
-    science_museum: "과학관",
-    experience_center: "체험관",
-    aquarium_zoo: "동물/아쿠아리움",
-    park: "공원/놀이터",
-    family_cafe: "가족 카페",
-    family_restaurant: "놀이방/가족 식당",
-    sports_venue: "스포츠/야구장",
-    shopping_mall: "쇼핑/몰",
-    rest_area: "휴게소/쉼터",
-    accommodation: "키즈 숙소"
-  };
-  return labels[value] ?? value;
+  return value === null ? "미계산" : `${value.toFixed(1)}km`;
 }
 
 function indoorLabel(value: string) {

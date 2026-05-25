@@ -1,34 +1,20 @@
 import {
-  BookOpen,
-  Car,
   ChevronDown,
   Clock,
-  Coffee,
-  Dumbbell,
   ExternalLink,
-  FerrisWheel,
-  FlaskConical,
-  Gamepad2,
   History,
-  Hotel,
   Images,
-  Landmark,
   MapPin,
   MessageSquareText,
-  PawPrint,
-  Puzzle,
   ShieldCheck,
-  ShoppingBag,
   Ticket,
-  Trees,
-  Utensils
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
 import { PlaceImage } from "@/app/place-image";
+import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
@@ -134,7 +120,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             <div className="detail-title-row">
               <BackToSearchLink href={backHref} />
               <h1>{place.name}</h1>
-              <CategoryBadge category={place.primaryCategory} />
+              <PlaceCategoryBadge category={place.primaryCategory} className="detail-category-badge" />
             </div>
             <div className="detail-head-meta" aria-label="장소 핵심 정보">
               {addressLabel ? (
@@ -297,7 +283,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
                   <span>{relationTypeLabel(relatedPlace.relationType)}</span>
                   <strong>{relatedPlace.name}</strong>
                   <small>
-                    {categoryLabel(relatedPlace.primaryCategory)}
+                    {placeCategoryLabel(relatedPlace.primaryCategory)}
                     {relatedPlace.distanceMeters !== null ? ` · ${metersLabel(relatedPlace.distanceMeters)}` : null}
                   </small>
                   {relatedPlace.note ? <p>{relatedPlace.note}</p> : null}
@@ -795,63 +781,6 @@ function relationTypeLabel(value: string) {
     itinerary_cluster: "일정 묶음"
   };
   return labels[value] ?? "관련 장소";
-}
-
-function categoryLabel(value: string) {
-  const labels: Record<string, string> = {
-    kids_cafe: "키즈카페",
-    indoor_playground: "실내놀이터",
-    toy_store: "장난감 가게",
-    toy_library: "장난감도서관",
-    library: "도서관",
-    museum: "박물관/미술관",
-    science_museum: "과학관",
-    experience_center: "체험관",
-    aquarium_zoo: "동물/아쿠아리움",
-    park: "공원/놀이터",
-    family_cafe: "가족 카페",
-    family_restaurant: "놀이방/가족 식당",
-    sports_venue: "스포츠/야구장",
-    shopping_mall: "쇼핑/몰",
-    rest_area: "휴게소/쉼터",
-    accommodation: "키즈 숙소"
-  };
-  return labels[value] ?? value;
-}
-
-function CategoryBadge({ category }: { category: string }) {
-  const Icon = categoryIcon(category);
-  return (
-    <span className="detail-category-badge" title={category}>
-      <Icon size={14} aria-hidden="true" />
-      {categoryLabel(category)}
-    </span>
-  );
-}
-
-function categoryIcon(value: string): LucideIcon {
-  const icons: Record<string, LucideIcon> = {
-    accommodation: Hotel,
-    aquarium_zoo: PawPrint,
-    experience_center: FerrisWheel,
-    family_cafe: Coffee,
-    family_restaurant: Utensils,
-    indoor_playground: Gamepad2,
-    kids_cafe: Coffee,
-    library: BookOpen,
-    museum: Landmark,
-    park: Trees,
-    playground: Trees,
-    public_child_facility: Puzzle,
-    rest_area: Car,
-    science_museum: FlaskConical,
-    shopping_mall: ShoppingBag,
-    sports_venue: Dumbbell,
-    theme_park: FerrisWheel,
-    toy_library: Puzzle,
-    toy_store: Puzzle
-  };
-  return icons[value] ?? MapPin;
 }
 
 function tagLabel(value: string) {

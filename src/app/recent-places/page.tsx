@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { PlaceImage } from "@/app/place-image";
+import { PlaceCategoryBadge } from "@/app/place-category-badge";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { listRecentPlaces, type RecentPlaceItem } from "@/lib/user-place-views";
 
@@ -100,9 +101,7 @@ function RecentPlaceCard({ item }: { item: RecentPlaceItem }) {
       <PlaceImage category={item.primaryCategory} src={item.imageUrl} alt={`${item.placeName} 대표 이미지`} variant="result" />
       <div className="recent-place-card-body">
         <div className="visit-log-card-topline">
-          <span className="category-pill" title={item.primaryCategory}>
-            {categoryLabel(item.primaryCategory)}
-          </span>
+          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" />
           <span className="trust-badge neutral">
             <MousePointerClick size={13} aria-hidden="true" />
             {item.viewCount}회 열람
@@ -155,26 +154,4 @@ function formatViewedAt(value: string) {
     month: "short",
     timeZone: "Asia/Seoul"
   }).format(new Date(value));
-}
-
-function categoryLabel(value: string) {
-  const labels: Record<string, string> = {
-    kids_cafe: "키즈카페",
-    indoor_playground: "실내놀이터",
-    toy_store: "장난감 가게",
-    toy_library: "장난감도서관",
-    library: "도서관",
-    museum: "박물관/미술관",
-    science_museum: "과학관",
-    experience_center: "체험관",
-    aquarium_zoo: "동물/아쿠아리움",
-    park: "공원/놀이터",
-    family_cafe: "가족 카페",
-    family_restaurant: "놀이방/가족 식당",
-    sports_venue: "스포츠/야구장",
-    shopping_mall: "쇼핑/몰",
-    rest_area: "휴게소/쉼터",
-    accommodation: "키즈 숙소"
-  };
-  return labels[value] ?? value;
 }

@@ -2285,16 +2285,27 @@ h3 {
 }
 
 .category-pill {
+  align-items: center;
   background: color-mix(in srgb, var(--blue-soft) 82%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--blue) 18%, var(--line));
   color: var(--blue);
+  display: inline-flex;
   font-size: var(--text-xs);
   font-weight: var(--weight-strong);
-  max-width: min(100%, 15ch);
+  gap: 5px;
+  max-width: min(100%, 18ch);
   overflow: hidden;
   padding: 6px 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.category-badge svg {
+  flex: 0 0 auto;
+}
+
+.category-pill svg {
+  color: var(--blue);
 }
 
 .result-card-body > h3 {
@@ -3156,6 +3167,7 @@ h3 {
 }
 
 .detail-category-badge svg {
+  flex: 0 0 auto;
   color: var(--mint);
 }
 
