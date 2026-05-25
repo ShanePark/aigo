@@ -41,8 +41,8 @@ function fakeExecutor(responses: QueryResponse[]) {
 
 describe("place visit schemas", () => {
   it("defaults new visits to public and keeps server-owned fields out of input", () => {
-    expect(createPlaceVisitSchema.parse({ rating: 4 })).toEqual({
-      rating: 4,
+    expect(createPlaceVisitSchema.parse({ rating: 4.5 })).toEqual({
+      rating: 4.5,
       visibility: "public"
     });
     expect(createPlaceVisitSchema.parse({ rating: 4, visitedOn: "2026-05-01", isRevisit: true })).toEqual({
@@ -54,6 +54,12 @@ describe("place visit schemas", () => {
   it("normalizes blank review text to null", () => {
     expect(createPlaceVisitSchema.parse({ rating: 3, reviewText: "   " }).reviewText).toBeNull();
     expect(updatePlaceVisitSchema.parse({ reviewText: "" }).reviewText).toBeNull();
+  });
+
+  it("accepts half-point ratings and rejects finer increments", () => {
+    expect(createPlaceVisitSchema.parse({ rating: 0.5 })).toMatchObject({ rating: 0.5 });
+    expect(updatePlaceVisitSchema.parse({ rating: 4.5 })).toMatchObject({ rating: 4.5 });
+    expect(() => createPlaceVisitSchema.parse({ rating: 4.25 })).toThrow("Rating must use 0.5 point increments");
   });
 
   it("rejects empty visit updates", () => {
@@ -191,14 +197,14 @@ describe("place visit photo privacy", () => {
   it("returns the current photo count after updating a visit", async () => {
     const { calls, executor } = fakeExecutor([
       [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
-      [{ ...baseVisitRow, visibility: "public", rating: 4, photoCount: 0 }],
+      [{ ...baseVisitRow, visibility: "public", rating: 4.5, photoCount: 0 }],
       [{ photoCount: 2 }]
     ]);
 
-    await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { rating: 4 }, executor)).resolves.toMatchObject({
+    await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { rating: 4.5 }, executor)).resolves.toMatchObject({
       item: {
         photoCount: 2,
-        rating: 4,
+        rating: 4.5,
         visibility: "public"
       }
     });

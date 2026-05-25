@@ -13,16 +13,21 @@ const reviewTextSchema = z
   .max(2000)
   .transform((value) => (value.length > 0 ? value : null))
   .nullable();
+const visitRatingSchema = z
+  .number()
+  .min(0.5)
+  .max(5)
+  .refine((value) => Number.isFinite(value) && Number.isInteger(value * 2), "Rating must use 0.5 point increments");
 
 export const createPlaceVisitSchema = z.object({
-  rating: z.number().int().min(1).max(5),
+  rating: visitRatingSchema,
   reviewText: reviewTextSchema.optional(),
   visibility: visitVisibilitySchema.default("public")
 });
 
 export const updatePlaceVisitSchema = z
   .object({
-    rating: z.number().int().min(1).max(5).optional(),
+    rating: visitRatingSchema.optional(),
     reviewText: reviewTextSchema.optional(),
     visibility: visitVisibilitySchema.optional()
   })

@@ -3,7 +3,7 @@
 import { Camera, CheckCircle2, Globe2, Lock, LogIn, Search, Star, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ChangeEvent, FormEvent } from "react";
+import type { CSSProperties, ChangeEvent, FormEvent, KeyboardEvent, PointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type User = {
@@ -47,6 +47,9 @@ type VisitsResponse = {
 };
 
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
+const MIN_VISIT_RATING = 0.5;
+const MAX_VISIT_RATING = 5;
+const RATING_STEP = 0.5;
 
 export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; placeName: string }) {
   const router = useRouter();
@@ -55,6 +58,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [devLoginEnabled, setDevLoginEnabled] = useState(false);
   const [visits, setVisits] = useState<VisitsResponse | null>(null);
   const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -150,23 +154,39 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         <form className="place-visit-form" onSubmit={submitVisit}>
           <fieldset className="place-visit-rating">
             <legend>평점</legend>
-            <div className="place-visit-stars" role="radiogroup" aria-label={`방문 평점, ${rating}점 선택됨`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  aria-checked={rating === value}
-                  aria-label={`${value}점`}
-                  className={value <= rating ? "is-active" : ""}
-                  disabled={busy}
-                  key={value}
-                  onClick={() => setRating(value)}
-                  role="radio"
-                  type="button"
-                >
-                  <Star size={18} aria-hidden="true" />
-                </button>
-              ))}
+            <div className="place-visit-rating-control">
+              <div
+                aria-label="방문 평점"
+                aria-valuemax={MAX_VISIT_RATING}
+                aria-valuemin={MIN_VISIT_RATING}
+                aria-valuenow={rating}
+                aria-valuetext={`${formatRating(rating)}점`}
+                className={`place-visit-stars ${busy ? "is-disabled" : ""}`}
+                onBlur={() => setHoverRating(null)}
+                onKeyDown={handleRatingKeyDown}
+                onMouseLeave={() => setHoverRating(null)}
+                onPointerDown={handleRatingPointer}
+                onPointerMove={handleRatingPointer}
+                role="slider"
+                style={{ "--rating-fill": `${((hoverRating ?? rating) / MAX_VISIT_RATING) * 100}%` } as CSSProperties}
+                tabIndex={busy ? -1 : 0}
+              >
+                <span className="place-visit-star-row" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <Star key={value} size={30} />
+                  ))}
+                </span>
+                <span className="place-visit-star-row place-visit-star-fill" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <Star key={value} size={30} />
+                  ))}
+                </span>
+              </div>
+              <output className="place-visit-rating-value" aria-live="polite">
+                {formatRating(hoverRating ?? rating)}
+              </output>
             </div>
-            <p className="place-visit-rating-label">{rating}점 선택됨</p>
+            <p className="place-visit-rating-label">{formatRating(rating)}점 선택됨</p>
           </fieldset>
 
           <fieldset className="place-visit-visibility">
@@ -404,6 +424,33 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     if (photoInputRef.current) photoInputRef.current.value = "";
   }
 
+  function handleRatingPointer(event: PointerEvent<HTMLElement>) {
+    if (busy) return;
+    const nextRating = handleRatingFromPointer(event);
+    setHoverRating(nextRating);
+    if (event.type === "pointerdown") {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setRating(nextRating);
+    }
+  }
+
+  function handleRatingKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (busy) return;
+    const keySteps: Record<string, number> = {
+      ArrowDown: -RATING_STEP,
+      ArrowLeft: -RATING_STEP,
+      ArrowRight: RATING_STEP,
+      ArrowUp: RATING_STEP,
+      End: MAX_VISIT_RATING - rating,
+      Home: MIN_VISIT_RATING - rating
+    };
+    const step = keySteps[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    setHoverRating(null);
+    setRating(clampRating(rating + step));
+  }
+
 }
 
 function VisitSummary({ title, visit }: { title?: string; visit: VisitItem }) {
@@ -411,7 +458,7 @@ function VisitSummary({ title, visit }: { title?: string; visit: VisitItem }) {
     <article className="place-visit-summary">
       {title ? <h3>{title}</h3> : null}
       <div className="place-visit-summary-head">
-        <strong>{visit.rating === null ? "비공개" : `${visit.rating}/5`}</strong>
+        <strong>{visit.rating === null ? "비공개" : `${formatRating(visit.rating)}/5`}</strong>
         <span>{visit.visitedOn}</span>
         {visit.isRevisit ? <span>재방문</span> : null}
         {visit.visibility === "private" ? <span>비공개</span> : null}
@@ -429,4 +476,19 @@ async function errorMessage(response: Response) {
   } catch {
     return "요청 실패";
   }
+}
+
+function handleRatingFromPointer(event: PointerEvent<HTMLElement>) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const position = Math.min(Math.max(event.clientX - rect.left, 0), rect.width);
+  const rawRating = (position / rect.width) * MAX_VISIT_RATING;
+  return clampRating(Math.ceil(rawRating / RATING_STEP) * RATING_STEP);
+}
+
+function clampRating(value: number) {
+  return Math.min(MAX_VISIT_RATING, Math.max(MIN_VISIT_RATING, Number(value.toFixed(1))));
+}
+
+function formatRating(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }

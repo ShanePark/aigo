@@ -3148,10 +3148,11 @@ h3 {
 
 .place-visit-panel {
   background:
-    linear-gradient(135deg, rgba(236, 244, 255, 0.72), transparent 44%),
+    linear-gradient(135deg, rgba(240, 248, 244, 0.82), transparent 42%),
+    linear-gradient(315deg, rgba(255, 244, 222, 0.68), transparent 38%),
     var(--panel);
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .place-visit-header {
@@ -3164,7 +3165,13 @@ h3 {
 .place-visit-header h2 {
   align-items: center;
   display: flex;
-  gap: 7px;
+  gap: 8px;
+  letter-spacing: 0;
+}
+
+.place-visit-header h2 svg {
+  color: var(--yellow);
+  fill: color-mix(in srgb, var(--yellow) 88%, white);
 }
 
 .place-visit-header p {
@@ -3195,7 +3202,7 @@ h3 {
 
 .place-visit-login-card {
   align-items: center;
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--panel) 86%, var(--mint-soft));
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
@@ -3264,8 +3271,8 @@ h3 {
 
 .place-visit-form {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(180px, 0.56fr);
+  gap: 14px;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(190px, 0.5fr);
 }
 
 .place-visit-form fieldset {
@@ -3293,9 +3300,8 @@ h3 {
   font-weight: 800;
 }
 
-.place-visit-stars,
 .place-visit-visibility div {
-  background: rgba(255, 255, 255, 0.68);
+  background: color-mix(in srgb, var(--panel) 88%, var(--panel-soft));
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
@@ -3304,14 +3310,17 @@ h3 {
   padding: 4px;
 }
 
-.place-visit-stars {
-  gap: 5px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  min-height: 58px;
-  padding: 5px;
+.place-visit-rating-control {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel) 88%, var(--yellow-soft));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  min-height: 74px;
+  padding: 12px;
 }
 
-.place-visit-stars button,
 .place-visit-visibility button {
   align-items: center;
   background: transparent;
@@ -3333,27 +3342,69 @@ h3 {
     transform var(--motion-fast);
 }
 
-.place-visit-stars button {
-  border-radius: 8px;
-  min-height: 48px;
+.place-visit-stars {
+  color: color-mix(in srgb, var(--muted) 42%, transparent);
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 34px;
+  outline: none;
+  position: relative;
+  touch-action: none;
+  width: 190px;
 }
 
-.place-visit-stars button svg {
-  height: 24px;
-  width: 24px;
+.place-visit-star-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, 30px);
+  inset: 0;
+  position: absolute;
 }
 
-.place-visit-stars button.is-active {
-  background: linear-gradient(180deg, #fff9e8, var(--yellow-soft));
-  border-color: var(--line-strong);
-  color: #a66f00;
+.place-visit-star-row svg {
+  stroke-width: 1.9;
 }
 
-.place-visit-stars button.is-active svg {
+.place-visit-star-fill {
+  color: var(--yellow);
+  clip-path: inset(0 calc(100% - var(--rating-fill)) 0 0);
+  pointer-events: none;
+  transition: clip-path var(--motion-fast);
+}
+
+.place-visit-star-fill svg {
   fill: currentColor;
 }
 
-.place-visit-stars button:hover:not(:disabled),
+.place-visit-stars:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.place-visit-stars.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.place-visit-rating-value {
+  align-items: baseline;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 24px;
+  font-weight: 950;
+  justify-content: center;
+  line-height: 1;
+  min-width: 58px;
+}
+
+.place-visit-rating-value::after {
+  color: var(--muted);
+  content: "/5";
+  font-size: 12px;
+  font-weight: 900;
+  margin-left: 3px;
+}
+
 .place-visit-visibility button:hover:not(:disabled),
 .place-visit-login-link:hover,
 .place-visit-upload-button:hover:not(:disabled),
@@ -3363,7 +3414,6 @@ h3 {
   transform: translateY(-1px);
 }
 
-.place-visit-stars button:disabled,
 .place-visit-visibility button:disabled,
 .place-visit-upload-button:disabled,
 .place-visit-selected-file button:disabled {
@@ -3385,9 +3435,10 @@ h3 {
 }
 
 .place-visit-visibility button.is-active {
-  background: linear-gradient(180deg, #f8fbff, var(--blue-soft));
-  border-color: var(--line-strong);
-  color: var(--blue);
+  background: color-mix(in srgb, var(--mint) 16%, var(--panel));
+  border-color: color-mix(in srgb, var(--mint) 44%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mint) 12%, transparent);
+  color: var(--mint);
 }
 
 .place-visit-field {
@@ -3397,7 +3448,7 @@ h3 {
 
 .place-visit-field input,
 .place-visit-field textarea {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
@@ -3430,7 +3481,7 @@ h3 {
 }
 
 .place-visit-upload-card {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--field-bg);
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   display: grid;
@@ -5159,7 +5210,17 @@ dd {
   }
 
   .place-visit-login-card {
+    align-items: flex-start;
     grid-template-columns: 1fr;
+  }
+
+  .place-visit-rating-control {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .place-visit-stars {
+    width: min(100%, 190px);
   }
 
   .place-visit-login-actions {

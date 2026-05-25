@@ -303,7 +303,7 @@ export const placeVisits = pgTable(
       .notNull()
       .references(() => places.id, { onDelete: "cascade" }),
     visitedOn: date("visited_on").notNull(),
-    rating: integer("rating").notNull(),
+    rating: doublePrecision("rating").notNull(),
     reviewText: text("review_text"),
     visibility: text("visibility").notNull().default("public"),
     isRevisit: boolean("is_revisit").notNull().default(false),
@@ -314,7 +314,7 @@ export const placeVisits = pgTable(
     userVisitedOnIdx: index("place_visits_user_visited_on_idx").on(table.userId, table.visitedOn),
     placeIdx: index("place_visits_place_id_idx").on(table.placeId),
     placeVisibilityIdx: index("place_visits_place_visibility_idx").on(table.placeId, table.visibility),
-    ratingCheck: check("place_visits_rating_check", sql`${table.rating} between 1 and 5`),
+    ratingCheck: check("place_visits_rating_check", sql`${table.rating} between 0.5 and 5 and (${table.rating} * 2) = floor(${table.rating} * 2)`),
     visibilityCheck: check("place_visits_visibility_check", sql`${table.visibility} in ('public', 'private')`)
   })
 );
