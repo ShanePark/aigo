@@ -110,6 +110,22 @@ describe("AiGo preflight schema inventory", () => {
       "constraint.place_public_memos.place_public_memos_body_length_check"
     ]);
   });
+
+  it("reports missing saved place artifacts", () => {
+    const inventory = completeInventory();
+    inventory.columns = inventory.columns.filter((row) => !(row.tableName === "user_place_saves" && row.columnName === "want_to_go"));
+    inventory.indexes = inventory.indexes.filter(
+      (row) => row.name !== "user_place_saves_user_place_unique" && row.name !== "user_place_saves_place_hearted_idx"
+    );
+    inventory.constraints = inventory.constraints.filter((row) => row.name !== "user_place_saves_active_state_check");
+
+    expect(missingDatabaseSchemaArtifacts(inventory)).toEqual([
+      "user_place_saves.want_to_go",
+      "index.user_place_saves.user_place_saves_user_place_unique",
+      "index.user_place_saves.user_place_saves_place_hearted_idx",
+      "constraint.user_place_saves.user_place_saves_active_state_check"
+    ]);
+  });
 });
 
 function completeInventory(): DatabaseSchemaInventory {

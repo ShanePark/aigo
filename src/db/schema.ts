@@ -20,6 +20,7 @@ export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" 
 export type UserChildGender = "boy" | "girl";
 export type UserRole = "user" | "admin";
 export type VisitVisibility = "public" | "private";
+export type SavedPlaceFilter = "all" | "wantToGo" | "hearted";
 
 export const users = pgTable(
   "users",
@@ -373,6 +374,29 @@ export const placePublicMemos = pgTable(
     placeUpdatedAtIdx: index("place_public_memos_place_updated_at_idx").on(table.placeId, table.updatedAt),
     userIdx: index("place_public_memos_user_id_idx").on(table.userId),
     bodyLengthCheck: check("place_public_memos_body_length_check", sql`length(trim(${table.body})) between 1 and 1000`)
+  })
+);
+
+export const userPlaceSaves = pgTable(
+  "user_place_saves",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    wantToGo: boolean("want_to_go").notNull().default(false),
+    hearted: boolean("hearted").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userPlaceUnique: uniqueIndex("user_place_saves_user_place_unique").on(table.userId, table.placeId),
+    userUpdatedAtIdx: index("user_place_saves_user_updated_at_idx").on(table.userId, table.updatedAt),
+    placeHeartedIdx: index("user_place_saves_place_hearted_idx").on(table.placeId),
+    activeStateCheck: check("user_place_saves_active_state_check", sql`${table.wantToGo} or ${table.hearted}`)
   })
 );
 

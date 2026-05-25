@@ -104,6 +104,7 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
       "created_at"
     ],
     place_public_memos: ["id", "user_id", "place_id", "body", "created_at", "updated_at"],
+    user_place_saves: ["id", "user_id", "place_id", "want_to_go", "hearted", "created_at", "updated_at"],
     place_versions: ["id", "place_id", "version_number", "snapshot", "sources"]
   },
   constraints: [
@@ -130,7 +131,8 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "place_visit_photos", name: "place_visit_photos_byte_size_check" },
     { tableName: "place_visit_photos", name: "place_visit_photos_width_check" },
     { tableName: "place_visit_photos", name: "place_visit_photos_height_check" },
-    { tableName: "place_public_memos", name: "place_public_memos_body_length_check" }
+    { tableName: "place_public_memos", name: "place_public_memos_body_length_check" },
+    { tableName: "user_place_saves", name: "user_place_saves_active_state_check" }
   ],
   extensions: ["postgis", "pg_trgm", "pgcrypto"],
   functions: ["set_place_derived_fields"],
@@ -161,7 +163,10 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "place_visit_photos", name: "place_visit_photos_storage_key_unique" },
     { tableName: "place_public_memos", name: "place_public_memos_user_place_unique" },
     { tableName: "place_public_memos", name: "place_public_memos_place_updated_at_idx" },
-    { tableName: "place_public_memos", name: "place_public_memos_user_id_idx" }
+    { tableName: "place_public_memos", name: "place_public_memos_user_id_idx" },
+    { tableName: "user_place_saves", name: "user_place_saves_user_place_unique" },
+    { tableName: "user_place_saves", name: "user_place_saves_user_updated_at_idx" },
+    { tableName: "user_place_saves", name: "user_place_saves_place_hearted_idx" }
   ],
   triggers: [{ tableName: "places", name: "places_set_derived_fields" }]
 };
