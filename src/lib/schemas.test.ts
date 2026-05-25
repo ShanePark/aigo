@@ -103,6 +103,19 @@ describe("place schemas", () => {
     expect(partialCoordinates.success).toBe(false);
   });
 
+  it("accepts overseas duplicate scope and alias hints", () => {
+    const result = duplicatePlaceSchema.parse({
+      name: "Pacific Islands Club Guam",
+      countryCode: "gu",
+      city: "Tumon",
+      aliases: ["PIC 괌", "괌 PIC"]
+    });
+
+    expect(result.countryCode).toBe("GU");
+    expect(result.city).toBe("Tumon");
+    expect(result.aliases).toEqual(["PIC 괌", "괌 PIC"]);
+  });
+
   it("accepts taxonomy v1 shape on place writes", () => {
     const result = taxonomySchema.parse({
       schemaVersion: 1,
@@ -241,6 +254,8 @@ describe("place schemas", () => {
   it("defaults search pagination and keeps facility preferences soft", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },
+      countryCode: "ph",
+      city: "Lapu-Lapu",
       playgroundOnly: true,
       kidsCafeOnly: true,
       preferences: {
@@ -253,6 +268,8 @@ describe("place schemas", () => {
     expect(result.radiusKm).toBe(80);
     expect(result.playgroundOnly).toBe(true);
     expect(result.kidsCafeOnly).toBe(true);
+    expect(result.countryCode).toBe("PH");
+    expect(result.city).toBe("Lapu-Lapu");
     expect(result.preferences?.strollerFriendly).toBe(true);
     expect(result.preferences?.babyChair).toBe(true);
   });

@@ -195,6 +195,8 @@ Create requires:
 
 For overseas place payloads, use first-class location and pricing fields when source-backed: `countryCode`, `countryName`, `city`, `locality`, `localCurrency`, and non-KRW `pricing.currency` / `pricing.items[].currency`. Keep Korean `regionSido` only as a broad grouping fallback when needed, not as the only place to store country/city context.
 
+For overseas duplicate and exact-name checks, pass `countryCode`, `city`, and candidate `aliases` when available. Search and duplicate matching can use both `externalRefs.aliases` and `externalRefs.koreanSearchAliases`, which is useful for pairs such as official English resort names and Korean parent-search names.
+
 Before registering create payloads copied from `agent-research/`, run the read-only workflow lint:
 
 ```bash

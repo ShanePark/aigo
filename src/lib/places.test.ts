@@ -395,6 +395,31 @@ describe("place search helpers", () => {
     expect(query.params).toEqual(["국립세종어린이박물관", "국립세종어린이박물관"]);
   });
 
+  it("includes Korean search aliases in exact-name lookup", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "괌 PIC",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("external_refs->'koreanSearchAliases'");
+    expect(query.params).toEqual(["괌 pic", "괌pic"]);
+  });
+
+  it("filters overseas search candidates by country and city scope", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      countryCode: "PH",
+      city: "Lapu-Lapu"
+    });
+
+    expect(query.sql).toContain("country_code");
+    expect(query.sql).toContain("external_refs->>'countryCode'");
+    expect(query.sql).toContain("coalesce(city");
+    expect(query.sql).toContain("coalesce(locality");
+    expect(query.params).toEqual(["PH", "PH", "lapu-lapu", "lapu-lapu", "lapu-lapu"]);
+  });
+
   it("expands exact-name retail branch aliases for mall and outlet names", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,
@@ -1788,6 +1813,23 @@ describe("place search helpers", () => {
     expect(nameMatch.delta).toBeGreaterThan(tagMatch.delta);
     expect(nameMatch.reasonCodes).toContain("QUERY_NAME_MATCH");
     expect(tagMatch.reasonCodes).toContain("QUERY_TAG_MATCH");
+  });
+
+  it("treats Korean external search aliases as exact query matches", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "Pacific Islands Club Guam",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: { koreanSearchAliases: ["PIC 괌", "괌 PIC"] }
+      },
+      "괌 PIC"
+    );
+
+    expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
+    expect(signal.delta).toBeGreaterThan(0);
   });
 
   it("uses a distinct reason for location-only query matches", () => {

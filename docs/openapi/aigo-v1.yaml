@@ -1064,7 +1064,15 @@ components:
           type: string
           enum: [keyword, exactName]
           default: keyword
-          description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, externalRefs.aliases, and known retail-chain alias place names instead of broad keyword/tag text.
+          description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, externalRefs.aliases, externalRefs.koreanSearchAliases, and known retail-chain alias place names instead of broad keyword/tag text.
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: Optional country scope for overseas place search.
+        city:
+          type: string
+          maxLength: 200
+          description: Optional city/locality scope for overseas place search.
         primaryCategories:
           type: array
           maxItems: 30
@@ -2301,6 +2309,8 @@ components:
         - required: [roadAddress]
         - required: [address]
         - required: [regionSigungu]
+        - required: [countryCode]
+        - required: [city]
         - required: [kakaoPlaceId]
         - required: [externalRefs]
       properties:
@@ -2328,6 +2338,21 @@ components:
           type: string
           minLength: 1
           description: Optional city/district hint for address-based duplicate checks when coordinates are unknown.
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: Optional country scope for overseas duplicate checks.
+        city:
+          type: string
+          maxLength: 200
+          description: Optional city/locality scope for overseas duplicate checks.
+        aliases:
+          type: array
+          maxItems: 30
+          description: Candidate aliases such as Korean travel names, official English names, and common parent-search variants.
+          items:
+            type: string
+            minLength: 1
         radiusMeters:
           type: number
           exclusiveMinimum: 0

@@ -899,8 +899,20 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
   };
 }
 
-function searchDiversityRegionKey(region: { sido: string | null; sigungu: string | null } | null | undefined) {
-  return [region?.sido?.trim() || "unknown_sido", region?.sigungu?.trim() || "unknown_sigungu"].join(":");
+function searchDiversityRegionKey(
+  region:
+    | {
+        sido: string | null;
+        sigungu: string | null;
+        countryCode?: string | null;
+        city?: string | null;
+      }
+    | null
+    | undefined
+) {
+  const countryOrSido = region?.countryCode?.trim() || region?.sido?.trim() || "unknown_sido";
+  const cityOrSigungu = region?.city?.trim() || region?.sigungu?.trim() || "unknown_sigungu";
+  return [countryOrSido, cityOrSigungu].join(":");
 }
 
 function coursePlanCandidate(item: SearchCoursePlanItem) {
@@ -1358,6 +1370,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const containsName = `%${input.name}%`;
   const compactName = compactSearchText(input.name);
   const containsCompactName = `%${compactName}%`;
+  const aliasCompacts = Array.from(new Set([input.name, ...(input.aliases ?? [])].map(compactSearchText).filter(Boolean)));
   const retailAliasCompacts = retailAliasCompactTexts(input.name);
   const genericAliasTerms = duplicateGenericAliasTerms;
   const hasCoordinates = input.lat !== undefined && input.lng !== undefined;
@@ -1366,6 +1379,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const addressCandidates = Array.from(new Set([input.roadAddress, input.address].filter(isNonEmptyString).map(compactSearchText)));
   const compactRegionSido = input.regionSido ? compactSearchText(input.regionSido) : null;
   const compactRegionSigungu = input.regionSigungu ? compactSearchText(input.regionSigungu) : null;
+  const compactCity = input.city ? compactSearchText(input.city) : null;
   const externalRefsJson =
     input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
   const rows = await pg<
@@ -1411,6 +1425,23 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
             else 0
           end,
           case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[]) then 0.82 else 0 end,
+          case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[]) then 0.9 else 0 end,
+          case
+            when exists (
+              select 1
+              from jsonb_array_elements_text(
+                case
+                  when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
+                  when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
+                  when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
+                  else '[]'::jsonb
+                end
+              ) as external_alias(value)
+              where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
+            )
+            then 0.9
+            else 0
+          end,
           case
             when exists (
               select 1
@@ -1440,6 +1471,19 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           )
           or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[])
+          or regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
+          or exists (
+            select 1
+            from jsonb_array_elements_text(
+              case
+                when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
+                when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
+                when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
+                else '[]'::jsonb
+              end
+            ) as external_alias(value)
+            where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
+          )
         ) as alias_match,
         (
           array_length(${addressCandidates}::text[], 1) is not null
@@ -1449,7 +1493,12 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           )
         ) as address_match,
         (
-          (${input.regionSigungu ?? null}::text is not null or ${input.regionSido ?? null}::text is not null)
+          (
+            ${input.regionSigungu ?? null}::text is not null
+            or ${input.regionSido ?? null}::text is not null
+            or ${input.countryCode ?? null}::text is not null
+            or ${input.city ?? null}::text is not null
+          )
           and (
             (${input.regionSigungu ?? null}::text is not null and region_sigungu = ${input.regionSigungu ?? null})
             or (${input.regionSido ?? null}::text is not null and region_sido = ${input.regionSido ?? null})
@@ -1457,6 +1506,11 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
             or (${compactRegionSigungu}::text is not null and regexp_replace(lower(coalesce(road_address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSigungu}::text || '%'))
             or (${compactRegionSido}::text is not null and regexp_replace(lower(coalesce(address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSido}::text || '%'))
             or (${compactRegionSido}::text is not null and regexp_replace(lower(coalesce(road_address, '')), '\\s+', '', 'g') ilike ('%' || ${compactRegionSido}::text || '%'))
+            or (${input.countryCode ?? null}::text is not null and country_code = ${input.countryCode ?? null})
+            or (${compactCity}::text is not null and regexp_replace(lower(coalesce(city, '')), '\\s+', '', 'g') = ${compactCity})
+            or (${compactCity}::text is not null and regexp_replace(lower(coalesce(locality, '')), '\\s+', '', 'g') = ${compactCity})
+            or (${input.countryCode ?? null}::text is not null and external_refs->>'countryCode' = ${input.countryCode ?? null})
+            or (${compactCity}::text is not null and regexp_replace(lower(coalesce(external_refs->>'city', '')), '\\s+', '', 'g') = ${compactCity})
           )
         ) as region_match,
         (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
@@ -2173,6 +2227,21 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     where.push(playgroundEvidenceClause());
   }
 
+  if (input.countryCode) {
+    where.push(`(country_code = ${add(input.countryCode)} or external_refs->>'countryCode' = ${add(input.countryCode)})`);
+  }
+
+  if (input.city) {
+    const compactCity = compactSearchText(input.city);
+    where.push(
+      `(
+        regexp_replace(lower(coalesce(city, '')), '[[:space:]]+', '', 'g') = ${add(compactCity)}
+        or regexp_replace(lower(coalesce(locality, '')), '[[:space:]]+', '', 'g') = ${add(compactCity)}
+        or regexp_replace(lower(coalesce(external_refs->>'city', '')), '[[:space:]]+', '', 'g') = ${add(compactCity)}
+      )`
+    );
+  }
+
   if (input.query) {
     if (input.matchMode === "exactName") {
       where.push(exactNameSearchClause(input.query, add));
@@ -2287,6 +2356,9 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `region_sido ilike ${patternParam}`,
       `region_sigungu ilike ${patternParam}`,
       `region_dong ilike ${patternParam}`,
+      `country_name ilike ${patternParam}`,
+      `city ilike ${patternParam}`,
+      `locality ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
       `play_features::text ilike ${patternParam}`,
       `route_support::text ilike ${patternParam}`,
@@ -2319,7 +2391,9 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
     select 1
     from jsonb_array_elements_text(
       case
+        when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
         when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
+        when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
         else '[]'::jsonb
       end
     ) as external_alias(value)
@@ -3567,8 +3641,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function externalRefsAliasTexts(externalRefs: unknown) {
-  if (!isRecord(externalRefs) || !Array.isArray(externalRefs.aliases)) return [];
-  return externalRefs.aliases.filter(isNonEmptyString);
+  if (!isRecord(externalRefs)) return [];
+  return [externalRefs.aliases, externalRefs.koreanSearchAliases]
+    .flatMap((value) => (Array.isArray(value) ? value : []))
+    .filter(isNonEmptyString);
 }
 
 export function retailAliasCompactTextsForTest(value: string) {

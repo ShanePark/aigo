@@ -388,6 +388,8 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   query: z.string().trim().min(1).optional(),
   matchMode: z.enum(["keyword", "exactName"]).optional(),
+  countryCode: countryCodeSchema,
+  city: z.string().trim().min(1).max(200).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
   playgroundOnly: z.boolean().optional(),
   kidsCafeOnly: z.boolean().optional(),
@@ -439,6 +441,9 @@ export const duplicatePlaceSchema = z
     roadAddress: nonEmptyString.optional(),
     regionSido: regionSidoSchema,
     regionSigungu: nonEmptyString.optional(),
+    countryCode: countryCodeSchema,
+    city: z.string().trim().min(1).max(200).optional(),
+    aliases: z.array(nonEmptyString).max(30).optional(),
     radiusMeters: z.number().positive().max(5000).default(500),
     kakaoPlaceId: z.string().trim().optional(),
     externalRefs: z.record(z.string(), z.unknown()).optional(),
@@ -453,6 +458,8 @@ export const duplicatePlaceSchema = z
       input.address !== undefined ||
       input.roadAddress !== undefined ||
       input.regionSigungu !== undefined ||
+      input.countryCode !== undefined ||
+      input.city !== undefined ||
       input.kakaoPlaceId !== undefined ||
       (input.externalRefs !== undefined && Object.keys(input.externalRefs).length > 0),
     {
