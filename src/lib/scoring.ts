@@ -398,10 +398,11 @@ function normalizeSignalToken(value: string) {
 function pricingHasFreeAdmission(pricing: unknown) {
   const record = isRecord(pricing) ? pricing : null;
   if (!record) return false;
-  const text = pricingText(record);
-  if (/(?:무료\s*(?:입장|관람|이용)?|입장료\s*무료|free\s*(?:admission|entry)?)/i.test(text)) return true;
-
   const admissionItems = pricingAdmissionItems(record);
+  const hasPaidAdmission = admissionItems.some((item) => item.amount > 0);
+  const text = pricingText(record);
+  if (/(?:무료\s*(?:입장|관람|이용)?|입장료\s*무료|free\s*(?:admission|entry)?)/i.test(text) && !hasPaidAdmission) return true;
+
   return admissionItems.length > 0 && admissionItems.every((item) => item.amount === 0);
 }
 
@@ -430,7 +431,7 @@ function pricingAdmissionItems(record: Record<string, unknown>) {
     const label = [item.label, item.unit, item.notes].filter((value): value is string => typeof value === "string").join(" ");
     const amount = typeof item.amount === "number" && Number.isFinite(item.amount) ? item.amount : null;
     if (amount === null) return [];
-    if (!/(?:입장|입장료|이용|관람|admission|entry|ticket|어린이|아동|성인|보호자)/i.test(label)) return [];
+    if (!/(?:입장|입장료|이용|이용권|종일권|관람|admission|entry|ticket|pass|어린이|아동|청소년|성인|어른|보호자|영유아)/i.test(label)) return [];
     if (/(?:주차|parking)/i.test(label)) return [];
     return [{ amount }];
   });

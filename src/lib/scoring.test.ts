@@ -591,6 +591,49 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
   });
 
+  it("does not treat paid admission with infant-free conditions as free admission", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "theme_park",
+        tags: ["theme_park", "outdoor_play"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "mixed",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "partial",
+        elevator: "partial",
+        babyChair: "partial",
+        foodAllowed: "partial",
+        distanceKm: 18,
+        pricing: {
+          summary: "종합이용권 대인 47,000원, 어린이 33,000원, 36개월 미만 무료",
+          items: [
+            { label: "대인 종합이용권", amount: 47_000, currency: "KRW" },
+            { label: "어린이 종합이용권", amount: 33_000, currency: "KRW" },
+            { label: "36개월 미만 입장", amount: 0, currency: "KRW", conditions: "보호자 동반" }
+          ]
+        },
+        scoring: {
+          placeScore: 7.5,
+          placeScoreRationale: "공식 유료 입장권이 있는 대형 테마파크.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 7,
+          scoreSignals: { facilityScale: "large" },
+          scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "weekendHalfDay" }
+    );
+
+    expect(result.reasonCodes).toContain("FACILITY_SCALE_LARGE");
+    expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
+  });
+
   it("prevents unscored places from saturating the ranking", () => {
     const strongLogistics = {
       primaryCategory: "kids_cafe",
