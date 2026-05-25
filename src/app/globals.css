@@ -3005,7 +3005,8 @@ h3 {
 }
 
 .place-visit-form legend,
-.place-visit-field > span {
+.place-visit-field > span,
+.place-visit-photo-label > span {
   align-items: center;
   color: var(--muted);
   display: inline-flex;
@@ -3013,6 +3014,12 @@ h3 {
   font-weight: 800;
   gap: 5px;
   margin-bottom: 5px;
+}
+
+.place-visit-field > span small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .place-visit-stars,
@@ -3027,7 +3034,10 @@ h3 {
 }
 
 .place-visit-stars {
+  gap: 5px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-height: 58px;
+  padding: 5px;
 }
 
 .place-visit-stars button,
@@ -3040,20 +3050,66 @@ h3 {
   display: inline-flex;
   font-size: 12px;
   font-weight: 900;
-  gap: 4px;
+  gap: 6px;
   justify-content: center;
-  min-height: 34px;
+  min-height: 42px;
   padding: 0 7px;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.place-visit-stars button {
+  border-radius: 8px;
+  min-height: 48px;
+}
+
+.place-visit-stars button svg {
+  height: 24px;
+  width: 24px;
 }
 
 .place-visit-stars button.is-active {
   background: linear-gradient(180deg, #fff9e8, var(--yellow-soft));
   border-color: var(--line-strong);
-  color: var(--text);
+  color: #a66f00;
+}
+
+.place-visit-stars button.is-active svg {
+  fill: currentColor;
+}
+
+.place-visit-stars button:hover:not(:disabled),
+.place-visit-visibility button:hover:not(:disabled),
+.place-visit-upload-button:hover:not(:disabled),
+.place-visit-selected-file button:hover:not(:disabled) {
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.place-visit-stars button:disabled,
+.place-visit-visibility button:disabled,
+.place-visit-upload-button:disabled,
+.place-visit-selected-file button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.place-visit-rating-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  margin: 6px 0 0;
 }
 
 .place-visit-visibility div {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 52px;
+  padding: 5px;
 }
 
 .place-visit-visibility button.is-active {
@@ -3085,25 +3141,103 @@ h3 {
   resize: vertical;
 }
 
-.place-visit-field input[type="file"] {
-  align-content: center;
-  color: var(--muted);
-  font-size: 13px;
-  padding: 7px;
+.place-visit-photo-label {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
 }
 
-.place-visit-field input[type="file"]::file-selector-button {
+.place-visit-photo-label small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin-bottom: 5px;
+  text-align: right;
+}
+
+.place-visit-upload-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  padding: 10px;
+}
+
+.place-visit-upload-card.has-file {
+  background: var(--info-bg);
+  border-style: solid;
+}
+
+.place-visit-upload-button {
+  align-items: center;
   background: var(--text);
-  border: 0;
-  border-radius: 999px;
+  border: 1px solid var(--text);
+  border-radius: 8px;
   color: var(--panel);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
+  display: inline-flex;
+  font-size: 13px;
   font-weight: 900;
-  margin-right: 10px;
-  min-height: 30px;
-  padding: 0 11px;
+  gap: 7px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.place-visit-upload-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.place-visit-selected-file {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.place-visit-selected-file span {
+  color: var(--body-copy);
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-visit-selected-file button {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.place-visit-file-input {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .place-visit-field input:focus,

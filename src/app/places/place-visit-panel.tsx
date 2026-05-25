@@ -1,7 +1,7 @@
 "use client";
 
-import { Camera, CheckCircle2, Globe2, Lock, Star } from "lucide-react";
-import type { FormEvent } from "react";
+import { Camera, CheckCircle2, Globe2, Lock, Star, X } from "lucide-react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type User = {
@@ -56,6 +56,8 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [status, setStatus] = useState<string | null>(null);
   const myLatestVisit = visits?.myVisits[0] ?? null;
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine).slice(0, 3) ?? [], [visits]);
+  const photoHelpId = `visit-photo-help-${placeId}`;
+  const selectedPhotoId = `visit-photo-selected-${placeId}`;
   const refreshVisits = useCallback(async () => {
     const response = await fetch(`/api/places/${placeId}/visits`, { credentials: "same-origin" });
     if (!response.ok) return;
@@ -121,30 +123,33 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       <form className="place-visit-form" onSubmit={submitVisit}>
         <fieldset className="place-visit-rating">
           <legend>평점</legend>
-          <div className="place-visit-stars" aria-label={`${rating}점 선택됨`}>
+          <div className="place-visit-stars" role="radiogroup" aria-label={`방문 평점, ${rating}점 선택됨`}>
             {[1, 2, 3, 4, 5].map((value) => (
               <button
-                aria-pressed={rating === value}
+                aria-checked={rating === value}
+                aria-label={`${value}점`}
                 className={value <= rating ? "is-active" : ""}
+                disabled={busy}
                 key={value}
                 onClick={() => setRating(value)}
+                role="radio"
                 type="button"
               >
                 <Star size={18} aria-hidden="true" />
-                <span>{value}</span>
               </button>
             ))}
           </div>
+          <p className="place-visit-rating-label">{rating}점 선택됨</p>
         </fieldset>
 
         <fieldset className="place-visit-visibility">
           <legend>공개 범위</legend>
-          <div>
-            <button className={visibility === "public" ? "is-active" : ""} onClick={() => setVisibility("public")} type="button">
+          <div aria-label="방문 기록 공개 범위">
+            <button aria-pressed={visibility === "public"} className={visibility === "public" ? "is-active" : ""} disabled={busy} onClick={() => setVisibility("public")} type="button">
               <Globe2 size={15} aria-hidden="true" />
               공개
             </button>
-            <button className={visibility === "private" ? "is-active" : ""} onClick={() => setVisibility("private")} type="button">
+            <button aria-pressed={visibility === "private"} className={visibility === "private" ? "is-active" : ""} disabled={busy} onClick={() => setVisibility("private")} type="button">
               <Lock size={15} aria-hidden="true" />
               비공개
             </button>
@@ -152,8 +157,12 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         </fieldset>
 
         <label className="place-visit-field place-visit-review">
-          <span>짧은 리뷰</span>
+          <span>
+            짧은 리뷰
+            <small>{reviewText.length}/2000</small>
+          </span>
           <textarea
+            disabled={busy}
             maxLength={2000}
             rows={4}
             value={reviewText}
@@ -162,18 +171,46 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           />
         </label>
 
-        <label className="place-visit-field place-visit-photo">
-          <span>
-            <Camera size={15} aria-hidden="true" />
-            사진
-          </span>
+        <div className="place-visit-field place-visit-photo">
+          <div className="place-visit-photo-label">
+            <span>
+              <Camera size={15} aria-hidden="true" />
+              사진
+            </span>
+            <small id={photoHelpId}>JPG, PNG, WebP · 10MB 이하</small>
+          </div>
+          <div className={`place-visit-upload-card ${photoFile ? "has-file" : ""}`}>
+            <button
+              aria-describedby={photoFile ? selectedPhotoId : photoHelpId}
+              className="place-visit-upload-button"
+              disabled={busy}
+              onClick={() => photoInputRef.current?.click()}
+              type="button"
+            >
+              <Camera size={18} aria-hidden="true" />
+              <span>{photoFile ? "사진 바꾸기" : "사진 추가"}</span>
+            </button>
+            {photoFile ? (
+              <div className="place-visit-selected-file" id={selectedPhotoId}>
+                <span>{photoFile.name}</span>
+                <button aria-label="선택한 사진 제거" disabled={busy} onClick={clearPhotoFile} type="button">
+                  <X size={15} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <p>방문 분위기를 남길 사진을 1장까지 첨부할 수 있어요.</p>
+            )}
+          </div>
           <input
             accept="image/jpeg,image/png,image/webp"
+            aria-hidden="true"
+            className="place-visit-file-input"
             ref={photoInputRef}
+            tabIndex={-1}
             type="file"
-            onChange={(event) => setPhotoFile(event.currentTarget.files?.[0] ?? null)}
+            onChange={handlePhotoChange}
           />
-        </label>
+        </div>
 
         <div className="place-visit-submit">
           <button className="primary-button" disabled={busy || loading || !user} type="submit">
@@ -243,6 +280,15 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     } finally {
       setBusy(false);
     }
+  }
+
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    setPhotoFile(event.currentTarget.files?.[0] ?? null);
+  }
+
+  function clearPhotoFile() {
+    setPhotoFile(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
   }
 
 }
