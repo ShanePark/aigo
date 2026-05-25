@@ -4308,20 +4308,19 @@ h3 {
 }
 
 .me-child-avatar {
-  background: color-mix(in srgb, var(--mint-soft) 68%, var(--panel));
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
   display: inline-flex;
   height: 82px;
-  overflow: hidden;
+  overflow: visible;
   width: 82px;
 }
 
 .me-child-avatar img {
   display: block;
   height: 100%;
-  object-fit: cover;
-  transform: scale(1.08);
+  object-fit: contain;
   width: 100%;
 }
 
