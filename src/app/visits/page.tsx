@@ -286,6 +286,7 @@ function demoVisitLogItem(input: {
     isPrivatePlaceholder: false,
     isRevisit: input.isRevisit,
     photoCount: input.photoCount,
+    photos: [],
     placeId: input.placeId,
     placeName: input.placeName,
     primaryCategory: input.primaryCategory,

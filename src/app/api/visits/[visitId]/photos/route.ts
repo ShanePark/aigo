@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCurrentUser } from "@/lib/app-auth";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { requireUuidParam } from "@/lib/route-params";
-import { createVisitPhoto, VISIT_PHOTO_MAX_BYTES } from "@/lib/visit-photos";
+import { createVisitPhoto, VISIT_PHOTO_MAX_BYTES, VISIT_PHOTO_MAX_FILES_PER_UPLOAD } from "@/lib/visit-photos";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,19 +21,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
     rejectOversizedContentLength(request);
     const user = await requireCurrentUser(request);
     const formData = await request.formData();
-    const file = formData.get("photo");
+    const files = formData
+      .getAll("photos")
+      .concat(formData.getAll("photo"))
+      .filter((file): file is File => file instanceof File && file.size > 0);
     const visibility = normalizeVisibility(formData.get("visibility"));
 
-    if (!(file instanceof File)) {
-      throw new ApiError(400, "Multipart field 'photo' is required");
+    if (files.length === 0) {
+      throw new ApiError(400, "Multipart field 'photos' is required");
     }
-    if (file.size > VISIT_PHOTO_MAX_BYTES) {
-      throw new ApiError(413, "Photo file must be 10MB or smaller");
+    if (files.length > VISIT_PHOTO_MAX_FILES_PER_UPLOAD) {
+      throw new ApiError(413, `Upload up to ${VISIT_PHOTO_MAX_FILES_PER_UPLOAD} photos at a time`);
     }
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    return NextResponse.json(
-      await createVisitPhoto(
+    const photos = [];
+    for (const file of files) {
+      if (file.size > VISIT_PHOTO_MAX_BYTES) {
+        throw new ApiError(413, "Each photo file must be 10MB or smaller");
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const result = await createVisitPhoto(
         visitId,
         user.id,
         {
@@ -42,9 +49,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
           type: file.type
         },
         visibility
-      ),
-      { status: 201 }
-    );
+      );
+      photos.push(result.photo);
+    }
+
+    return NextResponse.json({ photos }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);
   }
@@ -61,7 +70,7 @@ function rejectOversizedContentLength(request: NextRequest) {
   if (!contentLength) return;
 
   const byteSize = Number(contentLength);
-  if (Number.isFinite(byteSize) && byteSize > VISIT_PHOTO_MAX_BYTES) {
-    throw new ApiError(413, "Photo upload request must be 10MB or smaller");
+  if (Number.isFinite(byteSize) && byteSize > VISIT_PHOTO_MAX_BYTES * VISIT_PHOTO_MAX_FILES_PER_UPLOAD) {
+    throw new ApiError(413, `Photo upload request must be ${VISIT_PHOTO_MAX_FILES_PER_UPLOAD * 10}MB or smaller`);
   }
 }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
+import { AIGO_SESSION_COOKIE, currentUserFromSessionToken, requireCurrentUser } from "@/lib/app-auth";
 import { apiErrorResponse } from "@/lib/errors";
 import { requireUuidParam } from "@/lib/route-params";
-import { getVisitPhotoForStreaming } from "@/lib/visit-photos";
+import { deleteVisitPhoto, getVisitPhotoForStreaming } from "@/lib/visit-photos";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,6 +29,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
         "content-type": result.photo.mimeType
       }
     });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  try {
+    const { photoId: rawPhotoId } = await context.params;
+    const photoId = requireUuidParam(rawPhotoId, "photoId");
+    const user = await requireCurrentUser(request);
+    return NextResponse.json(await deleteVisitPhoto(photoId, user.id));
   } catch (error) {
     return apiErrorResponse(error);
   }

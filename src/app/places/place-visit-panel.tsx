@@ -1,6 +1,7 @@
 "use client";
 
-import { Camera, CheckCircle2, Globe2, Lock, LogIn, Search, Star, X } from "lucide-react";
+import { Camera, CheckCircle2, Edit3, Globe2, ImagePlus, Lock, LogIn, Search, Star, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, ChangeEvent, FormEvent, KeyboardEvent, PointerEvent } from "react";
@@ -29,8 +30,23 @@ type VisitItem = {
   isPrivatePlaceholder: boolean;
   displayName: string | null;
   photoCount: number;
+  photos: VisitPhoto[];
   createdAt: string;
   updatedAt: string;
+};
+
+type VisitPhoto = {
+  id: string;
+  visitId: string;
+  placeId: string;
+  url: string;
+  originalFilename: string;
+  mimeType: string;
+  byteSize: number;
+  width: number | null;
+  height: number | null;
+  visibility: "public" | "private";
+  createdAt: string;
 };
 
 type VisitsResponse = {
@@ -61,14 +77,24 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [editingVisit, setEditingVisit] = useState<VisitItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<string | null>(null);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
-  const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine).slice(0, 3) ?? [], [visits]);
+  const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine) ?? [], [visits]);
+  const photoPreviews = useMemo(
+    () =>
+      photoFiles.map((file, index) => ({
+        file,
+        id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+        url: URL.createObjectURL(file)
+      })),
+    [photoFiles]
+  );
   const photoHelpId = `visit-photo-help-${placeId}`;
   const selectedPhotoId = `visit-photo-selected-${placeId}`;
   const refreshVisits = useCallback(async () => {
@@ -111,6 +137,12 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
     };
   }, [placeId, refreshVisits]);
+
+  useEffect(() => {
+    return () => {
+      photoPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [photoPreviews]);
 
   return (
     <section className="place-visit-panel info-block full" aria-label={`${placeName} 방문 기록`}>
@@ -191,28 +223,20 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
 
           <fieldset className="place-visit-visibility">
             <legend>공개 범위</legend>
-            <div aria-label="방문 기록 공개 범위">
-              <button
-                aria-pressed={visibility === "public"}
-                className={visibility === "public" ? "is-active" : ""}
+            <label className="place-visit-switch">
+              <input
+                checked={visibility === "public"}
                 disabled={busy}
-                onClick={() => setVisibility("public")}
-                type="button"
-              >
-                <Globe2 size={15} aria-hidden="true" />
-                공개
-              </button>
-              <button
-                aria-pressed={visibility === "private"}
-                className={visibility === "private" ? "is-active" : ""}
-                disabled={busy}
-                onClick={() => setVisibility("private")}
-                type="button"
-              >
-                <Lock size={15} aria-hidden="true" />
-                비공개
-              </button>
-            </div>
+                onChange={(event) => setVisibility(event.currentTarget.checked ? "public" : "private")}
+                role="switch"
+                type="checkbox"
+              />
+              <span aria-hidden="true">
+                <Globe2 size={14} />
+                <Lock size={14} />
+              </span>
+              <strong>{visibility === "public" ? "공개" : "비공개"}</strong>
+            </label>
           </fieldset>
 
           <label className="place-visit-field place-visit-review">
@@ -236,34 +260,39 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
                 <Camera size={15} aria-hidden="true" />
                 사진
               </span>
-              <small id={photoHelpId}>JPG, PNG, WebP · 10MB 이하</small>
+              <small id={photoHelpId}>여러 장 선택 가능 · 장당 10MB 이하</small>
             </div>
-            <div className={`place-visit-upload-card ${photoFile ? "has-file" : ""}`}>
+            <div className={`place-visit-upload-card ${photoFiles.length > 0 ? "has-file" : ""}`}>
               <button
-                aria-describedby={photoFile ? selectedPhotoId : photoHelpId}
+                aria-describedby={photoFiles.length > 0 ? selectedPhotoId : photoHelpId}
                 className="place-visit-upload-button"
                 disabled={busy}
                 onClick={() => photoInputRef.current?.click()}
                 type="button"
               >
-                <Camera size={18} aria-hidden="true" />
-                <span>{photoFile ? "사진 바꾸기" : "사진 추가"}</span>
+                <ImagePlus size={18} aria-hidden="true" />
+                <span>{photoFiles.length > 0 ? "사진 더 추가" : "사진 추가"}</span>
               </button>
-              {photoFile ? (
-                <div className="place-visit-selected-file" id={selectedPhotoId}>
-                  <span>{photoFile.name}</span>
-                  <button aria-label="선택한 사진 제거" disabled={busy} onClick={clearPhotoFile} type="button">
-                    <X size={15} aria-hidden="true" />
-                  </button>
+              {photoPreviews.length > 0 ? (
+                <div className="place-visit-selected-photos" id={selectedPhotoId}>
+                  {photoPreviews.map((preview, index) => (
+                    <figure className="place-visit-selected-photo" key={preview.id}>
+                      <Image alt={`선택한 방문 사진 ${index + 1}`} fill sizes="96px" src={preview.url} unoptimized />
+                      <button aria-label={`선택한 사진 ${index + 1} 제거`} disabled={busy} onClick={() => removePhotoFile(index)} type="button">
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    </figure>
+                  ))}
                 </div>
               ) : (
-                <p>방문 분위기를 남길 사진을 1장까지 첨부할 수 있어요.</p>
+                <p>사진을 선택하면 이곳에 미리보기가 표시됩니다.</p>
               )}
             </div>
             <input
               accept="image/jpeg,image/png,image/webp"
               aria-hidden="true"
               className="place-visit-file-input"
+              multiple
               ref={photoInputRef}
               tabIndex={-1}
               type="file"
@@ -273,8 +302,13 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
 
           <div className="place-visit-submit">
             <button className="primary-button" disabled={busy || loading} type="submit">
-              {busy ? "저장 중" : "방문 기록 저장"}
+              {busy ? "저장 중" : editingVisit ? "수정 저장" : "방문 기록 저장"}
             </button>
+            {editingVisit ? (
+              <button className="place-visit-cancel-edit" disabled={busy} onClick={resetVisitForm} type="button">
+                취소
+              </button>
+            ) : null}
             {status ? <p>{status}</p> : null}
           </div>
         </form>
@@ -319,8 +353,20 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             <p>공개 방문 기록을 불러오는 중입니다.</p>
           </div>
         ) : user ? (
-          myLatestVisit ? (
-            <VisitSummary title="내 최근 기록" visit={myLatestVisit} />
+          visits?.myVisits.length ? (
+            <div className="place-visit-public-list">
+              <h3>내 방문 기록</h3>
+              {visits.myVisits.map((visit) => (
+                <VisitSummary
+                  key={visit.id}
+                  visit={visit}
+                  busy={busy}
+                  onDelete={deleteVisit}
+                  onDeletePhoto={deletePhoto}
+                  onEdit={startEditVisit}
+                />
+              ))}
+            </div>
           ) : (
             <div className="place-visit-empty">아직 내 방문 기록이 없습니다.</div>
           )
@@ -353,7 +399,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     setBusy(true);
     setStatus(null);
     try {
-      const response = await fetch(`/api/places/${placeId}/visits`, {
+      const response = await fetch(editingVisit ? `/api/visits/${editingVisit.id}` : `/api/places/${placeId}/visits`, {
         body: JSON.stringify({
           rating,
           reviewText,
@@ -361,14 +407,14 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        method: "POST"
+        method: editingVisit ? "PATCH" : "POST"
       });
       if (!response.ok) throw new Error(await errorMessage(response));
       const body = (await response.json()) as { item: VisitItem };
 
-      if (photoFile) {
+      if (photoFiles.length > 0) {
         const formData = new FormData();
-        formData.set("photo", photoFile);
+        photoFiles.forEach((file) => formData.append("photos", file));
         formData.set("visibility", visibility);
         const photoResponse = await fetch(`/api/visits/${body.item.id}/photos`, {
           body: formData,
@@ -378,10 +424,8 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         if (!photoResponse.ok) throw new Error(`방문은 저장됐지만 사진 저장에 실패했습니다. ${await errorMessage(photoResponse)}`);
       }
 
-      setStatus("저장했습니다.");
-      setReviewText("");
-      setPhotoFile(null);
-      if (photoInputRef.current) photoInputRef.current.value = "";
+      setStatus(editingVisit ? "수정했습니다." : "저장했습니다.");
+      resetVisitForm();
       await refreshVisits();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "저장하지 못했습니다.");
@@ -416,12 +460,71 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   }
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    setPhotoFile(event.currentTarget.files?.[0] ?? null);
+    const nextFiles = Array.from(event.currentTarget.files ?? []);
+    setPhotoFiles((current) => [...current, ...nextFiles]);
+    event.currentTarget.value = "";
   }
 
-  function clearPhotoFile() {
-    setPhotoFile(null);
+  function removePhotoFile(index: number) {
+    setPhotoFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function resetVisitForm() {
+    setEditingVisit(null);
+    setRating(5);
+    setHoverRating(null);
+    setVisibility("public");
+    setReviewText("");
+    setPhotoFiles([]);
     if (photoInputRef.current) photoInputRef.current.value = "";
+  }
+
+  function startEditVisit(visit: VisitItem) {
+    setEditingVisit(visit);
+    setRating(visit.rating ?? 5);
+    setHoverRating(null);
+    setVisibility(visit.visibility);
+    setReviewText(visit.reviewText ?? "");
+    setPhotoFiles([]);
+  }
+
+  async function deleteVisit(visit: VisitItem) {
+    if (busy || !window.confirm("이 방문 기록을 삭제할까요?")) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const response = await fetch(`/api/visits/${visit.id}`, {
+        credentials: "same-origin",
+        method: "DELETE"
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+      if (editingVisit?.id === visit.id) resetVisitForm();
+      setStatus("삭제했습니다.");
+      await refreshVisits();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "삭제하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePhoto(photo: VisitPhoto) {
+    if (busy || !window.confirm("이 사진을 삭제할까요?")) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const response = await fetch(`/api/visit-photos/${photo.id}`, {
+        credentials: "same-origin",
+        method: "DELETE"
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+      setStatus("사진을 삭제했습니다.");
+      await refreshVisits();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "사진을 삭제하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function handleRatingPointer(event: PointerEvent<HTMLElement>) {
@@ -453,18 +556,63 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
 
 }
 
-function VisitSummary({ title, visit }: { title?: string; visit: VisitItem }) {
+function VisitSummary({
+  busy,
+  onDelete,
+  onDeletePhoto,
+  onEdit,
+  title,
+  visit
+}: {
+  busy?: boolean;
+  onDelete?: (visit: VisitItem) => void;
+  onDeletePhoto?: (photo: VisitPhoto) => void;
+  onEdit?: (visit: VisitItem) => void;
+  title?: string;
+  visit: VisitItem;
+}) {
   return (
     <article className="place-visit-summary">
-      {title ? <h3>{title}</h3> : null}
-      <div className="place-visit-summary-head">
-        <strong>{visit.rating === null ? "비공개" : `${formatRating(visit.rating)}/5`}</strong>
-        <span>{visit.visitedOn}</span>
-        {visit.isRevisit ? <span>재방문</span> : null}
-        {visit.visibility === "private" ? <span>비공개</span> : null}
-        {visit.photoCount > 0 ? <span>사진 {visit.photoCount}</span> : null}
+      <div className="place-visit-summary-top">
+        <div>
+          {title ? <h3>{title}</h3> : null}
+          <div className="place-visit-summary-head">
+            <strong>{visit.rating === null ? "비공개" : `${formatRating(visit.rating)}/5`}</strong>
+            <span>{visit.visitedOn}</span>
+            {visit.displayName && !visit.isMine ? <span>{visit.displayName}</span> : null}
+            {visit.isRevisit ? <span>재방문</span> : null}
+            {visit.visibility === "private" ? <span>비공개</span> : null}
+            {visit.photoCount > 0 ? <span>사진 {visit.photoCount}</span> : null}
+          </div>
+        </div>
+        {visit.isMine && onEdit && onDelete ? (
+          <div className="place-visit-summary-actions">
+            <button disabled={busy} onClick={() => onEdit(visit)} type="button">
+              <Edit3 size={14} aria-hidden="true" />
+              수정
+            </button>
+            <button disabled={busy} onClick={() => onDelete(visit)} type="button">
+              <Trash2 size={14} aria-hidden="true" />
+              삭제
+            </button>
+          </div>
+        ) : null}
       </div>
       {visit.reviewText ? <p>{visit.reviewText}</p> : visit.isPrivatePlaceholder ? <p>비공개 리뷰입니다.</p> : null}
+      {visit.photos.length > 0 ? (
+        <div className="place-visit-photo-grid" aria-label="방문 사진">
+          {visit.photos.map((photo, index) => (
+            <figure className="place-visit-photo-thumb" key={photo.id}>
+              <Image alt={`방문 사진 ${index + 1}`} fill sizes="120px" src={photo.url} unoptimized />
+              {visit.isMine && onDeletePhoto ? (
+                <button disabled={busy} onClick={() => onDeletePhoto(photo)} type="button" aria-label={`방문 사진 ${index + 1} 삭제`}>
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
+              ) : null}
+            </figure>
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }

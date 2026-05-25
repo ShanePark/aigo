@@ -3,6 +3,12 @@ import type postgres from "postgres";
 
 import { pg } from "@/db/client";
 import { ApiError } from "@/lib/errors";
+import {
+  listVisitPhotosForVisit,
+  listVisitPhotosForVisits,
+  removeVisitPhotoStorageKeys,
+  type VisitPhotoItem
+} from "@/lib/visit-photos";
 
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
@@ -49,6 +55,7 @@ type VisitRow = {
   updatedAt: Date | string;
   displayName?: string | null;
   photoCount?: number | string | null;
+  photos?: VisitPhotoItem[];
 };
 
 type VisitLogRow = VisitRow & {
@@ -68,6 +75,7 @@ export type PlaceVisitItem = {
   isPrivatePlaceholder: boolean;
   displayName: string | null;
   photoCount: number;
+  photos: VisitPhotoItem[];
   createdAt: string;
   updatedAt: string;
 };
@@ -124,7 +132,12 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
   ]);
 
   const summary = summaryMap.get(placeId) ?? emptyPlaceVisitSummary();
-  const items = visitRows.map((row) => placeVisitItemFromRow(row, viewerUserId));
+  const photosByVisitId = await listVisitPhotosForVisits(
+    visitRows.map((row) => row.id),
+    viewerUserId,
+    executor
+  );
+  const items = visitRows.map((row) => placeVisitItemFromRow({ ...row, photos: photosByVisitId.get(row.id) ?? [] }, viewerUserId));
   const myVisits = viewerUserId ? items.filter((item) => item.isMine) : [];
 
   return {
@@ -217,7 +230,7 @@ export async function createPlaceVisit(placeId: string, userId: string, input: C
       0::int as "photoCount"
   `;
 
-  return { item: placeVisitItemFromRow(rows[0], userId) };
+  return { item: placeVisitItemFromRow({ ...rows[0], photos: [] }, userId) };
 }
 
 export async function updatePlaceVisit(visitId: string, userId: string, input: UpdatePlaceVisitInput, executor: SqlExecutor = pg) {
@@ -272,7 +285,30 @@ export async function updatePlaceVisit(visitId: string, userId: string, input: U
     where visit_id = ${visitId}
   `;
 
-  return { item: placeVisitItemFromRow({ ...rows[0], photoCount: photoCountRows[0]?.photoCount ?? 0 }, userId) };
+  const photos = await listVisitPhotosForVisit(visitId, userId, executor);
+  return { item: placeVisitItemFromRow({ ...rows[0], photoCount: photoCountRows[0]?.photoCount ?? 0, photos }, userId) };
+}
+
+export async function deletePlaceVisit(visitId: string, userId: string, executor: SqlExecutor = pg) {
+  const photoRows = await executor<{ storageKey: string }[]>`
+    select ph.storage_key as "storageKey"
+    from place_visit_photos ph
+    join place_visits v on v.id = ph.visit_id
+    where v.id = ${visitId}
+      and v.user_id = ${userId}
+  `;
+  const rows = await executor<{ id: string }[]>`
+    delete from place_visits
+    where id = ${visitId}
+      and user_id = ${userId}
+    returning id::text as id
+  `;
+  if (!rows[0]) {
+    throw new ApiError(404, "Visit not found");
+  }
+
+  await removeVisitPhotoStorageKeys(photoRows.map((row) => row.storageKey));
+  return { deleted: true };
 }
 
 export async function listMyVisitLog(userId: string, executor: SqlExecutor = pg) {
@@ -317,7 +353,8 @@ export function placeVisitItemFromRow(row: VisitRow, viewerUserId?: string | nul
     isMine,
     isPrivatePlaceholder,
     displayName: isPrivatePlaceholder ? null : row.displayName ?? null,
-    photoCount: isPrivatePlaceholder ? 0 : Number(row.photoCount ?? 0),
+    photoCount: isPrivatePlaceholder ? 0 : Number(row.photoCount ?? row.photos?.length ?? 0),
+    photos: isPrivatePlaceholder ? [] : row.photos ?? [],
     createdAt: dateTimeString(row.createdAt),
     updatedAt: dateTimeString(row.updatedAt)
   };

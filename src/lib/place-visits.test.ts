@@ -101,7 +101,24 @@ describe("place visit privacy formatting", () => {
           latestVisitedOn: "2026-05-25"
         }
       ],
-      [{ ...baseVisitRow, visibility: "public", photoCount: 3 }]
+      [{ ...baseVisitRow, visibility: "public", photoCount: 3 }],
+      [
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          visitId: baseVisitRow.id,
+          userId: baseVisitRow.userId,
+          placeId: baseVisitRow.placeId,
+          storageKey: "visit-photos/visit/photo.png",
+          originalFilename: "photo.png",
+          mimeType: "image/png",
+          byteSize: 100,
+          width: 16,
+          height: 16,
+          visibility: "public",
+          visitVisibility: "public",
+          createdAt: new Date("2026-05-25T00:00:00.000Z")
+        }
+      ]
     ]);
 
     await expect(listPlaceVisits(baseVisitRow.placeId, baseVisitRow.userId, executor)).resolves.toMatchObject({
@@ -114,6 +131,7 @@ describe("place visit privacy formatting", () => {
         ratingCount: 2
       }
     });
+    expect(calls[3]).toContain("from place_visit_photos ph");
     expect(calls[1]).toContain('"publicReviewCount"');
     expect(calls[1]).toContain('"publicPhotoCount"');
     expect(calls[1]).toContain('"latestVisitedOn"');
@@ -136,6 +154,7 @@ describe("place visit privacy formatting", () => {
       reviewText: "다시 가고 싶음",
       displayName: "Dev Parent",
       photoCount: 2,
+      photos: [],
       isPrivatePlaceholder: false,
       isMine: true
     });
@@ -198,7 +217,8 @@ describe("place visit photo privacy", () => {
     const { calls, executor } = fakeExecutor([
       [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
       [{ ...baseVisitRow, visibility: "public", rating: 4.5, photoCount: 0 }],
-      [{ photoCount: 2 }]
+      [{ photoCount: 2 }],
+      []
     ]);
 
     await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { rating: 4.5 }, executor)).resolves.toMatchObject({
@@ -210,6 +230,7 @@ describe("place visit photo privacy", () => {
     });
     expect(calls[2]).toContain('select count(*)::int as "photoCount"');
     expect(calls[2]).toContain("from place_visit_photos");
+    expect(calls[3]).toContain("from place_visit_photos ph");
   });
 
   it("privatizes existing photos when a visit is changed to private", async () => {
@@ -217,7 +238,8 @@ describe("place visit photo privacy", () => {
       [{ id: baseVisitRow.id, userId: baseVisitRow.userId }],
       [{ ...baseVisitRow, visibility: "private", photoCount: 0 }],
       [],
-      [{ photoCount: 2 }]
+      [{ photoCount: 2 }],
+      []
     ]);
 
     await expect(updatePlaceVisit(baseVisitRow.id, baseVisitRow.userId, { visibility: "private" }, executor)).resolves.toMatchObject({
@@ -229,5 +251,6 @@ describe("place visit photo privacy", () => {
     expect(calls[2]).toContain("update place_visit_photos");
     expect(calls[2]).toContain("set visibility = 'private'");
     expect(calls[3]).toContain('select count(*)::int as "photoCount"');
+    expect(calls[4]).toContain("from place_visit_photos ph");
   });
 });

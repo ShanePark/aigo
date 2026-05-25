@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/errors";
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export const VISIT_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
+export const VISIT_PHOTO_MAX_FILES_PER_UPLOAD = 8;
 export const VISIT_PHOTO_ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const VISIT_PHOTO_STORAGE_PREFIX = "visit-photos";
 
@@ -179,6 +180,75 @@ export async function getVisitPhotoForStreaming(photoId: string, viewerUserId?: 
   } catch {
     throw new ApiError(404, "Photo file not found");
   }
+}
+
+export async function listVisitPhotosForVisits(visitIds: string[], viewerUserId?: string | null, executor: SqlExecutor = pg) {
+  const uniqueVisitIds = Array.from(new Set(visitIds.filter(Boolean)));
+  const photos = new Map<string, VisitPhotoItem[]>();
+  if (uniqueVisitIds.length === 0) return photos;
+
+  const viewerId = viewerUserId ?? null;
+  const rows = await executor<VisitPhotoAccessRow[]>`
+    select
+      ph.id::text as id,
+      ph.visit_id::text as "visitId",
+      ph.user_id::text as "userId",
+      ph.place_id::text as "placeId",
+      ph.storage_key as "storageKey",
+      ph.original_filename as "originalFilename",
+      ph.mime_type as "mimeType",
+      ph.byte_size as "byteSize",
+      ph.width,
+      ph.height,
+      ph.visibility,
+      ph.created_at as "createdAt",
+      v.visibility as "visitVisibility"
+    from place_visit_photos ph
+    join place_visits v on v.id = ph.visit_id
+    where ph.visit_id = any(${uniqueVisitIds}::uuid[])
+      and ((v.visibility = 'public' and ph.visibility = 'public') or ph.user_id = ${viewerId})
+    order by ph.created_at asc
+  `;
+
+  for (const row of rows) {
+    const items = photos.get(row.visitId) ?? [];
+    items.push(visitPhotoItemFromRow(row));
+    photos.set(row.visitId, items);
+  }
+
+  return photos;
+}
+
+export async function listVisitPhotosForVisit(visitId: string, viewerUserId?: string | null, executor: SqlExecutor = pg) {
+  return (await listVisitPhotosForVisits([visitId], viewerUserId, executor)).get(visitId) ?? [];
+}
+
+export async function deleteVisitPhoto(photoId: string, userId: string, executor: SqlExecutor = pg) {
+  const rows = await executor<{ id: string; userId: string; storageKey: string }[]>`
+    select id::text as id, user_id::text as "userId", storage_key as "storageKey"
+    from place_visit_photos
+    where id = ${photoId}
+    limit 1
+  `;
+  const photo = rows[0];
+  if (!photo) {
+    throw new ApiError(404, "Photo not found");
+  }
+  if (photo.userId !== userId) {
+    throw new ApiError(403, "Photos can only be deleted by their owner");
+  }
+
+  await executor`
+    delete from place_visit_photos
+    where id = ${photoId}
+  `;
+  await removeVisitPhotoStorageKeys([photo.storageKey]);
+
+  return { deleted: true };
+}
+
+export async function removeVisitPhotoStorageKeys(storageKeys: string[]) {
+  await Promise.all(storageKeys.map((storageKey) => rm(resolveVisitPhotoPath(storageKey), { force: true })));
 }
 
 export function validateVisitPhotoFile(file: VisitPhotoFileInput): VisitPhotoValidation {
