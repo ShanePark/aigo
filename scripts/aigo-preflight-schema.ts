@@ -25,6 +25,20 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
   columns: {
     users: ["id", "email", "display_name", "role", "created_at", "updated_at"],
     auth_sessions: ["id", "user_id", "token_hash", "expires_at", "last_used_at", "created_at"],
+    user_children: ["id", "user_id", "birth_year_month", "sort_order", "created_at", "updated_at"],
+    user_home_locations: ["user_id", "label", "lat", "lng", "address_text", "created_at", "updated_at"],
+    user_search_preferences: [
+      "user_id",
+      "prefer_indoor",
+      "prefer_parking",
+      "prefer_stroller",
+      "prefer_sand_play",
+      "prefer_nursing",
+      "prefer_baby_chair",
+      "preference_mode",
+      "created_at",
+      "updated_at"
+    ],
     places: [
       "id",
       "name",
@@ -99,6 +113,11 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
   },
   constraints: [
     { tableName: "users", name: "users_role_check" },
+    { tableName: "user_children", name: "user_children_birth_year_month_check" },
+    { tableName: "user_children", name: "user_children_sort_order_check" },
+    { tableName: "user_home_locations", name: "user_home_locations_lat_check" },
+    { tableName: "user_home_locations", name: "user_home_locations_lng_check" },
+    { tableName: "user_search_preferences", name: "user_search_preferences_preference_mode_check" },
     { tableName: "places", name: "places_place_score_range" },
     { tableName: "places", name: "places_external_rating_score_range" },
     { tableName: "places", name: "places_external_review_count_nonnegative" },
@@ -133,6 +152,7 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "auth_sessions", name: "auth_sessions_user_id_idx" },
     { tableName: "auth_sessions", name: "auth_sessions_token_hash_unique" },
     { tableName: "auth_sessions", name: "auth_sessions_expires_at_idx" },
+    { tableName: "user_children", name: "user_children_user_sort_order_idx" },
     { tableName: "place_images", name: "place_images_place_url_unique" },
     { tableName: "place_images", name: "place_images_one_primary_active_idx" },
     { tableName: "place_related_places", name: "place_related_places_pair_unique" },
