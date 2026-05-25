@@ -84,9 +84,19 @@
 }
 
 .link:hover,
-.link:focus-visible {
+.link:focus-visible,
+.currentLink {
   background: var(--mint-soft);
   color: var(--mint);
+}
+
+.currentLink {
+  box-shadow: inset 3px 0 0 var(--mint);
+}
+
+.link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .menuSection {

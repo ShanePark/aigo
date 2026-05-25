@@ -1,7 +1,8 @@
 "use client";
 
-import { Bookmark, ClipboardList, History, Menu, UserRound, X } from "lucide-react";
+import { Bookmark, ClipboardList, History, Map, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { DevAuthControls } from "./dev-auth-controls";
@@ -11,6 +12,7 @@ import { ThemeToggle } from "./theme-toggle";
 export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,23 +47,24 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
         {isOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
       </button>
       {isOpen ? (
-        <div className={styles.menuPanel}>
-          <Link className={styles.link} href="/me" onClick={() => setIsOpen(false)}>
-            <UserRound size={16} aria-hidden="true" />
-            <span>내 정보</span>
-          </Link>
-          <Link className={styles.link} href="/visits" onClick={() => setIsOpen(false)}>
-            <ClipboardList size={16} aria-hidden="true" />
-            <span>방문 로그</span>
-          </Link>
-          <Link className={styles.link} href="/saved-places" onClick={() => setIsOpen(false)}>
-            <Bookmark size={16} aria-hidden="true" />
-            <span>저장한 장소</span>
-          </Link>
-          <Link className={styles.link} href="/recent-places" onClick={() => setIsOpen(false)}>
-            <History size={16} aria-hidden="true" />
-            <span>최근 본 장소</span>
-          </Link>
+        <div className={styles.menuPanel} role="menu">
+          {menuItems.map((item) => {
+            const isCurrent = isCurrentMenuItem(pathname, item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                aria-current={isCurrent ? "page" : undefined}
+                className={`${styles.link} ${isCurrent ? styles.currentLink : ""}`}
+                href={item.href}
+                key={item.href}
+                onClick={() => setIsOpen(false)}
+                role="menuitem"
+              >
+                <Icon size={16} aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
           <div className={styles.menuSection}>
             <DevAuthControls devLoginEnabled={devLoginEnabled} />
           </div>
@@ -69,4 +72,17 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
       ) : null}
     </div>
   );
+}
+
+const menuItems = [
+  { href: "/", icon: Map, label: "장소 찾기" },
+  { href: "/me", icon: UserRound, label: "내 정보" },
+  { href: "/visits", icon: ClipboardList, label: "방문 로그" },
+  { href: "/saved-places", icon: Bookmark, label: "저장한 장소" },
+  { href: "/recent-places", icon: History, label: "최근 본 장소" }
+] as const;
+
+function isCurrentMenuItem(pathname: string, href: (typeof menuItems)[number]["href"]) {
+  if (href === "/") return pathname === "/" || pathname.startsWith("/places/");
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
