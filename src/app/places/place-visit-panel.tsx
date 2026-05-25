@@ -1,6 +1,20 @@
 "use client";
 
-import { Camera, CheckCircle2, Edit3, Globe2, ImagePlus, Lock, LogIn, Search, Star, Trash2, X } from "lucide-react";
+import {
+  Camera,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Edit3,
+  Globe2,
+  ImagePlus,
+  Lock,
+  LogIn,
+  Search,
+  Star,
+  Trash2,
+  X
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -75,6 +89,7 @@ const AUTH_CHANGE_EVENT = "aigo-auth-change";
 const MIN_VISIT_RATING = 0.5;
 const MAX_VISIT_RATING = 5;
 const RATING_STEP = 0.5;
+const PUBLIC_VISITS_PER_PAGE = 5;
 
 export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; placeName: string }) {
   const router = useRouter();
@@ -91,8 +106,16 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [status, setStatus] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [publicVisitPage, setPublicVisitPage] = useState(1);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine) ?? [], [visits]);
+  const hasPublicVisits = publicVisits.length > 0;
+  const publicVisitPageCount = Math.max(1, Math.ceil(publicVisits.length / PUBLIC_VISITS_PER_PAGE));
+  const pagedPublicVisits = useMemo(
+    () => publicVisits.slice((publicVisitPage - 1) * PUBLIC_VISITS_PER_PAGE, publicVisitPage * PUBLIC_VISITS_PER_PAGE),
+    [publicVisitPage, publicVisits]
+  );
+  const visibleVisitCount = (user ? visits?.myVisits.length ?? 0 : 0) + pagedPublicVisits.length;
   const refreshVisits = useCallback(async () => {
     const response = await fetch(`/api/places/${placeId}/visits`, { credentials: "same-origin" });
     if (!response.ok) return;
@@ -133,6 +156,14 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
     };
   }, [placeId, refreshVisits]);
+
+  useEffect(() => {
+    setPublicVisitPage(1);
+  }, [placeId]);
+
+  useEffect(() => {
+    setPublicVisitPage((currentPage) => Math.min(currentPage, publicVisitPageCount));
+  }, [publicVisitPageCount]);
 
   return (
     <section className="place-visit-panel info-block full" aria-label={`${placeName} 방문 기록`}>
@@ -226,42 +257,67 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             <strong>공개 기록 미리보기</strong>
             <p>공개 방문 기록을 불러오는 중입니다.</p>
           </div>
-        ) : user ? (
-          visits?.myVisits.length ? (
-            <div className="place-visit-public-list">
-              <h3>내 방문 기록</h3>
-              {visits.myVisits.map((visit) => (
-                <VisitSummary
-                  key={visit.id}
-                  visit={visit}
-                  busy={busy}
-                  onDelete={requestDeleteVisit}
-                  onDeletePhoto={requestDeletePhoto}
-                  onSave={saveVisitEdit}
-                />
-              ))}
+        ) : visibleVisitCount > 0 ? (
+          <div className="place-visit-public-list">
+            <div className="place-visit-list-head">
+              <h3>방문 기록</h3>
+              {hasPublicVisits ? (
+                <span>
+                  공개 기록 {publicVisitPage}/{publicVisitPageCount}
+                </span>
+              ) : null}
             </div>
-          ) : (
-            <div className="place-visit-empty">아직 내 방문 기록이 없습니다.</div>
-          )
+            {user
+              ? visits?.myVisits.map((visit) => (
+                  <VisitSummary
+                    key={visit.id}
+                    visit={visit}
+                    busy={busy}
+                    onDelete={requestDeleteVisit}
+                    onDeletePhoto={requestDeletePhoto}
+                    onSave={saveVisitEdit}
+                  />
+                ))
+              : null}
+            {pagedPublicVisits.map((visit) => (
+              <VisitSummary key={visit.id} visit={visit} />
+            ))}
+            {publicVisitPageCount > 1 ? (
+              <div className="place-visit-pagination" aria-label="공개 방문 기록 페이지">
+                <button
+                  className={`page-control ${publicVisitPage <= 1 ? "is-disabled" : ""}`}
+                  disabled={publicVisitPage <= 1}
+                  onClick={() => setPublicVisitPage((page) => Math.max(1, page - 1))}
+                  type="button"
+                >
+                  <ChevronLeft size={15} aria-hidden="true" />
+                  이전
+                </button>
+                <span className="place-visit-page-status">
+                  {publicVisitPage} / {publicVisitPageCount}
+                </span>
+                <button
+                  className={`page-control ${publicVisitPage >= publicVisitPageCount ? "is-disabled" : ""}`}
+                  disabled={publicVisitPage >= publicVisitPageCount}
+                  onClick={() => setPublicVisitPage((page) => Math.min(publicVisitPageCount, page + 1))}
+                  type="button"
+                >
+                  다음
+                  <ChevronRight size={15} aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <div className="place-visit-public-preview">
             <strong>공개 기록 미리보기</strong>
             <p>
-              {publicVisits.length > 0
+              {hasPublicVisits
                 ? "로그인하지 않아도 공개 리뷰는 먼저 살펴볼 수 있어요."
                 : "아직 공개된 방문 기록이 없습니다."}
             </p>
           </div>
         )}
-        {publicVisits.length > 0 ? (
-          <div className="place-visit-public-list">
-            <h3>공개 기록</h3>
-            {publicVisits.map((visit) => (
-              <VisitSummary key={visit.id} visit={visit} />
-            ))}
-          </div>
-        ) : null}
       </div>
       <ConfirmDialog
         body={confirmAction?.body ?? ""}
@@ -516,6 +572,7 @@ function VisitSummary({
           <div className="place-visit-summary-head">
             <strong>{visit.rating === null ? "비공개" : `${formatRating(visit.rating)}/5`}</strong>
             <span>{visit.visitedOn}</span>
+            {visit.isMine ? <span>내 기록</span> : null}
             {visit.displayName && !visit.isMine ? <span>{visit.displayName}</span> : null}
             {visit.isRevisit ? <span>재방문</span> : null}
             {visit.visibility === "private" ? <span>비공개</span> : null}

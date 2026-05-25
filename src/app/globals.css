@@ -3877,7 +3877,7 @@ h3 {
   border-top: 1px solid var(--line);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   padding-top: 12px;
 }
 
@@ -3891,7 +3891,26 @@ h3 {
 .place-visit-public-list h3 {
   color: var(--muted);
   font-size: 13px;
-  margin-bottom: 8px;
+  margin: 0;
+}
+
+.place-visit-list-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.place-visit-list-head span,
+.place-visit-page-status {
+  background: var(--chip-neutral-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--chip-neutral-text);
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 6px 9px;
 }
 
 .place-visit-summary {
@@ -3987,6 +4006,14 @@ h3 {
 .place-visit-public-list {
   display: grid;
   gap: 10px;
+}
+
+.place-visit-pagination {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding-top: 4px;
 }
 
 .me-page {
