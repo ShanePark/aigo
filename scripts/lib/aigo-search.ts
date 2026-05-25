@@ -85,21 +85,56 @@ export async function readAigoJsonReadOnly<TResponse = Record<string, unknown>>(
   const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
   const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
   const retries = options.retries ?? 2;
-  let lastFailure: AigoHttpFailure | null = null;
+  const timeoutMs = options.timeoutMs ?? 10_000;
+  const method = resolveHttpMethod(options);
+  const maxAttempts = retries + 1;
+  let lastFailure: AigoReadFailure | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const result = await fetchAigoJsonResponse(apiBaseUrl, path, apiKey, options, options.timeoutMs ?? 10_000);
-    if (result.response.ok) {
-      return (result.text ? JSON.parse(result.text) : {}) as TResponse;
+    const attemptNumber = attempt + 1;
+    const startedAt = Date.now();
+    let result: Awaited<ReturnType<typeof fetchAigoJsonResponse>> | null = null;
+    let caughtRequestFailure = false;
+
+    try {
+      result = await fetchAigoJsonResponse(apiBaseUrl, path, apiKey, options, timeoutMs);
+    } catch (error) {
+      caughtRequestFailure = true;
+      lastFailure = {
+        kind: "network",
+        error,
+        durationMs: Date.now() - startedAt,
+        method,
+        path,
+        attempt: attemptNumber,
+        timeoutMs
+      };
     }
 
-    lastFailure = result;
-    if (attempt >= retries || !isTransientAigoRouteFailure(result)) break;
+    if (!caughtRequestFailure && result) {
+      const durationMs = Date.now() - startedAt;
+      if (result.response.ok) {
+        return (result.text ? JSON.parse(result.text) : {}) as TResponse;
+      }
+
+      lastFailure = {
+        kind: "http",
+        response: result.response,
+        text: result.text,
+        durationMs,
+        method,
+        path,
+        attempt: attemptNumber,
+        timeoutMs
+      };
+    }
+
+    if (!lastFailure || attempt >= retries || !isTransientAigoReadFailure(lastFailure)) break;
     await delay((options.retryDelayMs ?? 150) * (attempt + 1));
   }
 
   if (lastFailure) {
-    throw new Error(`AiGo ${path} failed with ${lastFailure.response.status} ${lastFailure.response.statusText}: ${lastFailure.text.slice(0, 500)}`);
+    throw new Error(formatAigoReadFailure(lastFailure, maxAttempts));
   }
 
   throw new Error(`AiGo ${path} failed before receiving a response.`);
@@ -142,14 +177,32 @@ function normalizeBaseUrl(value: string) {
 }
 
 type AigoHttpFailure = {
+  kind: "http";
   response: Response;
   text: string;
+  durationMs: number;
+  method: string;
+  path: string;
+  attempt: number;
+  timeoutMs: number;
 };
+
+type AigoNetworkFailure = {
+  kind: "network";
+  error: unknown;
+  durationMs: number;
+  method: string;
+  path: string;
+  attempt: number;
+  timeoutMs: number;
+};
+
+type AigoReadFailure = AigoHttpFailure | AigoNetworkFailure;
 
 async function fetchAigoJsonResponse(apiBaseUrl: string, path: string, apiKey: string, options: AigoJsonReadOptions, timeoutMs: number) {
   const body = options.body === undefined ? undefined : typeof options.body === "string" ? options.body : JSON.stringify(options.body);
   const response = await fetch(`${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
-    method: options.method ?? (body ? "POST" : "GET"),
+    method: resolveHttpMethod(options),
     headers: {
       authorization: `Bearer ${apiKey}`,
       accept: "application/json",
@@ -163,12 +216,38 @@ async function fetchAigoJsonResponse(apiBaseUrl: string, path: string, apiKey: s
   return { response, text };
 }
 
+function resolveHttpMethod(options: AigoJsonReadOptions) {
+  return (options.method ?? (options.body === undefined ? "GET" : "POST")).toUpperCase();
+}
+
+function isTransientAigoReadFailure(failure: AigoReadFailure) {
+  if (failure.kind === "network") return true;
+  return isTransientAigoRouteFailure(failure);
+}
+
 function isTransientAigoRouteFailure(failure: AigoHttpFailure) {
   if ([500, 502, 503, 504].includes(failure.response.status)) return true;
   if (failure.response.status !== 404) return false;
   const contentType = failure.response.headers.get("content-type")?.toLowerCase() ?? "";
   const body = failure.text.toLowerCase();
   return contentType.includes("text/html") || body.includes("<!doctype html") || body.includes("this page could not be found");
+}
+
+function formatAigoReadFailure(failure: AigoReadFailure, maxAttempts: number) {
+  const route = `${failure.method} ${failure.path}`;
+  const timing = `attempt=${failure.attempt}/${maxAttempts}, timeoutMs=${failure.timeoutMs}, durationMs=${failure.durationMs}`;
+
+  if (failure.kind === "http") {
+    const status = `${failure.response.status} ${failure.response.statusText}`.trim();
+    return `AiGo ${route} failed (${timing}, status=${status}): ${failure.text.slice(0, 500)}`;
+  }
+
+  return `AiGo ${route} failed (${timing}, status=no-response): ${formatUnknownError(failure.error)}`;
+}
+
+function formatUnknownError(error: unknown) {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
 }
 
 function delay(ms: number) {

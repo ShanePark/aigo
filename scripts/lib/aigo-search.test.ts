@@ -73,6 +73,36 @@ describe("AiGo search helper", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:3000/v1/places/place-1/versions");
   });
 
+  it("retries timeout failures before reading search items", async () => {
+    vi.useFakeTimers();
+    const timeoutError = new Error("The operation timed out");
+    timeoutError.name = "TimeoutError";
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "place-1" }], meta: { total: 1 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const promise = searchPlacesReadOnly({ projection: "compact", limit: 1 }, { retryDelayMs: 1, timeoutMs: 25 });
+    await vi.runAllTimersAsync();
+    const response = await promise;
+
+    expect(response.items).toEqual([{ id: "place-1" }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports route status and timing when a read-only request times out", async () => {
+    const timeoutError = new Error("The operation timed out");
+    timeoutError.name = "TimeoutError";
+    const fetchMock = vi.fn().mockRejectedValue(timeoutError);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { retries: 1, retryDelayMs: 0, timeoutMs: 5 })
+    ).rejects.toThrow(/AiGo POST \/v1\/places\/search failed \(attempt=2\/2, timeoutMs=5, durationMs=\d+, status=no-response\): TimeoutError/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("warms the search route with a compact one-row request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
