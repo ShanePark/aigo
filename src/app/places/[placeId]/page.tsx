@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, History, Images, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
+import { ChevronDown, Clock, ExternalLink, History, Images, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
@@ -358,11 +358,13 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       ) : null}
 
       {infoLinks.length > 0 ? (
-        <section className="info-block full">
-          <h2>
+        <details className="info-block full detail-disclosure">
+          <summary>
             <ExternalLink size={18} aria-hidden="true" />
             정보 확인하기
-          </h2>
+            <span>{infoLinks.length}개 링크</span>
+            <ChevronDown className="detail-disclosure-icon" size={16} aria-hidden="true" />
+          </summary>
           <div className="source-list">
             {infoLinks.map((infoLink) => (
               <a className="source-row" href={infoLink.url} target="_blank" rel="noreferrer" key={infoLink.key}>
@@ -375,15 +377,17 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
               </a>
             ))}
           </div>
-        </section>
+        </details>
       ) : null}
 
       {reviewLinks.length > 0 ? (
-        <section className="info-block full">
-          <h2>
+        <details className="info-block full detail-disclosure">
+          <summary>
             <MessageSquareText size={18} aria-hidden="true" />
             후기 살펴보기
-          </h2>
+            <span>{reviewLinks.length}개 링크</span>
+            <ChevronDown className="detail-disclosure-icon" size={16} aria-hidden="true" />
+          </summary>
           <div className="source-list">
             {reviewLinks.map((reviewLink) => (
               <a className="source-row review-link-row" href={reviewLink.url} target="_blank" rel="noreferrer" key={reviewLink.key}>
@@ -396,11 +400,15 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
               </a>
             ))}
           </div>
-        </section>
+        </details>
       ) : null}
 
-      <section className="info-block full" id="detail-sources">
-        <h2>출처</h2>
+      <details className="info-block full detail-disclosure" id="detail-sources">
+        <summary>
+          출처
+          <span>{displaySources.length}개 근거</span>
+          <ChevronDown className="detail-disclosure-icon" size={16} aria-hidden="true" />
+        </summary>
         <div className="source-list">
           {displaySources.map((source) =>
             source.url ? (
@@ -425,13 +433,15 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           )}
           {place.sources.length === 0 ? <p>등록된 출처가 없습니다.</p> : null}
         </div>
-      </section>
+      </details>
 
-      <section className="info-block full">
-        <h2>
+      <details className="info-block full detail-disclosure">
+        <summary>
           <History size={18} aria-hidden="true" />
           변경 이력
-        </h2>
+          <span>{place.versions.length}개 기록</span>
+          <ChevronDown className="detail-disclosure-icon" size={16} aria-hidden="true" />
+        </summary>
         <div className="version-list">
           {place.versions.map((version) => (
             <div className="version-row" key={version.id}>
@@ -442,7 +452,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             </div>
           ))}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

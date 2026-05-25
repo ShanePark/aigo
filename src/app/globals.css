@@ -5099,6 +5099,45 @@ h3 {
   margin-top: 14px;
 }
 
+.detail-disclosure {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-disclosure summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto 1fr auto auto;
+  list-style: none;
+}
+
+.detail-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-disclosure summary span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  justify-self: end;
+}
+
+.detail-disclosure-icon {
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.detail-disclosure[open] .detail-disclosure-icon {
+  transform: rotate(180deg);
+}
+
+.detail-disclosure:not([open]) {
+  padding-bottom: var(--space-6);
+  padding-top: var(--space-6);
+}
+
 .muted-copy {
   color: var(--muted);
   line-height: 1.55;
