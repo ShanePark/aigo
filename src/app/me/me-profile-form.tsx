@@ -165,7 +165,8 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
               const savedSignature = savedChildSignatures.get(child.clientId);
               const childDirty = childSignature(child) !== savedSignature;
               const childIsSaving = savingTarget === target;
-              const childSaveText = childIsSaving ? "저장 중" : childDirty ? (savedSignature ? "수정 저장" : "아이 저장") : "저장됨";
+              const showChildSaveState = childDirty || childIsSaving;
+              const childSaveText = childIsSaving ? "저장 중" : savedSignature ? "수정 저장" : "아이 저장";
               return (
                 <article className={`me-child-card ${childDirty ? "is-dirty" : "is-clean"}`} key={child.clientId}>
                   <div className="me-child-summary">
@@ -176,7 +177,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                       <span className="me-child-kicker">{child.gender === "girl" ? "여아" : "남아"}</span>
                       <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
                     </div>
-                    <span className={`me-save-pill ${childDirty ? "is-dirty" : "is-clean"}`}>{childDirty ? "수정 필요" : "저장됨"}</span>
+                    {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : "수정 필요"}</span> : null}
                   </div>
                   <div className="me-child-fields">
                     <label className="me-field">
@@ -208,15 +209,17 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                     </div>
                   </div>
                   <div className="me-child-actions">
-                    <button
-                      className={`me-child-save ${childDirty ? "is-dirty" : "is-clean"}`}
-                      type="button"
-                      onClick={() => saveProfile({ target })}
-                      disabled={isSaving || !childDirty || child.birthYearMonth.length === 0}
-                    >
-                      {childDirty ? <Save size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
-                      {childSaveText}
-                    </button>
+                    {showChildSaveState ? (
+                      <button
+                        className="me-child-save is-dirty"
+                        type="button"
+                        onClick={() => saveProfile({ target })}
+                        disabled={isSaving || !childDirty || child.birthYearMonth.length === 0}
+                      >
+                        <Save size={15} aria-hidden="true" />
+                        {childSaveText}
+                      </button>
+                    ) : null}
                     <button className="me-child-delete" type="button" onClick={() => removeChild(child.clientId)} aria-label="아이 삭제" disabled={isSaving}>
                       <Trash2 size={15} aria-hidden="true" />
                       삭제
