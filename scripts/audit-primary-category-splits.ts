@@ -1,15 +1,18 @@
 import { pathToFileURL } from "node:url";
 
 import { pg } from "@/db/client";
-import { buildPrimaryCategorySplitAudit, type LegacyPrimaryCategory, type PrimaryCategorySplitAuditRow } from "./lib/primary-category-split-audit";
+import {
+  buildPrimaryCategorySplitAudit,
+  legacySplitPrimaryCategories,
+  type LegacyPrimaryCategory,
+  type PrimaryCategorySplitAuditRow
+} from "./lib/primary-category-split-audit";
 
 type AuditArgs = {
   json: boolean;
   category?: LegacyPrimaryCategory;
   limit?: number;
 };
-
-const targetCategories = ["aquarium_zoo", "park", "museum"] as const;
 
 if (isMain()) {
   try {
@@ -32,7 +35,7 @@ export function parseArgs(argv: string[]): AuditArgs {
     if (arg.startsWith("--category=")) {
       const category = arg.slice("--category=".length).trim();
       if (!isTargetCategory(category)) {
-        throw new Error(`Unsupported --category=${category}. Use one of: ${targetCategories.join(", ")}`);
+        throw new Error(`Unsupported --category=${category}. Use one of: ${legacySplitPrimaryCategories.join(", ")}`);
       }
       args.category = category;
       continue;
@@ -47,7 +50,7 @@ export function parseArgs(argv: string[]): AuditArgs {
 }
 
 async function loadRows(args: AuditArgs) {
-  const categories = args.category ? [args.category] : [...targetCategories];
+  const categories = args.category ? [args.category] : [...legacySplitPrimaryCategories];
 
   if (args.limit !== undefined) {
     return pg<PrimaryCategorySplitAuditRow[]>`
@@ -130,7 +133,7 @@ function sortedCounts(counts: Record<string, number>) {
 }
 
 function isTargetCategory(value: string): value is LegacyPrimaryCategory {
-  return targetCategories.includes(value as LegacyPrimaryCategory);
+  return legacySplitPrimaryCategories.includes(value as LegacyPrimaryCategory);
 }
 
 function isMain() {

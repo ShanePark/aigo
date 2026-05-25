@@ -382,6 +382,14 @@ pnpm tsx scripts/audit-primary-category-splits.ts --json
 
 Use its suggestions as a review queue, not as an automatic migration. The helper scans active `aquarium_zoo`, `park`, and `museum` records and proposes `aquarium`, `zoo`, `playground`, `art_museum`, or the existing category from name, tags, taxonomy, notes, and `playFeatures`. Rows marked `needs_review` or low-confidence require source/detail review before any API `PATCH`. Actual category changes still use the normal AiGo API mutation flow and version-history verification.
 
+For the API mutation phase, first run a dry-run patch plan:
+
+```bash
+pnpm tsx scripts/apply-primary-category-splits.ts --category=aquarium_zoo --min-confidence=high --json
+```
+
+Only add `--apply` after reviewing the planned rows. The apply helper fetches each detail through `GET /v1/places/{placeId}`, patches `primaryCategory` through `PATCH /v1/places/{placeId}` with an `agent_observation` audit source, then re-reads the detail and versions route. Use small `--limit=<n>` batches for broad `park -> playground` work.
+
 Playground search semantics:
 
 - Treat `park` and `playground` as different intents. A general park can be useful without being a real playground, but `놀이터` searches and the playground UI group should mean an indoor playground or a park record with playground evidence.
