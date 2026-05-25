@@ -251,6 +251,27 @@ describe("place schemas", () => {
     expect(result.pricing?.items?.[0]?.currency).toBe("PHP");
   });
 
+  it("accepts overseas location fields on updates", () => {
+    const result = updatePlaceSchema.parse({
+      regionSido: "Japan",
+      regionSigungu: "Okinawa / Motobu",
+      countryCode: "jp",
+      countryName: "Japan",
+      city: "Motobu",
+      locality: "Okinawa",
+      localCurrency: "JPY",
+      sources: [{ sourceType: "official_site", url: "https://example.com/churaumi" }]
+    });
+
+    expect(result.countryCode).toBe("JP");
+    expect(result.countryName).toBe("Japan");
+    expect(result.city).toBe("Motobu");
+    expect(result.locality).toBe("Okinawa");
+    expect(result.localCurrency).toBe("JPY");
+    expect(result.regionSido).toBe("Japan");
+    expect(result.regionSigungu).toBe("Okinawa / Motobu");
+  });
+
   it("accepts structured parent review search evidence", () => {
     const result = createPlaceSchema.parse({
       name: "싱가포르 동물원",

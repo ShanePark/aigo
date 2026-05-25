@@ -508,6 +508,13 @@ export async function searchPlaces(input: SearchPlacesInput) {
       reviewSearchEvidence: place.reviewSearchEvidence,
       routeSupport: place.routeSupport,
       region: place.region,
+      regionSido: place.regionSido,
+      regionSigungu: place.regionSigungu,
+      countryCode: place.countryCode,
+      countryName: place.countryName,
+      city: place.city,
+      locality: place.locality,
+      localCurrency: place.localCurrency,
       lat: place.lat,
       lng: place.lng,
       distanceKm: place.distanceKm,
@@ -580,7 +587,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       publicReviewCount: 0,
       ratingCount: 0
     };
-    const { openingHoursData, region: _region, ...publicItem } = item;
+    const { openingHoursData, ...publicItem } = item;
     const openingHoursSummary = buildSearchOpeningHoursSummary(openingHoursData, sourceSummary, item.visit);
     const imageHealth = buildSearchImageHealth(imageRows);
     const structuredDataGaps = buildStructuredDataGaps(item, sourceSummary, openingHoursSummary);
@@ -594,7 +601,6 @@ export async function searchPlaces(input: SearchPlacesInput) {
       },
       normalizedInput
     );
-    void _region;
     return {
       ...publicItem,
       ...buildImageMetadataFromRows(imageRows),
@@ -856,6 +862,14 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     primaryCategory: item.primaryCategory,
     tags: item.tags,
     address: item.address,
+    region: item.region,
+    regionSido: item.regionSido,
+    regionSigungu: item.regionSigungu,
+    countryCode: item.countryCode,
+    countryName: item.countryName,
+    city: item.city,
+    locality: item.locality,
+    localCurrency: item.localCurrency,
     lat: item.lat,
     lng: item.lng,
     distanceKm: item.distanceKm,
@@ -1661,10 +1675,16 @@ function normalizePlaceWriteInput<T extends CreatePlaceInput | UpdatePlaceInput>
     ...input,
     ...(input.primaryCategory !== undefined ? { primaryCategory: normalizePrimaryCategory(input.primaryCategory) ?? input.primaryCategory } : {}),
     ...(input.regionSido !== undefined ? { regionSido: normalizeRegionSido(input.regionSido) } : {}),
+    ...(input.countryCode !== undefined ? { countryCode: normalizeUpperCode(input.countryCode) } : {}),
+    ...(input.localCurrency !== undefined ? { localCurrency: normalizeUpperCode(input.localCurrency) } : {}),
     ...(tags !== undefined ? { tags } : {}),
     sources: normalizeSources(input.sources),
     ...(input.images !== undefined ? { images: normalizePlaceImages(input.images) } : {})
   };
+}
+
+function normalizeUpperCode(value: string | undefined) {
+  return value?.trim().toUpperCase();
 }
 
 function buildInitialPlaceTaxonomy(input: CreatePlaceInput): PlaceTaxonomy {
@@ -3830,6 +3850,13 @@ function mapPlace(row: PlaceRow) {
       locality: row.locality,
       localCurrency: row.local_currency
     },
+    regionSido: row.region_sido,
+    regionSigungu: row.region_sigungu,
+    countryCode: row.country_code,
+    countryName: row.country_name,
+    city: row.city,
+    locality: row.locality,
+    localCurrency: row.local_currency,
     lat: Number(row.lat),
     lng: Number(row.lng),
     distanceKm: row.distance_km === null || row.distance_km === undefined ? null : Number(row.distance_km),

@@ -88,7 +88,7 @@ describe("place search helpers", () => {
   const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
   const officialSource = { sourceType: "official_site" as const, url: "https://example.com/place" };
 
-  it("maps create and update region fields to persisted DB columns", () => {
+  it("maps create and update region and overseas fields to persisted DB columns", () => {
     const createRecord = placeDbRecordForTest({
       name: "한들근린공원 어린이놀이터",
       primaryCategory: "park",
@@ -97,6 +97,11 @@ describe("place search helpers", () => {
       regionSido: "경남",
       regionSigungu: "창원시 의창구",
       regionDong: "봉림동",
+      countryCode: "kr",
+      countryName: "Korea",
+      city: "Changwon",
+      locality: "Uichang",
+      localCurrency: "KRW",
       sources: [officialSource],
       actor: "agent"
     });
@@ -104,6 +109,11 @@ describe("place search helpers", () => {
       regionSido: "경상남도",
       regionSigungu: "창원시 의창구",
       regionDong: "봉림동",
+      countryCode: "jp",
+      countryName: "Japan",
+      city: "Motobu",
+      locality: "Okinawa",
+      localCurrency: "JPY",
       sources: [officialSource],
       sourceMode: "append",
       imageMode: "append",
@@ -114,12 +124,22 @@ describe("place search helpers", () => {
     expect(createRecord).toMatchObject({
       region_sido: "경상남도",
       region_sigungu: "창원시 의창구",
-      region_dong: "봉림동"
+      region_dong: "봉림동",
+      country_code: "KR",
+      country_name: "Korea",
+      city: "Changwon",
+      locality: "Uichang",
+      local_currency: "KRW"
     });
     expect(updateRecord).toMatchObject({
       region_sido: "경상남도",
       region_sigungu: "창원시 의창구",
-      region_dong: "봉림동"
+      region_dong: "봉림동",
+      country_code: "JP",
+      country_name: "Japan",
+      city: "Motobu",
+      locality: "Okinawa",
+      local_currency: "JPY"
     });
   });
 
@@ -1286,6 +1306,23 @@ describe("place search helpers", () => {
       primaryCategory: "museum",
       tags: ["어린이", "공공"],
       address: "대전광역시 중구",
+      region: {
+        sido: "Japan",
+        sigungu: "Okinawa / Motobu",
+        dong: null,
+        countryCode: "JP",
+        countryName: "Japan",
+        city: "Motobu",
+        locality: "Okinawa",
+        localCurrency: "JPY"
+      },
+      regionSido: "Japan",
+      regionSigungu: "Okinawa / Motobu",
+      countryCode: "JP",
+      countryName: "Japan",
+      city: "Motobu",
+      locality: "Okinawa",
+      localCurrency: "JPY",
       lat: 36.33,
       lng: 127.43,
       distanceKm: 2.4,
@@ -1425,6 +1462,18 @@ describe("place search helpers", () => {
       id: "place-1",
       name: "대전 어린이 시설",
       primaryImageUrl: "https://example.com/place.jpg",
+      region: {
+        countryCode: "JP",
+        city: "Motobu",
+        locality: "Okinawa"
+      },
+      regionSido: "Japan",
+      regionSigungu: "Okinawa / Motobu",
+      countryCode: "JP",
+      countryName: "Japan",
+      city: "Motobu",
+      locality: "Okinawa",
+      localCurrency: "JPY",
       placeQualityScore: {
         score: 79,
         storedScore: 8.4,
