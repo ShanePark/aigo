@@ -24,6 +24,16 @@ describe("suggestPrimaryCategorySplit", () => {
     expect(suggestion.reasonCodes).not.toContain("MIXED_AQUARIUM_ZOO_EVIDENCE");
   });
 
+  it("treats Korean aquarium brand terms as high-confidence aquarium evidence", () => {
+    const suggestions = [
+      suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "아쿠아플라넷 광교" })),
+      suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "싱가포르 오셔너리움" }))
+    ];
+
+    expect(suggestions.map((suggestion) => suggestion.suggestedPrimaryCategory)).toEqual(["aquarium", "aquarium"]);
+    expect(suggestions.map((suggestion) => suggestion.confidence)).toEqual(["high", "high"]);
+  });
+
   it("splits aquarium_zoo rows with zoo evidence", () => {
     const suggestion = suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "서울동물원" }));
 

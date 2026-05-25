@@ -42,7 +42,7 @@ export type PrimaryCategorySplitAudit = {
 
 export const legacySplitPrimaryCategories = ["aquarium_zoo", "park", "museum"] as const satisfies readonly LegacyPrimaryCategory[];
 
-const aquariumTerms = ["아쿠아리움", "수족관", "aquarium", "aqua planet", "aquaplanet"];
+const aquariumTerms = ["아쿠아리움", "수족관", "아쿠아플라넷", "오셔너리움", "aquarium", "aqua planet", "aquaplanet", "oceanarium"];
 const zooTerms = ["동물원", "zoo", "사파리", "동물 체험", "동물체험", "동물농장"];
 const artMuseumTerms = ["미술관", "아트센터", "아트 센터", "갤러리", "gallery", "art museum", "art center"];
 const playgroundTerms = [
