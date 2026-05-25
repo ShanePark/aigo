@@ -32,3 +32,6 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 모든 사용자-facing 구현은 모바일을 1급 기준으로 검증한다. 내 정보 페이지, 검색 홈, 지도/목록, 세부조건 패널, 집 위치 버튼, 로그인/비로그인 상태를 Playwright 모바일 해상도에서 열어 텍스트 겹침, 터치 타깃, 하단 액션, 긴 장소명/주소/조건 표시가 깨지지 않는지 확인한다.
 
 구현 체크리스트:
+
+- [대기] 해외 장소 중복 감사와 검색을 위한 다국어 별칭/국가 스코프를 추가한다. `agent-research/overseas-family-guam-saipan-hawaii-20260525.md` 작업에서 `Pacific Islands Club Guam`, `PIC 괌`, `괌 PIC`, `Aulani`, `디즈니 아울라니`, `Hilton Hawaiian Village`, `힐튼 하와이안 빌리지`처럼 영문 공식명과 한국 부모 검색명이 섞이는 후보를 50개 감사했는데, 현재 exact-name/read-only 흐름은 국가/도시 스코프와 한국어 여행 별칭을 1급으로 다루지 못한다. 해외 등록 wave에서는 `externalRefs.aliases`, `externalRefs.countryCode`, `externalRefs.city`, `externalRefs.koreanSearchAliases`를 임시로 기록하고, 후속 개선에서 `/v1/places/search`와 `/v1/places/duplicates`가 국가/도시/별칭을 함께 받아 해외 리조트·쇼핑몰·관광지 후보를 국내 동명 장소와 섞지 않도록 한다.
+- [대기] 해외 장소 수집용 부모 리뷰 근거 모델을 추가한다. `agent-research/overseas-family-singapore-malaysia-20260525.md` 조사 중 한국 부모 리뷰는 네이버 블로그/검색 스니펫으로 강하게 발견되지만 CLI에서 원문을 안정적으로 열 수 없는 경우가 많았고, 공식 해외 사이트도 JavaScript 앱/티켓 페이지라 일반 fetch로는 운영시간·이미지·가족 편의시설을 놓치기 쉬웠다. 장소 payload에 `reviewSearchEvidence` 또는 `sourceEvidence.kind: "parent_review_search"` 같은 구조를 추가해 검색어, 검색일, 확인 가능한 스니펫 요약, 원문 접근 상태, 언어/국가, 신뢰도를 기록하고, `/v1/places/search`와 관리자 감사 화면에서 "공식 출처"와 "한국 부모 리뷰 검색 근거"를 구분해 볼 수 있게 한다.

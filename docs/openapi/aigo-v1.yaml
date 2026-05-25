@@ -664,10 +664,10 @@ components:
           type: integer
           minimum: 0
           maximum: 100000000
-          description: KRW amount when the source provides a fixed numeric price. Omit instead of guessing.
+          description: Local-currency amount when the source provides a fixed numeric price. Omit instead of guessing.
         currency:
           type: string
-          enum: [KRW]
+          enum: [KRW, USD, JPY, PHP, VND, SGD, MYR, THB, TWD, HKD, AUD, EUR, GBP]
           default: KRW
         unit:
           type: string
@@ -693,7 +693,7 @@ components:
           description: Compact parent-facing summary shown on cards/details.
         currency:
           type: string
-          enum: [KRW]
+          enum: [KRW, USD, JPY, PHP, VND, SGD, MYR, THB, TWD, HKD, AUD, EUR, GBP]
           default: KRW
         basisDate:
           type: string
@@ -748,6 +748,26 @@ components:
           type: string
         regionDong:
           type: string
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: ISO 3166-1 alpha-2 country code for overseas or country-scoped places.
+        countryName:
+          type: string
+          maxLength: 200
+          description: Source-backed country display name when the place is outside Korea or country context matters.
+        city:
+          type: string
+          maxLength: 200
+          description: Overseas city or primary locality used for filtering and display.
+        locality:
+          type: string
+          maxLength: 200
+          description: District, island, resort area, or local neighborhood below city level.
+        localCurrency:
+          type: string
+          enum: [KRW, USD, JPY, PHP, VND, SGD, MYR, THB, TWD, HKD, AUD, EUR, GBP]
+          description: Default local currency for source-backed pricing at this place.
         lat:
           type: number
           minimum: -90
@@ -1417,7 +1437,7 @@ components:
           nullable: true
         region:
           type: object
-          required: [sido, sigungu, dong]
+          required: [sido, sigungu, dong, countryCode, countryName, city, locality, localCurrency]
           properties:
             sido:
               type: string
@@ -1426,6 +1446,21 @@ components:
               type: string
               nullable: true
             dong:
+              type: string
+              nullable: true
+            countryCode:
+              type: string
+              nullable: true
+            countryName:
+              type: string
+              nullable: true
+            city:
+              type: string
+              nullable: true
+            locality:
+              type: string
+              nullable: true
+            localCurrency:
               type: string
               nullable: true
         dataConfidence:
@@ -2913,7 +2948,7 @@ components:
           nullable: true
         region:
           type: object
-          required: [sido, sigungu, dong]
+          required: [sido, sigungu, dong, countryCode, countryName, city, locality, localCurrency]
           properties:
             sido:
               type: string
@@ -2922,6 +2957,21 @@ components:
               type: string
               nullable: true
             dong:
+              type: string
+              nullable: true
+            countryCode:
+              type: string
+              nullable: true
+            countryName:
+              type: string
+              nullable: true
+            city:
+              type: string
+              nullable: true
+            locality:
+              type: string
+              nullable: true
+            localCurrency:
               type: string
               nullable: true
         lat:

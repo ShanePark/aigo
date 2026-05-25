@@ -22,4 +22,16 @@ describe("pricing helpers", () => {
     expect(pricingItemLabels(pricing)).toEqual(["보호자 입장: 4,000원 / guardian"]);
     expect(pricingSummaryLabel(pricing)).toBe("보호자 입장: 4,000원 / guardian · 확인일 미등록");
   });
+
+  it("formats non-KRW local currency amounts", () => {
+    const pricing = {
+      currency: "PHP",
+      items: [
+        { label: "데이패스", amount: 2500, unit: "person" },
+        { label: "어린이 입장", amount: 1200, currency: "USD" }
+      ]
+    };
+
+    expect(pricingItemLabels(pricing)).toEqual(["데이패스: PHP 2,500 / person", "어린이 입장: US$1,200"]);
+  });
 });

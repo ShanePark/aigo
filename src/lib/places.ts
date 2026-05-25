@@ -57,6 +57,11 @@ type PlaceRow = {
   region_sido: string | null;
   region_sigungu: string | null;
   region_dong: string | null;
+  country_code: string | null;
+  country_name: string | null;
+  city: string | null;
+  locality: string | null;
+  local_currency: string | null;
   lat: number;
   lng: number;
   phone: string | null;
@@ -192,6 +197,11 @@ type PlaceImageHealthRow = {
   region_sido: string | null;
   region_sigungu: string | null;
   region_dong: string | null;
+  country_code: string | null;
+  country_name: string | null;
+  city: string | null;
+  locality: string | null;
+  local_currency: string | null;
   data_confidence: string;
   updated_at: Date;
   active_image_count: number;
@@ -230,6 +240,11 @@ const columnMap = {
   regionSido: "region_sido",
   regionSigungu: "region_sigungu",
   regionDong: "region_dong",
+  countryCode: "country_code",
+  countryName: "country_name",
+  city: "city",
+  locality: "locality",
+  localCurrency: "local_currency",
   lat: "lat",
   lng: "lng",
   phone: "phone",
@@ -1023,6 +1038,11 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
           p.region_sido,
           p.region_sigungu,
           p.region_dong,
+          p.country_code,
+          p.country_name,
+          p.city,
+          p.locality,
+          p.local_currency,
           p.data_confidence,
           p.updated_at,
           count(i.id) filter (where i.status = 'active' and i.review_status <> 'rejected')::int as active_image_count,
@@ -1249,7 +1269,12 @@ function mapPlaceImageHealthRow(row: PlaceImageHealthRow) {
     region: {
       sido: row.region_sido,
       sigungu: row.region_sigungu,
-      dong: row.region_dong
+      dong: row.region_dong,
+      countryCode: row.country_code,
+      countryName: row.country_name,
+      city: row.city,
+      locality: row.locality,
+      localCurrency: row.local_currency
     },
     dataConfidence: row.data_confidence,
     updatedAt: toIso(row.updated_at),
@@ -3654,7 +3679,12 @@ function mapPlace(row: PlaceRow) {
     region: {
       sido: row.region_sido,
       sigungu: row.region_sigungu,
-      dong: row.region_dong
+      dong: row.region_dong,
+      countryCode: row.country_code,
+      countryName: row.country_name,
+      city: row.city,
+      locality: row.locality,
+      localCurrency: row.local_currency
     },
     lat: Number(row.lat),
     lng: Number(row.lng),

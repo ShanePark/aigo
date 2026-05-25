@@ -32,6 +32,7 @@ export function pricingEvidenceLabel(pricing: unknown, options: PricingLabelOpti
 export function pricingItemLabels(pricing: unknown) {
   const record = asRecord(pricing);
   if (!record || !Array.isArray(record.items)) return [];
+  const defaultCurrency = stringValue(record.currency);
 
   return record.items.flatMap((item) => {
     const itemRecord = asRecord(item);
@@ -40,7 +41,7 @@ export function pricingItemLabels(pricing: unknown) {
     const label = stringValue(itemRecord.label);
     if (!label) return [];
 
-    const amount = typeof itemRecord.amount === "number" && Number.isFinite(itemRecord.amount) ? `${itemRecord.amount.toLocaleString("ko-KR")}원` : null;
+    const amount = typeof itemRecord.amount === "number" && Number.isFinite(itemRecord.amount) ? formatAmount(itemRecord.amount, stringValue(itemRecord.currency) ?? defaultCurrency) : null;
     const unit = stringValue(itemRecord.unit);
     const conditions = stringValue(itemRecord.conditions);
     const detail = [amount, unit].filter(Boolean).join(" / ");
@@ -57,6 +58,20 @@ export function pricingNote(pricing: unknown) {
 
 function firstPricingItemLabel(record: PricingRecord) {
   return pricingItemLabels(record)[0] ?? null;
+}
+
+function formatAmount(amount: number, currency: string | null) {
+  if (!currency || currency === "KRW") return `${amount.toLocaleString("ko-KR")}원`;
+
+  try {
+    return new Intl.NumberFormat("ko-KR", {
+      currency,
+      maximumFractionDigits: 0,
+      style: "currency"
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString("ko-KR")} ${currency}`;
+  }
 }
 
 function withStaleSuffix(label: string, dateValue: string, record: PricingRecord, options: PricingLabelOptions) {

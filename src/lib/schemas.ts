@@ -19,6 +19,11 @@ const nonEmptyString = z.string().trim().min(1);
 const urlString = z.string().trim().url();
 const zeroToTenScore = z.number().min(0).max(10);
 const regionSidoSchema = z.preprocess((value) => (typeof value === "string" ? normalizeRegionSido(value) : value), z.string().trim()).optional();
+const currencyCodeSchema = z.enum(["KRW", "USD", "JPY", "PHP", "VND", "SGD", "MYR", "THB", "TWD", "HKD", "AUD", "EUR", "GBP"]);
+const countryCodeSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().toUpperCase() : value),
+  z.string().regex(/^[A-Z]{2}$/, "countryCode must be an ISO 3166-1 alpha-2 code").optional()
+);
 const taxonomyFacetSetSchema = z.object({
   familyFitGates: z.array(z.enum(taxonomyFacetFamilies.familyFitGates)).default([]),
   activityTypes: z.array(z.enum(taxonomyFacetFamilies.activityTypes)).default([]),
@@ -193,7 +198,7 @@ const calendarDateString = z
 export const pricingItemSchema = z.object({
   label: nonEmptyString,
   amount: z.number().int().min(0).max(100_000_000).optional(),
-  currency: z.literal("KRW").optional(),
+  currency: currencyCodeSchema.optional(),
   unit: z.string().trim().max(200).optional(),
   ageRange: z.string().trim().max(200).optional(),
   conditions: z.string().trim().max(1000).optional(),
@@ -204,7 +209,7 @@ export const pricingItemSchema = z.object({
 export const pricingSchema = z
   .object({
     summary: z.string().trim().max(1000).optional(),
-    currency: z.literal("KRW").optional(),
+    currency: currencyCodeSchema.optional(),
     basisDate: calendarDateString.optional(),
     checkedAt: z.string().datetime({ offset: true }).optional(),
     staleAfterDays: z.number().int().min(1).max(730).optional(),
@@ -226,6 +231,11 @@ const writablePlaceFields = {
   regionSido: regionSidoSchema,
   regionSigungu: z.string().trim().optional(),
   regionDong: z.string().trim().optional(),
+  countryCode: countryCodeSchema,
+  countryName: z.string().trim().max(200).optional(),
+  city: z.string().trim().max(200).optional(),
+  locality: z.string().trim().max(200).optional(),
+  localCurrency: currencyCodeSchema.optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   phone: z.string().trim().optional(),

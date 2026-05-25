@@ -193,6 +193,8 @@ Create requires:
 - `address` or `regionSido`
 - `sources` with at least one source
 
+For overseas place payloads, use first-class location and pricing fields when source-backed: `countryCode`, `countryName`, `city`, `locality`, `localCurrency`, and non-KRW `pricing.currency` / `pricing.items[].currency`. Keep Korean `regionSido` only as a broad grouping fallback when needed, not as the only place to store country/city context.
+
 Before registering create payloads copied from `agent-research/`, run the read-only workflow lint:
 
 ```bash

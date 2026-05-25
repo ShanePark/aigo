@@ -96,7 +96,7 @@ describe("place schemas", () => {
       lat: 36.35
     });
 
-    expect(addressOnly.regionSido).toBe("인천");
+    expect(addressOnly.regionSido).toBe("인천광역시");
     expect(addressOnly.limit).toBe(10);
     expect(addressOnly.radiusMeters).toBe(500);
     expect(missingLocation.success).toBe(false);
@@ -208,6 +208,34 @@ describe("place schemas", () => {
     expect(result.pricing?.summary).toBe("어린이 2시간 15,000원, 보호자 4,000원");
     expect(result.pricing?.items?.[0]?.amount).toBe(15000);
     expect(invalidDate.success).toBe(false);
+  });
+
+  it("accepts overseas location fields and local currency pricing", () => {
+    const result = createPlaceSchema.parse({
+      name: "제이파크 아일랜드",
+      primaryCategory: "accommodation",
+      regionSido: "Philippines",
+      countryCode: "ph",
+      countryName: "Philippines",
+      city: "Lapu-Lapu",
+      locality: "Mactan",
+      localCurrency: "PHP",
+      lat: 10.2827,
+      lng: 123.9973,
+      pricing: {
+        summary: "워터파크 데이패스는 현지 통화 기준",
+        currency: "PHP",
+        basisDate: "2026-05-25",
+        items: [{ label: "데이패스", amount: 2500, currency: "PHP", unit: "person" }]
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com/jpark" }]
+    });
+
+    expect(result.countryCode).toBe("PH");
+    expect(result.city).toBe("Lapu-Lapu");
+    expect(result.localCurrency).toBe("PHP");
+    expect(result.pricing?.currency).toBe("PHP");
+    expect(result.pricing?.items?.[0]?.currency).toBe("PHP");
   });
 
   it("defaults search pagination and keeps facility preferences soft", () => {
