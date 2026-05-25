@@ -6,6 +6,7 @@ import {
   searchParamsForCurrentLocation,
   searchParamsRecordFromURLSearchParams,
   searchParamsForViewportSearch,
+  searchParamsWithQueryValue,
   searchParamsWithCurrentLocationState
 } from "@/app/search-url-state";
 
@@ -47,6 +48,41 @@ describe("search URL state", () => {
       nursing: "on",
       query: "키즈카페",
       sort: "distance"
+    });
+  });
+
+  it("removes stale text query values before map-driven searches when the form query is blank", () => {
+    expect(
+      searchParamsWithQueryValue(
+        {
+          categoryGroup: "playground",
+          nursing: "on",
+          query: "놀이터",
+          sort: "recommended"
+        },
+        " "
+      )
+    ).toEqual({
+      categoryGroup: "playground",
+      nursing: "on",
+      sort: "recommended"
+    });
+  });
+
+  it("uses the current form text query before map-driven searches", () => {
+    expect(
+      searchParamsWithQueryValue(
+        {
+          categoryGroup: "playground",
+          query: "놀이터",
+          sort: "recommended"
+        },
+        "  물놀이터  "
+      )
+    ).toEqual({
+      categoryGroup: "playground",
+      query: "물놀이터",
+      sort: "recommended"
     });
   });
 

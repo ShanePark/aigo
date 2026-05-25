@@ -43,6 +43,19 @@ export function searchParamsForViewportSearch(params: SearchParamsRecord, reques
   return next;
 }
 
+export function searchParamsWithQueryValue(params: SearchParamsRecord, query: string | null | undefined): SearchParamsRecord {
+  const next = cloneSearchParamsRecord(params);
+  const text = query?.trim();
+
+  if (text) {
+    next.query = text;
+  } else {
+    delete next.query;
+  }
+
+  return next;
+}
+
 export function searchParamsForCurrentLocation(
   params: SearchParamsRecord,
   location: { lat: number; lng: number },

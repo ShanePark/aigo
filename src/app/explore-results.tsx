@@ -20,6 +20,7 @@ import {
   MAP_LOCATION_PARAM_KEYS,
   searchParamsForCurrentLocation,
   searchParamsForViewportSearch,
+  searchParamsWithQueryValue,
   type ClientSearchEventDetail,
   type SearchParamsRecord
 } from "@/app/search-url-state";
@@ -260,9 +261,10 @@ export function ExploreResults({
 
   const handleViewportSearch = useCallback(
     (request: ViewportSearchRequest) => {
-      const nextParams = searchParamsForViewportSearch(activeParams, request);
+      const nextParams = searchParamsForViewportSearch(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), request);
+      const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
       const nextInput = {
-        ...activeInput,
+        ...nextSearchInput,
         filterByRadius: false,
         offset: 0,
         origin: {
@@ -275,15 +277,16 @@ export function ExploreResults({
 
       void runClientSearch(nextInput, nextParams, "viewport");
     },
-    [activeInput, activeParams, runClientSearch]
+    [activeParams, runClientSearch]
   );
 
   const handleLocationSearch = useCallback(
     (location: { lat: number; lng: number }) => {
       const sort = homeSort(activeInput.sort, activeSort);
-      const nextParams = searchParamsForCurrentLocation(activeParams, location, { sort });
+      const nextParams = searchParamsForCurrentLocation(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), location, { sort });
+      const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
       const nextInput = {
-        ...activeInput,
+        ...nextSearchInput,
         filterByRadius: true,
         offset: 0,
         origin: {
@@ -982,6 +985,12 @@ function searchParamsRecordToQuery(params: SearchParamsRecord) {
   }
 
   return query;
+}
+
+function currentSearchFormQuery() {
+  const form = document.querySelector<HTMLFormElement>("form.search-form");
+  const queryInput = form?.elements.namedItem("query");
+  return queryInput instanceof HTMLInputElement ? queryInput.value : undefined;
 }
 
 function currentSearchUrlObject(params: Record<string, string | string[]>): UrlObject {
