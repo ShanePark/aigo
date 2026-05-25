@@ -5864,6 +5864,31 @@ h3 {
   min-width: 0;
 }
 
+.saved-places-hero {
+  align-items: center;
+  margin-bottom: 22px;
+  padding-top: 4px;
+}
+
+.saved-places-hero .visits-hero-copy {
+  gap: 10px;
+}
+
+.saved-places-hero .visits-hero-copy::after {
+  background: linear-gradient(90deg, var(--mint), var(--coral));
+  border-radius: 999px;
+  content: "";
+  display: block;
+  height: 5px;
+  width: 74px;
+}
+
+.saved-places-hero h1 {
+  font-size: 44px;
+  line-height: 1.02;
+  margin: 0;
+}
+
 .visits-title-row {
   align-items: center;
   display: flex;
@@ -6731,6 +6756,10 @@ dd {
   .visits-hero {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .saved-places-hero h1 {
+    font-size: 38px;
   }
 
   .visits-hero-side {
