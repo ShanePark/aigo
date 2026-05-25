@@ -209,6 +209,7 @@ Use a clear action hierarchy:
 - Binary or saved-state controls should look clearly different before and after selection: inactive controls stay neutral and quiet, while selected controls may use the semantic color fill. Do not make unchecked save buttons look already selected.
 - Related header actions should feel like one composed control surface rather than separate nested capsules. Prefer simple segmented or grouped controls with shared height, radius, and rhythm.
 - Score affordances should stay minimal. Show the score number as the primary signal, and use click/tap to reveal explanatory detail instead of adding visible helper text like "점수 보기" when the interaction is already clear.
+- Dark mode must be checked for readability on every touched page or component. Avoid hard-coded light translucent surfaces; route panels, chips, dialogs, and helper text through theme tokens so contrast stays clear in both themes.
 - Do not use native `alert`, `confirm`, or `prompt` for product flows. Use shared app UI such as `ConfirmDialog`, an in-context editor, toast/status copy, or a purpose-built modal.
 - Editing an existing record should happen in that record's local context whenever possible, not by repurposing a separate create form.
 - New UI patterns should define reusable tokens/classes first when they are likely to repeat. Do not let each feature invent its own button radius, shadow, padding, or hover language.
