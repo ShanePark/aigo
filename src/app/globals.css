@@ -4300,6 +4300,11 @@ h3 {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yellow-soft) 58%, transparent);
 }
 
+.me-child-card.is-editing {
+  background: color-mix(in srgb, var(--panel) 92%, var(--mint-soft));
+  border-color: color-mix(in srgb, var(--mint) 34%, var(--line));
+}
+
 .me-child-summary {
   align-items: center;
   display: grid;
@@ -4436,12 +4441,16 @@ h3 {
   width: auto;
 }
 
-.me-child-actions .me-child-delete {
+.me-child-actions .me-child-edit,
+.me-child-actions .me-child-delete,
+.me-child-actions .me-child-cancel {
   flex: 0 0 auto;
   width: auto;
 }
 
 .me-child-save,
+.me-child-edit,
+.me-child-cancel,
 .me-child-delete,
 .me-section-save,
 .me-section-delete {
@@ -4485,13 +4494,25 @@ h3 {
   color: var(--coral);
 }
 
+.me-child-edit,
+.me-child-cancel {
+  background: var(--panel);
+  color: var(--text);
+}
+
 .me-child-save,
+.me-child-edit,
+.me-child-cancel,
 .me-child-delete {
   width: 100%;
 }
 
 .me-child-save:hover:not(:disabled),
 .me-child-save:focus-visible,
+.me-child-edit:hover:not(:disabled),
+.me-child-edit:focus-visible,
+.me-child-cancel:hover:not(:disabled),
+.me-child-cancel:focus-visible,
 .me-section-save:hover:not(:disabled),
 .me-section-save:focus-visible,
 .me-child-delete:hover:not(:disabled),
@@ -4500,6 +4521,26 @@ h3 {
 .me-section-delete:focus-visible {
   box-shadow: var(--shadow-soft);
   transform: translateY(-1px);
+}
+
+.me-child-delete-confirm {
+  align-items: center;
+  background: color-mix(in srgb, var(--coral-soft) 72%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--coral) 28%, var(--line));
+  border-radius: 8px;
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 8px;
+}
+
+.me-child-delete-confirm span {
+  color: var(--text);
+  flex: 1 1 120px;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .me-switch,
@@ -4660,6 +4701,8 @@ h3 {
 .me-field input:disabled,
 .me-child-gender-segments button:disabled,
 .me-child-save:disabled,
+.me-child-edit:disabled,
+.me-child-cancel:disabled,
 .me-child-delete:disabled,
 .me-section-delete:disabled,
 .me-section-save:disabled {
@@ -5949,6 +5992,8 @@ dd {
   }
 
   .me-child-actions .me-child-save,
+  .me-child-actions .me-child-edit,
+  .me-child-actions .me-child-cancel,
   .me-child-actions .me-child-delete {
     width: 100%;
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Baby, Check, Home, Plus, Save, Trash2 } from "lucide-react";
+import { Baby, Check, Home, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
@@ -37,30 +37,58 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [savedHomeLocation, setSavedHomeLocation] = useState(() => homeFromProfile(initialProfile));
   const [status, setStatus] = useState<SaveStatus>({ message: "", tone: "idle" });
   const [savingTarget, setSavingTarget] = useState<string | null>(null);
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [deleteConfirmChildId, setDeleteConfirmChildId] = useState<string | null>(null);
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const savedChildSignatures = useMemo(() => new Map(savedChildren.map((child) => [child.clientId, childSignature(child)])), [savedChildren]);
   const isSaving = status.tone === "saving";
+  const hasActiveChildEdit = editingChildId !== null;
   const homeSaveState = homeSaveUiState(homeLocation, savedHomeLocation, { isSaving, saving: savingTarget === "home" });
 
   function addChild() {
-    setChildren((current) => [...current, { birthYearMonth: maxBirthYearMonth, clientId: createClientId(), gender: "boy" }]);
+    const child = { birthYearMonth: maxBirthYearMonth, clientId: createClientId(), gender: "boy" as const };
+    setChildren((current) => [...current, child]);
+    setEditingChildId(child.clientId);
+    setDeleteConfirmChildId(null);
     clearSavedStatus();
   }
 
   function updateChildBirthYearMonth(clientId: string, birthYearMonth: string) {
     setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, birthYearMonth } : child)));
+    setDeleteConfirmChildId(null);
     clearSavedStatus();
   }
 
   function updateChildGender(clientId: string, gender: ChildGender) {
     setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, gender } : child)));
+    setDeleteConfirmChildId(null);
     clearSavedStatus();
   }
 
   async function removeChild(clientId: string) {
     const nextChildren = children.filter((child) => child.clientId !== clientId);
     setChildren(nextChildren);
+    setEditingChildId(null);
+    setDeleteConfirmChildId(null);
     await saveProfile({ children: nextChildren, target: `child-${clientId}` });
+  }
+
+  function editChild(clientId: string) {
+    setEditingChildId(clientId);
+    setDeleteConfirmChildId(null);
+    clearSavedStatus();
+  }
+
+  function cancelChildEdit(clientId: string) {
+    const savedChild = savedChildren.find((child) => child.clientId === clientId);
+    if (savedChild) {
+      setChildren((current) => current.map((child) => (child.clientId === clientId ? savedChild : child)));
+    } else {
+      setChildren((current) => current.filter((child) => child.clientId !== clientId));
+    }
+    setEditingChildId(null);
+    setDeleteConfirmChildId(null);
+    clearSavedStatus();
   }
 
   function updateHomeLocation(next: (current: HomeDraft) => HomeDraft) {
@@ -104,7 +132,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 
     if (homeLocationToSave.enabled && !homeLocationHasUsableCoordinates(homeLocationToSave)) {
       setStatus({ message: "집 위치 좌표를 확인해 주세요.", tone: "error" });
-      return;
+      return false;
     }
 
     setSavingTarget(options.target ?? "profile");
@@ -133,9 +161,13 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       setHomeLocation(nextHomeLocationDraft);
       setSavedHomeLocation(nextHomeLocationDraft);
       setStatus({ message: "저장됨", tone: "saved" });
+      setEditingChildId(null);
+      setDeleteConfirmChildId(null);
       window.dispatchEvent(new CustomEvent("aigo-profile-change", { detail: profile }));
+      return true;
     } catch (error) {
       setStatus({ message: error instanceof Error ? error.message : "내 정보 저장에 실패했습니다.", tone: "error" });
+      return false;
     } finally {
       setSavingTarget(null);
     }
@@ -152,7 +184,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             <h2 id="me-children-title">아이 정보</h2>
             <p>생년월 기준으로 검색 세부조건의 나이대를 계산합니다.</p>
           </div>
-          <button className="me-inline-button" type="button" onClick={addChild} disabled={isSaving}>
+          <button className="me-inline-button" type="button" onClick={addChild} disabled={isSaving || hasActiveChildEdit}>
             <Plus size={15} aria-hidden="true" />
             아이 추가
           </button>
@@ -164,11 +196,14 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
               const target = `child-${child.clientId}`;
               const savedSignature = savedChildSignatures.get(child.clientId);
               const childDirty = childSignature(child) !== savedSignature;
+              const childIsNew = savedSignature === undefined;
               const childIsSaving = savingTarget === target;
-              const showChildSaveState = childDirty || childIsSaving;
+              const isEditing = editingChildId === child.clientId;
+              const isDeleteConfirming = deleteConfirmChildId === child.clientId;
+              const showChildSaveState = isEditing && (childDirty || childIsSaving);
               const childSaveText = childIsSaving ? "저장 중" : savedSignature ? "수정 저장" : "아이 저장";
               return (
-                <article className={`me-child-card ${childDirty ? "is-dirty" : "is-clean"}`} key={child.clientId}>
+                <article className={`me-child-card ${isEditing ? "is-editing" : ""} ${childDirty ? "is-dirty" : "is-clean"}`} key={child.clientId}>
                   <div className="me-child-summary">
                     <span className="me-child-avatar">
                       <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, child.gender)} alt="" aria-hidden="true" width={82} height={82} />
@@ -176,40 +211,46 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                     <div className="me-child-copy">
                       <span className="me-child-kicker">{child.gender === "girl" ? "여아" : "남아"}</span>
                       <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
+                      <span>{child.birthYearMonth}</span>
                     </div>
-                    {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : "수정 필요"}</span> : null}
+                    {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : childIsNew ? "새 아이" : "수정 중"}</span> : null}
                   </div>
-                  <div className="me-child-fields">
-                    <label className="me-field">
-                      <span>생년월</span>
-                      <input
-                        type="month"
-                        value={child.birthYearMonth}
-                        max={maxBirthYearMonth}
-                        onChange={(event) => updateChildBirthYearMonth(child.clientId, event.currentTarget.value)}
-                        required
-                      />
-                    </label>
-                    <div className="me-field">
-                      <span>성별</span>
-                      <div className="me-child-gender-segments" role="group" aria-label="아이 성별">
-                        {CHILD_GENDERS.map((gender) => (
-                          <button
-                            className={child.gender === gender.id ? "is-selected" : ""}
-                            type="button"
-                            key={gender.id}
-                            onClick={() => updateChildGender(child.clientId, gender.id)}
-                            aria-pressed={child.gender === gender.id}
-                            disabled={isSaving}
-                          >
-                            {gender.label}
-                          </button>
-                        ))}
+
+                  {isEditing ? (
+                    <div className="me-child-fields">
+                      <label className="me-field">
+                        <span>생년월</span>
+                        <input
+                          type="month"
+                          value={child.birthYearMonth}
+                          max={maxBirthYearMonth}
+                          onChange={(event) => updateChildBirthYearMonth(child.clientId, event.currentTarget.value)}
+                          required
+                        />
+                      </label>
+                      <div className="me-field">
+                        <span>성별</span>
+                        <div className="me-child-gender-segments" role="group" aria-label="아이 성별">
+                          {CHILD_GENDERS.map((gender) => (
+                            <button
+                              className={child.gender === gender.id ? "is-selected" : ""}
+                              type="button"
+                              key={gender.id}
+                              onClick={() => updateChildGender(child.clientId, gender.id)}
+                              aria-pressed={child.gender === gender.id}
+                              disabled={isSaving}
+                            >
+                              {gender.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
+
                   <div className="me-child-actions">
-                    {showChildSaveState ? (
+                    {isEditing ? (
+                      <>
                       <button
                         className="me-child-save is-dirty"
                         type="button"
@@ -219,11 +260,48 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                         <Save size={15} aria-hidden="true" />
                         {childSaveText}
                       </button>
+                        <button className="me-child-cancel" type="button" onClick={() => cancelChildEdit(child.clientId)} disabled={isSaving}>
+                          <X size={15} aria-hidden="true" />
+                          취소
+                        </button>
+                      </>
                     ) : null}
-                    <button className="me-child-delete" type="button" onClick={() => removeChild(child.clientId)} aria-label="아이 삭제" disabled={isSaving}>
-                      <Trash2 size={15} aria-hidden="true" />
-                      삭제
-                    </button>
+                    {!isEditing && !isDeleteConfirming ? (
+                      <>
+                        <button
+                          className="me-child-edit"
+                          type="button"
+                          onClick={() => editChild(child.clientId)}
+                          aria-label="아이 정보 수정"
+                          disabled={isSaving || hasActiveChildEdit}
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                          수정
+                        </button>
+                        <button
+                          className="me-child-delete"
+                          type="button"
+                          onClick={() => setDeleteConfirmChildId(child.clientId)}
+                          aria-label="아이 삭제 확인 열기"
+                          disabled={isSaving || hasActiveChildEdit}
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                          삭제
+                        </button>
+                      </>
+                    ) : null}
+                    {!isEditing && isDeleteConfirming ? (
+                      <div className="me-child-delete-confirm" role="group" aria-label="아이 삭제 확인">
+                        <span>삭제할까요?</span>
+                        <button className="me-child-delete" type="button" onClick={() => removeChild(child.clientId)} disabled={isSaving}>
+                          <Trash2 size={15} aria-hidden="true" />
+                          삭제
+                        </button>
+                        <button className="me-child-cancel" type="button" onClick={() => setDeleteConfirmChildId(null)} disabled={isSaving}>
+                          취소
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </article>
               );
