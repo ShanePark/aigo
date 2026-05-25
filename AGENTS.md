@@ -4,6 +4,12 @@
 
 This repository should be handled with a bias toward active investigation, small focused changes, and frequent verification. Read the surrounding code before editing, follow existing conventions, and keep changes scoped to the user's request.
 
+## Development Server Port Policy
+
+The user owns the local Next.js development server on port 3000 during normal work. Before starting a dev server, check whether `localhost:3000` is already serving this repository and use that existing server when it is available.
+
+Only start `pnpm dev` yourself when no suitable server is running on port 3000. Do not let Next.js fall back to an arbitrary alternate port such as 3001, because multiple dev servers in the same checkout share `.next` and can corrupt or race on route and page build artifacts. If port 3000 is occupied by an unrelated process, stop and ask the user how to proceed instead of starting on another port.
+
 ## Git Commit Skill
 
 For commit-related work in this repository, read and follow the committed repo skill at `.codex/skills/git-commit/SKILL.md` before inspecting, staging, committing, or reporting git changes. This project-local skill should be used instead of relying on a personal local skill path such as `/Users/shane/.codex/skills/git-commit/SKILL.md`.
