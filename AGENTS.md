@@ -31,6 +31,8 @@ AiGo's most important asset is the breadth and quality of real place data for fa
 
 Research and data updates must be source-backed. Do not invent amenities. Unknown is acceptable when evidence is weak.
 
+User-facing public place text must be written in Korean. API field names and structured keys can stay English/camelCase, but `description`, `parentNotes`, `safetyNotes`, `placeScoreRationale`, and `playFeatures.notes` should not contain English template prose or agent shorthand. Translate source-backed facts into natural Korean before registration or enrichment; keep English only for proper nouns, URLs, source titles, and unavoidable facility names.
+
 Scoring changes should keep source-backed place quality separate from runtime search relevance and user visit ratings. Keep detailed scoring workflow guidance in `.codex/skills/aigo-place-api/SKILL.md` and user/developer-facing behavior in `README.md`; `AGENTS.md` should only carry this repository-wide guardrail.
 
 ## Family Outing Patterns

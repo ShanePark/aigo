@@ -98,6 +98,13 @@ const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|�
 const personalizedPublicTextPattern =
   /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
 const urlPattern = /^https?:\/\//i;
+const publicTextFields: Array<[string, (payload: CreatePlaceInput) => unknown]> = [
+  ["description", (payload) => payload.description],
+  ["parentNotes", (payload) => payload.parentNotes],
+  ["safetyNotes", (payload) => payload.safetyNotes],
+  ["placeScoreRationale", (payload) => payload.placeScoreRationale],
+  ["playFeatures.notes", (payload) => (isRecord(payload.playFeatures) ? payload.playFeatures.notes : undefined)]
+];
 
 if (isMain()) {
   void main();
@@ -252,6 +259,7 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   collectCoordinateProvenanceIssues(payload, issues);
   collectOperationalStatusSignalIssues(payload, issues);
   collectPersonalizedPublicTextIssues(payload, issues);
+  collectKoreanPublicTextIssues(payload, issues);
   collectParentReviewEvidenceIssues(payload, issues);
   collectPrivateKidsCafeSourceRoleIssues(payload, issues);
   collectRichPublicDestinationSweepIssues(payload, issues);
@@ -275,15 +283,8 @@ function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues:
 }
 
 function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
-  const fields: Array<[string, unknown]> = [
-    ["description", payload.description],
-    ["parentNotes", payload.parentNotes],
-    ["safetyNotes", payload.safetyNotes],
-    ["placeScoreRationale", payload.placeScoreRationale],
-    ["playFeatures.notes", recordValue(payload.playFeatures, "notes")]
-  ];
-
-  for (const [path, value] of fields) {
+  for (const [path, readValue] of publicTextFields) {
+    const value = readValue(payload);
     if (typeof value !== "string" || !personalizedPublicTextPattern.test(value)) continue;
     issues.push(
       error(
@@ -293,6 +294,28 @@ function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: 
       )
     );
   }
+}
+
+function collectKoreanPublicTextIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+  for (const [path, readValue] of publicTextFields) {
+    const value = readValue(payload);
+    if (typeof value !== "string" || !looksEnglishDominantPublicText(value)) continue;
+    issues.push(
+      error(
+        path,
+        "workflow_public_text_korean",
+        "public place text shown to AiGo users must be written in Korean; keep English source phrases only as URLs, proper nouns, or quoted source titles in evidence fields"
+      )
+    );
+  }
+}
+
+function looksEnglishDominantPublicText(value: string) {
+  const latinLetters = [...value.matchAll(/[A-Za-z]/g)].length;
+  if (latinLetters < 40) return false;
+
+  const hangulLetters = [...value.matchAll(/[가-힣]/g)].length;
+  return latinLetters > hangulLetters;
 }
 
 function collectParentReviewEvidenceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {

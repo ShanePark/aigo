@@ -198,6 +198,27 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("rejects English-dominant public place text", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      description:
+        "This is a source-backed kid-focused lodging candidate collected for nationwide AiGo family stay coverage. Family fit is based on official public evidence.",
+      parentNotes: "주차, 유모차 이동, 수유실 확인이 필요한 대형 실내 fallback 후보다."
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_public_text_korean",
+          path: "description",
+          severity: "error"
+        })
+      ])
+    );
+    expect(result.issues.map((issue) => `${issue.path}:${issue.code}`)).not.toContain("parentNotes:workflow_public_text_korean");
+  });
+
   it("warns when local family candidates have no parent-facing review evidence", () => {
     const result = validateResearchPayload({
       ...validPayload(),
