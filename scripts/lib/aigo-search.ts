@@ -35,6 +35,12 @@ export type AigoJsonReadOptions = AigoSearchOptions & {
   method?: string;
 };
 
+export type AigoReadOnlyReadinessOptions = AigoSearchOptions & {
+  expectedExactNamePlaceId?: string;
+  exactName?: string;
+  log?: (message: string) => void;
+};
+
 export function readSearchItems<TItem = AigoSearchItem>(response: unknown): TItem[] {
   if (!isRecord(response)) {
     throw new Error("AiGo search response must be an object with a top-level items array.");
@@ -82,8 +88,7 @@ export async function readAigoJsonReadOnly<TResponse = Record<string, unknown>>(
   path: string,
   options: AigoJsonReadOptions = {}
 ): Promise<TResponse> {
-  const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
-  const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY;
+  const { apiBaseUrl, apiKey } = resolveAigoReadOnlyConfig(options);
   const retries = options.retries ?? 2;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const method = resolveHttpMethod(options);
@@ -151,6 +156,28 @@ export async function warmSearchRouteReadOnly(options: AigoSearchOptions = {}) {
   );
 }
 
+export async function checkAigoReadOnlyApiReadiness(options: AigoReadOnlyReadinessOptions = {}) {
+  const { apiBaseUrl } = resolveAigoReadOnlyConfig(options);
+  options.log?.(`AiGo read-only API base URL: ${apiBaseUrl}`);
+
+  await warmSearchRouteReadOnly(options);
+
+  if (!options.exactName) return { apiBaseUrl, exactNameMatched: null };
+
+  const search = await exactNameSearchReadOnly(options.exactName, options);
+  const expectedId = options.expectedExactNamePlaceId;
+  if (expectedId && !search.items.some((item) => itemId(item) === expectedId)) {
+    throw new Error(
+      `AiGo exact-name healthcheck failed for ${JSON.stringify(options.exactName)} at ${apiBaseUrl}: expected place ${expectedId}, got ${search.items
+        .map(itemId)
+        .filter(Boolean)
+        .join(", ") || "no ids"}.`
+    );
+  }
+
+  return { apiBaseUrl, exactNameMatched: search.items.length > 0 };
+}
+
 export async function exactNameSearchReadOnly<TItem = AigoSearchItem>(
   name: string,
   options: ExactNameSearchOptions = {}
@@ -170,6 +197,18 @@ export async function exactNameSearchReadOnly<TItem = AigoSearchItem>(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function itemId(item: AigoSearchItem) {
+  const id = item.id ?? item.placeId;
+  return typeof id === "string" ? id : null;
+}
+
+function resolveAigoReadOnlyConfig(options: AigoSearchOptions) {
+  return {
+    apiBaseUrl: normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000"),
+    apiKey: options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY
+  };
 }
 
 function normalizeBaseUrl(value: string) {

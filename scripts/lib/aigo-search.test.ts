@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeSearchResponse, readAigoJsonReadOnly, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
+import { checkAigoReadOnlyApiReadiness, normalizeSearchResponse, readAigoJsonReadOnly, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
 
 describe("AiGo search helper", () => {
   afterEach(() => {
@@ -115,5 +115,42 @@ describe("AiGo search helper", () => {
       limit: 1,
       offset: 0
     });
+  });
+
+  it("prints the read-only base URL and validates a known exact-name id", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "place-1", name: "테스트 장소" }], meta: { total: 1 } }), { status: 200 }));
+    const log = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      checkAigoReadOnlyApiReadiness({
+        apiBaseUrl: "http://localhost:3010/",
+        exactName: "테스트 장소",
+        expectedExactNamePlaceId: "place-1",
+        log
+      })
+    ).resolves.toEqual({ apiBaseUrl: "http://localhost:3010", exactNameMatched: true });
+
+    expect(log).toHaveBeenCalledWith("AiGo read-only API base URL: http://localhost:3010");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body)).toContain('"matchMode":"exactName"');
+  });
+
+  it("fails readiness when the known exact-name id is missing", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "other-place" }], meta: { total: 1 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      checkAigoReadOnlyApiReadiness({
+        exactName: "테스트 장소",
+        expectedExactNamePlaceId: "place-1"
+      })
+    ).rejects.toThrow(/expected place place-1, got other-place/);
   });
 });

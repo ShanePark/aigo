@@ -63,6 +63,9 @@ describe("region candidate audit helper", () => {
       "--candidate=스타필드 시티 부천",
       "--candidates=웅진플레이도시,부천자연생태공원",
       "--duplicate-limit=7",
+      "--healthcheck-name=스타필드 시티 부천",
+      "--healthcheck-place-id=place-starfield",
+      "--skip-healthcheck",
       "--stale-after-days=90",
       "--json"
     ]);
@@ -71,6 +74,9 @@ describe("region candidate audit helper", () => {
     expect(args.regionSido).toBe("경기");
     expect(args.candidates).toEqual(["스타필드 시티 부천", "웅진플레이도시", "부천자연생태공원"]);
     expect(args.duplicateLimit).toBe(7);
+    expect(args.healthcheckName).toBe("스타필드 시티 부천");
+    expect(args.healthcheckPlaceId).toBe("place-starfield");
+    expect(args.skipHealthcheck).toBe(true);
     expect(args.staleAfterDays).toBe(90);
     expect(args.json).toBe(true);
   });

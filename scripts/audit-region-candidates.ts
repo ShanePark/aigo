@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { exactNameSearchReadOnly, readAigoJsonReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
+import { checkAigoReadOnlyApiReadiness, exactNameSearchReadOnly, readAigoJsonReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
 
 type RegionCandidateAuditArgs = {
   candidates: string[];
@@ -12,7 +12,10 @@ type RegionCandidateAuditArgs = {
   json: boolean;
   limit: number;
   duplicateLimit: number;
+  healthcheckName?: string;
+  healthcheckPlaceId?: string;
   radiusMeters: number;
+  skipHealthcheck: boolean;
   staleAfterDays: number;
   timeoutMs: number;
 };
@@ -115,6 +118,7 @@ export function parseArgs(argv: string[]): RegionCandidateAuditArgs {
     limit: 5,
     duplicateLimit: 10,
     radiusMeters: 500,
+    skipHealthcheck: false,
     staleAfterDays: 180,
     timeoutMs: 10_000
   };
@@ -161,6 +165,18 @@ export function parseArgs(argv: string[]): RegionCandidateAuditArgs {
       args.duplicateLimit = positiveInteger(arg.slice("--duplicate-limit=".length), "duplicate-limit", 20);
       continue;
     }
+    if (arg.startsWith("--healthcheck-name=")) {
+      args.healthcheckName = optionalString(arg.slice("--healthcheck-name=".length));
+      continue;
+    }
+    if (arg.startsWith("--healthcheck-place-id=")) {
+      args.healthcheckPlaceId = optionalString(arg.slice("--healthcheck-place-id=".length));
+      continue;
+    }
+    if (arg === "--skip-healthcheck") {
+      args.skipHealthcheck = true;
+      continue;
+    }
     if (arg.startsWith("--radius-meters=")) {
       args.radiusMeters = positiveInteger(arg.slice("--radius-meters=".length), "radius-meters", 5000);
       continue;
@@ -194,6 +210,16 @@ export async function auditRegionCandidates(args: RegionCandidateAuditArgs): Pro
     apiKey: args.apiKey,
     timeoutMs: args.timeoutMs
   };
+  if (!args.skipHealthcheck) {
+    await checkAigoReadOnlyApiReadiness({
+      ...options,
+      exactName: args.healthcheckName,
+      expectedExactNamePlaceId: args.healthcheckPlaceId,
+      log: (message) => {
+        if (!args.json) console.error(message);
+      }
+    });
+  }
   const now = new Date();
   const candidates = await Promise.all(args.candidates.map((candidate) => auditCandidate(candidate, args, options, now)));
 
