@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Edit3, Lightbulb, LogIn, MessageSquareText, Search, Trash2 } from "lucide-react";
+import { Edit3, Lightbulb, LogIn, MessageSquareText, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
@@ -107,12 +107,6 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
           </h2>
           <p>방문 여부와 별점에는 반영하지 않는 공개 메모입니다. 주차, 동선, 준비물처럼 다른 가족에게 바로 도움이 되는 정보를 남겨주세요.</p>
         </div>
-        {myMemo ? (
-          <span className="place-memo-owned">
-            <CheckCircle2 size={15} aria-hidden="true" />
-            내 팁 있음
-          </span>
-        ) : null}
       </div>
 
       {loading ? (

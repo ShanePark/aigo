@@ -4417,21 +4417,6 @@ h3 {
   margin: 0;
 }
 
-.place-memo-owned {
-  align-items: center;
-  background: var(--info-bg);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--accent);
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 900;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-}
-
 .place-memo-login-card,
 .place-memo-hint {
   align-items: center;
