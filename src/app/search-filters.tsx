@@ -187,7 +187,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
             </span>
           ) : null}
           <span className="advanced-toggle-label" aria-hidden="true">
-            <span className="advanced-toggle-open">열기</span>
+            <span className="advanced-toggle-open">펼치기</span>
             <span className="advanced-toggle-close">접기</span>
             <ChevronDown size={16} />
           </span>
