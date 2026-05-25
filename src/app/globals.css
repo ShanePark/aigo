@@ -3783,8 +3783,11 @@ h3 {
   font-weight: 900;
 }
 
-.me-child-field {
+.me-child-fields {
+  display: grid;
+  gap: 8px;
   grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 0.42fr);
 }
 
 .me-icon-button {

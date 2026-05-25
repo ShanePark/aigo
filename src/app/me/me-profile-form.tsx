@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Baby, Check, Home, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
+import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
 import type { MyProfile, MyProfileSearchPreferences } from "@/lib/user-profile";
 
 import {
@@ -20,6 +21,7 @@ type MeProfileFormProps = {
 type ChildDraft = {
   birthYearMonth: string;
   clientId: string;
+  gender: ChildGender;
 };
 
 type HomeDraft = {
@@ -55,11 +57,15 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const isSaving = status.tone === "saving";
 
   function addChild() {
-    setChildren((current) => [...current, { birthYearMonth: maxBirthYearMonth, clientId: createClientId() }]);
+    setChildren((current) => [...current, { birthYearMonth: maxBirthYearMonth, clientId: createClientId(), gender: "boy" }]);
   }
 
-  function updateChild(clientId: string, birthYearMonth: string) {
+  function updateChildBirthYearMonth(clientId: string, birthYearMonth: string) {
     setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, birthYearMonth } : child)));
+  }
+
+  function updateChildGender(clientId: string, gender: ChildGender) {
+    setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, gender } : child)));
   }
 
   function removeChild(clientId: string) {
@@ -92,7 +98,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     try {
       const response = await fetch("/api/me/profile", {
         body: JSON.stringify({
-          children: children.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth })),
+          children: children.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender })),
           homeLocation: nextHomeLocation,
           searchPreferences
         }),
@@ -135,25 +141,37 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 
         {children.length > 0 ? (
           <div className="me-children-grid">
-            {children.map((child, index) => (
+            {children.map((child) => (
               <article className="me-child-card" key={child.clientId}>
                 <span className="me-child-avatar">
-                  <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, index)} alt="" aria-hidden="true" width={74} height={74} />
+                  <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, child.gender)} alt="" aria-hidden="true" width={74} height={74} />
                 </span>
                 <div className="me-child-copy">
                   <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
                   <span>{childAgeBandLabelFromBirthYearMonth(child.birthYearMonth)}</span>
                 </div>
-                <label className="me-field me-child-field">
-                  <span>생년월</span>
-                  <input
-                    type="month"
-                    value={child.birthYearMonth}
-                    max={maxBirthYearMonth}
-                    onChange={(event) => updateChild(child.clientId, event.currentTarget.value)}
-                    required
-                  />
-                </label>
+                <div className="me-child-fields">
+                  <label className="me-field">
+                    <span>생년월</span>
+                    <input
+                      type="month"
+                      value={child.birthYearMonth}
+                      max={maxBirthYearMonth}
+                      onChange={(event) => updateChildBirthYearMonth(child.clientId, event.currentTarget.value)}
+                      required
+                    />
+                  </label>
+                  <label className="me-field">
+                    <span>성별</span>
+                    <select value={child.gender} onChange={(event) => updateChildGender(child.clientId, event.currentTarget.value as ChildGender)} disabled={isSaving}>
+                      {CHILD_GENDERS.map((gender) => (
+                        <option value={gender.id} key={gender.id}>
+                          {gender.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <button className="me-icon-button" type="button" onClick={() => removeChild(child.clientId)} aria-label="아이 삭제" disabled={isSaving}>
                   <Trash2 size={14} aria-hidden="true" />
                 </button>
@@ -305,7 +323,8 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 function childrenFromProfile(profile: MyProfile): ChildDraft[] {
   return profile.children.map((child) => ({
     birthYearMonth: child.birthYearMonth,
-    clientId: child.id
+    clientId: child.id,
+    gender: child.gender
   }));
 }
 

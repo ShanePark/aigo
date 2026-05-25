@@ -1,4 +1,4 @@
-import { childAgeBandForMonths, type ChildAgeBandId } from "@/lib/child-ages";
+import { childAgeBandForMonths, type ChildAgeBandId, type ChildGender } from "@/lib/child-ages";
 
 const birthYearMonthPattern = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
@@ -40,8 +40,7 @@ export function childAgeLabelFromBirthYearMonth(birthYearMonth: string, now = ne
   return months > 0 ? `${years}세 ${months}개월` : `${years}세`;
 }
 
-export function childProfileIconSrcFromBirthYearMonth(birthYearMonth: string, index: number, now = new Date()) {
-  const gender = index % 2 === 0 ? "boy" : "girl";
+export function childProfileIconSrcFromBirthYearMonth(birthYearMonth: string, gender: ChildGender = "boy", now = new Date()) {
   return `/icons/child-profiles/${gender}-${childAgeBandIdFromBirthYearMonth(birthYearMonth, now)}-avatar.webp`;
 }
 

@@ -12,6 +12,8 @@ const birthYearMonthSchema = z
   .regex(birthYearMonthPattern, "birthYearMonth must be YYYY-MM")
   .refine((value) => value <= currentYearMonth(), "birthYearMonth cannot be in the future");
 
+const childGenderSchema = z.enum(["boy", "girl"]).default("boy");
+
 const nullableTextSchema = z
   .string()
   .trim()
@@ -20,7 +22,8 @@ const nullableTextSchema = z
   .nullable();
 
 export const userChildInputSchema = z.object({
-  birthYearMonth: birthYearMonthSchema
+  birthYearMonth: birthYearMonthSchema,
+  gender: childGenderSchema
 });
 
 export const userHomeLocationInputSchema = z.object({
@@ -66,6 +69,7 @@ export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;
 export type MyProfileChild = {
   id: string;
   birthYearMonth: string;
+  gender: z.infer<typeof childGenderSchema>;
   sortOrder: number;
 };
 
@@ -102,6 +106,7 @@ export async function getMyProfile(userId: string, executor: SqlExecutor = pg): 
       select
         id::text as id,
         birth_year_month as "birthYearMonth",
+        gender,
         sort_order as "sortOrder"
       from user_children
       where user_id = ${userId}
@@ -179,13 +184,14 @@ async function replaceUserChildren(userId: string, children: UserChildInput[], e
 
   const rows = children.map((child, index) => ({
     birth_year_month: child.birthYearMonth,
+    gender: child.gender,
     sort_order: index
   }));
 
   await executor`
-    insert into user_children (user_id, birth_year_month, sort_order)
-    select ${userId}, child.birth_year_month, child.sort_order
-    from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as child(birth_year_month text, sort_order integer)
+    insert into user_children (user_id, birth_year_month, gender, sort_order)
+    select ${userId}, child.birth_year_month, child.gender, child.sort_order
+    from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as child(birth_year_month text, gender text, sort_order integer)
   `;
 }
 
@@ -254,6 +260,7 @@ function childFromRow(row: ChildRow): MyProfileChild {
   return {
     id: row.id,
     birthYearMonth: row.birthYearMonth,
+    gender: row.gender,
     sortOrder: Number(row.sortOrder)
   };
 }

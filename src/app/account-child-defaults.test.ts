@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { accountChildAgeMonths, applyAccountChildDefaults, applyAccountSearchPreferenceDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
+import {
+  accountChildAgeMonths,
+  accountChildProfiles,
+  applyAccountChildDefaults,
+  applyAccountSearchPreferenceDefaults,
+  childParamSourceForParams
+} from "@/app/account-child-defaults";
 
 const now = new Date("2026-05-25T12:00:00+09:00");
 
@@ -10,8 +16,8 @@ describe("account child defaults", () => {
       applyAccountChildDefaults(
         { query: "키즈카페" },
         [
-          { birthYearMonth: "2023-09" },
-          { birthYearMonth: "2025-10" }
+          { birthYearMonth: "2023-09", gender: "girl" },
+          { birthYearMonth: "2025-10", gender: "boy" }
         ],
         now
       )
@@ -19,9 +25,25 @@ describe("account child defaults", () => {
       childParamSource: "account",
       params: {
         query: "키즈카페",
+        children: "boy:6-12,girl:24-48",
         ages: "32,7"
       }
     });
+  });
+
+  it("maps account child birth months and saved gender to search profiles", () => {
+    expect(
+      accountChildProfiles(
+        [
+          { birthYearMonth: "2025-10", gender: "girl" },
+          { birthYearMonth: "2023-09", gender: "boy" }
+        ],
+        now
+      )
+    ).toEqual([
+      { ageBand: "6-12", gender: "girl" },
+      { ageBand: "24-48", gender: "boy" }
+    ]);
   });
 
   it("keeps URL child params above account defaults", () => {

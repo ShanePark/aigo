@@ -73,6 +73,7 @@ describe("AiGo preflight schema inventory", () => {
     inventory.columns = inventory.columns.filter(
       (row) =>
         !(row.tableName === "user_children" && row.columnName === "birth_year_month") &&
+        !(row.tableName === "user_children" && row.columnName === "gender") &&
         !(row.tableName === "user_home_locations" && row.columnName === "lat") &&
         !(row.tableName === "user_search_preferences" && row.columnName === "preference_mode")
     );
@@ -80,16 +81,19 @@ describe("AiGo preflight schema inventory", () => {
     inventory.constraints = inventory.constraints.filter(
       (row) =>
         row.name !== "user_children_birth_year_month_check" &&
+        row.name !== "user_children_gender_check" &&
         row.name !== "user_home_locations_lat_check" &&
         row.name !== "user_search_preferences_preference_mode_check"
     );
 
     expect(missingDatabaseSchemaArtifacts(inventory)).toEqual([
       "user_children.birth_year_month",
+      "user_children.gender",
       "user_home_locations.lat",
       "user_search_preferences.preference_mode",
       "index.user_children.user_children_user_sort_order_idx",
       "constraint.user_children.user_children_birth_year_month_check",
+      "constraint.user_children.user_children_gender_check",
       "constraint.user_home_locations.user_home_locations_lat_check",
       "constraint.user_search_preferences.user_search_preferences_preference_mode_check"
     ]);

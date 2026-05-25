@@ -17,10 +17,14 @@ function fakeExecutor(responses: QueryResponse[]) {
 }
 
 describe("user profile schemas", () => {
-  it("accepts child birth months but rejects malformed or future values", () => {
+  it("accepts child birth months and gender but rejects malformed values", () => {
     expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09" }] })).toEqual({
-      children: [{ birthYearMonth: "2024-09" }]
+      children: [{ birthYearMonth: "2024-09", gender: "boy" }]
     });
+    expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "girl" }] })).toEqual({
+      children: [{ birthYearMonth: "2024-09", gender: "girl" }]
+    });
+    expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "unknown" }] })).toThrow();
     expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-13" }] })).toThrow("YYYY-MM");
     expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2999-01" }] })).toThrow("future");
   });
@@ -45,13 +49,13 @@ describe("user profile schemas", () => {
 describe("user profile queries", () => {
   it("returns saved profile data with default preferences when no preference row exists", async () => {
     const { executor } = fakeExecutor([
-      [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: "0" }],
+      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: "0" }],
       [{ label: "home", lat: "36.33", lng: "127.43", addressText: null }],
       []
     ]);
 
     await expect(getMyProfile(userId, executor)).resolves.toEqual({
-      children: [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: 0 }],
+      children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
       homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: null },
       searchPreferences: {
         preferIndoor: false,
@@ -70,7 +74,7 @@ describe("user profile queries", () => {
       [],
       [],
       [],
-      [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: 0 }],
+      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
       [{ label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }],
       [
         {
@@ -88,7 +92,7 @@ describe("user profile queries", () => {
     await updateMyProfile(
       userId,
       {
-        children: [{ birthYearMonth: "2024-09" }],
+        children: [{ birthYearMonth: "2024-09", gender: "girl" }],
         homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: "대전" },
         searchPreferences: { preferIndoor: true, preferStroller: true, preferNursing: true, preferenceMode: "required" }
       },

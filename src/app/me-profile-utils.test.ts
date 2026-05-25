@@ -24,7 +24,7 @@ describe("me profile helpers", () => {
   it("maps birth months to the existing child age band icons", () => {
     expect(childAgeBandIdFromBirthYearMonth("2025-10", now)).toBe("6-12");
     expect(childAgeBandIdFromBirthYearMonth("2023-09", now)).toBe("24-48");
-    expect(childProfileIconSrcFromBirthYearMonth("2023-09", 1, now)).toBe("/icons/child-profiles/girl-24-48-avatar.webp");
+    expect(childProfileIconSrcFromBirthYearMonth("2023-09", "girl", now)).toBe("/icons/child-profiles/girl-24-48-avatar.webp");
   });
 
   it("keeps invalid or future birth months safe for display", () => {

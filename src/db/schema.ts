@@ -17,6 +17,7 @@ import {
 export type TriState = "yes" | "no" | "partial" | "unknown";
 export type IndoorType = "indoor" | "outdoor" | "mixed" | "unknown";
 export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair" | "itinerary_cluster";
+export type UserChildGender = "boy" | "girl";
 export type UserRole = "user" | "admin";
 export type SearchPreferenceMode = "soft" | "required";
 export type VisitVisibility = "public" | "private";
@@ -64,6 +65,7 @@ export const userChildren = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     birthYearMonth: text("birth_year_month").notNull(),
+    gender: text("gender").notNull().default("boy"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
@@ -71,6 +73,7 @@ export const userChildren = pgTable(
   (table) => ({
     userSortOrderIdx: index("user_children_user_sort_order_idx").on(table.userId, table.sortOrder),
     birthYearMonthCheck: check("user_children_birth_year_month_check", sql`${table.birthYearMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+    genderCheck: check("user_children_gender_check", sql`${table.gender} in ('boy', 'girl')`),
     sortOrderCheck: check("user_children_sort_order_check", sql`${table.sortOrder} >= 0`)
   })
 );
