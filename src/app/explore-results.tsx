@@ -8,6 +8,7 @@ import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, Rotate
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
+import { buildLocationSearchState } from "@/app/location-search-state";
 import {
   placeQualityScoreTitle,
   resultScoreRowLabel,
@@ -16,8 +17,6 @@ import {
 import {
   CLIENT_SEARCH_EVENT,
   MAP_LOCATION_PARAM_KEYS,
-  searchParamsForCurrentLocation,
-  searchParamsForHomeLocation,
   searchParamsForViewportSearch,
   searchParamsWithQueryValue,
   type ClientSearchEventDetail,
@@ -326,48 +325,32 @@ export function ExploreResults({
 
   const handleLocationSearch = useCallback(
     (location: { lat: number; lng: number }) => {
-      const sort = homeSort(activeInput.sort, activeSort);
-      const nextParams = searchParamsForCurrentLocation(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), location, { sort });
-      const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
-      const nextInput = {
-        ...nextSearchInput,
-        filterByRadius: true,
-        offset: 0,
-        origin: {
-          lat: location.lat,
-          lng: location.lng,
-          label: "현재 위치"
-        },
-        radiusKm: activeInput.radiusKm ?? 80,
-        sort,
-        viewportBounds: undefined
-      } satisfies SearchPlacesInput;
+      const next = buildLocationSearchState({
+        activeInput,
+        activeParams,
+        activeSort,
+        formQuery: currentSearchFormQuery(),
+        kind: "current",
+        location
+      });
 
-      void runClientSearch(nextInput, nextParams, "location");
+      void runClientSearch(next.input, next.params, "location");
     },
     [activeInput, activeParams, activeSort, runClientSearch]
   );
 
   const handleHomeLocationSearch = useCallback(
     (location: { lat: number; lng: number }) => {
-      const sort = homeSort(activeInput.sort, activeSort);
-      const nextParams = searchParamsForHomeLocation(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), location, { sort });
-      const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
-      const nextInput = {
-        ...nextSearchInput,
-        filterByRadius: true,
-        offset: 0,
-        origin: {
-          lat: location.lat,
-          lng: location.lng,
-          label: "집 위치"
-        },
-        radiusKm: activeInput.radiusKm ?? 80,
-        sort,
-        viewportBounds: undefined
-      } satisfies SearchPlacesInput;
+      const next = buildLocationSearchState({
+        activeInput,
+        activeParams,
+        activeSort,
+        formQuery: currentSearchFormQuery(),
+        kind: "home",
+        location
+      });
 
-      void runClientSearch(nextInput, nextParams, "location");
+      void runClientSearch(next.input, next.params, "location");
     },
     [activeInput, activeParams, activeSort, runClientSearch]
   );

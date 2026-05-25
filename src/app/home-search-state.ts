@@ -126,7 +126,7 @@ function hasExplicitLocationParams(params: Record<string, string | string[] | un
 
 function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, hasQuery: boolean) {
   if (!hasQuery) return hasExplicitLocationParams(params);
-  return textParam(params.nearby) === "1" || Boolean(textParam(params.radiusKm));
+  return textParam(params.nearby) === "1" || textParam(params.home) === "1" || Boolean(textParam(params.radiusKm));
 }
 
 function defaultRadiusKmForCategoryGroups(categoryGroups: CategoryGroupId[]) {
