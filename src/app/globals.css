@@ -4565,11 +4565,44 @@ h3 {
   padding: 0 2px 2px;
 }
 
+.me-home-map-card p.is-error {
+  color: var(--coral);
+}
+
+.me-home-map-frame {
+  position: relative;
+}
+
 .me-home-map {
   border-radius: 6px;
   height: 260px;
   min-height: 260px;
   overflow: hidden;
+}
+
+.me-home-map-locate {
+  align-items: center;
+  background: var(--panel-elevated);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 500;
+}
+
+.me-home-map-locate:hover:not(:disabled),
+.me-home-map-locate:focus-visible {
+  color: var(--mint);
+  transform: translateY(-1px);
 }
 
 .me-home-map.leaflet-container,

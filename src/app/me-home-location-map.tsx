@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { LocateFixed } from "lucide-react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
@@ -22,6 +23,7 @@ export function MeHomeLocationMap({ lat, lng, onSelect }: HomeLocationMapProps) 
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
   const onSelectRef = useRef(onSelect);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "error">("idle");
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -78,10 +80,46 @@ export function MeHomeLocationMap({ lat, lng, onSelect }: HomeLocationMapProps) 
     };
   }, []);
 
+  function moveToCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      return;
+    }
+
+    setLocationStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextLat = formatCoordinate(position.coords.latitude);
+        const nextLng = formatCoordinate(position.coords.longitude);
+        mapRef.current?.setView([position.coords.latitude, position.coords.longitude], SELECTED_HOME_MAP_ZOOM, { animate: true });
+        onSelect({ lat: nextLat, lng: nextLng });
+        setLocationStatus("idle");
+      },
+      () => {
+        setLocationStatus("error");
+      },
+      { enableHighAccuracy: true, maximumAge: 300000, timeout: 8000 }
+    );
+  }
+
   return (
     <div className="me-home-map-card">
-      <div className="me-home-map" ref={elementRef} aria-label="집 위치 선택 지도" />
-      <p>지도를 누르거나 핀을 드래그해 집 위치를 지정하세요.</p>
+      <div className="me-home-map-frame">
+        <div className="me-home-map" ref={elementRef} aria-label="집 위치 선택 지도" />
+        <button
+          className="me-home-map-locate"
+          type="button"
+          onClick={moveToCurrentLocation}
+          disabled={locationStatus === "locating"}
+          aria-label={locationStatus === "locating" ? "현재 위치 확인 중" : "현재 위치로 집 위치 후보 이동"}
+        >
+          <LocateFixed size={16} aria-hidden="true" />
+          {locationStatus === "locating" ? "확인 중" : "현재 위치"}
+        </button>
+      </div>
+      <p className={locationStatus === "error" ? "is-error" : ""}>
+        {locationStatus === "error" ? "현재 위치를 가져오지 못했습니다. 지도를 눌러 집 위치를 선택해 주세요." : "지도를 누르거나 핀을 드래그해 집 위치를 지정하세요."}
+      </p>
     </div>
   );
 }
