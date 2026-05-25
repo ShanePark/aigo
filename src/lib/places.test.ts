@@ -22,6 +22,7 @@ import {
   isBroadWaterPlayIntentQuery,
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
+  placeDbRecordForTest,
   normalizeSearchInput,
   normalizePlaceImageHealthQueryForTest,
   normalizedImagePrimaryForTest,
@@ -84,6 +85,42 @@ function courseItem(
 
 describe("place search helpers", () => {
   const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
+  const officialSource = { sourceType: "official_site" as const, url: "https://example.com/place" };
+
+  it("maps create and update region fields to persisted DB columns", () => {
+    const createRecord = placeDbRecordForTest({
+      name: "한들근린공원 어린이놀이터",
+      primaryCategory: "park",
+      lat: 35.244,
+      lng: 128.66,
+      regionSido: "경남",
+      regionSigungu: "창원시 의창구",
+      regionDong: "봉림동",
+      sources: [officialSource],
+      actor: "agent"
+    });
+    const updateRecord = placeDbRecordForTest({
+      regionSido: "경상남도",
+      regionSigungu: "창원시 의창구",
+      regionDong: "봉림동",
+      sources: [officialSource],
+      sourceMode: "append",
+      imageMode: "append",
+      relatedPlaceMode: "append",
+      actor: "agent"
+    });
+
+    expect(createRecord).toMatchObject({
+      region_sido: "경상남도",
+      region_sigungu: "창원시 의창구",
+      region_dong: "봉림동"
+    });
+    expect(updateRecord).toMatchObject({
+      region_sido: "경상남도",
+      region_sigungu: "창원시 의창구",
+      region_dong: "봉림동"
+    });
+  });
 
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);

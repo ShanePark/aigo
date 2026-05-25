@@ -1644,6 +1644,10 @@ function toDbRecord(input: Partial<CreatePlaceInput | UpdatePlaceInput>) {
   return record;
 }
 
+export function placeDbRecordForTest(input: CreatePlaceInput | UpdatePlaceInput) {
+  return toDbRecord(normalizePlaceWriteInput(input));
+}
+
 async function insertSources(executor: SqlExecutor, placeId: string, sources: SourceInput[]) {
   for (const source of sources) {
     await executor`
