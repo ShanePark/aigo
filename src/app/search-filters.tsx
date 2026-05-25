@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import type { ChildParamSource } from "@/app/account-child-defaults";
 import {
   CHILD_AGE_BANDS,
   CHILD_GENDERS,
@@ -28,6 +29,7 @@ import {
 } from "@/app/search-url-state";
 
 type SearchFiltersProps = {
+  childParamSource?: ChildParamSource;
   initialParams: Record<string, string | string[]>;
 };
 
@@ -47,11 +49,11 @@ const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
 const CHILD_PROFILE_STORAGE_KEY = "aigo-child-profiles";
 const MAX_CHILD_PROFILE_COUNT = CHILD_AGE_BANDS.length * CHILD_GENDERS.length;
 
-export function SearchFilters({ initialParams }: SearchFiltersProps) {
+export function SearchFilters({ childParamSource = "none", initialParams }: SearchFiltersProps) {
   const router = useRouter();
   const rootRef = useRef<HTMLDetailsElement | null>(null);
   const [isPending, startTransition] = useTransition();
-  const initialKey = useMemo(() => JSON.stringify(initialParams), [initialParams]);
+  const initialKey = useMemo(() => JSON.stringify({ childParamSource, initialParams }), [childParamSource, initialParams]);
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -131,12 +133,16 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
 
   useEffect(() => {
     const profilesFromParams = parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages));
-    const hasExplicitChildParams = hasChildParams(initialParams);
+    const hasInitialChildParams = childParamSource !== "none" || hasChildParams(initialParams);
     setSelectedFilters(filtersFromParams(initialParams));
     setChildProfiles(profilesFromParams);
     setIsPickerOpen(false);
 
-    if (hasExplicitChildParams) {
+    if (childParamSource === "account") {
+      return;
+    }
+
+    if (hasInitialChildParams) {
       storeChildProfiles(profilesFromParams);
       return;
     }
@@ -161,7 +167,7 @@ export function SearchFilters({ initialParams }: SearchFiltersProps) {
     startTransition(() => {
       router.replace(query ? `/?${query}` : "/", { scroll: false });
     });
-  }, [initialKey, initialParams, router, startTransition]);
+  }, [childParamSource, initialKey, initialParams, router, startTransition]);
 
   return (
     <details className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>

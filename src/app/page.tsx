@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import type { UrlObject } from "url";
 import {
   Baby,
@@ -14,6 +15,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
+import { applyAccountChildDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
 import {
   CATEGORY_GROUP_CATEGORY_FILTERS,
@@ -28,9 +30,11 @@ import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
 import { SearchResetButton } from "@/app/search-reset-button";
 import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
+import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
+import { getMyProfile } from "@/lib/user-profile";
 
 const CATEGORY_GROUPS = {
   all: { label: "전체", hint: "모두", icon: Blocks, categories: CATEGORY_GROUP_CATEGORY_FILTERS.all },
@@ -60,7 +64,8 @@ type HomeProps = {
 };
 
 export default async function Home({ searchParams }: HomeProps) {
-  const params = await searchParams;
+  const rawParams = await searchParams;
+  const { childParamSource, params } = await paramsWithAccountChildDefaults(rawParams);
   let effectiveParams = params;
   let activeCategoryGroups = categoryGroupParams(params);
   let input = searchPlacesSchema.parse(buildSearchInput(params));
@@ -127,7 +132,7 @@ export default async function Home({ searchParams }: HomeProps) {
             })}
           </div>
 
-          <SearchFilters initialParams={clientParams(effectiveParams)} />
+          <SearchFilters childParamSource={childParamSource} initialParams={clientParams(effectiveParams)} />
         </form>
       </section>
 
@@ -142,6 +147,21 @@ export default async function Home({ searchParams }: HomeProps) {
       />
     </div>
   );
+}
+
+async function paramsWithAccountChildDefaults(params: Record<string, string | string[] | undefined>) {
+  if (childParamSourceForParams(params) === "url") {
+    return { childParamSource: "url" as const, params };
+  }
+
+  const cookieStore = await cookies();
+  const user = await currentUserFromSessionToken(cookieStore.get(AIGO_SESSION_COOKIE)?.value);
+  if (!user) {
+    return { childParamSource: "none" as const, params };
+  }
+
+  const profile = await getMyProfile(user.id);
+  return applyAccountChildDefaults(params, profile.children);
 }
 
 function LocationStateInputs({ params }: { params: Record<string, string | string[] | undefined> }) {
