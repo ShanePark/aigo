@@ -2977,7 +2977,7 @@ h3 {
 .detail-header-actions {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   position: absolute;
   right: 18px;
   top: 18px;
@@ -2988,56 +2988,12 @@ h3 {
 }
 
 .detail-header-actions .place-save-controls {
-  backdrop-filter: blur(10px);
-  background: color-mix(in srgb, var(--panel) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--mint) 12%, var(--line));
-  border-radius: 999px;
-  box-shadow: 0 14px 34px rgba(24, 33, 29, 0.1);
   flex-wrap: nowrap;
-  gap: 6px;
-  min-height: 64px;
-  padding: 7px;
-}
-
-.detail-header-actions .place-save-button {
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 900;
-  gap: 7px;
-  min-height: 50px;
-  padding: 0 14px;
-}
-
-.detail-header-actions .place-save-button.is-want-to-go {
-  background: color-mix(in srgb, var(--mint-soft) 58%, transparent);
-  border-color: color-mix(in srgb, var(--mint) 22%, var(--line));
-  color: var(--mint);
-}
-
-.detail-header-actions .place-save-button.is-hearted {
-  background: color-mix(in srgb, var(--coral-soft) 52%, transparent);
-  border-color: color-mix(in srgb, var(--coral) 20%, var(--line));
-  color: var(--coral);
-}
-
-.detail-header-actions .place-save-button.is-want-to-go.is-active {
-  background: var(--mint-soft);
-  border-color: color-mix(in srgb, var(--mint) 38%, var(--line-strong));
-}
-
-.detail-header-actions .place-save-button.is-hearted.is-active {
-  background: var(--coral-soft);
-  border-color: color-mix(in srgb, var(--coral) 36%, var(--line-strong));
-}
-
-.detail-header-actions .place-save-button svg {
-  height: 16px;
-  width: 16px;
 }
 
 .detail-sticky-head .detail-head {
   min-width: 0;
-  padding-right: 390px;
+  padding-right: 360px;
 }
 
 .detail-sticky-head .back-link,
@@ -3192,6 +3148,21 @@ h3 {
   font-weight: var(--weight-label);
   min-height: 30px;
   padding: 0 10px;
+}
+
+:root[data-theme="dark"] .detail-decision-card {
+  background:
+    linear-gradient(135deg, rgba(229, 196, 109, 0.14), transparent 42%),
+    linear-gradient(90deg, rgba(121, 215, 166, 0.14), transparent 50%),
+    var(--panel);
+  border-color: var(--line-strong);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .detail-decision-chip {
+  background: color-mix(in srgb, var(--chip-neutral-bg) 88%, var(--panel));
+  border-color: var(--line-strong);
+  color: var(--chip-neutral-text);
 }
 
 .detail-decision-chip.positive {
@@ -6211,16 +6182,6 @@ dd {
     justify-content: space-between;
     order: 2;
     position: static;
-  }
-
-  .detail-header-actions .place-save-controls {
-    min-height: 54px;
-    padding: 5px;
-  }
-
-  .detail-header-actions .place-save-button {
-    min-height: 42px;
-    padding-inline: 10px;
   }
 
   .detail-sticky-head .detail-head {
