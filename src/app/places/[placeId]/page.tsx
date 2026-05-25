@@ -8,6 +8,7 @@ import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
 import { PlaceScoreDialog } from "@/app/places/place-score-dialog";
+import { PlaceSaveControls } from "@/app/places/place-save-controls";
 import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
 import { PlaceViewRecorder } from "@/app/places/place-view-recorder";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
@@ -148,6 +149,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           </div>
           {decisionNote ? <p className="detail-decision-note">{decisionNote}</p> : null}
           <div className="detail-decision-actions">
+            <PlaceSaveControls placeId={place.id} />
             {naverMapLink ? (
               <a className="detail-decision-action is-primary" href={naverMapLink.url} target="_blank" rel="noreferrer">
                 <MapPin size={15} aria-hidden="true" />

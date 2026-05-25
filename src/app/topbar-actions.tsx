@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, History, Menu, UserRound, X } from "lucide-react";
+import { Bookmark, ClipboardList, History, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -53,6 +53,10 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
           <Link className={styles.link} href="/visits" onClick={() => setIsOpen(false)}>
             <ClipboardList size={16} aria-hidden="true" />
             <span>방문 로그</span>
+          </Link>
+          <Link className={styles.link} href="/saved-places" onClick={() => setIsOpen(false)}>
+            <Bookmark size={16} aria-hidden="true" />
+            <span>저장한 장소</span>
           </Link>
           <Link className={styles.link} href="/recent-places" onClick={() => setIsOpen(false)}>
             <History size={16} aria-hidden="true" />

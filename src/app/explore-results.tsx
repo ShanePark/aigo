@@ -6,6 +6,7 @@ import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
+import { PlaceSaveControls } from "@/app/places/place-save-controls";
 import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import { buildLocationSearchState } from "@/app/location-search-state";
@@ -530,43 +531,45 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
   const metrics = resultCardMetrics(place);
 
   return (
-    <Link
+    <article
       className="result-card"
       data-map-place-card="true"
       data-map-place-id={place.placeId}
       data-map-place-lat={place.lat}
       data-map-place-lng={place.lng}
       id={`place-card-${place.placeId}`}
-      href={placeDetailHref(place.placeId, returnHref)}
     >
-      <div className="result-image-frame">
-        <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-        <span className="rank-badge" aria-label={`${index}번째 결과`}>
-          {index}
-        </span>
-      </div>
-      <div className="result-card-body">
-        <div className="result-card-topline">
-          <span className="category-pill">{category}</span>
-          <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-            {metrics.map((metric) => (
-              <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
-                {metric.icon ? metric.icon : null}
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-              </span>
+      <Link className="result-card-main" href={placeDetailHref(place.placeId, returnHref)}>
+        <div className="result-image-frame">
+          <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
+          <span className="rank-badge" aria-label={`${index}번째 결과`}>
+            {index}
+          </span>
+        </div>
+        <div className="result-card-body">
+          <div className="result-card-topline">
+            <span className="category-pill">{category}</span>
+            <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
+              {metrics.map((metric) => (
+                <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
+                  {metric.icon ? metric.icon : null}
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+          <h3>{place.name}</h3>
+          <p className="result-card-summary">{summary}</p>
+          <div className="keyword-row" aria-label="키워드">
+            {keywords.map((keyword) => (
+              <span key={keyword}>{keyword}</span>
             ))}
           </div>
         </div>
-        <h3>{place.name}</h3>
-        <p className="result-card-summary">{summary}</p>
-        <div className="keyword-row" aria-label="키워드">
-          {keywords.map((keyword) => (
-            <span key={keyword}>{keyword}</span>
-          ))}
-        </div>
-      </div>
-    </Link>
+      </Link>
+      <PlaceSaveControls compact placeId={place.placeId} />
+    </article>
   );
 }
 

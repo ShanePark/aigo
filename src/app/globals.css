@@ -1673,7 +1673,7 @@ h3 {
   .map-place-marker:focus-visible span,
   .map-place-marker:focus-within span,
   .result-card:hover,
-  .result-card:focus-visible,
+  .result-card:focus-within,
   .result-card.is-map-highlighted,
   .category-tab:focus-visible {
     transform: none;
@@ -1911,7 +1911,7 @@ h3 {
 }
 
 .result-card:hover,
-.result-card:focus-visible {
+.result-card:focus-within {
   background: var(--result-hover-bg);
   border-color: var(--highlight-border);
   box-shadow:
@@ -1932,9 +1932,16 @@ h3 {
   transform: translateY(-2px);
 }
 
-.result-card:focus-visible {
+.result-card:focus-within {
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
+}
+
+.result-card-main {
+  color: inherit;
+  display: grid;
+  min-width: 0;
+  outline: 0;
 }
 
 .result-image-frame {
@@ -2024,8 +2031,11 @@ h3 {
 }
 
 .results-panel .result-card {
-  grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
   min-height: var(--result-thumb-size);
+}
+
+.results-panel .result-card-main {
+  grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
 }
 
 .results-panel .result-image {
@@ -2045,6 +2055,88 @@ h3 {
   justify-content: space-between;
   min-height: 28px;
   min-width: 0;
+}
+
+.place-save-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.result-card > .place-save-controls {
+  border-top: 1px solid var(--line);
+  padding: 0 12px 12px;
+}
+
+.place-save-button,
+.place-save-heart-count,
+.place-save-status {
+  align-items: center;
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.place-save-button {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.place-save-button:hover,
+.place-save-button:focus-visible {
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.place-save-button.is-active {
+  background: var(--mint-soft);
+  border-color: var(--line-strong);
+  color: var(--mint);
+}
+
+.place-save-button:disabled {
+  cursor: progress;
+  opacity: 0.62;
+}
+
+.place-save-heart-count {
+  background: var(--coral-soft);
+  border: 1px solid var(--line);
+  color: var(--coral);
+}
+
+.place-save-status {
+  color: var(--coral);
+  padding-inline: 0;
+}
+
+.place-save-controls.is-compact {
+  gap: 5px;
+}
+
+.place-save-controls.is-compact .place-save-button,
+.place-save-controls.is-compact .place-save-heart-count {
+  min-height: 30px;
+  padding: 0 8px;
+}
+
+.detail-decision-actions .place-save-controls {
+  grid-column: 1 / -1;
 }
 
 .rank-badge {
@@ -6054,7 +6146,7 @@ dd {
     justify-content: center;
   }
 
-  .results-panel .result-card {
+  .results-panel .result-card-main {
     --result-thumb-size: 96px;
     grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
   }
