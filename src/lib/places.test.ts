@@ -406,6 +406,40 @@ describe("place search helpers", () => {
     expect(query.params).toEqual(["괌 pic", "괌pic"]);
   });
 
+  it("includes overseas English and local names in exact-name lookup", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "Jpark Island Resort & Waterpark Cebu",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("external_refs->'aliases'");
+    expect(query.sql).toContain("external_refs->'koreanSearchAliases'");
+    expect(query.sql).toContain("external_refs->'englishName'");
+    expect(query.sql).toContain("external_refs->'localName'");
+    expect(query.params).toEqual(["jpark island resort & waterpark cebu", "jparkislandresort&waterparkcebu"]);
+  });
+
+  it("uses overseas English names as exact query-match aliases", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "세부 제이파크 아일랜드 리조트 앤 워터파크",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: {
+          englishName: "Jpark Island Resort & Waterpark Cebu",
+          localName: "JPark Island Resort and Waterpark"
+        }
+      },
+      "Jpark Island Resort & Waterpark Cebu"
+    );
+
+    expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
+    expect(signal.delta).toBeGreaterThanOrEqual(24);
+  });
+
   it("filters overseas search candidates by country and city scope", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,

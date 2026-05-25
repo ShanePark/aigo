@@ -1433,14 +1433,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           case
             when exists (
               select 1
-              from jsonb_array_elements_text(
-                case
-                  when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
-                  when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
-                  when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
-                  else '[]'::jsonb
-                end
-              ) as external_alias(value)
+              from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
               where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
             )
             then 0.9
@@ -1478,14 +1471,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
           or exists (
             select 1
-            from jsonb_array_elements_text(
-              case
-                when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
-                when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
-                when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
-                else '[]'::jsonb
-              end
-            ) as external_alias(value)
+            from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
             where regexp_replace(lower(external_alias.value), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
           )
         ) as alias_match,
@@ -2393,14 +2379,7 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
     : "";
   return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause} or exists (
     select 1
-    from jsonb_array_elements_text(
-      case
-        when jsonb_typeof(external_refs->'aliases') = 'array' and jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'aliases' || external_refs->'koreanSearchAliases'
-        when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases'
-        when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases'
-        else '[]'::jsonb
-      end
-    ) as external_alias(value)
+    from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
     where lower(external_alias.value) = ${exactParam}
       or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}${externalAliasRetailClause}
   ))`;
@@ -3646,9 +3625,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function externalRefsAliasTexts(externalRefs: unknown) {
   if (!isRecord(externalRefs)) return [];
-  return [externalRefs.aliases, externalRefs.koreanSearchAliases]
-    .flatMap((value) => (Array.isArray(value) ? value : []))
+  return [externalRefs.aliases, externalRefs.koreanSearchAliases, externalRefs.englishName, externalRefs.localName]
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
     .filter(isNonEmptyString);
+}
+
+function externalRefsAliasJsonbExpression() {
+  return `(
+    case when jsonb_typeof(external_refs->'aliases') = 'array' then external_refs->'aliases' else '[]'::jsonb end
+    || case when jsonb_typeof(external_refs->'koreanSearchAliases') = 'array' then external_refs->'koreanSearchAliases' else '[]'::jsonb end
+    || case when jsonb_typeof(external_refs->'englishName') = 'string' then jsonb_build_array(external_refs->>'englishName') else '[]'::jsonb end
+    || case when jsonb_typeof(external_refs->'localName') = 'string' then jsonb_build_array(external_refs->>'localName') else '[]'::jsonb end
+  )`;
 }
 
 export function retailAliasCompactTextsForTest(value: string) {
