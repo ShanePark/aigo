@@ -532,18 +532,18 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       <div className="result-card-body">
         <div className="result-card-topline">
           <span className="category-pill">{category}</span>
+          <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
+            {metrics.map((metric) => (
+              <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
+                {metric.icon ? metric.icon : null}
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+              </span>
+            ))}
+          </div>
         </div>
         <h3>{place.name}</h3>
         <p className="result-card-summary">{summary}</p>
-        <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-          {metrics.map((metric) => (
-            <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
-              {metric.icon ? metric.icon : null}
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </span>
-          ))}
-        </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (
             <span key={keyword}>{keyword}</span>
@@ -820,6 +820,7 @@ function resultCardMetrics(place: SearchItem) {
       icon: <MapPin size={13} aria-hidden="true" />,
       label: "거리",
       title: "검색 기준점에서의 직선 거리",
+      tone: distanceTone(place.distanceKm),
       value: distanceLabel(place.distanceKm)
     },
     {
@@ -836,6 +837,13 @@ function resultCardMetrics(place: SearchItem) {
       value: evaluationValue
     }
   ];
+}
+
+function distanceTone(distanceKm: number | null) {
+  if (distanceKm === null) return "distance-unknown";
+  if (distanceKm <= 5) return "distance-near";
+  if (distanceKm <= 20) return "distance-mid";
+  return "distance-far";
 }
 
 function firstText(values: Array<string | null | undefined> | undefined) {

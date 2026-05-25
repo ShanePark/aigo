@@ -1905,7 +1905,8 @@ h3 {
 }
 
 .result-image-frame {
-  height: var(--result-thumb-size);
+  align-self: stretch;
+  min-height: var(--result-thumb-size);
   position: relative;
   width: var(--result-thumb-size);
 }
@@ -1996,19 +1997,19 @@ h3 {
 
 .results-panel .result-image {
   align-self: start;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: auto;
   border-right: 1px solid var(--line);
-  height: var(--result-thumb-size);
+  height: 100%;
   min-height: 0;
   width: var(--result-thumb-size);
 }
 
 .result-card-topline {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  justify-content: flex-start;
+  justify-content: space-between;
   min-height: 28px;
   min-width: 0;
 }
@@ -2104,6 +2105,8 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+  justify-content: flex-end;
+  margin-left: auto;
   min-width: 0;
 }
 
@@ -2128,29 +2131,34 @@ h3 {
 }
 
 .result-metric-pill.score-high,
-.result-metric-pill.score-good {
+.result-metric-pill.score-good,
+.result-metric-pill.distance-near {
   background: var(--mint-soft);
   border-color: color-mix(in srgb, var(--mint) 20%, var(--line));
   color: var(--mint);
 }
 
 .result-metric-pill.score-high strong,
-.result-metric-pill.score-good strong {
+.result-metric-pill.score-good strong,
+.result-metric-pill.distance-near strong {
   color: var(--mint);
 }
 
-.result-metric-pill.score-mid {
+.result-metric-pill.score-mid,
+.result-metric-pill.distance-mid {
   background: var(--yellow-soft);
   border-color: color-mix(in srgb, var(--yellow) 28%, var(--line));
 }
 
-.result-metric-pill.score-low {
+.result-metric-pill.score-low,
+.result-metric-pill.distance-far {
   background: var(--coral-soft);
   border-color: color-mix(in srgb, var(--coral) 24%, var(--line));
   color: var(--coral);
 }
 
-.result-metric-pill.score-low strong {
+.result-metric-pill.score-low strong,
+.result-metric-pill.distance-far strong {
   color: var(--coral);
 }
 
@@ -4475,7 +4483,12 @@ dd {
   }
 
   .result-card-topline {
-    gap: 5px;
+    gap: 6px;
+  }
+
+  .result-metric-row {
+    justify-content: flex-start;
+    margin-left: 0;
   }
 
   .rank-badge,
