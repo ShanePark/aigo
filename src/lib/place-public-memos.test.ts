@@ -92,6 +92,24 @@ describe("place public memo mutation", () => {
     } satisfies Partial<ApiError>);
   });
 
+  it("updates the owner's memo in place", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ userId: baseMemoRow.userId }],
+      [{ ...baseMemoRow, body: "주말에는 지하 2층 주차가 덜 붐볐어요." }]
+    ]);
+
+    await expect(
+      updatePlacePublicMemo(baseMemoRow.id, baseMemoRow.userId, { body: "주말에는 지하 2층 주차가 덜 붐볐어요." }, executor)
+    ).resolves.toMatchObject({
+      item: {
+        body: "주말에는 지하 2층 주차가 덜 붐볐어요.",
+        isMine: true
+      }
+    });
+    expect(calls[1]).toContain("update place_public_memos");
+    expect(calls[1]).toContain("set body = ?");
+  });
+
   it("allows only the owner to delete a memo", async () => {
     const { calls, executor } = fakeExecutor([[{ userId: baseMemoRow.userId }], []]);
 

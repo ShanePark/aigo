@@ -211,6 +211,7 @@ describe("place visit photo privacy", () => {
 
     expect(calls[0]).toContain("join place_visits v on v.id = ph.visit_id");
     expect(calls[0]).toContain("ph.visibility = 'public' and v.visibility = 'public'");
+    expect(calls[0]).not.toContain("place_public_memos");
   });
 
   it("returns the current photo count after updating a visit", async () => {
