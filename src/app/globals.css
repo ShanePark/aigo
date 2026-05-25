@@ -4240,7 +4240,8 @@ h3 {
 
 .me-child-save,
 .me-child-delete,
-.me-section-save {
+.me-section-save,
+.me-section-delete {
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4275,7 +4276,8 @@ h3 {
   color: var(--accent-text);
 }
 
-.me-child-delete {
+.me-child-delete,
+.me-section-delete {
   background: var(--panel);
   color: var(--coral);
 }
@@ -4290,7 +4292,9 @@ h3 {
 .me-section-save:hover:not(:disabled),
 .me-section-save:focus-visible,
 .me-child-delete:hover:not(:disabled),
-.me-child-delete:focus-visible {
+.me-child-delete:focus-visible,
+.me-section-delete:hover:not(:disabled),
+.me-section-delete:focus-visible {
   box-shadow: var(--shadow-soft);
   transform: translateY(-1px);
 }
@@ -4332,11 +4336,65 @@ h3 {
 .me-home-fields {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(130px, 0.7fr) repeat(2, minmax(120px, 0.6fr));
+  grid-template-columns: minmax(140px, 0.45fr) minmax(0, 1fr);
 }
 
 .me-home-address {
-  grid-column: 1 / -1;
+  grid-column: auto;
+}
+
+.me-home-map-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.me-home-map-card p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0 2px 2px;
+}
+
+.me-home-map {
+  border-radius: 6px;
+  height: 260px;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+.me-home-map.leaflet-container,
+.me-home-map .leaflet-container {
+  background: var(--field-bg);
+  height: 260px;
+  min-height: 260px;
+}
+
+.me-home-map-marker {
+  align-items: center;
+  background: var(--mint);
+  border: 3px solid var(--panel);
+  border-radius: 999px 999px 999px 2px;
+  box-shadow: var(--shadow-strong);
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  transform: rotate(-45deg);
+  width: 30px;
+}
+
+.me-home-map-marker span {
+  background: var(--panel);
+  border-radius: 999px;
+  display: block;
+  height: 9px;
+  width: 9px;
 }
 
 .me-field {
@@ -4367,6 +4425,7 @@ h3 {
 .me-child-gender-segments button:disabled,
 .me-child-save:disabled,
 .me-child-delete:disabled,
+.me-section-delete:disabled,
 .me-section-save:disabled {
   cursor: not-allowed;
   opacity: 0.65;

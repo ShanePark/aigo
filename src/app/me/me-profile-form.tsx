@@ -8,6 +8,7 @@ import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
 import type { MyProfile } from "@/lib/user-profile";
 
 import { homeLocationHasUsableCoordinates, homeSaveUiState, type HomeDraft } from "../me-home-state";
+import { MeHomeLocationMap } from "../me-home-location-map";
 import {
   childAgeBandLabelFromBirthYearMonth,
   childAgeLabelFromBirthYearMonth,
@@ -66,6 +67,24 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   function updateHomeLocation(next: (current: HomeDraft) => HomeDraft) {
     setHomeLocation(next);
     clearSavedStatus();
+  }
+
+  function selectHomeLocation(location: { lat: string; lng: string }) {
+    updateHomeLocation((current) => ({
+      ...current,
+      enabled: true,
+      lat: location.lat,
+      lng: location.lng
+    }));
+  }
+
+  function clearHomeLocation() {
+    updateHomeLocation((current) => ({
+      ...current,
+      enabled: false,
+      lat: "",
+      lng: ""
+    }));
   }
 
   function clearSavedStatus() {
@@ -223,82 +242,45 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             <h2 id="me-home-title">집 위치</h2>
             <p>현재 위치를 쓸 수 없을 때 검색 기준점으로 사용합니다.</p>
           </div>
-          <label className="me-switch">
-            <input
-              type="checkbox"
-              checked={homeLocation.enabled}
-              onChange={(event) => {
-                const enabled = event.currentTarget.checked;
-                updateHomeLocation((current) => ({ ...current, enabled }));
-              }}
-              disabled={isSaving}
-            />
-            <span>{homeLocation.enabled ? "사용 중" : homeSaveState.statusLabel}</span>
-          </label>
+          <span className={`me-save-pill ${homeSaveState.dirty ? "is-dirty" : "is-clean"}`}>{homeSaveState.statusLabel}</span>
         </header>
 
-        {homeLocation.enabled ? (
-          <div className="me-home-fields">
-            <label className="me-field">
-              <span>이름</span>
-              <input
-                value={homeLocation.label}
-                onChange={(event) => {
-                  const label = event.currentTarget.value;
-                  updateHomeLocation((current) => ({ ...current, label }));
-                }}
-                maxLength={40}
-                placeholder="home"
-              />
-            </label>
-            <label className="me-field">
-              <span>위도</span>
-              <input
-                inputMode="decimal"
-                type="number"
-                min="-90"
-                max="90"
-                step="0.000001"
-                value={homeLocation.lat}
-                onChange={(event) => {
-                  const lat = event.currentTarget.value;
-                  updateHomeLocation((current) => ({ ...current, lat }));
-                }}
-                required={homeLocation.enabled}
-              />
-            </label>
-            <label className="me-field">
-              <span>경도</span>
-              <input
-                inputMode="decimal"
-                type="number"
-                min="-180"
-                max="180"
-                step="0.000001"
-                value={homeLocation.lng}
-                onChange={(event) => {
-                  const lng = event.currentTarget.value;
-                  updateHomeLocation((current) => ({ ...current, lng }));
-                }}
-                required={homeLocation.enabled}
-              />
-            </label>
-            <label className="me-field me-home-address">
-              <span>주소 메모</span>
-              <input
-                value={homeLocation.addressText}
-                onChange={(event) => {
-                  const addressText = event.currentTarget.value;
-                  updateHomeLocation((current) => ({ ...current, addressText }));
-                }}
-                maxLength={200}
-                placeholder="대략적인 주소"
-              />
-            </label>
-          </div>
-        ) : (
-          <p className="me-empty-note">{homeSaveState.statusLabel === "삭제 예정" ? "저장하면 등록된 집 위치가 삭제됩니다." : "집 위치가 아직 설정되지 않았습니다."}</p>
-        )}
+        <MeHomeLocationMap lat={homeLocation.lat} lng={homeLocation.lng} onSelect={selectHomeLocation} />
+
+        <div className="me-home-fields">
+          <label className="me-field">
+            <span>이름</span>
+            <input
+              value={homeLocation.label}
+              onChange={(event) => {
+                const label = event.currentTarget.value;
+                updateHomeLocation((current) => ({ ...current, label }));
+              }}
+              maxLength={40}
+              placeholder="home"
+            />
+          </label>
+          <label className="me-field me-home-address">
+            <span>주소 메모</span>
+            <input
+              value={homeLocation.addressText}
+              onChange={(event) => {
+                const addressText = event.currentTarget.value;
+                updateHomeLocation((current) => ({ ...current, addressText }));
+              }}
+              maxLength={200}
+              placeholder="대략적인 주소"
+            />
+          </label>
+        </div>
+
+        <p className="me-empty-note">
+          {homeSaveState.statusLabel === "삭제 예정"
+            ? "저장하면 등록된 집 위치가 삭제됩니다."
+            : homeLocation.enabled && !homeSaveState.invalidCoordinates
+              ? `선택 좌표 ${Number(homeLocation.lat).toFixed(5)}, ${Number(homeLocation.lng).toFixed(5)}`
+              : "집 위치가 아직 설정되지 않았습니다. 지도에서 집 위치를 눌러 선택하세요."}
+        </p>
         <div className="me-section-actions">
           <button
             className={`me-section-save ${homeSaveState.dirty ? "is-dirty" : "is-clean"}`}
@@ -309,6 +291,12 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             {homeSaveState.dirty ? <Save size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
             {homeSaveState.buttonText}
           </button>
+          {homeLocation.enabled ? (
+            <button className="me-section-delete" type="button" onClick={clearHomeLocation} disabled={isSaving}>
+              <Trash2 size={15} aria-hidden="true" />
+              집 위치 삭제
+            </button>
+          ) : null}
         </div>
       </section>
 
