@@ -48,7 +48,7 @@ describe("profile API route", () => {
 
   it("returns the current user's profile", async () => {
     mocks.requireCurrentUser.mockResolvedValue({ id: "user-1" });
-    mocks.getMyProfile.mockResolvedValue({ children: [], homeLocation: null, searchPreferences: { preferenceMode: "soft" } });
+    mocks.getMyProfile.mockResolvedValue({ children: [], homeLocation: null });
 
     const response = await GET(request());
 

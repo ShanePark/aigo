@@ -27,18 +27,6 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     auth_sessions: ["id", "user_id", "token_hash", "expires_at", "last_used_at", "created_at"],
     user_children: ["id", "user_id", "birth_year_month", "gender", "sort_order", "created_at", "updated_at"],
     user_home_locations: ["user_id", "label", "lat", "lng", "address_text", "created_at", "updated_at"],
-    user_search_preferences: [
-      "user_id",
-      "prefer_indoor",
-      "prefer_parking",
-      "prefer_stroller",
-      "prefer_sand_play",
-      "prefer_nursing",
-      "prefer_baby_chair",
-      "preference_mode",
-      "created_at",
-      "updated_at"
-    ],
     places: [
       "id",
       "name",
@@ -118,7 +106,6 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
     { tableName: "user_children", name: "user_children_sort_order_check" },
     { tableName: "user_home_locations", name: "user_home_locations_lat_check" },
     { tableName: "user_home_locations", name: "user_home_locations_lng_check" },
-    { tableName: "user_search_preferences", name: "user_search_preferences_preference_mode_check" },
     { tableName: "places", name: "places_place_score_range" },
     { tableName: "places", name: "places_external_rating_score_range" },
     { tableName: "places", name: "places_external_review_count_nonnegative" },

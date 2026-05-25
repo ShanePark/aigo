@@ -38,32 +38,16 @@ export const userHomeLocationInputSchema = z.object({
   addressText: nullableTextSchema.optional()
 });
 
-export const searchPreferenceModeSchema = z.enum(["soft", "required"]);
-
-export const userSearchPreferencesInputSchema = z
-  .object({
-    preferIndoor: z.boolean().optional(),
-    preferParking: z.boolean().optional(),
-    preferStroller: z.boolean().optional(),
-    preferSandPlay: z.boolean().optional(),
-    preferNursing: z.boolean().optional(),
-    preferBabyChair: z.boolean().optional(),
-    preferenceMode: searchPreferenceModeSchema.optional()
-  })
-  .refine((value) => Object.keys(value).length > 0, "At least one search preference is required");
-
 export const updateMyProfileSchema = z
   .object({
     children: z.array(userChildInputSchema).max(12).optional(),
-    homeLocation: userHomeLocationInputSchema.nullable().optional(),
-    searchPreferences: userSearchPreferencesInputSchema.optional()
+    homeLocation: userHomeLocationInputSchema.nullable().optional()
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, "At least one profile field is required");
 
 export type UserChildInput = z.infer<typeof userChildInputSchema>;
 export type UserHomeLocationInput = z.infer<typeof userHomeLocationInputSchema>;
-export type UserSearchPreferencesInput = z.infer<typeof userSearchPreferencesInputSchema>;
 export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;
 
 export type MyProfileChild = {
@@ -80,28 +64,16 @@ export type MyProfileHomeLocation = {
   addressText: string | null;
 };
 
-export type MyProfileSearchPreferences = {
-  preferIndoor: boolean;
-  preferParking: boolean;
-  preferStroller: boolean;
-  preferSandPlay: boolean;
-  preferNursing: boolean;
-  preferBabyChair: boolean;
-  preferenceMode: "soft" | "required";
-};
-
 export type MyProfile = {
   children: MyProfileChild[];
   homeLocation: MyProfileHomeLocation | null;
-  searchPreferences: MyProfileSearchPreferences;
 };
 
 type ChildRow = MyProfileChild;
 type HomeLocationRow = MyProfileHomeLocation;
-type SearchPreferencesRow = MyProfileSearchPreferences;
 
 export async function getMyProfile(userId: string, executor: SqlExecutor = pg): Promise<MyProfile> {
-  const [childrenRows, homeRows, searchPreferenceRows] = await Promise.all([
+  const [childrenRows, homeRows] = await Promise.all([
     executor<ChildRow[]>`
       select
         id::text as id,
@@ -121,28 +93,12 @@ export async function getMyProfile(userId: string, executor: SqlExecutor = pg): 
       from user_home_locations
       where user_id = ${userId}
       limit 1
-    `,
-    executor<SearchPreferencesRow[]>`
-      select
-        prefer_indoor as "preferIndoor",
-        prefer_parking as "preferParking",
-        prefer_stroller as "preferStroller",
-        prefer_sand_play as "preferSandPlay",
-        prefer_nursing as "preferNursing",
-        prefer_baby_chair as "preferBabyChair",
-        preference_mode as "preferenceMode"
-      from user_search_preferences
-      where user_id = ${userId}
-      limit 1
     `
   ]);
 
   return {
     children: childrenRows.map(childFromRow),
-    homeLocation: homeRows[0] ? homeLocationFromRow(homeRows[0]) : null,
-    searchPreferences: searchPreferenceRows[0]
-      ? searchPreferencesFromRow(searchPreferenceRows[0])
-      : defaultSearchPreferences()
+    homeLocation: homeRows[0] ? homeLocationFromRow(homeRows[0]) : null
   };
 }
 
@@ -165,10 +121,6 @@ async function writeMyProfile(userId: string, input: UpdateMyProfileInput, execu
 
   if (input.homeLocation !== undefined) {
     await replaceUserHomeLocation(userId, input.homeLocation, executor);
-  }
-
-  if (input.searchPreferences !== undefined) {
-    await upsertUserSearchPreferences(userId, input.searchPreferences, executor);
   }
 }
 
@@ -222,40 +174,6 @@ async function replaceUserHomeLocation(userId: string, homeLocation: UserHomeLoc
   `;
 }
 
-async function upsertUserSearchPreferences(userId: string, input: UserSearchPreferencesInput, executor: SqlExecutor) {
-  await executor`
-    insert into user_search_preferences (
-      user_id,
-      prefer_indoor,
-      prefer_parking,
-      prefer_stroller,
-      prefer_sand_play,
-      prefer_nursing,
-      prefer_baby_chair,
-      preference_mode
-    )
-    values (
-      ${userId},
-      ${input.preferIndoor ?? false},
-      ${input.preferParking ?? false},
-      ${input.preferStroller ?? false},
-      ${input.preferSandPlay ?? false},
-      ${input.preferNursing ?? false},
-      ${input.preferBabyChair ?? false},
-      ${input.preferenceMode ?? "soft"}
-    )
-    on conflict (user_id) do update
-      set prefer_indoor = coalesce(${input.preferIndoor ?? null}, user_search_preferences.prefer_indoor),
-          prefer_parking = coalesce(${input.preferParking ?? null}, user_search_preferences.prefer_parking),
-          prefer_stroller = coalesce(${input.preferStroller ?? null}, user_search_preferences.prefer_stroller),
-          prefer_sand_play = coalesce(${input.preferSandPlay ?? null}, user_search_preferences.prefer_sand_play),
-          prefer_nursing = coalesce(${input.preferNursing ?? null}, user_search_preferences.prefer_nursing),
-          prefer_baby_chair = coalesce(${input.preferBabyChair ?? null}, user_search_preferences.prefer_baby_chair),
-          preference_mode = coalesce(${input.preferenceMode ?? null}, user_search_preferences.preference_mode),
-          updated_at = now()
-  `;
-}
-
 function childFromRow(row: ChildRow): MyProfileChild {
   return {
     id: row.id,
@@ -271,30 +189,6 @@ function homeLocationFromRow(row: HomeLocationRow): MyProfileHomeLocation {
     lat: Number(row.lat),
     lng: Number(row.lng),
     addressText: row.addressText ?? null
-  };
-}
-
-function searchPreferencesFromRow(row: SearchPreferencesRow): MyProfileSearchPreferences {
-  return {
-    preferIndoor: Boolean(row.preferIndoor),
-    preferParking: Boolean(row.preferParking),
-    preferStroller: Boolean(row.preferStroller),
-    preferSandPlay: Boolean(row.preferSandPlay),
-    preferNursing: Boolean(row.preferNursing),
-    preferBabyChair: Boolean(row.preferBabyChair),
-    preferenceMode: row.preferenceMode
-  };
-}
-
-function defaultSearchPreferences(): MyProfileSearchPreferences {
-  return {
-    preferIndoor: false,
-    preferParking: false,
-    preferStroller: false,
-    preferSandPlay: false,
-    preferNursing: false,
-    preferBabyChair: false,
-    preferenceMode: "soft"
   };
 }
 

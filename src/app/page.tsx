@@ -15,7 +15,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
-import { applyAccountChildDefaults, applyAccountSearchPreferenceDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
+import { applyAccountChildDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
 import {
   CATEGORY_GROUP_CATEGORY_FILTERS,
@@ -157,9 +157,7 @@ async function paramsWithAccountDefaults(params: Record<string, string | string[
   }
 
   const profile = await getMyProfile(user.id);
-  const childDefaults = applyAccountChildDefaults(params, profile.children);
-  const preferenceDefaults = applyAccountSearchPreferenceDefaults(childDefaults.params, profile.searchPreferences);
-  return { childParamSource: childDefaults.childParamSource, params: preferenceDefaults.params };
+  return applyAccountChildDefaults(params, profile.children);
 }
 
 function LocationStateInputs({ params }: { params: Record<string, string | string[] | undefined> }) {

@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { Baby, Check, Home, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { Baby, Check, Home, Plus, Save, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
-import type { MyProfile, MyProfileSearchPreferences } from "@/lib/user-profile";
+import type { MyProfile } from "@/lib/user-profile";
 
 import {
   childAgeBandLabelFromBirthYearMonth,
@@ -37,21 +37,9 @@ type SaveStatus = {
   tone: "idle" | "saving" | "saved" | "error";
 };
 
-type PreferenceKey = Exclude<keyof MyProfileSearchPreferences, "preferenceMode">;
-
-const PREFERENCE_OPTIONS: Array<{ key: PreferenceKey; label: string }> = [
-  { key: "preferIndoor", label: "실내" },
-  { key: "preferParking", label: "주차" },
-  { key: "preferStroller", label: "유모차" },
-  { key: "preferSandPlay", label: "모래놀이" },
-  { key: "preferNursing", label: "수유실" },
-  { key: "preferBabyChair", label: "아기의자" }
-];
-
 export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [children, setChildren] = useState(() => childrenFromProfile(initialProfile));
   const [homeLocation, setHomeLocation] = useState(() => homeFromProfile(initialProfile));
-  const [searchPreferences, setSearchPreferences] = useState(initialProfile.searchPreferences);
   const [status, setStatus] = useState<SaveStatus>({ message: "", tone: "idle" });
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const isSaving = status.tone === "saving";
@@ -70,10 +58,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 
   function removeChild(clientId: string) {
     setChildren((current) => current.filter((child) => child.clientId !== clientId));
-  }
-
-  function updatePreference(key: PreferenceKey, checked: boolean) {
-    setSearchPreferences((current) => ({ ...current, [key]: checked }));
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
@@ -99,8 +83,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       const response = await fetch("/api/me/profile", {
         body: JSON.stringify({
           children: children.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender })),
-          homeLocation: nextHomeLocation,
-          searchPreferences
+          homeLocation: nextHomeLocation
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH"
@@ -114,7 +97,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       const profile = (await response.json()) as MyProfile;
       setChildren(childrenFromProfile(profile));
       setHomeLocation(homeFromProfile(profile));
-      setSearchPreferences(profile.searchPreferences);
       setStatus({ message: "저장됨", tone: "saved" });
       window.dispatchEvent(new CustomEvent("aigo-profile-change", { detail: profile }));
     } catch (error) {
@@ -253,58 +235,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
         ) : (
           <p className="me-empty-note">집 위치를 쓰지 않습니다.</p>
         )}
-      </section>
-
-      <section className="me-profile-section" aria-labelledby="me-preferences-title">
-        <header className="me-section-head">
-          <span className="me-section-icon">
-            <Settings2 size={18} aria-hidden="true" />
-          </span>
-          <div className="me-section-title">
-            <h2 id="me-preferences-title">기본 세부조건</h2>
-            <p>검색 URL에 직접 지정한 값이 없을 때 기본값으로 사용합니다.</p>
-          </div>
-        </header>
-
-        <div className="me-preference-grid" aria-label="기본 선호 조건">
-          {PREFERENCE_OPTIONS.map((option) => (
-            <label className="me-preference-toggle" key={option.key}>
-              <input
-                type="checkbox"
-                checked={searchPreferences[option.key]}
-                onChange={(event) => updatePreference(option.key, event.currentTarget.checked)}
-                disabled={isSaving}
-              />
-              <span>{option.label}</span>
-            </label>
-          ))}
-        </div>
-
-        <fieldset className="me-radio-row">
-          <legend>선호 적용 방식</legend>
-          <label className="me-radio-card">
-            <input
-              type="radio"
-              name="preferenceMode"
-              value="soft"
-              checked={searchPreferences.preferenceMode === "soft"}
-              onChange={() => setSearchPreferences((current) => ({ ...current, preferenceMode: "soft" }))}
-              disabled={isSaving}
-            />
-            <span>부드럽게 반영</span>
-          </label>
-          <label className="me-radio-card">
-            <input
-              type="radio"
-              name="preferenceMode"
-              value="required"
-              checked={searchPreferences.preferenceMode === "required"}
-              onChange={() => setSearchPreferences((current) => ({ ...current, preferenceMode: "required" }))}
-              disabled={isSaving}
-            />
-            <span>필수 조건</span>
-          </label>
-        </fieldset>
       </section>
 
       <footer className="me-form-actions">

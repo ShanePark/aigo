@@ -19,7 +19,6 @@ export type IndoorType = "indoor" | "outdoor" | "mixed" | "unknown";
 export type RelatedPlaceRelationType = "nearby" | "same_building" | "same_site" | "parent_child" | "route_pair" | "itinerary_cluster";
 export type UserChildGender = "boy" | "girl";
 export type UserRole = "user" | "admin";
-export type SearchPreferenceMode = "soft" | "required";
 export type VisitVisibility = "public" | "private";
 
 export const users = pgTable(
@@ -94,27 +93,6 @@ export const userHomeLocations = pgTable(
   (table) => ({
     latCheck: check("user_home_locations_lat_check", sql`${table.lat} between -90 and 90`),
     lngCheck: check("user_home_locations_lng_check", sql`${table.lng} between -180 and 180`)
-  })
-);
-
-export const userSearchPreferences = pgTable(
-  "user_search_preferences",
-  {
-    userId: uuid("user_id")
-      .primaryKey()
-      .references(() => users.id, { onDelete: "cascade" }),
-    preferIndoor: boolean("prefer_indoor").notNull().default(false),
-    preferParking: boolean("prefer_parking").notNull().default(false),
-    preferStroller: boolean("prefer_stroller").notNull().default(false),
-    preferSandPlay: boolean("prefer_sand_play").notNull().default(false),
-    preferNursing: boolean("prefer_nursing").notNull().default(false),
-    preferBabyChair: boolean("prefer_baby_chair").notNull().default(false),
-    preferenceMode: text("preference_mode").notNull().default("soft"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
-  },
-  (table) => ({
-    preferenceModeCheck: check("user_search_preferences_preference_mode_check", sql`${table.preferenceMode} in ('soft', 'required')`)
   })
 );
 
@@ -398,8 +376,6 @@ export type UserChild = typeof userChildren.$inferSelect;
 export type NewUserChild = typeof userChildren.$inferInsert;
 export type UserHomeLocation = typeof userHomeLocations.$inferSelect;
 export type NewUserHomeLocation = typeof userHomeLocations.$inferInsert;
-export type UserSearchPreference = typeof userSearchPreferences.$inferSelect;
-export type NewUserSearchPreference = typeof userSearchPreferences.$inferInsert;
 export type PlaceSource = typeof placeSources.$inferSelect;
 export type PlaceImage = typeof placeImages.$inferSelect;
 export type PlaceRelatedPlace = typeof placeRelatedPlaces.$inferSelect;

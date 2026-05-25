@@ -42,59 +42,36 @@ describe("user profile schemas", () => {
 
   it("rejects empty profile updates", () => {
     expect(() => updateMyProfileSchema.parse({})).toThrow("At least one profile field is required");
-    expect(() => updateMyProfileSchema.parse({ searchPreferences: {} })).toThrow("At least one search preference is required");
+    expect(() => updateMyProfileSchema.parse({ searchPreferences: {} })).toThrow();
   });
 });
 
 describe("user profile queries", () => {
-  it("returns saved profile data with default preferences when no preference row exists", async () => {
+  it("returns saved profile data", async () => {
     const { executor } = fakeExecutor([
       [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: "0" }],
-      [{ label: "home", lat: "36.33", lng: "127.43", addressText: null }],
-      []
+      [{ label: "home", lat: "36.33", lng: "127.43", addressText: null }]
     ]);
 
     await expect(getMyProfile(userId, executor)).resolves.toEqual({
       children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
-      homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: null },
-      searchPreferences: {
-        preferIndoor: false,
-        preferParking: false,
-        preferStroller: false,
-        preferSandPlay: false,
-        preferNursing: false,
-        preferBabyChair: false,
-        preferenceMode: "soft"
-      }
+      homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: null }
     });
   });
 
-  it("replaces owned children and home location while upserting preference settings", async () => {
+  it("replaces owned children and home location", async () => {
     const { calls, executor } = fakeExecutor([
       [],
       [],
-      [],
       [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
-      [{ label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }],
-      [
-        {
-          preferIndoor: true,
-          preferParking: false,
-          preferStroller: true,
-          preferSandPlay: false,
-          preferNursing: true,
-          preferBabyChair: false,
-          preferenceMode: "required"
-        }
-      ]
+      [{ label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }]
     ]);
 
     await updateMyProfile(
       userId,
       {
         children: [{ birthYearMonth: "2024-09", gender: "girl" }],
-        homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: "대전" },
-        searchPreferences: { preferIndoor: true, preferStroller: true, preferNursing: true, preferenceMode: "required" }
+        homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }
       },
       executor
     );
@@ -104,8 +81,6 @@ describe("user profile queries", () => {
     expect(calls[1].values).toContain(userId);
     expect(calls[2].sql).toContain("insert into user_home_locations");
     expect(calls[2].sql).toContain("on conflict (user_id) do update");
-    expect(calls[3].sql).toContain("insert into user_search_preferences");
-    expect(calls[3].sql).toContain("on conflict (user_id) do update");
   });
 
   it("deletes nullable profile sections for the current user only", async () => {
