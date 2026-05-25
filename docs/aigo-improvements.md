@@ -49,6 +49,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 - 진행 메모: 2026-05-26 열한 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 군량들 어린이공원, 궁말어린이공원 놀이터, 궁산 유아숲체험원, 금동어린이공원 놀이터, 금바위 공원 놀이터, 금성공원내어린이놀이터, 금성어린이공원 놀이터, 금평어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 327건이다.
 - 진행 메모: 2026-05-26 열두 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 6건을 `playground`로 재분류했다. 개웅산 유아숲체험원, 기은어린이공원놀이터, 꼭두배어린이공원, 꿈키움 유아숲체험원, 나래어린이공원, 나비어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 323건이다.
 - 진행 메모: 2026-05-26 열세 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 남산공원 한남 유아숲체험원, 남산어린이공원, 남선근린공원 유아숲체험원, 낭월3호어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 319건이다.
+- 진행 메모: 2026-05-26 열네 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 낭월4호어린이공원, 낭월7호어린이공원, 낭월8호어린이공원, 노곡어린이공원 놀이터(관저4지구)가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 315건이다.
 - `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
 - `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
 - `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.
