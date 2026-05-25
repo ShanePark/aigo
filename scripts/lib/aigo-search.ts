@@ -265,11 +265,15 @@ function isTransientAigoReadFailure(failure: AigoReadFailure) {
 }
 
 function isTransientAigoRouteFailure(failure: AigoHttpFailure) {
-  if ([500, 502, 503, 504].includes(failure.response.status)) return true;
-  if (failure.response.status !== 404) return false;
-  const contentType = failure.response.headers.get("content-type")?.toLowerCase() ?? "";
-  const body = failure.text.toLowerCase();
-  return contentType.includes("text/html") || body.includes("<!doctype html") || body.includes("this page could not be found");
+  return isTransientAigoRouteResponse(failure.response.status, failure.response.headers.get("content-type"), failure.text);
+}
+
+export function isTransientAigoRouteResponse(status: number, contentType: string | null | undefined, text: string) {
+  if ([500, 502, 503, 504].includes(status)) return true;
+  if (status !== 404) return false;
+  const normalizedContentType = contentType?.toLowerCase() ?? "";
+  const body = text.toLowerCase();
+  return normalizedContentType.includes("text/html") || body.includes("<!doctype html") || body.includes("this page could not be found");
 }
 
 function formatAigoReadFailure(failure: AigoReadFailure, maxAttempts: number) {

@@ -2,9 +2,12 @@ import postgres from "postgres";
 
 import { assertSafeApiKeyForRuntime, env, isDefaultDevApiKey } from "@/env";
 import { missingDatabaseSchemaArtifacts } from "./aigo-preflight-schema";
+import { isTransientAigoRouteResponse } from "./lib/aigo-search";
 
 const apiBaseUrl = normalizeBaseUrl(process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
 const sql = postgres(env.databaseUrl, { max: 1, prepare: false });
+const duplicateCheckRetries = Number(process.env.AIGO_PREFLIGHT_RETRIES ?? 2);
+const duplicateCheckRetryDelayMs = Number(process.env.AIGO_PREFLIGHT_RETRY_DELAY_MS ?? 150);
 
 type CheckResult = {
   name: string;
@@ -65,7 +68,7 @@ async function checkApiRejectsMissingKey(): Promise<CheckResult> {
       detail:
         response.status === 401
           ? "local API responded and rejected a missing Authorization header"
-          : `expected 401 without Authorization, received ${response.status} ${await response.text()}`
+          : `expected 401 without Authorization, received ${duplicateCheckResponseSummary(response)}`
     };
   } catch (error) {
     return {
@@ -79,13 +82,13 @@ async function checkApiRejectsMissingKey(): Promise<CheckResult> {
 async function checkApiAcceptsExpectedKey(): Promise<CheckResult> {
   try {
     const response = await callDuplicateCheck(env.apiKey);
-    const body = await response.text();
+    const body = response.text;
 
     if (!response.ok) {
       return {
         name: "api key accepted",
         ok: false,
-        detail: `expected 2xx with configured key, received ${response.status} ${body}`
+        detail: `expected 2xx with configured key, received ${duplicateCheckResponseSummary(response)}`
       };
     }
 
@@ -175,24 +178,53 @@ async function checkDatabaseSchema(): Promise<CheckResult> {
   }
 }
 
-async function callDuplicateCheck(apiKey?: string) {
-  const response = await fetch(`${apiBaseUrl}/v1/places/duplicates`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
-    },
-    body: JSON.stringify({
-      name: "AiGo preflight sentinel",
-      lat: 0,
-      lng: 0,
-      radiusMeters: 1,
-      limit: 1
-    }),
-    signal: AbortSignal.timeout(5_000)
-  });
+type DuplicateCheckResponse = {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text: string;
+};
 
-  return response;
+async function callDuplicateCheck(apiKey?: string): Promise<DuplicateCheckResponse> {
+  let lastResponse: DuplicateCheckResponse | null = null;
+
+  for (let attempt = 0; attempt <= duplicateCheckRetries; attempt += 1) {
+    const response = await fetch(`${apiBaseUrl}/v1/places/duplicates`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
+      },
+      body: JSON.stringify({
+        name: "AiGo preflight sentinel",
+        lat: 0,
+        lng: 0,
+        radiusMeters: 1,
+        limit: 1
+      }),
+      signal: AbortSignal.timeout(5_000)
+    });
+    const text = await response.text();
+    lastResponse = {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      text
+    };
+
+    const contentType = response.headers.get("content-type");
+    if (attempt >= duplicateCheckRetries || !isTransientAigoRouteResponse(response.status, contentType, text)) {
+      return lastResponse;
+    }
+    await delay(duplicateCheckRetryDelayMs * (attempt + 1));
+  }
+
+  return lastResponse ?? {
+    ok: false,
+    status: 0,
+    statusText: "no response",
+    text: "duplicate preflight failed before receiving a response"
+  };
 }
 
 function normalizeBaseUrl(value: string) {
@@ -205,4 +237,16 @@ function describeApiKey() {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function duplicateCheckResponseSummary(response: DuplicateCheckResponse) {
+  const hint =
+    isTransientAigoRouteResponse(response.status, null, response.text)
+      ? " This looks like a transient Next dev route artifact failure; rerun preflight after the dev server finishes compiling, or restart the dev server if it persists."
+      : "";
+  return `${response.status} ${response.text}${hint}`;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

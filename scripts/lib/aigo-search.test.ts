@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { checkAigoReadOnlyApiReadiness, normalizeSearchResponse, readAigoJsonReadOnly, readSearchItems, searchPlacesReadOnly, warmSearchRouteReadOnly } from "./aigo-search";
+import {
+  checkAigoReadOnlyApiReadiness,
+  isTransientAigoRouteResponse,
+  normalizeSearchResponse,
+  readAigoJsonReadOnly,
+  readSearchItems,
+  searchPlacesReadOnly,
+  warmSearchRouteReadOnly
+} from "./aigo-search";
 
 describe("AiGo search helper", () => {
   afterEach(() => {
@@ -71,6 +79,14 @@ describe("AiGo search helper", () => {
     expect(response.items).toEqual([{ id: "version-1" }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:3000/v1/places/place-1/versions");
+  });
+
+  it("classifies Next dev route artifact responses as transient", () => {
+    expect(isTransientAigoRouteResponse(500, "text/html", "<!DOCTYPE html><title>ENOENT .next/server/app/v1/places/duplicates/route.js</title>")).toBe(
+      true
+    );
+    expect(isTransientAigoRouteResponse(404, "text/html", "<!DOCTYPE html><title>404</title>")).toBe(true);
+    expect(isTransientAigoRouteResponse(404, "application/json", "{\"error\":\"not found\"}")).toBe(false);
   });
 
   it("retries timeout failures before reading search items", async () => {
