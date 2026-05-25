@@ -2114,10 +2114,16 @@ h3 {
   transform: translateY(-1px);
 }
 
-.place-save-button.is-active {
+.place-save-button.is-want-to-go.is-active {
   background: var(--mint-soft);
   border-color: var(--line-strong);
   color: var(--mint);
+}
+
+.place-save-button.is-hearted.is-active {
+  background: var(--coral-soft);
+  border-color: var(--line-strong);
+  color: var(--coral);
 }
 
 .place-save-button:disabled {
@@ -2156,8 +2162,12 @@ h3 {
   width: 32px;
 }
 
-.place-save-controls.is-compact .place-save-button.is-active {
+.place-save-controls.is-compact .place-save-button.is-want-to-go.is-active {
   background: color-mix(in srgb, var(--mint-soft) 90%, white);
+}
+
+.place-save-controls.is-compact .place-save-button.is-hearted.is-active {
+  background: color-mix(in srgb, var(--coral-soft) 90%, white);
 }
 
 .place-save-controls.is-compact .place-save-heart-count {

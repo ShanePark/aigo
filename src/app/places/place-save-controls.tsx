@@ -229,7 +229,7 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
           <button
             aria-label={buttonLabel}
             aria-pressed={item.active}
-            className={`place-save-button ${item.active ? "is-active" : ""}`}
+            className={`place-save-button is-${item.target === "wantToGo" ? "want-to-go" : "hearted"} ${item.active ? "is-active" : ""}`}
             disabled={!state || Boolean(pendingTarget)}
             key={item.target}
             onClick={() => void toggle(item.target)}
