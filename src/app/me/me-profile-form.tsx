@@ -10,7 +10,6 @@ import type { MyProfile } from "@/lib/user-profile";
 import { homeLocationHasUsableCoordinates, homeSaveUiState, type HomeDraft } from "../me-home-state";
 import { MeHomeLocationMap } from "../me-home-location-map";
 import {
-  childAgeBandLabelFromBirthYearMonth,
   childAgeLabelFromBirthYearMonth,
   childProfileIconSrcFromBirthYearMonth,
   currentYearMonth
@@ -176,7 +175,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                     <div className="me-child-copy">
                       <span className="me-child-kicker">{child.gender === "girl" ? "여아" : "남아"}</span>
                       <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
-                      <span>{childAgeBandLabelFromBirthYearMonth(child.birthYearMonth)}</span>
                     </div>
                     <span className={`me-save-pill ${childDirty ? "is-dirty" : "is-clean"}`}>{childDirty ? "수정 필요" : "저장됨"}</span>
                   </div>
