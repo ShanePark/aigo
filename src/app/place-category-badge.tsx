@@ -25,7 +25,6 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   accommodation: Hotel,
   aquarium: PawPrint,
   art_museum: Landmark,
-  aquarium_zoo: PawPrint,
   experience_center: FerrisWheel,
   family_cafe: Coffee,
   family_restaurant: Utensils,

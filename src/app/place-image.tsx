@@ -14,7 +14,6 @@ const FALLBACK_PLACE_IMAGES: Record<string, string> = {
   accommodation: "/placeholders/default-accommodation.webp",
   aquarium: "/placeholders/default-aquarium-zoo.webp",
   art_museum: "/placeholders/default-museum.webp",
-  aquarium_zoo: "/placeholders/default-aquarium-zoo.webp",
   experience_center: "/placeholders/default-visit.webp",
   family_cafe: "/placeholders/default-kids-cafe.webp",
   family_restaurant: "/placeholders/default-family-restaurant.webp",

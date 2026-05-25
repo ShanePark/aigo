@@ -290,7 +290,7 @@ describe("place schemas", () => {
   it("accepts structured parent review search evidence", () => {
     const result = createPlaceSchema.parse({
       name: "싱가포르 동물원",
-      primaryCategory: "aquarium_zoo",
+      primaryCategory: "zoo",
       regionSido: "Singapore",
       countryCode: "sg",
       city: "Singapore",

@@ -4,58 +4,6 @@ import { emptyPlaceTaxonomy } from "@/lib/taxonomy";
 import { buildPrimaryCategorySplitAudit, suggestPrimaryCategorySplit, type PrimaryCategorySplitAuditRow } from "./primary-category-split-audit";
 
 describe("suggestPrimaryCategorySplit", () => {
-  it("splits aquarium_zoo rows with aquarium evidence", () => {
-    const suggestion = suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "대전아쿠아리움" }));
-
-    expect(suggestion.suggestedPrimaryCategory).toBe("aquarium");
-    expect(suggestion.confidence).toBe("high");
-    expect(suggestion.reasonCodes).toContain("AQUARIUM_TERM_MATCH");
-  });
-
-  it("does not treat legacy aquarium_zoo tags as standalone zoo evidence", () => {
-    const suggestion = suggestPrimaryCategorySplit(
-      row({
-        primary_category: "aquarium_zoo",
-        name: "경포 아쿠아리움",
-        tags: ["aquarium_zoo"]
-      })
-    );
-
-    expect(suggestion.suggestedPrimaryCategory).toBe("aquarium");
-    expect(suggestion.reasonCodes).not.toContain("MIXED_AQUARIUM_ZOO_EVIDENCE");
-  });
-
-  it("treats Korean aquarium brand terms as high-confidence aquarium evidence", () => {
-    const suggestions = [
-      suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "아쿠아플라넷 광교" })),
-      suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "싱가포르 오셔너리움" }))
-    ];
-
-    expect(suggestions.map((suggestion) => suggestion.suggestedPrimaryCategory)).toEqual(["aquarium", "aquarium"]);
-    expect(suggestions.map((suggestion) => suggestion.confidence)).toEqual(["high", "high"]);
-  });
-
-  it("splits aquarium_zoo rows with zoo evidence", () => {
-    const suggestion = suggestPrimaryCategorySplit(row({ primary_category: "aquarium_zoo", name: "서울동물원" }));
-
-    expect(suggestion.suggestedPrimaryCategory).toBe("zoo");
-    expect(suggestion.confidence).toBe("high");
-    expect(suggestion.reasonCodes).toContain("ZOO_TERM_MATCH");
-  });
-
-  it("keeps mixed aquarium and zoo rows for manual review", () => {
-    const suggestion = suggestPrimaryCategorySplit(
-      row({
-        primary_category: "aquarium_zoo",
-        name: "가족 생태관",
-        tags: ["아쿠아리움", "동물원"]
-      })
-    );
-
-    expect(suggestion.suggestedPrimaryCategory).toBe("needs_review");
-    expect(suggestion.reasonCodes).toContain("MIXED_AQUARIUM_ZOO_EVIDENCE");
-  });
-
   it("suggests playground when park rows have play equipment evidence", () => {
     const suggestion = suggestPrimaryCategorySplit(
       row({

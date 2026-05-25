@@ -49,7 +49,6 @@ const relatedChildDestinationCategories = new Set([
   "experience_center",
   "science_museum",
   "aquarium",
-  "aquarium_zoo",
   "zoo"
 ]);
 const relatedSupportDestinationCategories = new Set(["toy_store", "family_cafe", "family_restaurant", "library"]);
@@ -159,8 +158,8 @@ const playgroundIntentCategories = new Set(["park", "playground", "indoor_playgr
 const shoppingIntentTerms = ["쇼핑몰", "백화점", "아울렛", "몰", "마트"];
 const playgroundIntentTerms = ["놀이터", "유아놀이터", "실내놀이터", "물놀이터", "playground"];
 const visitIntentTerms = ["방문", "체험", "박물관", "과학관", "아쿠아리움", "동물원", "수목원", "나들이"];
-const visitSearchCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "sports_venue"]);
-const visitDestinationCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "park", "sports_venue"]);
+const visitSearchCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "zoo", "sports_venue"]);
+const visitDestinationCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "zoo", "park", "sports_venue"]);
 
 export function distanceSignalForPlace(place: DistanceScoringPlace, input: SearchPlacesInput) {
   if (!input.origin || typeof place.distanceKm !== "number") {
@@ -283,7 +282,7 @@ function isVisitSearchIntent(input: SearchPlacesInput) {
 }
 
 function isDestinationCategory(category: string) {
-  return ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "rest_area"].includes(category);
+  return ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "zoo", "rest_area"].includes(category);
 }
 
 function queryIncludes(input: SearchPlacesInput, tokens: string[]) {

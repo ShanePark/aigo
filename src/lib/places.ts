@@ -963,7 +963,6 @@ function isCourseAnchorCandidate(item: SearchCoursePlanItem) {
       "science_museum",
       "experience_center",
       "aquarium",
-      "aquarium_zoo",
       "zoo",
       "park",
       "accommodation"
@@ -3372,8 +3371,8 @@ const categoryKeywordMap: Record<string, string[]> = {
   박물관: ["museum"],
   미술관: ["art_museum"],
   어린이박물관: ["museum", "experience_center"],
-  아쿠아리움: ["aquarium", "aquarium_zoo"],
-  동물원: ["zoo", "aquarium_zoo"],
+  아쿠아리움: ["aquarium"],
+  동물원: ["zoo"],
   워터파크: ["park", "playground", "experience_center"],
   체험관: ["experience_center"],
   수목원: ["park"],

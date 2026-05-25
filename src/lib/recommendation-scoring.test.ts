@@ -35,7 +35,7 @@ describe("recommendation scoring policy", () => {
   });
 
   it("keeps visit and lodging destination searches open to two-hour-plus candidates", () => {
-    const visitInput = { ...inputWithOrigin, primaryCategories: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo"] };
+    const visitInput = { ...inputWithOrigin, primaryCategories: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "zoo"] };
     const stayInput = { ...inputWithOrigin, primaryCategories: ["accommodation"] };
     const visit = distanceSignalForPlace({ primaryCategory: "museum", tags: [], distanceKm: 180 }, visitInput);
     const zoo = distanceSignalForPlace({ primaryCategory: "zoo", tags: [], distanceKm: 180 }, visitInput);

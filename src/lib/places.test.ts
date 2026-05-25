@@ -648,8 +648,8 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("키즈카페")).toContain("commercial_tag");
     expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");
-    expect(categoryClauseForKeywordTerm("아쿠아리움")).toBe("primary_category = any(array['aquarium','aquarium_zoo']::text[])");
-    expect(categoryClauseForKeywordTerm("동물원")).toBe("primary_category = any(array['zoo','aquarium_zoo']::text[])");
+    expect(categoryClauseForKeywordTerm("아쿠아리움")).toBe("primary_category = 'aquarium'");
+    expect(categoryClauseForKeywordTerm("동물원")).toBe("primary_category = 'zoo'");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
     expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");

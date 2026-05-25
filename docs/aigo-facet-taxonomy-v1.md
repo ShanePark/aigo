@@ -66,7 +66,6 @@ Closed `primaryCategory` values:
 - `science_museum`
 - `experience_center`
 - `aquarium`
-- `aquarium_zoo`
 - `park`
 - `playground`
 - `family_cafe`

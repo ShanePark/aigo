@@ -9,7 +9,6 @@ export const primaryCategories = [
   "science_museum",
   "experience_center",
   "aquarium",
-  "aquarium_zoo",
   "park",
   "playground",
   "family_cafe",
@@ -260,9 +259,7 @@ export function inferTaxonomyFromPlace(place: {
 
   if (
     category &&
-    ["kids_cafe", "indoor_playground", "toy_library", "library", "science_museum", "experience_center", "aquarium", "aquarium_zoo", "playground", "zoo"].includes(
-      category
-    )
+    ["kids_cafe", "indoor_playground", "toy_library", "library", "science_museum", "experience_center", "aquarium", "playground", "zoo"].includes(category)
   ) {
     inferred.familyFitGates.push("child_primary");
   }

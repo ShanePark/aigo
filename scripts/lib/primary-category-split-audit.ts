@@ -1,7 +1,7 @@
 import type { PlaceTaxonomy } from "@/lib/taxonomy";
 
-export type LegacyPrimaryCategory = "aquarium_zoo" | "park" | "museum";
-export type SplitPrimaryCategory = "aquarium" | "zoo" | "playground" | "park" | "art_museum" | "museum";
+export type LegacyPrimaryCategory = "park" | "museum";
+export type SplitPrimaryCategory = "playground" | "park" | "art_museum" | "museum";
 export type SplitConfidence = "high" | "medium" | "low";
 
 export type PrimaryCategorySplitAuditRow = {
@@ -40,10 +40,8 @@ export type PrimaryCategorySplitAudit = {
   items: PrimaryCategorySplitSuggestion[];
 };
 
-export const legacySplitPrimaryCategories = ["aquarium_zoo", "park", "museum"] as const satisfies readonly LegacyPrimaryCategory[];
+export const legacySplitPrimaryCategories = ["park", "museum"] as const satisfies readonly LegacyPrimaryCategory[];
 
-const aquariumTerms = ["아쿠아리움", "수족관", "아쿠아플라넷", "오셔너리움", "aquarium", "aqua planet", "aquaplanet", "oceanarium"];
-const zooTerms = ["동물원", "zoo", "사파리", "동물 체험", "동물체험", "동물농장"];
 const artMuseumTerms = ["미술관", "아트센터", "아트 센터", "갤러리", "gallery", "art museum", "art center"];
 const playgroundTerms = [
   "놀이터",
@@ -90,31 +88,6 @@ export function suggestPrimaryCategorySplit(row: PrimaryCategorySplitAuditRow): 
   const reasonCodes: string[] = [];
   let suggestedPrimaryCategory: PrimaryCategorySplitSuggestion["suggestedPrimaryCategory"] = "needs_review";
   let confidence: SplitConfidence = "low";
-
-  if (row.primary_category === "aquarium_zoo") {
-    const aquariumEvidence = matchingTerms(text, aquariumTerms);
-    const zooEvidence = matchingTerms(text, zooTerms);
-    if (aquariumEvidence.length > 0 && zooEvidence.length === 0) {
-      suggestedPrimaryCategory = "aquarium";
-      confidence = aquariumEvidence.some((term) => row.name.toLowerCase().includes(term.toLowerCase())) ? "high" : "medium";
-      reasonCodes.push("AQUARIUM_TERM_MATCH");
-      evidence.push(...formatTermEvidence("aquarium", aquariumEvidence));
-    } else if (zooEvidence.length > 0 && aquariumEvidence.length === 0) {
-      suggestedPrimaryCategory = "zoo";
-      confidence = zooEvidence.some((term) => row.name.toLowerCase().includes(term.toLowerCase())) ? "high" : "medium";
-      reasonCodes.push("ZOO_TERM_MATCH");
-      evidence.push(...formatTermEvidence("zoo", zooEvidence));
-    } else if (aquariumEvidence.length > 0 && zooEvidence.length > 0) {
-      suggestedPrimaryCategory = "needs_review";
-      confidence = "low";
-      reasonCodes.push("MIXED_AQUARIUM_ZOO_EVIDENCE");
-      evidence.push(...formatTermEvidence("aquarium", aquariumEvidence), ...formatTermEvidence("zoo", zooEvidence));
-    } else {
-      suggestedPrimaryCategory = "needs_review";
-      confidence = "low";
-      reasonCodes.push("NO_SPLIT_EVIDENCE");
-    }
-  }
 
   if (row.primary_category === "park") {
     const termEvidence = matchingTerms(text, playgroundTerms);

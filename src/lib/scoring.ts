@@ -638,7 +638,7 @@ function applyVisitContextSignal(
   }
 
   if (input.visitContext === "weekendHalfDay") {
-    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "shopping_mall", "accommodation"].includes(category)) {
+    if (["science_museum", "museum", "experience_center", "aquarium", "zoo", "park", "shopping_mall", "accommodation"].includes(category)) {
       addScore(5);
       reasonCodes.add("CONTEXT_HALFDAY_DESTINATION");
     }
@@ -668,7 +668,7 @@ function applyVisitContextSignal(
       addScore(-18);
       reasonCodes.add("CONTEXT_DAY_TRIP_TOO_CLOSE");
     }
-    if (["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "accommodation"].includes(category)) {
+    if (["science_museum", "museum", "experience_center", "aquarium", "zoo", "park", "accommodation"].includes(category)) {
       addScore(5);
       reasonCodes.add("CONTEXT_DAY_TRIP_DESTINATION");
     }
@@ -681,7 +681,7 @@ function applyVisitContextSignal(
 
 function isKidPrimaryPlace(category: string, tags: Set<string>) {
   return (
-    ["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium_zoo"].includes(category) ||
+    ["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium", "zoo"].includes(category) ||
     tags.has("children_museum") ||
     tags.has("children_experience") ||
     tags.has("children_playground") ||

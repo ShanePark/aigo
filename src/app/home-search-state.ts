@@ -11,7 +11,7 @@ export const RESULT_LIMIT_OPTIONS = [50, 100] as const;
 export const CATEGORY_GROUP_CATEGORY_FILTERS = {
   all: undefined,
   stay: ["accommodation"],
-  visit: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "library", "toy_library", "sports_venue", "rest_area"],
+  visit: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "zoo", "library", "toy_library", "sports_venue", "rest_area"],
   shopping: ["shopping_mall"],
   toyStore: ["toy_store"],
   playground: ["park", "playground", "indoor_playground"],

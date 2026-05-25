@@ -23,13 +23,13 @@ describe("selectPatchCandidates", () => {
   it("selects changed high-confidence suggestions by default", () => {
     const candidates = selectPatchCandidates(audit(), { minConfidence: "high" });
 
-    expect(candidates.map((candidate) => candidate.name)).toEqual(["명백한 아쿠아리움"]);
+    expect(candidates.map((candidate) => candidate.name)).toEqual(["명백한 놀이터"]);
   });
 
   it("can include medium-confidence changed suggestions", () => {
     const candidates = selectPatchCandidates(audit(), { minConfidence: "medium" });
 
-    expect(candidates.map((candidate) => candidate.name)).toEqual(["명백한 아쿠아리움", "중간 신뢰 놀이터"]);
+    expect(candidates.map((candidate) => candidate.name)).toEqual(["명백한 놀이터", "중간 신뢰 미술관"]);
   });
 });
 
@@ -38,19 +38,19 @@ describe("buildPatchPayload", () => {
     const payload = buildPatchPayload(
       {
         id: "place-1",
-        name: "명백한 아쿠아리움",
-        currentPrimaryCategory: "aquarium_zoo",
-        suggestedPrimaryCategory: "aquarium",
+        name: "명백한 놀이터",
+        currentPrimaryCategory: "park",
+        suggestedPrimaryCategory: "playground",
         confidence: "high",
-        reasonCodes: ["AQUARIUM_TERM_MATCH"],
-        evidence: ["aquarium:아쿠아리움"]
+        reasonCodes: ["PLAYGROUND_EVIDENCE"],
+        evidence: ["playground:놀이터"]
       },
       "2026-05-26T00:00:00.000+09:00"
     );
 
-    expect(payload.primaryCategory).toBe("aquarium");
+    expect(payload.primaryCategory).toBe("playground");
     expect(payload.sourceMode).toBe("append");
-    expect(payload.changeSummary).toContain("aquarium_zoo to aquarium");
+    expect(payload.changeSummary).toContain("park to playground");
     expect(payload.sources[0]).toMatchObject({
       sourceType: "agent_observation",
       title: "AiGo primaryCategory split audit",
@@ -64,28 +64,28 @@ function audit(): PrimaryCategorySplitAudit {
   return {
     generatedAt: "2026-05-26T00:00:00.000+09:00",
     total: 4,
-    countsByCurrentCategory: { aquarium_zoo: 2, park: 1, museum: 1 },
-    countsBySuggestion: { aquarium: 1, playground: 1, museum: 1, needs_review: 1 },
+    countsByCurrentCategory: { park: 2, museum: 2 },
+    countsBySuggestion: { playground: 1, art_museum: 1, museum: 1, needs_review: 1 },
     items: [
       {
         id: "place-1",
-        name: "명백한 아쿠아리움",
-        currentPrimaryCategory: "aquarium_zoo",
-        suggestedPrimaryCategory: "aquarium",
+        name: "명백한 놀이터",
+        currentPrimaryCategory: "park",
+        suggestedPrimaryCategory: "playground",
         confidence: "high",
-        reasonCodes: ["AQUARIUM_TERM_MATCH"],
-        evidence: ["aquarium:아쿠아리움"],
+        reasonCodes: ["PLAYGROUND_EVIDENCE"],
+        evidence: ["playground:놀이터"],
         region: "부산광역시 해운대구",
         address: "부산 해운대구"
       },
       {
         id: "place-2",
-        name: "중간 신뢰 놀이터",
-        currentPrimaryCategory: "park",
-        suggestedPrimaryCategory: "playground",
+        name: "중간 신뢰 미술관",
+        currentPrimaryCategory: "museum",
+        suggestedPrimaryCategory: "art_museum",
         confidence: "medium",
-        reasonCodes: ["PLAYGROUND_EVIDENCE"],
-        evidence: ["playground:놀이터"],
+        reasonCodes: ["ART_MUSEUM_TERM_MATCH"],
+        evidence: ["art_museum:미술관"],
         region: "대전광역시 유성구",
         address: "대전 유성구"
       },
@@ -103,10 +103,10 @@ function audit(): PrimaryCategorySplitAudit {
       {
         id: "place-4",
         name: "검토 필요 복합시설",
-        currentPrimaryCategory: "aquarium_zoo",
+        currentPrimaryCategory: "park",
         suggestedPrimaryCategory: "needs_review",
         confidence: "low",
-        reasonCodes: ["MIXED_AQUARIUM_ZOO_EVIDENCE"],
+        reasonCodes: ["NO_SPLIT_EVIDENCE"],
         evidence: [],
         region: null,
         address: null
