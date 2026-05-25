@@ -71,6 +71,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 - 진행 메모: 2026-05-26 서른세 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 방죽어린이공원, 배봉산공원 유아숲체험원, 배울골 어린이공원, 배재대학교 유아숲체험원, 백련산 매바위 유아숲체험원, 백야어린이공원 놀이터, 백운어린이공원 놀이터, 버드내어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 220건이다.
 - 진행 메모: 2026-05-26 서른네 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 7건을 `playground`로 재분류했다. 벌말어린이공원 놀이터, 범골어린이공원, 범바위어린이공원, 범샛골어린이공원, 변정어린이공원 놀이터, 별밭어린이공원, 별빛어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 213건이다.
 - 진행 메모: 2026-05-26 서른다섯 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 5건을 `playground`로 재분류했다. 보라매공원 테마물놀이터와 어린이놀이터, 보라어린이공원, 봉명어린이공원, 봉우재어린이공원 놀이터, 봉촌어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 208건이다.
+- 진행 메모: 2026-05-26 서른여섯 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 봉화산 유아숲체험원, 부사1어린이놀이터, 부사산마을어린이 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 205건이다.
 - `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
 - `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
 - `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.
