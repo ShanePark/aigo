@@ -2977,7 +2977,7 @@ h3 {
 .detail-header-actions {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   position: absolute;
   right: 18px;
   top: 18px;
@@ -2988,12 +2988,56 @@ h3 {
 }
 
 .detail-header-actions .place-save-controls {
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mint) 12%, var(--line));
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(24, 33, 29, 0.1);
   flex-wrap: nowrap;
+  gap: 6px;
+  min-height: 64px;
+  padding: 7px;
+}
+
+.detail-header-actions .place-save-button {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 7px;
+  min-height: 50px;
+  padding: 0 14px;
+}
+
+.detail-header-actions .place-save-button.is-want-to-go {
+  background: color-mix(in srgb, var(--mint-soft) 58%, transparent);
+  border-color: color-mix(in srgb, var(--mint) 22%, var(--line));
+  color: var(--mint);
+}
+
+.detail-header-actions .place-save-button.is-hearted {
+  background: color-mix(in srgb, var(--coral-soft) 52%, transparent);
+  border-color: color-mix(in srgb, var(--coral) 20%, var(--line));
+  color: var(--coral);
+}
+
+.detail-header-actions .place-save-button.is-want-to-go.is-active {
+  background: var(--mint-soft);
+  border-color: color-mix(in srgb, var(--mint) 38%, var(--line-strong));
+}
+
+.detail-header-actions .place-save-button.is-hearted.is-active {
+  background: var(--coral-soft);
+  border-color: color-mix(in srgb, var(--coral) 36%, var(--line-strong));
+}
+
+.detail-header-actions .place-save-button svg {
+  height: 16px;
+  width: 16px;
 }
 
 .detail-sticky-head .detail-head {
   min-width: 0;
-  padding-right: 360px;
+  padding-right: 390px;
 }
 
 .detail-sticky-head .back-link,
@@ -6167,6 +6211,16 @@ dd {
     justify-content: space-between;
     order: 2;
     position: static;
+  }
+
+  .detail-header-actions .place-save-controls {
+    min-height: 54px;
+    padding: 5px;
+  }
+
+  .detail-header-actions .place-save-button {
+    min-height: 42px;
+    padding-inline: 10px;
   }
 
   .detail-sticky-head .detail-head {
