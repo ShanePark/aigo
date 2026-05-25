@@ -5,6 +5,7 @@ import {
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
+  duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
@@ -158,6 +159,40 @@ describe("duplicate helpers", () => {
     expect(duplicateSameBuildingReviewOnly("스타필드 시티 명지점", "스타필드 시티 명지")).toBe(false);
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
+  });
+
+  it("keeps different public childcare subfacilities at review confidence", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      publicSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.55,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicSubfacilityReviewOnly(
+        "서울형 키즈카페 금천구 아이세상놀이터점",
+        "금천구육아종합지원센터 나누리장난감도서관 독산점"
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ADDRESS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
+  it("does not mark matching public childcare subfacility terms as review-only", () => {
+    expect(
+      duplicatePublicSubfacilityReviewOnly(
+        "서울형 키즈카페 금천구 아이세상놀이터점",
+        "금천구 아이세상놀이터"
+      )
+    ).toBe(false);
   });
 
   it("treats exact self-check signals as high confidence", () => {

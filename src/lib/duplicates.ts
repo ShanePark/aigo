@@ -6,6 +6,7 @@ export type DuplicateCandidateSignals = {
   addressRegionConflict?: boolean;
   regionMatch?: boolean;
   genericBranchName?: boolean;
+  publicSubfacilityReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
@@ -55,6 +56,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("GENERIC_BRANCH_NAME");
   }
 
+  if (signals.publicSubfacilityReviewOnly) {
+    reasonCodes.push("PUBLIC_SUBFACILITY_REVIEW_ONLY");
+  }
+
   if (signals.addressMatch) {
     reasonCodes.push("ADDRESS_MATCH");
   } else if (signals.regionMatch) {
@@ -101,6 +106,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.publicSubfacilityReviewOnly && !signals.aliasMatch) return "medium";
   if (signals.sameBuildingReviewOnly && !signals.aliasMatch) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
   if (signals.aliasMatch && (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 1000) return "high";
@@ -145,6 +151,18 @@ export function duplicateSameBuildingReviewOnly(inputName: string, candidateName
   if (shorter.length < 5) return false;
   if (!longer.includes(shorter)) return false;
   return longer.length - shorter.length >= 3;
+}
+
+export function duplicatePublicSubfacilityReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  const inputTerms = publicChildSubfacilityTerms.filter((term) => input.includes(term));
+  const candidateTerms = publicChildSubfacilityTerms.filter((term) => candidate.includes(term));
+  if (inputTerms.length === 0 || candidateTerms.length === 0) return false;
+
+  return !inputTerms.some((term) => candidateTerms.includes(term));
 }
 
 export function duplicateSameSidoGenericReviewOnly(
@@ -269,6 +287,19 @@ const publicInstitutionGenericTerms = [
   "가족센터",
   "문화원",
   "도서관"
+].map(compactDuplicateText);
+
+const publicChildSubfacilityTerms = [
+  "서울형키즈카페",
+  "아이세상놀이터",
+  "아이사랑놀이터",
+  "공동육아방",
+  "공동육아나눔터",
+  "장난감도서관",
+  "나누리장난감도서관",
+  "육아종합지원센터",
+  "어린이집",
+  "어린이도서관"
 ].map(compactDuplicateText);
 
 const duplicateSidoAliases = [
