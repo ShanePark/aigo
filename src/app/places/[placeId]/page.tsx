@@ -90,15 +90,18 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       <PlaceViewRecorder placeId={place.id} />
       <header className="detail-sticky-head">
         <BackToSearchLink href={backHref} />
-        <div className="detail-header-score">
-          <PlaceScoreDialog
-            breakdown={placeQualityScore.scoreBreakdown}
-            rationale={place.scoring.placeScoreRationale}
-            reasons={placeQualityReasons}
-            score={placeQualityScore.score}
-            storedPlaceScore={place.scoring.placeScore}
-            updatedAt={place.scoring.scoreUpdatedAt}
-          />
+        <div className="detail-header-actions">
+          <PlaceSaveControls placeId={place.id} />
+          <div className="detail-header-score">
+            <PlaceScoreDialog
+              breakdown={placeQualityScore.scoreBreakdown}
+              rationale={place.scoring.placeScoreRationale}
+              reasons={placeQualityReasons}
+              score={placeQualityScore.score}
+              storedPlaceScore={place.scoring.placeScore}
+              updatedAt={place.scoring.scoreUpdatedAt}
+            />
+          </div>
         </div>
 
         <div className="detail-head">
@@ -149,7 +152,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
           </div>
           {decisionNote ? <p className="detail-decision-note">{decisionNote}</p> : null}
           <div className="detail-decision-actions">
-            <PlaceSaveControls placeId={place.id} />
             {naverMapLink ? (
               <a className="detail-decision-action is-primary" href={naverMapLink.url} target="_blank" rel="noreferrer">
                 <MapPin size={15} aria-hidden="true" />

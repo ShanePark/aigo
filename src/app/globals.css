@@ -2974,15 +2974,26 @@ h3 {
   position: relative;
 }
 
-.detail-header-score {
+.detail-header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
   position: absolute;
   right: 18px;
   top: 18px;
 }
 
+.detail-header-score {
+  flex: 0 0 auto;
+}
+
+.detail-header-actions .place-save-controls {
+  flex-wrap: nowrap;
+}
+
 .detail-sticky-head .detail-head {
   min-width: 0;
-  padding-right: 150px;
+  padding-right: 360px;
 }
 
 .detail-sticky-head .back-link,
@@ -6151,12 +6162,15 @@ dd {
     width: 100%;
   }
 
-  .detail-header-score {
-    right: 14px;
-    top: 14px;
+  .detail-header-actions {
+    align-self: stretch;
+    justify-content: space-between;
+    order: 2;
+    position: static;
   }
 
   .detail-sticky-head .detail-head {
+    order: 3;
     padding-right: 0;
   }
 

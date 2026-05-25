@@ -224,7 +224,16 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
       {items.map((item) => {
         const Icon = item.icon;
         const pending = pendingTarget === item.target;
-        const buttonLabel = status === "login" ? "로그인 후 저장할 수 있어요" : pending ? `${item.label} 저장 중` : item.label;
+        const heartCount = state?.heartCount ?? 0;
+        const buttonText = item.target === "hearted" && !compact && !pending ? `${item.label} ${heartCount}` : pending ? "저장 중" : item.label;
+        const buttonLabel =
+          status === "login"
+            ? "로그인 후 저장할 수 있어요"
+            : item.target === "hearted" && !pending
+              ? `하트 ${heartCount}개`
+              : pending
+                ? `${item.label} 저장 중`
+                : item.label;
         return (
           <button
             aria-label={buttonLabel}
@@ -237,14 +246,10 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
             type="button"
           >
             <Icon size={compact ? 14 : 15} aria-hidden="true" fill={item.target === "hearted" && item.active ? "currentColor" : "none"} />
-            <span className={compact ? "sr-only" : ""}>{pending ? "저장 중" : item.label}</span>
+            <span className={compact ? "sr-only" : ""}>{buttonText}</span>
           </button>
         );
       })}
-      <span className="place-save-heart-count" aria-label={`하트 ${state?.heartCount ?? 0}개`}>
-        <Heart size={compact ? 13 : 14} aria-hidden="true" fill="currentColor" />
-        {state?.heartCount ?? 0}
-      </span>
       {status === "error" ? <span className={`place-save-status ${compact ? "sr-only" : ""}`}>저장 실패</span> : null}
     </div>
   );
