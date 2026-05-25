@@ -1,6 +1,8 @@
 "use client";
 
-import { Camera, CheckCircle2, Globe2, Lock, Star, X } from "lucide-react";
+import { Camera, CheckCircle2, Globe2, Lock, LogIn, Search, Star, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -44,17 +46,21 @@ type VisitsResponse = {
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
 
 export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; placeName: string }) {
+  const router = useRouter();
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [devLoginEnabled, setDevLoginEnabled] = useState(false);
   const [visits, setVisits] = useState<VisitsResponse | null>(null);
   const [rating, setRating] = useState(5);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
-  const myLatestVisit = visits?.myVisits[0] ?? null;
+  const [authStatus, setAuthStatus] = useState<string | null>(null);
+  const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine).slice(0, 3) ?? [], [visits]);
   const photoHelpId = `visit-photo-help-${placeId}`;
   const selectedPhotoId = `visit-photo-selected-${placeId}`;
@@ -76,6 +82,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         const me = meResponse.ok ? ((await meResponse.json()) as MeResponse) : null;
         const nextVisits = visitsResponse.ok ? ((await visitsResponse.json()) as VisitsResponse) : null;
         if (!active) return;
+        setDevLoginEnabled(me?.devLoginEnabled ?? false);
         setUser(me?.user ?? null);
         setVisits(nextVisits);
       } finally {
@@ -120,111 +127,180 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         ) : null}
       </div>
 
-      <form className="place-visit-form" onSubmit={submitVisit}>
-        <fieldset className="place-visit-rating">
-          <legend>평점</legend>
-          <div className="place-visit-stars" role="radiogroup" aria-label={`방문 평점, ${rating}점 선택됨`}>
-            {[1, 2, 3, 4, 5].map((value) => (
+      {loading ? (
+        <div className="place-visit-login-card place-visit-loading-state">
+          <div className="place-visit-login-copy">
+            <strong>방문 기록을 불러오는 중입니다.</strong>
+            <p>로그인 상태와 공개 방문 기록을 확인하고 있어요.</p>
+          </div>
+        </div>
+      ) : user ? (
+        <form className="place-visit-form" onSubmit={submitVisit}>
+          <fieldset className="place-visit-rating">
+            <legend>평점</legend>
+            <div className="place-visit-stars" role="radiogroup" aria-label={`방문 평점, ${rating}점 선택됨`}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  aria-checked={rating === value}
+                  aria-label={`${value}점`}
+                  className={value <= rating ? "is-active" : ""}
+                  disabled={busy}
+                  key={value}
+                  onClick={() => setRating(value)}
+                  role="radio"
+                  type="button"
+                >
+                  <Star size={18} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+            <p className="place-visit-rating-label">{rating}점 선택됨</p>
+          </fieldset>
+
+          <fieldset className="place-visit-visibility">
+            <legend>공개 범위</legend>
+            <div aria-label="방문 기록 공개 범위">
               <button
-                aria-checked={rating === value}
-                aria-label={`${value}점`}
-                className={value <= rating ? "is-active" : ""}
+                aria-pressed={visibility === "public"}
+                className={visibility === "public" ? "is-active" : ""}
                 disabled={busy}
-                key={value}
-                onClick={() => setRating(value)}
-                role="radio"
+                onClick={() => setVisibility("public")}
                 type="button"
               >
-                <Star size={18} aria-hidden="true" />
+                <Globe2 size={15} aria-hidden="true" />
+                공개
               </button>
-            ))}
-          </div>
-          <p className="place-visit-rating-label">{rating}점 선택됨</p>
-        </fieldset>
+              <button
+                aria-pressed={visibility === "private"}
+                className={visibility === "private" ? "is-active" : ""}
+                disabled={busy}
+                onClick={() => setVisibility("private")}
+                type="button"
+              >
+                <Lock size={15} aria-hidden="true" />
+                비공개
+              </button>
+            </div>
+          </fieldset>
 
-        <fieldset className="place-visit-visibility">
-          <legend>공개 범위</legend>
-          <div aria-label="방문 기록 공개 범위">
-            <button aria-pressed={visibility === "public"} className={visibility === "public" ? "is-active" : ""} disabled={busy} onClick={() => setVisibility("public")} type="button">
-              <Globe2 size={15} aria-hidden="true" />
-              공개
-            </button>
-            <button aria-pressed={visibility === "private"} className={visibility === "private" ? "is-active" : ""} disabled={busy} onClick={() => setVisibility("private")} type="button">
-              <Lock size={15} aria-hidden="true" />
-              비공개
-            </button>
-          </div>
-        </fieldset>
-
-        <label className="place-visit-field place-visit-review">
-          <span>
-            짧은 리뷰
-            <small>{reviewText.length}/2000</small>
-          </span>
-          <textarea
-            disabled={busy}
-            maxLength={2000}
-            rows={4}
-            value={reviewText}
-            onChange={(event) => setReviewText(event.currentTarget.value)}
-            placeholder="다시 가고 싶은 이유, 아이 반응, 부모 입장에서 좋았던 점"
-          />
-        </label>
-
-        <div className="place-visit-field place-visit-photo">
-          <div className="place-visit-photo-label">
+          <label className="place-visit-field place-visit-review">
             <span>
-              <Camera size={15} aria-hidden="true" />
-              사진
+              짧은 리뷰
+              <small>{reviewText.length}/2000</small>
             </span>
-            <small id={photoHelpId}>JPG, PNG, WebP · 10MB 이하</small>
-          </div>
-          <div className={`place-visit-upload-card ${photoFile ? "has-file" : ""}`}>
-            <button
-              aria-describedby={photoFile ? selectedPhotoId : photoHelpId}
-              className="place-visit-upload-button"
+            <textarea
               disabled={busy}
-              onClick={() => photoInputRef.current?.click()}
-              type="button"
-            >
-              <Camera size={18} aria-hidden="true" />
-              <span>{photoFile ? "사진 바꾸기" : "사진 추가"}</span>
-            </button>
-            {photoFile ? (
-              <div className="place-visit-selected-file" id={selectedPhotoId}>
-                <span>{photoFile.name}</span>
-                <button aria-label="선택한 사진 제거" disabled={busy} onClick={clearPhotoFile} type="button">
-                  <X size={15} aria-hidden="true" />
-                </button>
-              </div>
-            ) : (
-              <p>방문 분위기를 남길 사진을 1장까지 첨부할 수 있어요.</p>
-            )}
-          </div>
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            aria-hidden="true"
-            className="place-visit-file-input"
-            ref={photoInputRef}
-            tabIndex={-1}
-            type="file"
-            onChange={handlePhotoChange}
-          />
-        </div>
+              maxLength={2000}
+              rows={4}
+              value={reviewText}
+              onChange={(event) => setReviewText(event.currentTarget.value)}
+              placeholder="다시 가고 싶은 이유, 아이 반응, 부모 입장에서 좋았던 점"
+            />
+          </label>
 
-        <div className="place-visit-submit">
-          <button className="primary-button" disabled={busy || loading || !user} type="submit">
-            {busy ? "저장 중" : "방문 기록 저장"}
-          </button>
-          {status ? <p>{status}</p> : !user ? <p>dev 로그인 후 기록할 수 있습니다.</p> : null}
+          <div className="place-visit-field place-visit-photo">
+            <div className="place-visit-photo-label">
+              <span>
+                <Camera size={15} aria-hidden="true" />
+                사진
+              </span>
+              <small id={photoHelpId}>JPG, PNG, WebP · 10MB 이하</small>
+            </div>
+            <div className={`place-visit-upload-card ${photoFile ? "has-file" : ""}`}>
+              <button
+                aria-describedby={photoFile ? selectedPhotoId : photoHelpId}
+                className="place-visit-upload-button"
+                disabled={busy}
+                onClick={() => photoInputRef.current?.click()}
+                type="button"
+              >
+                <Camera size={18} aria-hidden="true" />
+                <span>{photoFile ? "사진 바꾸기" : "사진 추가"}</span>
+              </button>
+              {photoFile ? (
+                <div className="place-visit-selected-file" id={selectedPhotoId}>
+                  <span>{photoFile.name}</span>
+                  <button aria-label="선택한 사진 제거" disabled={busy} onClick={clearPhotoFile} type="button">
+                    <X size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <p>방문 분위기를 남길 사진을 1장까지 첨부할 수 있어요.</p>
+              )}
+            </div>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              aria-hidden="true"
+              className="place-visit-file-input"
+              ref={photoInputRef}
+              tabIndex={-1}
+              type="file"
+              onChange={handlePhotoChange}
+            />
+          </div>
+
+          <div className="place-visit-submit">
+            <button className="primary-button" disabled={busy || loading} type="submit">
+              {busy ? "저장 중" : "방문 기록 저장"}
+            </button>
+            {status ? <p>{status}</p> : null}
+          </div>
+        </form>
+      ) : (
+        <div className="place-visit-login-card">
+          <div className="place-visit-login-copy">
+            <strong>방문 기록은 로그인 후 남길 수 있어요.</strong>
+            <p>
+              별점과 짧은 리뷰를 저장하면 나중에 다시 가고 싶은 장소를 찾기 쉬워집니다.
+              공개 기록은 다른 가족도 참고할 수 있고, 비공개 기록은 평균 별점에만 반영돼요.
+            </p>
+          </div>
+          <div className="place-visit-login-actions">
+            {devLoginEnabled ? (
+              <button
+                className="primary-button place-visit-login-button"
+                disabled={authBusy || loading}
+                onClick={loginFromPanel}
+                type="button"
+              >
+                <LogIn size={16} aria-hidden="true" />
+                {authBusy ? "로그인 중" : "dev 로그인하고 기록하기"}
+              </button>
+            ) : null}
+            <Link className="place-visit-login-link" href="/">
+              <Search size={16} aria-hidden="true" />
+              다른 장소 찾기
+            </Link>
+          </div>
+          {authStatus ? (
+            <p className="place-visit-auth-status" role="alert">
+              {authStatus}
+            </p>
+          ) : null}
         </div>
-      </form>
+      )}
 
       <div className="place-visit-lists">
-        {myLatestVisit ? (
-          <VisitSummary title="내 최근 기록" visit={myLatestVisit} />
+        {loading ? (
+          <div className="place-visit-public-preview">
+            <strong>공개 기록 미리보기</strong>
+            <p>공개 방문 기록을 불러오는 중입니다.</p>
+          </div>
+        ) : user ? (
+          myLatestVisit ? (
+            <VisitSummary title="내 최근 기록" visit={myLatestVisit} />
+          ) : (
+            <div className="place-visit-empty">아직 내 방문 기록이 없습니다.</div>
+          )
         ) : (
-          <div className="place-visit-empty">아직 내 방문 기록이 없습니다.</div>
+          <div className="place-visit-public-preview">
+            <strong>공개 기록 미리보기</strong>
+            <p>
+              {publicVisits.length > 0
+                ? "로그인하지 않아도 공개 리뷰는 먼저 살펴볼 수 있어요."
+                : "아직 공개된 방문 기록이 없습니다."}
+            </p>
+          </div>
         )}
         {publicVisits.length > 0 ? (
           <div className="place-visit-public-list">
@@ -279,6 +355,31 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       setStatus(error instanceof Error ? error.message : "저장하지 못했습니다.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loginFromPanel() {
+    if (!devLoginEnabled || authBusy) return;
+
+    setAuthBusy(true);
+    setAuthStatus(null);
+    try {
+      const response = await fetch("/api/auth/dev-login", {
+        credentials: "same-origin",
+        method: "POST"
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+      const body = (await response.json()) as { user: User };
+      setUser(body.user);
+      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
+      router.refresh();
+      await refreshVisits();
+    } catch (error) {
+      setAuthStatus(
+        error instanceof Error ? `로그인하지 못했습니다. ${error.message}` : "로그인하지 못했습니다."
+      );
+    } finally {
+      setAuthBusy(false);
     }
   }
 

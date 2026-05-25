@@ -39,8 +39,17 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
 
     void loadMe();
 
+    function handleAuthChange(event: Event) {
+      const detail = (event as CustomEvent<{ user: MeResponse["user"] }>).detail;
+      setUser(detail?.user ?? null);
+      setError(null);
+      setLoading(false);
+    }
+
+    window.addEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
     return () => {
       active = false;
+      window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
     };
   }, []);
 

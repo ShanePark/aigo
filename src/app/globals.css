@@ -2991,6 +2991,75 @@ h3 {
   padding: 0 10px;
 }
 
+.place-visit-login-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.place-visit-login-copy {
+  min-width: 0;
+}
+
+.place-visit-login-copy strong,
+.place-visit-public-preview strong {
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+  margin-bottom: 5px;
+}
+
+.place-visit-login-copy p,
+.place-visit-public-preview p,
+.place-visit-auth-status {
+  color: var(--body-copy);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.place-visit-login-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.place-visit-login-button,
+.place-visit-login-link {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 7px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.place-visit-login-link {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.place-visit-auth-status {
+  color: var(--coral);
+  font-weight: 800;
+  grid-column: 1 / -1;
+}
+
 .place-visit-form {
   display: grid;
   gap: 12px;
@@ -3084,6 +3153,7 @@ h3 {
 
 .place-visit-stars button:hover:not(:disabled),
 .place-visit-visibility button:hover:not(:disabled),
+.place-visit-login-link:hover,
 .place-visit-upload-button:hover:not(:disabled),
 .place-visit-selected-file button:hover:not(:disabled) {
   border-color: var(--hover-border);
@@ -3282,7 +3352,8 @@ h3 {
 }
 
 .place-visit-summary,
-.place-visit-empty {
+.place-visit-empty,
+.place-visit-public-preview {
   min-width: 0;
 }
 
@@ -3320,7 +3391,8 @@ h3 {
 }
 
 .place-visit-summary p,
-.place-visit-empty {
+.place-visit-empty,
+.place-visit-public-preview p {
   color: var(--body-copy);
   font-size: 13px;
   line-height: 1.55;
@@ -4279,6 +4351,20 @@ dd {
   .place-visit-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .place-visit-login-card {
+    grid-template-columns: 1fr;
+  }
+
+  .place-visit-login-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .place-visit-login-button,
+  .place-visit-login-link {
+    width: 100%;
   }
 
   .place-visit-submit .primary-button {
