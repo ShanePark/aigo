@@ -32,6 +32,7 @@ import {
   retailAliasCompactTextsForTest,
   routeBreakDestinationFitCapForTest,
   searchEvaluationDate,
+  searchQueryNormalizationMetaForTest,
   searchTermPatterns,
   suggestedExactNameQueryForTest,
   shouldUseAnyKeywordMatch,
@@ -1771,6 +1772,45 @@ describe("place search helpers", () => {
       query: "공동육아나눔터 영유아 실내",
       preferences: {
         indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "서울 아이랑 실내 유명" })).toMatchObject({
+      query: "서울",
+      taxonomy: {
+        mode: "soft",
+        familyFitGates: ["child_primary"],
+        activityTypes: ["indoor_play"]
+      },
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    });
+    expect(searchQueryNormalizationMetaForTest({ ...baseSearchInput, query: "서울 아이랑 실내 유명" })).toMatchObject({
+      removedTerms: ["아이랑", "실내", "유명"],
+      preservedTaxonomyFacets: {
+        familyFitGates: ["child_primary"],
+        activityTypes: ["indoor_play"]
+      },
+      hasPreservedIntent: true
+    });
+    expect(isBroadParentIntentQuery("전국 아이랑 과학관 어린이박물관")).toBe(true);
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "전국 아이랑 과학관 어린이박물관" })).toMatchObject({
+      query: "전국 아이랑 과학관 어린이박물관",
+      taxonomy: {
+        mode: "soft",
+        familyFitGates: ["child_primary"],
+        activityTypes: ["science_exhibit", "culture_exhibit"]
+      }
+    });
+    expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "전국 아이랑 과학관 어린이박물관" })).sql).toContain(
+      "primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground','toy_library']::text[])"
+    );
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "워터파크 물놀이 아이랑" })).toMatchObject({
+      query: "워터파크 물놀이",
+      taxonomy: {
+        mode: "soft",
+        familyFitGates: ["child_primary"],
+        activityTypes: ["water_play"]
       }
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "무료 실내 공공 아이랑 밥먹고 놀기 수유실 주차" })).toMatchObject({

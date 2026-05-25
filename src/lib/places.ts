@@ -624,6 +624,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
         temporalTerms: input.query ? inferTemporalTermsFromQuery(input.query) : [],
         suggestedExactNameQuery:
           input.matchMode === "exactName" && input.query ? suggestedExactNameQuery(input.query) : null,
+        queryNormalization: buildSearchQueryNormalizationMeta(input, normalizedInput),
         appliedPreferences: normalizedInput.preferences ?? null,
         preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
         visitContext: normalizedInput.visitContext ?? null,
@@ -2308,6 +2309,34 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
   };
 }
 
+export function searchQueryNormalizationMetaForTest(input: SearchPlacesInput) {
+  return buildSearchQueryNormalizationMeta(input, normalizeSearchInput(input));
+}
+
+function buildSearchQueryNormalizationMeta(input: SearchPlacesInput, normalizedInput: SearchPlacesInput) {
+  const originalTerms = input.query?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const normalizedTerms = new Set(normalizedInput.query?.trim().split(/\s+/).filter(Boolean) ?? []);
+  const removedTerms = uniqueStrings(originalTerms.filter((term) => !normalizedTerms.has(term)));
+  const preservedTaxonomyFacets = normalizedInput.taxonomy ? searchTaxonomyFacetSummary(normalizedInput.taxonomy) : {};
+
+  return {
+    removedTerms,
+    preservedTaxonomyFacets,
+    hasPreservedIntent: Object.keys(preservedTaxonomyFacets).length > 0
+  };
+}
+
+function searchTaxonomyFacetSummary(taxonomy: NonNullable<SearchPlacesInput["taxonomy"]>) {
+  const summary: Partial<Record<TaxonomyFacetFamily, string[]>> = {};
+  for (const family of taxonomyFacetKeys) {
+    const values = taxonomy[family] ?? [];
+    if (values.length > 0) {
+      summary[family] = values;
+    }
+  }
+  return summary;
+}
+
 export function searchEvaluationDate(input: Pick<SearchPlacesInput, "visitDate" | "visitStartTime">) {
   if (!input.visitDate) return undefined;
 
@@ -2477,6 +2506,7 @@ export function shouldUseAnyKeywordMatch(query: string) {
 }
 
 function isLikelyPlaceNameTerm(term: string) {
+  if (isCompoundNamedFacilityTerm(term)) return true;
   return (
     term.length >= 3 &&
     !isQueryStopTerm(term) &&
@@ -2485,6 +2515,10 @@ function isLikelyPlaceNameTerm(term: string) {
     !broadPlaygroundIntentTerms.has(term) &&
     !categoryKeywordMap[term]
   );
+}
+
+function isCompoundNamedFacilityTerm(term: string) {
+  return term.length >= 5 && /(박물관|과학관|미술관|체험관)$/.test(term);
 }
 
 function isAlternativeKeywordTerm(term: string) {
@@ -2590,7 +2624,7 @@ const commercialKidsCafeEvidenceTags = [
 ];
 const commercialKidsCafeEvidencePatterns = ["%키즈카페%", "%키즈 카페%", "%키즈테마파크%", "%키즈 테마파크%", "%점프홀릭%", "%월드킹%", "%챔피언%", "%아틀란티스%"];
 
-const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬"]);
+const broadWaterPlayIntentTerms = new Set(["물놀이", "물놀이터", "수경", "분수", "바닥분수", "물놀이장", "물놀이섬", "워터파크"]);
 const specificPlayFeatureQueryTerms = new Set([
   ...broadWaterPlayIntentTerms,
   "그네",
@@ -2663,6 +2697,7 @@ const broadParentIntentTerms = new Set([
   "과학",
   "과학관",
   "박물관",
+  "어린이박물관",
   "도서관",
   "장난감도서관",
   "장난감",
@@ -2707,7 +2742,8 @@ const broadParentIntentTerms = new Set([
   "모래놀이터",
   "모래놀이",
   "모래놀이장",
-  "모래"
+  "모래",
+  "워터파크"
 ]);
 
 const broadParentCoreTerms = new Set([
@@ -2722,6 +2758,7 @@ const broadParentCoreTerms = new Set([
   "과학",
   "과학관",
   "박물관",
+  "어린이박물관",
   "도서관",
   "장난감도서관",
   "장난감",
@@ -2749,6 +2786,7 @@ const broadParentCoreTerms = new Set([
   "모래놀이",
   "모래놀이장",
   "모래",
+  "워터파크",
   "쇼핑몰",
   "백화점",
   "아울렛"
@@ -2869,6 +2907,7 @@ const queryStopTerms = new Set([
   "장소",
   "추천",
   "사진",
+  "유명",
   "가족",
   "가족나들이",
   "나들이",
@@ -2892,6 +2931,7 @@ const queryStopTerms = new Set([
   "데리고",
   "대전역",
   "원도심",
+  "전국",
   "기준",
   "아이",
   "근처",
@@ -2998,7 +3038,8 @@ const broadWaterPlayExpansionTerms = [
   "물놀이장",
   "물놀이섬",
   "계류",
-  "워터"
+  "워터",
+  "워터파크"
 ];
 
 const broadPublicExpansionTerms = [
@@ -3009,6 +3050,7 @@ const broadPublicExpansionTerms = [
   "과학",
   "과학관",
   "박물관",
+  "어린이박물관",
   "도서관",
   "체험",
   "체험관",
@@ -3109,7 +3151,12 @@ export function isBroadParentIntentQuery(query: string) {
     .trim()
     .split(/\s+/)
     .filter((term) => Boolean(term) && !isQueryStopTerm(term));
-  return terms.length >= 3 && terms.every((term) => broadParentIntentTerms.has(term)) && terms.some((term) => broadParentCoreTerms.has(term));
+  const hasDiscoveryPair = terms.includes("어린이박물관") || terms.includes("워터파크");
+  return (
+    (terms.length >= 3 || hasDiscoveryPair) &&
+    terms.every((term) => broadParentIntentTerms.has(term)) &&
+    terms.some((term) => broadParentCoreTerms.has(term))
+  );
 }
 
 function shouldKeepLiteralQuery(query: string) {
@@ -3276,6 +3323,8 @@ const categoryKeywordMap: Record<string, string[]> = {
   레고스토어: ["toy_store"],
   과학관: ["science_museum"],
   박물관: ["museum"],
+  어린이박물관: ["museum", "experience_center"],
+  워터파크: ["park", "experience_center"],
   체험관: ["experience_center"],
   수목원: ["park"],
   휴게소: ["rest_area"],
