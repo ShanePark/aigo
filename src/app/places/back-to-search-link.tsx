@@ -19,9 +19,8 @@ export function BackToSearchLink({ href }: BackToSearchLinkProps) {
   }
 
   return (
-    <a className="back-link" href={href} onClick={handleClick}>
+    <a className="back-link" href={href} onClick={handleClick} aria-label="뒤로가기">
       <ArrowLeft size={16} aria-hidden="true" />
-      검색으로 돌아가기
     </a>
   );
 }

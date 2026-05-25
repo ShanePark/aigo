@@ -1,4 +1,29 @@
-import { ChevronDown, Clock, ExternalLink, History, Images, MapPin, MessageSquareText, ShieldCheck, Ticket } from "lucide-react";
+import {
+  BookOpen,
+  Car,
+  ChevronDown,
+  Clock,
+  Coffee,
+  Dumbbell,
+  ExternalLink,
+  FerrisWheel,
+  FlaskConical,
+  Gamepad2,
+  History,
+  Hotel,
+  Images,
+  Landmark,
+  MapPin,
+  MessageSquareText,
+  PawPrint,
+  Puzzle,
+  ShieldCheck,
+  ShoppingBag,
+  Ticket,
+  Trees,
+  Utensils
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
@@ -90,7 +115,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
     <div className="page detail-page">
       <PlaceViewRecorder placeId={place.id} />
       <header className="detail-sticky-head">
-        <BackToSearchLink href={backHref} />
         <div className="detail-header-actions">
           <PlaceSaveControls placeId={place.id} />
           <div className="detail-header-score">
@@ -107,11 +131,10 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
 
         <div className="detail-head">
           <div>
-            <p className="category" title={place.primaryCategory}>
-              {categoryLabel(place.primaryCategory)}
-            </p>
             <div className="detail-title-row">
+              <BackToSearchLink href={backHref} />
               <h1>{place.name}</h1>
+              <CategoryBadge category={place.primaryCategory} />
             </div>
             <div className="detail-head-meta" aria-label="장소 핵심 정보">
               {addressLabel ? (
@@ -120,6 +143,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
                   {addressLabel}
                 </span>
               ) : null}
+              {place.description ? <p className="detail-head-description">{place.description}</p> : null}
               {place.tags.length > 0 ? (
                 <div className="detail-head-tags" aria-label="태그">
                   {place.tags.slice(0, 8).map((tag) => (
@@ -171,12 +195,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         </div>
         <PlaceDetailMap category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
       </section>
-
-      {place.description ? (
-        <section className="detail-description" aria-label="장소 설명">
-          <p>{place.description}</p>
-        </section>
-      ) : null}
 
       <PlaceVisitPanel placeId={place.id} placeName={place.name} />
       <PlacePublicMemoPanel placeId={place.id} placeName={place.name} />
@@ -799,6 +817,41 @@ function categoryLabel(value: string) {
     accommodation: "키즈 숙소"
   };
   return labels[value] ?? value;
+}
+
+function CategoryBadge({ category }: { category: string }) {
+  const Icon = categoryIcon(category);
+  return (
+    <span className="detail-category-badge" title={category}>
+      <Icon size={14} aria-hidden="true" />
+      {categoryLabel(category)}
+    </span>
+  );
+}
+
+function categoryIcon(value: string): LucideIcon {
+  const icons: Record<string, LucideIcon> = {
+    accommodation: Hotel,
+    aquarium_zoo: PawPrint,
+    experience_center: FerrisWheel,
+    family_cafe: Coffee,
+    family_restaurant: Utensils,
+    indoor_playground: Gamepad2,
+    kids_cafe: Coffee,
+    library: BookOpen,
+    museum: Landmark,
+    park: Trees,
+    playground: Trees,
+    public_child_facility: Puzzle,
+    rest_area: Car,
+    science_museum: FlaskConical,
+    shopping_mall: ShoppingBag,
+    sports_venue: Dumbbell,
+    theme_park: FerrisWheel,
+    toy_library: Puzzle,
+    toy_store: Puzzle
+  };
+  return icons[value] ?? MapPin;
 }
 
 function tagLabel(value: string) {
