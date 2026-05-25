@@ -5900,16 +5900,57 @@ h3 {
 
 .saved-place-filters {
   gap: 4px;
+  min-height: 48px;
+  padding: 5px;
 }
 
 .saved-place-filters .limit-option {
-  gap: 6px;
-  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.saved-place-filters .limit-option.is-all {
+  color: var(--muted);
+}
+
+.saved-place-filters .limit-option.is-wantToGo {
+  color: var(--mint);
+}
+
+.saved-place-filters .limit-option.is-hearted {
+  color: var(--coral);
+}
+
+.saved-place-filters .limit-option.is-all:hover,
+.saved-place-filters .limit-option.is-all:focus-visible,
+.saved-place-filters .limit-option.is-all.is-active {
+  background: var(--chip-neutral-bg);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.saved-place-filters .limit-option.is-wantToGo:hover,
+.saved-place-filters .limit-option.is-wantToGo:focus-visible,
+.saved-place-filters .limit-option.is-wantToGo.is-active {
+  background: var(--mint-soft);
+  border-color: var(--line-strong);
+  color: var(--mint);
+}
+
+.saved-place-filters .limit-option.is-hearted:hover,
+.saved-place-filters .limit-option.is-hearted:focus-visible,
+.saved-place-filters .limit-option.is-hearted.is-active {
+  background: var(--coral-soft);
+  border-color: var(--line-strong);
+  color: var(--coral);
 }
 
 .saved-place-filter-count {
   align-items: center;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, currentColor 13%, transparent);
   border-radius: 999px;
   display: inline-flex;
   font-size: 11px;
@@ -5918,6 +5959,10 @@ h3 {
   line-height: 1;
   min-width: 21px;
   padding: 4px 6px;
+}
+
+.saved-place-filters .limit-option.is-active .saved-place-filter-count {
+  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .visits-actions {

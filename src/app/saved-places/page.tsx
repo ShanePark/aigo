@@ -68,7 +68,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
         <div className="visits-hero-copy">
           <p className="category">저장한 장소</p>
           <h1>다시 보고 싶은 후보들</h1>
-          <p className="lede">찜한 장소와 마음에 든 장소를 나눠 저장하고, 다음 외출 후보를 빠르게 다시 꺼내 봅니다.</p>
         </div>
         <div className="visits-hero-side">
           <SavedPlaceFilters activeFilter={filter} summary={summary} />
@@ -111,7 +110,7 @@ function SavedPlaceFilters({ activeFilter, summary }: { activeFilter: SavedPlace
         const count = filter.getCount(summary);
         const iconFill = filter.value === "hearted" ? "currentColor" : "none";
         return (
-          <Link className={`limit-option ${activeFilter === filter.value ? "is-active" : ""}`} href={filter.href} key={filter.value}>
+          <Link className={`limit-option is-${filter.value} ${activeFilter === filter.value ? "is-active" : ""}`} href={filter.href} key={filter.value}>
             <Icon size={14} aria-hidden="true" fill={iconFill} />
             <span>{filter.label}</span>
             <span className="saved-place-filter-count">{count}</span>
