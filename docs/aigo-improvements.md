@@ -38,6 +38,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 - 진행 메모: 2026-05-26 첫 slice로 사용자-facing 카테고리 라벨 helper를 분리하고, 기존 통합 카테고리의 슬래시 라벨을 제거했다. `aquarium`, `zoo`, `playground`, `art_museum` 라벨/아이콘/placeholder fallback도 먼저 받을 수 있게 준비했으며, 아직 스키마 enum과 DB 데이터는 변경하지 않았다.
 - 진행 메모: 2026-05-26 두 번째 slice로 `aquarium`, `zoo`, `playground`, `art_museum`을 API 스키마/OpenAPI/검색 그룹/거리 스코어링/문서 계약에 추가했다. 기존 DB 데이터 재분류와 실제 AiGo API PATCH는 아직 수행하지 않았다.
+- 진행 메모: 2026-05-26 세 번째 slice로 `scripts/audit-primary-category-splits.ts` 읽기 전용 감사 도구를 추가했다. 이 도구는 active 상태의 `aquarium_zoo`, `park`, `museum` 장소를 조회해 `aquarium`, `zoo`, `playground`, `art_museum`, 기존 카테고리 유지, 또는 `needs_review` 후보를 산출한다. 아직 실제 DB 데이터 변경이나 AiGo API PATCH는 수행하지 않았다.
 - `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
 - `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
 - `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.

@@ -374,6 +374,14 @@ Common `primaryCategory` values used by the UI/search:
 
 `primaryCategory` is a closed top-level set. Do not invent category values outside this contract; use canonical tags and taxonomy facets for finer meanings. Existing legacy values such as `aquarium_zoo` may remain until data is reclassified, but new or corrected records should prefer the more specific value when source evidence supports it. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
 
+Before reclassifying legacy `primaryCategory` values, run the read-only audit helper:
+
+```bash
+pnpm tsx scripts/audit-primary-category-splits.ts --json
+```
+
+Use its suggestions as a review queue, not as an automatic migration. The helper scans active `aquarium_zoo`, `park`, and `museum` records and proposes `aquarium`, `zoo`, `playground`, `art_museum`, or the existing category from name, tags, taxonomy, notes, and `playFeatures`. Rows marked `needs_review` or low-confidence require source/detail review before any API `PATCH`. Actual category changes still use the normal AiGo API mutation flow and version-history verification.
+
 Playground search semantics:
 
 - Treat `park` and `playground` as different intents. A general park can be useful without being a real playground, but `놀이터` searches and the playground UI group should mean an indoor playground or a park record with playground evidence.
