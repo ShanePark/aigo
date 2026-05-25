@@ -41,7 +41,17 @@ const SHOPPING_MALL_TOTAL_MAX_DELTA = 8;
 
 const destinationShoppingMallNameTerms = ["아울렛", "프리미엄아울렛", "복합쇼핑몰", "스타필드", "타임빌라스"];
 const destinationShoppingMallTags = new Set(["outlet", "premiumoutlet", "destinationmall", "complexmall", "아울렛", "복합쇼핑몰"]);
-const relatedChildDestinationCategories = new Set(["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium_zoo"]);
+const relatedChildDestinationCategories = new Set([
+  "kids_cafe",
+  "indoor_playground",
+  "playground",
+  "toy_library",
+  "experience_center",
+  "science_museum",
+  "aquarium",
+  "aquarium_zoo",
+  "zoo"
+]);
 const relatedSupportDestinationCategories = new Set(["toy_store", "family_cafe", "family_restaurant", "library"]);
 const relatedChildDestinationTags = new Set(["키즈카페", "실내놀이터", "어린이체험", "어린이박물관", "어린이도서관", "kids", "kidscafe", "indoorplayground"]);
 const relatedSupportDestinationTags = new Set(["놀이방식당", "playroom", "토이저러스", "장난감", "유아휴게실"]);
@@ -145,12 +155,12 @@ const distanceProfiles: Record<DistanceProfile["id"], DistanceProfile> = {
   }
 };
 
-const playgroundIntentCategories = new Set(["park", "indoor_playground"]);
+const playgroundIntentCategories = new Set(["park", "playground", "indoor_playground"]);
 const shoppingIntentTerms = ["쇼핑몰", "백화점", "아울렛", "몰", "마트"];
 const playgroundIntentTerms = ["놀이터", "유아놀이터", "실내놀이터", "물놀이터", "playground"];
 const visitIntentTerms = ["방문", "체험", "박물관", "과학관", "아쿠아리움", "동물원", "수목원", "나들이"];
-const visitSearchCategories = new Set(["science_museum", "museum", "experience_center", "aquarium_zoo", "sports_venue"]);
-const visitDestinationCategories = new Set(["science_museum", "museum", "experience_center", "aquarium_zoo", "park", "sports_venue"]);
+const visitSearchCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "sports_venue"]);
+const visitDestinationCategories = new Set(["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "park", "sports_venue"]);
 
 export function distanceSignalForPlace(place: DistanceScoringPlace, input: SearchPlacesInput) {
   if (!input.origin || typeof place.distanceKm !== "number") {
@@ -273,7 +283,7 @@ function isVisitSearchIntent(input: SearchPlacesInput) {
 }
 
 function isDestinationCategory(category: string) {
-  return ["science_museum", "museum", "experience_center", "aquarium_zoo", "rest_area"].includes(category);
+  return ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "rest_area"].includes(category);
 }
 
 function queryIncludes(input: SearchPlacesInput, tokens: string[]) {

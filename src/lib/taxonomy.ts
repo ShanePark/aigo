@@ -4,17 +4,21 @@ export const primaryCategories = [
   "toy_store",
   "toy_library",
   "library",
+  "art_museum",
   "museum",
   "science_museum",
   "experience_center",
+  "aquarium",
   "aquarium_zoo",
   "park",
+  "playground",
   "family_cafe",
   "family_restaurant",
   "sports_venue",
   "shopping_mall",
   "rest_area",
-  "accommodation"
+  "accommodation",
+  "zoo"
 ] as const;
 
 export const sourceTypes = [
@@ -254,7 +258,12 @@ export function inferTaxonomyFromPlace(place: {
   const tagMapping = normalizeLegacyTags(place.tags ?? []);
   mergeFacetSet(inferred, tagMapping.facets);
 
-  if (category && ["kids_cafe", "indoor_playground", "toy_library", "library", "science_museum", "experience_center", "aquarium_zoo"].includes(category)) {
+  if (
+    category &&
+    ["kids_cafe", "indoor_playground", "toy_library", "library", "science_museum", "experience_center", "aquarium", "aquarium_zoo", "playground", "zoo"].includes(
+      category
+    )
+  ) {
     inferred.familyFitGates.push("child_primary");
   }
   if (category === "toy_store") {

@@ -86,7 +86,7 @@ describe("home search input", () => {
     ).toMatchObject({
       filterByRadius: true,
       radiusKm: 220,
-      primaryCategories: expect.arrayContaining(["shopping_mall", "science_museum", "museum", "aquarium_zoo"])
+      primaryCategories: expect.arrayContaining(["shopping_mall", "science_museum", "museum", "art_museum", "aquarium", "aquarium_zoo", "zoo"])
     });
   });
 

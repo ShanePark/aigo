@@ -649,7 +649,7 @@ function playgroundEvidenceScoreCap(
   place: ReturnType<typeof mapPlace>,
   input: Pick<SearchPlacesInput, "childAgeMonths" | "playgroundOnly" | "query"> & { originalQuery?: string }
 ) {
-  if (!input.playgroundOnly || place.primaryCategory !== "park") {
+  if (!input.playgroundOnly || !["park", "playground"].includes(place.primaryCategory)) {
     return { score, reasonCodes: [] as string[] };
   }
 
@@ -951,14 +951,27 @@ function coursePlanCandidate(item: SearchCoursePlanItem) {
 
 function isCourseAnchorCandidate(item: SearchCoursePlanItem) {
   return (
-    ["kids_cafe", "indoor_playground", "toy_library", "library", "museum", "science_museum", "experience_center", "aquarium_zoo", "park", "accommodation"].includes(
-      item.primaryCategory
-    ) || (item.visit.childEngagementLevel ?? 0) >= 4
+    [
+      "kids_cafe",
+      "indoor_playground",
+      "playground",
+      "toy_library",
+      "library",
+      "art_museum",
+      "museum",
+      "science_museum",
+      "experience_center",
+      "aquarium",
+      "aquarium_zoo",
+      "zoo",
+      "park",
+      "accommodation"
+    ].includes(item.primaryCategory) || (item.visit.childEngagementLevel ?? 0) >= 4
   );
 }
 
 function isShortSecondStopCandidate(item: SearchCoursePlanItem) {
-  return (item.visit.averageStayMinutes ?? 90) <= 90 || item.primaryCategory === "park" || item.primaryCategory === "shopping_mall";
+  return (item.visit.averageStayMinutes ?? 90) <= 90 || item.primaryCategory === "park" || item.primaryCategory === "playground" || item.primaryCategory === "shopping_mall";
 }
 
 function isMealCareBaseCandidate(item: SearchCoursePlanItem) {
@@ -971,7 +984,7 @@ function isMealCareBaseCandidate(item: SearchCoursePlanItem) {
 
 function isNapBreakCandidate(item: SearchCoursePlanItem) {
   return (
-    ["rest_area", "shopping_mall", "accommodation", "park"].includes(item.primaryCategory) ||
+    ["rest_area", "shopping_mall", "accommodation", "park", "playground"].includes(item.primaryCategory) ||
     (item.visit.parentEffortLevel !== null && item.visit.parentEffortLevel <= 2)
   );
 }
@@ -3355,8 +3368,11 @@ const categoryKeywordMap: Record<string, string[]> = {
   레고스토어: ["toy_store"],
   과학관: ["science_museum"],
   박물관: ["museum"],
+  미술관: ["art_museum"],
   어린이박물관: ["museum", "experience_center"],
-  워터파크: ["park", "experience_center"],
+  아쿠아리움: ["aquarium", "aquarium_zoo"],
+  동물원: ["zoo", "aquarium_zoo"],
+  워터파크: ["park", "playground", "experience_center"],
   체험관: ["experience_center"],
   수목원: ["park"],
   휴게소: ["rest_area"],
@@ -3419,6 +3435,8 @@ function playgroundEvidenceClause() {
   const featureClauses = playgroundEquipmentFeatureKeys.map((key) => `play_features->>'${key}' in ('yes', 'partial')`).join(" or ");
 
   return `(
+    primary_category = 'playground'
+    or
     (
       primary_category = 'indoor_playground'
       and not ${commercialIndoorPlayEvidenceClause()}
@@ -3461,7 +3479,7 @@ function sqlTextArray(values: string[]) {
 }
 
 function broadNatureIntentClause(add: (value: unknown) => string) {
-  const clauses = ["primary_category = 'park'"];
+  const clauses = ["primary_category = any(array['park','playground']::text[])"];
 
   for (const term of broadNatureExpansionTerms) {
     const patternParam = add(`%${term}%`);
@@ -3495,7 +3513,7 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
   }
 
   if (terms.some((term) => broadNatureIntentTerms.has(term)) || termSet.has("당일치기") || termSet.has("근교")) {
-    clauses.push("primary_category = 'park'");
+    clauses.push("primary_category = any(array['park','playground']::text[])");
     addTextExpansionClauses(clauses, broadNatureExpansionTerms, add);
   }
 
@@ -3518,7 +3536,7 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
     termSet.has("체험관") ||
     termSet.has("어린이")
   ) {
-    clauses.push("primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground','toy_library']::text[])");
+    clauses.push("primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])");
     addTextExpansionClauses(clauses, broadPublicExpansionTerms, add);
   }
 

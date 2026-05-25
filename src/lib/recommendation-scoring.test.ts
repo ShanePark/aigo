@@ -35,12 +35,14 @@ describe("recommendation scoring policy", () => {
   });
 
   it("keeps visit and lodging destination searches open to two-hour-plus candidates", () => {
-    const visitInput = { ...inputWithOrigin, primaryCategories: ["science_museum", "museum", "experience_center", "aquarium_zoo"] };
+    const visitInput = { ...inputWithOrigin, primaryCategories: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo"] };
     const stayInput = { ...inputWithOrigin, primaryCategories: ["accommodation"] };
     const visit = distanceSignalForPlace({ primaryCategory: "museum", tags: [], distanceKm: 180 }, visitInput);
+    const zoo = distanceSignalForPlace({ primaryCategory: "zoo", tags: [], distanceKm: 180 }, visitInput);
     const stay = distanceSignalForPlace({ primaryCategory: "accommodation", tags: [], distanceKm: 220 }, stayInput);
 
     expect(visit).toMatchObject({ delta: 2, reasonCode: "DISTANCE_DAY_TRIP", profileId: "visitDestination" });
+    expect(zoo).toMatchObject({ delta: 2, reasonCode: "DISTANCE_DAY_TRIP", profileId: "visitDestination" });
     expect(stay).toMatchObject({ delta: 2, reasonCode: "DISTANCE_DAY_TRIP", profileId: "stayDestination" });
   });
 

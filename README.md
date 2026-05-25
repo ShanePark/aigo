@@ -18,7 +18,7 @@ The data model intentionally treats parent logistics as first-class signals:
 - Recommended child ages
 - Stroller practicality, elevator access, parking, nursing rooms, diaper changing tables, kids toilets, baby chairs, and food/snack handling
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
-- Public child-friendly facilities, indoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, science museums, parks, family restaurants, shopping malls, rest areas, kid-primary accommodations, and short nature trips
+- Public child-friendly facilities, indoor and outdoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, art museums, science museums, aquariums, zoos, parks, family restaurants, shopping malls, rest areas, kid-primary accommodations, and short nature trips
 - Source-backed place records, image provenance, wiki-style version history, and user visit feedback
 - Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, logistics, and risk semantics
 
@@ -243,7 +243,7 @@ curl -sS http://localhost:3000/v1/places/search \
 - Prefer official, public-agency, facility, library, tourism, mall, or operator pages.
 - Use public blogs or public listings only as supporting evidence.
 - Store image URLs only when the source page is citeable and the image helps identify or compare the exact place.
-- Keep `primaryCategory` in the closed top-level category set; use taxonomy facets for finer family-planning meaning and `playFeatures` for physical equipment.
+- Keep `primaryCategory` in the closed top-level category set; use taxonomy facets for finer family-planning meaning and `playFeatures` for physical equipment. Prefer split categories such as `aquarium`, `zoo`, `playground`, and `art_museum` when source evidence supports the specific place type.
 - Use canonical source types and full Korean province/city names; API normalization handles common aliases such as `official`, `blog`, `public_data_mirror`, `서울`, `경기`, and `부산`.
 - Use `unknown` when evidence is weak instead of guessing.
 - Preserve uncertainty in `parentNotes`, `safetyNotes`, `dataConfidence`, image review status, or play-feature evidence.

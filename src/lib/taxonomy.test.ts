@@ -14,7 +14,10 @@ describe("taxonomy catalog", () => {
   it("keeps primary categories as a closed top-level set", () => {
     expect(primaryCategories).toContain("kids_cafe");
     expect(primaryCategories).toContain("accommodation");
-    expect(primaryCategories).not.toContain("playground");
+    expect(primaryCategories).toContain("playground");
+    expect(primaryCategories).toContain("aquarium");
+    expect(primaryCategories).toContain("zoo");
+    expect(primaryCategories).toContain("art_museum");
   });
 
   it("canonicalizes source type and region aliases", () => {

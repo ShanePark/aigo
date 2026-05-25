@@ -11,10 +11,10 @@ export const RESULT_LIMIT_OPTIONS = [50, 100] as const;
 export const CATEGORY_GROUP_CATEGORY_FILTERS = {
   all: undefined,
   stay: ["accommodation"],
-  visit: ["science_museum", "museum", "experience_center", "aquarium_zoo", "library", "toy_library", "sports_venue", "rest_area"],
+  visit: ["science_museum", "art_museum", "museum", "experience_center", "aquarium", "aquarium_zoo", "zoo", "library", "toy_library", "sports_venue", "rest_area"],
   shopping: ["shopping_mall"],
   toyStore: ["toy_store"],
-  playground: ["park", "indoor_playground"],
+  playground: ["park", "playground", "indoor_playground"],
   kidsCafe: ["kids_cafe", "family_cafe"],
   playroomDining: ["family_restaurant"]
 } as const satisfies Record<string, readonly string[] | undefined>;

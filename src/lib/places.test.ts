@@ -642,10 +642,14 @@ describe("place search helpers", () => {
   it("maps common Korean category terms to primary category clauses", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'indoor_playground'");
+    expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'playground'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("play_features->>'slide' in ('yes', 'partial')");
     expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
     expect(categoryClauseForKeywordTerm("키즈카페")).toContain("commercial_tag");
     expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
+    expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");
+    expect(categoryClauseForKeywordTerm("아쿠아리움")).toBe("primary_category = any(array['aquarium','aquarium_zoo']::text[])");
+    expect(categoryClauseForKeywordTerm("동물원")).toBe("primary_category = any(array['zoo','aquarium_zoo']::text[])");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
     expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");
@@ -1852,7 +1856,7 @@ describe("place search helpers", () => {
       }
     });
     expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "전국 아이랑 과학관 어린이박물관" })).sql).toContain(
-      "primary_category = any(array['science_museum','museum','experience_center','library','indoor_playground','toy_library']::text[])"
+      "primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])"
     );
     expect(normalizeSearchInput({ ...baseSearchInput, query: "워터파크 물놀이 아이랑" })).toMatchObject({
       query: "워터파크 물놀이",

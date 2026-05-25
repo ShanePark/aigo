@@ -356,19 +356,23 @@ Common `primaryCategory` values used by the UI/search:
 - `toy_store`
 - `toy_library`
 - `library`
+- `art_museum`
 - `museum`
 - `science_museum`
 - `experience_center`
+- `aquarium`
 - `aquarium_zoo`
 - `park`
+- `playground`
 - `family_cafe`
 - `family_restaurant`
 - `sports_venue`
 - `shopping_mall`
 - `rest_area`
 - `accommodation`
+- `zoo`
 
-`primaryCategory` is a closed top-level set. Do not invent new category values for narrower meanings; use canonical tags and taxonomy facets instead. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
+`primaryCategory` is a closed top-level set. Do not invent category values outside this contract; use canonical tags and taxonomy facets for finer meanings. Existing legacy values such as `aquarium_zoo` may remain until data is reclassified, but new or corrected records should prefer the more specific value when source evidence supports it. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
 
 Playground search semantics:
 

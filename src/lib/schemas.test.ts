@@ -38,7 +38,7 @@ describe("place schemas", () => {
   it("rejects unknown primary categories", () => {
     const result = createPlaceSchema.safeParse({
       name: "임의 분류 장소",
-      primaryCategory: "playground",
+      primaryCategory: "made_up_category",
       regionSido: "대전",
       lat: 36.35,
       lng: 127.38,
@@ -46,6 +46,21 @@ describe("place schemas", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts split primary categories for clearer place types", () => {
+    for (const primaryCategory of ["aquarium", "zoo", "playground", "art_museum"]) {
+      const result = createPlaceSchema.parse({
+        name: `분리 카테고리 ${primaryCategory}`,
+        primaryCategory,
+        regionSido: "대전",
+        lat: 36.35,
+        lng: 127.38,
+        sources: [{ sourceType: "official_site", url: "https://example.com" }]
+      });
+
+      expect(result.primaryCategory).toBe(primaryCategory);
+    }
   });
 
   it("canonicalizes source type and region aliases on place inputs", () => {

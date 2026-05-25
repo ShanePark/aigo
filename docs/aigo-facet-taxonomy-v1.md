@@ -61,17 +61,21 @@ Closed `primaryCategory` values:
 - `toy_store`
 - `toy_library`
 - `library`
+- `art_museum`
 - `museum`
 - `science_museum`
 - `experience_center`
+- `aquarium`
 - `aquarium_zoo`
 - `park`
+- `playground`
 - `family_cafe`
 - `family_restaurant`
 - `sports_venue`
 - `shopping_mall`
 - `rest_area`
 - `accommodation`
+- `zoo`
 
 Facet families:
 
