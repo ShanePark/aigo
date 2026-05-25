@@ -30,7 +30,14 @@ export function SearchResetButton() {
   }
 
   return (
-    <button className="reset-search-button" type="button" onClick={resetSearch} disabled={isResetting}>
+    <button
+      aria-label="검색 조건 초기화"
+      className="reset-search-button"
+      title="검색 조건 초기화"
+      type="button"
+      onClick={resetSearch}
+      disabled={isResetting}
+    >
       <RotateCcw size={16} aria-hidden="true" />
       {isResetting ? "초기화 중" : "초기화"}
     </button>

@@ -209,6 +209,7 @@ summary {
     .page-control,
     .page-number,
     .primary-button,
+    .reset-search-button,
     .visits-action,
     .sort-option,
     .limit-option
@@ -225,6 +226,7 @@ summary {
 :where(
     .primary-button,
     .nearby-button,
+    .reset-search-button,
     .category-tab,
     .child-profile-add-button,
     .child-profile-cancel,
@@ -439,9 +441,9 @@ h3 {
 }
 
 .search-form {
-  background: var(--panel-elevated);
+  background: color-mix(in srgb, var(--panel-elevated) 94%, var(--mint-soft));
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 18px 56px rgba(24, 33, 29, 0.08);
   display: grid;
   gap: var(--space-5);
   padding: var(--space-5);
@@ -486,15 +488,19 @@ h3 {
 
 .search-bar {
   align-items: end;
-  background: var(--panel-soft);
+  background: color-mix(in srgb, var(--panel) 86%, var(--mint-soft));
   border: 1px solid var(--line);
+  border-radius: calc(var(--radius-panel) + 4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
   display: grid;
   gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(92px, auto);
-  padding: 8px;
+  padding: 10px;
 }
 
 .query-field input {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
   font-size: 16px;
   min-height: var(--control-lg);
   padding-inline: 14px;
@@ -548,17 +554,17 @@ h3 {
 .category-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .category-tab {
   background: var(--control-bg);
   border: 1px solid var(--line);
   color: var(--muted);
-  gap: var(--space-3);
-  min-height: 44px;
-  padding: 0 15px;
-  box-shadow: 0 7px 18px rgba(24, 33, 29, 0.04);
+  gap: var(--space-2);
+  min-height: 42px;
+  padding: 0 14px;
+  position: relative;
 }
 
 .category-tab svg {
@@ -568,7 +574,7 @@ h3 {
 
 .category-tab span {
   color: currentColor;
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: var(--weight-strong);
   line-height: 1;
   min-width: 0;
@@ -577,14 +583,16 @@ h3 {
 }
 
 .category-tab-state {
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-  height: 20px;
+  background: currentColor;
+  border: 0;
+  height: 18px;
   justify-content: center;
   margin-left: 2px;
-  width: 20px;
+  width: 18px;
 }
 
 .category-tab-state svg {
+  color: var(--panel);
   stroke-width: 3;
 }
 
@@ -593,7 +601,7 @@ h3 {
 .category-tab.is-active {
   background: var(--panel);
   border-color: var(--hover-border);
-  box-shadow: 0 12px 26px rgba(24, 33, 29, 0.08);
+  box-shadow: 0 10px 24px rgba(24, 33, 29, 0.06);
   color: var(--text);
 }
 
@@ -604,15 +612,13 @@ h3 {
 }
 
 .category-tab.is-active {
-  background: color-mix(in srgb, var(--mint) 12%, var(--panel));
+  background: color-mix(in srgb, var(--mint) 13%, var(--panel));
   border-color: var(--line-strong);
   color: var(--mint);
 }
 
 .category-tab.is-active .category-tab-state {
-  background: var(--mint);
-  border-color: var(--mint);
-  color: white;
+  color: var(--mint);
 }
 
 .checks,
@@ -661,19 +667,22 @@ h3 {
 
 .primary-button:hover {
   background: var(--button-hover);
+  box-shadow: 0 12px 30px rgba(19, 122, 86, 0.22);
+  transform: translateY(-1px);
 }
 
 .reset-search-button {
-  background: var(--control-bg);
-  border: 1px solid var(--line-strong);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--muted);
-  padding: 0 14px;
+  padding: 0 12px;
 }
 
 .reset-search-button:hover {
-  background: var(--panel);
-  border-color: var(--hover-border);
-  color: var(--text);
+  background: color-mix(in srgb, var(--coral-soft) 58%, transparent);
+  border-color: color-mix(in srgb, var(--coral) 24%, transparent);
+  color: var(--caution-text);
+  transform: translateY(-1px);
 }
 
 .reset-search-button:disabled {

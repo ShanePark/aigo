@@ -192,6 +192,19 @@ For transparent icons or cutouts, prefer the skill's chroma-key workflow first, 
 
 Generated AiGo visual assets should be readable at real UI sizes, warm and family-friendly, and visually consistent across a set. Avoid tiny text inside generated icons unless explicitly required, and do not use generated raster assets when a simple lucide/code-native icon is the cleaner fit.
 
+## Product UI Design System
+
+AiGo's interface should feel calm, modern, warm, and operationally useful. Before adding new controls, inspect the existing shared CSS primitives in `src/app/globals.css` and compose from them instead of creating one-off button, chip, card, or toolbar styles.
+
+Use a clear action hierarchy:
+
+- One visually dominant primary action per local surface, usually the main search or save action.
+- Secondary actions should be quiet tonal, ghost, or icon+label controls with the same height and rhythm as nearby primary actions.
+- Filters and categories should read as chips or segmented choices, not as little buttons with nested boxes. Avoid decorative plus boxes or redundant state glyphs; use fill, border, color, and a simple check state when selection needs confirmation.
+- Dense operational areas should use restrained elevation, consistent gaps, and predictable alignment. Prefer compact, scannable controls over marketing-style decoration.
+- Header actions should stay consolidated. When more than one or two utilities accumulate in the topbar, put them behind a menu button so the brand and primary workflow remain visually quiet.
+- New UI patterns should define reusable tokens/classes first when they are likely to repeat. Do not let each feature invent its own button radius, shadow, padding, or hover language.
+
 ## Editing Rules
 
 - Preserve existing user changes.

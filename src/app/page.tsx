@@ -6,7 +6,6 @@ import {
   Blocks,
   Building2,
   Check,
-  Plus,
   Puzzle,
   Search,
   ShoppingBag,
@@ -107,7 +106,6 @@ export default async function Home({ searchParams }: HomeProps) {
             {Object.entries(CATEGORY_GROUPS).map(([groupId, group]) => {
               const Icon = group.icon;
               const isActive = categoryGroupIsActive(activeCategoryGroups, groupId as CategoryGroupId);
-              const StateIcon = isActive ? Check : Plus;
 
               return (
                 <Link
@@ -119,9 +117,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 >
                   <Icon size={17} aria-hidden="true" />
                   <span>{group.label}</span>
-                  {groupId !== "all" ? (
+                  {isActive && groupId !== "all" ? (
                     <span className="category-tab-state" aria-hidden="true">
-                      <StateIcon size={13} />
+                      <Check size={13} />
                     </span>
                   ) : null}
                 </Link>
