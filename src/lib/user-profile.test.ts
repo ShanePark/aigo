@@ -1,0 +1,117 @@
+import { describe, expect, it } from "vitest";
+
+import { getMyProfile, updateMyProfile, updateMyProfileSchema, userHomeLocationInputSchema } from "@/lib/user-profile";
+
+type QueryResponse = Array<Record<string, unknown>>;
+
+const userId = "11111111-1111-4111-8111-111111111111";
+
+function fakeExecutor(responses: QueryResponse[]) {
+  const calls: Array<{ sql: string; values: unknown[] }> = [];
+  const executor = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+    calls.push({ sql: strings.join("?").replace(/\s+/g, " ").trim(), values });
+    return responses.shift() ?? [];
+  }) as never;
+
+  return { calls, executor };
+}
+
+describe("user profile schemas", () => {
+  it("accepts child birth months but rejects malformed or future values", () => {
+    expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09" }] })).toEqual({
+      children: [{ birthYearMonth: "2024-09" }]
+    });
+    expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-13" }] })).toThrow("YYYY-MM");
+    expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2999-01" }] })).toThrow("future");
+  });
+
+  it("validates home coordinates and normalizes blank address text", () => {
+    expect(userHomeLocationInputSchema.parse({ lat: 36.33, lng: 127.43, addressText: "   " })).toEqual({
+      label: "home",
+      lat: 36.33,
+      lng: 127.43,
+      addressText: null
+    });
+    expect(() => userHomeLocationInputSchema.parse({ lat: 91, lng: 127.43 })).toThrow();
+    expect(() => userHomeLocationInputSchema.parse({ lat: 36.33, lng: 181 })).toThrow();
+  });
+
+  it("rejects empty profile updates", () => {
+    expect(() => updateMyProfileSchema.parse({})).toThrow("At least one profile field is required");
+    expect(() => updateMyProfileSchema.parse({ searchPreferences: {} })).toThrow("At least one search preference is required");
+  });
+});
+
+describe("user profile queries", () => {
+  it("returns saved profile data with default preferences when no preference row exists", async () => {
+    const { executor } = fakeExecutor([
+      [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: "0" }],
+      [{ label: "home", lat: "36.33", lng: "127.43", addressText: null }],
+      []
+    ]);
+
+    await expect(getMyProfile(userId, executor)).resolves.toEqual({
+      children: [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: 0 }],
+      homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: null },
+      searchPreferences: {
+        preferIndoor: false,
+        preferParking: false,
+        preferStroller: false,
+        preferSandPlay: false,
+        preferNursing: false,
+        preferBabyChair: false,
+        preferenceMode: "soft"
+      }
+    });
+  });
+
+  it("replaces owned children and home location while upserting preference settings", async () => {
+    const { calls, executor } = fakeExecutor([
+      [],
+      [],
+      [],
+      [{ id: "child-1", birthYearMonth: "2024-09", sortOrder: 0 }],
+      [{ label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }],
+      [
+        {
+          preferIndoor: true,
+          preferParking: false,
+          preferStroller: true,
+          preferSandPlay: false,
+          preferNursing: true,
+          preferBabyChair: false,
+          preferenceMode: "required"
+        }
+      ]
+    ]);
+
+    await updateMyProfile(
+      userId,
+      {
+        children: [{ birthYearMonth: "2024-09" }],
+        homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: "대전" },
+        searchPreferences: { preferIndoor: true, preferStroller: true, preferNursing: true, preferenceMode: "required" }
+      },
+      executor
+    );
+
+    expect(calls[0].sql).toContain("delete from user_children where user_id = ?");
+    expect(calls[1].sql).toContain("insert into user_children");
+    expect(calls[1].values).toContain(userId);
+    expect(calls[2].sql).toContain("insert into user_home_locations");
+    expect(calls[2].sql).toContain("on conflict (user_id) do update");
+    expect(calls[3].sql).toContain("insert into user_search_preferences");
+    expect(calls[3].sql).toContain("on conflict (user_id) do update");
+  });
+
+  it("deletes nullable profile sections for the current user only", async () => {
+    const { calls, executor } = fakeExecutor([[], [], [], []]);
+
+    await updateMyProfile(userId, { children: [], homeLocation: null }, executor);
+
+    expect(calls[0].sql).toContain("delete from user_children where user_id = ?");
+    expect(calls[1].sql).toContain("delete from user_home_locations where user_id = ?");
+    expect(calls[0].values).toEqual([userId]);
+    expect(calls[1].values).toEqual([userId]);
+  });
+});
