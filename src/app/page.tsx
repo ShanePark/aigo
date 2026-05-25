@@ -15,7 +15,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
-import { applyAccountChildDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
+import { applyAccountChildDefaults, applyAccountSearchPreferenceDefaults, childParamSourceForParams } from "@/app/account-child-defaults";
 import { ExploreResults, type CategoryGroupSummary } from "@/app/explore-results";
 import {
   CATEGORY_GROUP_CATEGORY_FILTERS,
@@ -65,7 +65,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const rawParams = await searchParams;
-  const { childParamSource, params } = await paramsWithAccountChildDefaults(rawParams);
+  const { childParamSource, params } = await paramsWithAccountDefaults(rawParams);
   let effectiveParams = params;
   let activeCategoryGroups = categoryGroupParams(params);
   let input = searchPlacesSchema.parse(buildSearchInput(params));
@@ -149,19 +149,17 @@ export default async function Home({ searchParams }: HomeProps) {
   );
 }
 
-async function paramsWithAccountChildDefaults(params: Record<string, string | string[] | undefined>) {
-  if (childParamSourceForParams(params) === "url") {
-    return { childParamSource: "url" as const, params };
-  }
-
+async function paramsWithAccountDefaults(params: Record<string, string | string[] | undefined>) {
   const cookieStore = await cookies();
   const user = await currentUserFromSessionToken(cookieStore.get(AIGO_SESSION_COOKIE)?.value);
   if (!user) {
-    return { childParamSource: "none" as const, params };
+    return { childParamSource: childParamSourceForParams(params), params };
   }
 
   const profile = await getMyProfile(user.id);
-  return applyAccountChildDefaults(params, profile.children);
+  const childDefaults = applyAccountChildDefaults(params, profile.children);
+  const preferenceDefaults = applyAccountSearchPreferenceDefaults(childDefaults.params, profile.searchPreferences);
+  return { childParamSource: childDefaults.childParamSource, params: preferenceDefaults.params };
 }
 
 function LocationStateInputs({ params }: { params: Record<string, string | string[] | undefined> }) {

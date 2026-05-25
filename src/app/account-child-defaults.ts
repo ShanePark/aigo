@@ -1,15 +1,31 @@
 import { serializeChildAgeMonths } from "@/lib/child-ages";
+import type { MyProfileSearchPreferences } from "@/lib/user-profile";
 
 import { ageMonthsFromBirthYearMonth } from "./me-profile-utils";
 
 type Params = Record<string, string | string[] | undefined>;
 
 export type ChildParamSource = "account" | "none" | "url";
+export type SearchPreferenceParamSource = "account" | "none" | "url";
 
 export type AccountChildDefaultResult = {
   childParamSource: ChildParamSource;
   params: Params;
 };
+
+export type AccountSearchPreferenceDefaultResult = {
+  params: Params;
+  preferenceParamSource: SearchPreferenceParamSource;
+};
+
+const SEARCH_PREFERENCE_PARAMS = [
+  ["preferIndoor", "indoor"],
+  ["preferParking", "parking"],
+  ["preferStroller", "stroller"],
+  ["preferSandPlay", "sandPlay"],
+  ["preferNursing", "nursing"],
+  ["preferBabyChair", "babyChair"]
+] as const satisfies ReadonlyArray<[Exclude<keyof MyProfileSearchPreferences, "preferenceMode">, string]>;
 
 export function applyAccountChildDefaults(
   params: Params,
@@ -38,6 +54,39 @@ export function accountChildAgeMonths(children: readonly { birthYearMonth: strin
   return children
     .map((child) => ageMonthsFromBirthYearMonth(child.birthYearMonth, now))
     .filter((ageMonths): ageMonths is number => ageMonths !== null);
+}
+
+export function applyAccountSearchPreferenceDefaults(
+  params: Params,
+  preferences: MyProfileSearchPreferences
+): AccountSearchPreferenceDefaultResult {
+  let applied = false;
+  let hasExplicitParam = false;
+  const next = { ...params };
+
+  for (const [profileKey, paramKey] of SEARCH_PREFERENCE_PARAMS) {
+    if (hasParamValue(params[paramKey])) {
+      hasExplicitParam = true;
+      continue;
+    }
+
+    if (preferences[profileKey]) {
+      next[paramKey] = "on";
+      applied = true;
+    }
+  }
+
+  if (hasParamValue(params.preferenceMode)) {
+    hasExplicitParam = true;
+  } else if (preferences.preferenceMode === "required") {
+    next.preferenceMode = "required";
+    applied = true;
+  }
+
+  return {
+    params: applied ? next : params,
+    preferenceParamSource: applied ? "account" : hasExplicitParam ? "url" : "none"
+  };
 }
 
 export function childParamSourceForParams(params: Params): ChildParamSource {

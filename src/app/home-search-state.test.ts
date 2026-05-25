@@ -89,6 +89,16 @@ describe("home search input", () => {
     });
   });
 
+  it("treats explicit off preference params as URL overrides without applying filters", () => {
+    expect(buildSearchInput({ indoor: "off", nursing: "off", preferenceMode: "soft" })).toMatchObject({
+      preferenceMode: undefined,
+      preferences: {
+        indoorTypes: undefined,
+        nursingRoom: undefined
+      }
+    });
+  });
+
   it("uses the supported result page sizes", () => {
     expect(resultLimitParam({})).toBe(50);
     expect(resultLimitParam({ limit: "30" })).toBe(50);

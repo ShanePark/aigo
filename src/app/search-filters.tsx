@@ -34,6 +34,7 @@ type SearchFiltersProps = {
 };
 
 type FilterKey = "babyChair" | "indoor" | "nursing" | "parking" | "sandPlay" | "stroller";
+type FilterOverrides = Partial<Record<FilterKey, boolean>>;
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "indoor", label: "실내" },
@@ -66,11 +67,17 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const draftProfileAlreadyExists = childProfiles.some((profile) => isSameChildProfile(profile, { ageBand: draftAgeBand, gender: draftGender }));
   const isAtProfileLimit = childProfiles.length >= MAX_CHILD_PROFILE_COUNT;
 
-  function applyCurrentForm(overrides: { profiles?: ChildProfile[] } = {}) {
+  function applyCurrentForm(overrides: { filters?: FilterOverrides; profiles?: ChildProfile[] } = {}) {
     const form = rootRef.current?.closest("form");
     if (!form) return;
 
     const params = searchParamsWithCurrentLocationState(window.location.search, new FormData(form));
+
+    if (overrides.filters) {
+      for (const [key, checked] of Object.entries(overrides.filters)) {
+        params.set(key, checked ? "on" : "off");
+      }
+    }
 
     if (overrides.profiles) {
       const nextProfiles = normalizeChildProfiles(overrides.profiles);
@@ -94,7 +101,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
   function updateFilter(key: FilterKey, checked: boolean) {
     setSelectedFilters((current) => ({ ...current, [key]: checked }));
-    window.setTimeout(() => applyCurrentForm(), 0);
+    window.setTimeout(() => applyCurrentForm({ filters: { [key]: checked } }), 0);
   }
 
   function commitProfiles(nextProfiles: readonly ChildProfile[]) {
@@ -201,6 +208,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
       </summary>
 
       <div className="advanced-checks" aria-label="선호 조건">
+        <SearchPreferenceHiddenInputs params={initialParams} />
         {FILTERS.map((filter) => (
           <label className="check" key={filter.key}>
             <input
@@ -319,6 +327,17 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
         ) : null}
       </section>
     </details>
+  );
+}
+
+function SearchPreferenceHiddenInputs({ params }: { params: Record<string, string | string[]> }) {
+  const preferenceMode = textParam(params.preferenceMode);
+
+  return (
+    <>
+      {FILTERS.map((filter) => (textParam(params[filter.key]) === "off" ? <input name={filter.key} type="hidden" value="off" key={filter.key} /> : null))}
+      {preferenceMode ? <input name="preferenceMode" type="hidden" value={preferenceMode} /> : null}
+    </>
   );
 }
 
