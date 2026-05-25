@@ -197,13 +197,17 @@ export function validateVisitPhotoFile(file: VisitPhotoFileInput): VisitPhotoVal
     throw new ApiError(400, "Photo MIME type does not match the file content");
   }
 
-  const dimensions = readImageDimensions(file.bytes, mimeType);
+  const dimensions = readVerifiedImageDimensions(file.bytes, mimeType);
+  if (!dimensions) {
+    throw new ApiError(400, "Photo file must be a complete JPEG, PNG, or WebP image");
+  }
+
   return {
     originalFilename: sanitizeOriginalFilename(file.name, mimeType),
     mimeType,
     byteSize,
-    width: dimensions?.width ?? null,
-    height: dimensions?.height ?? null
+    width: dimensions.width,
+    height: dimensions.height
   };
 }
 
@@ -272,20 +276,14 @@ function sanitizeOriginalFilename(name: string | null | undefined, mimeType: Vis
   return trimmed.length > 0 ? trimmed.slice(0, 255) : fallback;
 }
 
-function readImageDimensions(bytes: Uint8Array, mimeType: VisitPhotoMimeType) {
+function readVerifiedImageDimensions(bytes: Uint8Array, mimeType: VisitPhotoMimeType) {
   const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (mimeType === "image/png" && buffer.length >= 24) {
-    return {
-      width: buffer.readUInt32BE(16),
-      height: buffer.readUInt32BE(20)
-    };
+  if (mimeType === "image/png") {
+    return readPngDimensions(buffer);
   }
 
-  if (mimeType === "image/webp" && buffer.length >= 30 && buffer.toString("ascii", 12, 16) === "VP8X") {
-    return {
-      width: buffer.readUIntLE(24, 3) + 1,
-      height: buffer.readUIntLE(27, 3) + 1
-    };
+  if (mimeType === "image/webp") {
+    return readWebpDimensions(buffer);
   }
 
   if (mimeType === "image/jpeg") {
@@ -295,31 +293,178 @@ function readImageDimensions(bytes: Uint8Array, mimeType: VisitPhotoMimeType) {
   return null;
 }
 
-function readJpegDimensions(buffer: Buffer) {
-  let offset = 2;
-  while (offset < buffer.length) {
-    if (buffer[offset] !== 0xff) {
-      offset += 1;
-      continue;
+function readPngDimensions(buffer: Buffer) {
+  if (buffer.length < 33) return null;
+
+  let offset = 8;
+  let chunkIndex = 0;
+  let dimensions: { width: number; height: number } | null = null;
+  while (offset + 8 <= buffer.length) {
+    const chunkLength = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const dataOffset = offset + 8;
+    const nextOffset = dataOffset + chunkLength + 4;
+    if (chunkLength > buffer.length - dataOffset - 4) {
+      return null;
     }
+    if (chunkIndex === 0 && type !== "IHDR") {
+      return null;
+    }
+
+    if (type === "IHDR") {
+      if (chunkLength !== 13 || dimensions) {
+        return null;
+      }
+      const width = buffer.readUInt32BE(dataOffset);
+      const height = buffer.readUInt32BE(dataOffset + 4);
+      if (width <= 0 || height <= 0) {
+        return null;
+      }
+      dimensions = { width, height };
+    }
+
+    if (type === "IEND") {
+      if (chunkLength !== 0 || !dimensions || nextOffset !== buffer.length) {
+        return null;
+      }
+      return dimensions;
+    }
+
+    offset = nextOffset;
+    chunkIndex += 1;
+  }
+
+  return null;
+}
+
+function readWebpDimensions(buffer: Buffer) {
+  if (buffer.length < 20 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WEBP") {
+    return null;
+  }
+  if (buffer.readUInt32LE(4) !== buffer.length - 8) {
+    return null;
+  }
+
+  let offset = 12;
+  let dimensions: { width: number; height: number } | null = null;
+  let sawImageChunk = false;
+  while (offset + 8 <= buffer.length) {
+    const type = buffer.toString("ascii", offset, offset + 4);
+    const chunkLength = buffer.readUInt32LE(offset + 4);
+    const dataOffset = offset + 8;
+    const dataEnd = dataOffset + chunkLength;
+    const nextOffset = dataEnd + (chunkLength % 2);
+    if (chunkLength > buffer.length - dataOffset || nextOffset > buffer.length) {
+      return null;
+    }
+
+    if (type === "VP8X") {
+      const vp8xDimensions = readWebpVp8xDimensions(buffer, dataOffset, chunkLength);
+      if (!vp8xDimensions) return null;
+      dimensions = vp8xDimensions;
+    } else if (type === "VP8 ") {
+      sawImageChunk = true;
+      const vp8Dimensions = readWebpVp8Dimensions(buffer, dataOffset, chunkLength);
+      if (!vp8Dimensions) return null;
+      dimensions ??= vp8Dimensions;
+    } else if (type === "VP8L") {
+      sawImageChunk = true;
+      const vp8lDimensions = readWebpVp8lDimensions(buffer, dataOffset, chunkLength);
+      if (!vp8lDimensions) return null;
+      dimensions ??= vp8lDimensions;
+    }
+
+    offset = nextOffset;
+  }
+
+  return offset === buffer.length && sawImageChunk ? dimensions : null;
+}
+
+function readWebpVp8xDimensions(buffer: Buffer, offset: number, chunkLength: number) {
+  if (chunkLength < 10) return null;
+  const width = buffer.readUIntLE(offset + 4, 3) + 1;
+  const height = buffer.readUIntLE(offset + 7, 3) + 1;
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function readWebpVp8Dimensions(buffer: Buffer, offset: number, chunkLength: number) {
+  if (chunkLength < 10 || (buffer[offset] & 0x01) !== 0 || buffer.toString("hex", offset + 3, offset + 6) !== "9d012a") {
+    return null;
+  }
+  const width = buffer.readUInt16LE(offset + 6) & 0x3fff;
+  const height = buffer.readUInt16LE(offset + 8) & 0x3fff;
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function readWebpVp8lDimensions(buffer: Buffer, offset: number, chunkLength: number) {
+  if (chunkLength < 5 || buffer[offset] !== 0x2f) return null;
+  const width = 1 + buffer[offset + 1] + ((buffer[offset + 2] & 0x3f) << 8);
+  const height = 1 + ((buffer[offset + 2] & 0xc0) >> 6) + (buffer[offset + 3] << 2) + ((buffer[offset + 4] & 0x0f) << 10);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function readJpegDimensions(buffer: Buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+    return null;
+  }
+
+  let offset = 2;
+  let dimensions: { width: number; height: number } | null = null;
+  let sawStartOfScan = false;
+  while (offset < buffer.length) {
+    if (buffer[offset] !== 0xff) return null;
     while (buffer[offset] === 0xff) offset += 1;
     const marker = buffer[offset];
     offset += 1;
-    if (marker === 0xd9 || marker === 0xda || offset + 2 > buffer.length) break;
+    if (marker === 0xd9) {
+      return sawStartOfScan && dimensions && offset === buffer.length ? dimensions : null;
+    }
+    if (isStandaloneJpegMarker(marker)) {
+      continue;
+    }
+    if (offset + 2 > buffer.length) return null;
 
     const segmentLength = buffer.readUInt16BE(offset);
-    if (segmentLength < 2 || offset + segmentLength > buffer.length) break;
+    if (segmentLength < 2 || segmentLength > buffer.length - offset) return null;
 
     if (isJpegStartOfFrame(marker) && offset + 7 <= buffer.length) {
-      return {
+      const height = buffer.readUInt16BE(offset + 3);
+      const width = buffer.readUInt16BE(offset + 5);
+      if (width <= 0 || height <= 0) {
+        return null;
+      }
+      dimensions = {
         height: buffer.readUInt16BE(offset + 3),
         width: buffer.readUInt16BE(offset + 5)
       };
     }
 
     offset += segmentLength;
+    if (marker === 0xda) {
+      sawStartOfScan = true;
+      const nextMarkerOffset = findNextJpegMarker(buffer, offset);
+      if (nextMarkerOffset === null) return null;
+      offset = nextMarkerOffset;
+    }
   }
 
+  return null;
+}
+
+function isStandaloneJpegMarker(marker: number) {
+  return marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
+}
+
+function findNextJpegMarker(buffer: Buffer, offset: number) {
+  for (let index = offset; index < buffer.length - 1; index += 1) {
+    if (buffer[index] !== 0xff) continue;
+    const marker = buffer[index + 1];
+    if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) {
+      index += 1;
+      continue;
+    }
+    return index;
+  }
   return null;
 }
 
