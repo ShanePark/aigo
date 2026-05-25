@@ -1530,6 +1530,10 @@ h3 {
   z-index: 700 !important;
 }
 
+.map-place-marker.is-dimmed {
+  z-index: 1 !important;
+}
+
 .map-place-marker span {
   align-items: center;
   background: var(--mint);
@@ -1558,6 +1562,12 @@ h3 {
     0 0 0 12px rgba(233, 179, 64, 0.46),
     0 18px 34px rgba(24, 33, 29, 0.32);
   transform: scale(1.36);
+}
+
+.map-place-marker.is-dimmed span {
+  filter: saturate(0.72);
+  opacity: 0.38;
+  transform: scale(0.88);
 }
 
 .map-place-marker:focus-visible span,
@@ -1601,7 +1611,8 @@ h3 {
 }
 
 .map-place-marker.is-hovered span {
-  background: var(--text);
+  background: var(--yellow);
+  color: #2f2112;
 }
 
 @keyframes map-marker-pulse {
@@ -1794,6 +1805,44 @@ h3 {
   background: transparent;
 }
 
+.result-scroll-top-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--mint) 54%, var(--line));
+  border-radius: 999px;
+  bottom: 76px;
+  box-shadow: 0 16px 34px rgba(24, 33, 29, 0.14);
+  color: var(--mint);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 7px;
+  left: 50%;
+  min-height: 42px;
+  padding: 0 18px;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 7;
+}
+
+.result-scroll-top-button svg {
+  color: currentColor;
+  flex: 0 0 auto;
+  stroke-width: 3;
+}
+
+.result-scroll-top-button:hover,
+.result-scroll-top-button:focus-visible {
+  background: var(--mint);
+  border-color: var(--mint);
+  box-shadow: 0 18px 38px rgba(19, 122, 86, 0.34);
+  color: var(--accent-text);
+  transform: translate(-50%, -1px);
+}
+
 .results-inline-status {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1940,10 +1989,10 @@ h3 {
 }
 
 .results-panel .result-image {
-  align-self: stretch;
-  aspect-ratio: auto;
+  align-self: start;
+  aspect-ratio: 1 / 1;
   border-right: 1px solid var(--line);
-  height: auto;
+  height: var(--result-thumb-size);
   min-height: 0;
   width: var(--result-thumb-size);
 }
@@ -4093,6 +4142,21 @@ dd {
   .results-scroll {
     overflow: visible;
     padding: 2px 0 0;
+  }
+
+  .result-scroll-top-button {
+    bottom: 18px;
+    justify-self: center;
+    left: auto;
+    margin: -48px auto 12px;
+    position: sticky;
+    right: auto;
+    transform: none;
+  }
+
+  .result-scroll-top-button:hover,
+  .result-scroll-top-button:focus-visible {
+    transform: translateY(-1px);
   }
 
   .map-canvas {

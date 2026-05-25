@@ -241,12 +241,10 @@ export function PlacesMap({
       if (!card) return;
 
       const placeId = card.dataset.mapPlaceId;
-      const lat = Number(card.dataset.mapPlaceLat);
-      const lng = Number(card.dataset.mapPlaceLng);
-      if (!placeId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      if (!placeId) return;
 
       hoveredCardPlaceIdRef.current = placeId;
-      focusMapPlace(mapRef.current, placeMarkersRef.current, { lat, lng, placeId });
+      highlightMapPlace(placeMarkersRef.current, placeId);
     }
 
     function handleCardLeave(event: Event) {
@@ -259,7 +257,7 @@ export function PlacesMap({
       const placeId = card.dataset.mapPlaceId;
       if (placeId && hoveredCardPlaceIdRef.current === placeId) {
         hoveredCardPlaceIdRef.current = null;
-        clearMapMarkerHighlight(placeMarkersRef.current, placeId);
+        clearMapMarkerHighlight(placeMarkersRef.current);
       }
     }
 
@@ -486,12 +484,20 @@ function relatedNodeFromEvent(event: Event) {
   return event.relatedTarget instanceof Node ? event.relatedTarget : null;
 }
 
-function focusMapPlace(map: LeafletMap | null, markers: Map<string, LeafletMarker>, place: { lat: number; lng: number; placeId: string }) {
-  if (!map) return;
+function highlightMapPlace(markers: Map<string, LeafletMarker>, placeId: string) {
+  markers.forEach((marker, markerPlaceId) => {
+    const element = marker.getElement();
+    if (markerPlaceId === placeId) {
+      element?.classList.add("is-hovered");
+      element?.classList.remove("is-dimmed");
+      marker.openTooltip();
+      return;
+    }
 
-  map.panTo([place.lat, place.lng], { animate: true, duration: 0.45 });
-  clearMapMarkerHighlight(markers);
-  markers.get(place.placeId)?.getElement()?.classList.add("is-hovered");
+    element?.classList.remove("is-hovered");
+    element?.classList.add("is-dimmed");
+    marker.closeTooltip();
+  });
 }
 
 function clearMapMarkerHighlight(markers: Map<string, LeafletMarker>, placeId?: string) {
@@ -499,7 +505,11 @@ function clearMapMarkerHighlight(markers: Map<string, LeafletMarker>, placeId?: 
 
   markerElements.forEach((element) => {
     element?.classList.remove("is-hovered");
+    element?.classList.remove("is-dimmed");
   });
+
+  const markerList = placeId ? [markers.get(placeId)] : Array.from(markers.values());
+  markerList.forEach((marker) => marker?.closeTooltip());
 }
 
 function boundsForLeaflet(origin: MapOrigin, places: MapPlace[]): LatLngBoundsExpression | null {

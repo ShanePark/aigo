@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UrlObject } from "url";
-import { Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
+import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
@@ -202,6 +202,9 @@ export function ExploreResults({
   const [activeParams, setActiveParams] = useState(initialParams);
   const [pendingSearchKind, setPendingSearchKind] = useState<PendingSearchKind | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
+  const resultsPanelRef = useRef<HTMLDivElement | null>(null);
+  const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const searchReturnHref = useMemo(() => currentSearchHref(activeParams), [activeParams]);
   const isClientSearchPending = pendingSearchKind !== null;
 
@@ -258,6 +261,40 @@ export function ExploreResults({
     window.addEventListener(CLIENT_SEARCH_EVENT, handleClientSearch);
     return () => window.removeEventListener(CLIENT_SEARCH_EVENT, handleClientSearch);
   }, [runClientSearch]);
+
+  useEffect(() => {
+    const resultsScroll = resultsScrollRef.current;
+    const resultsPanel = resultsPanelRef.current;
+
+    function updateScrollTopVisibility() {
+      const panelTop = resultsPanel ? resultsPanel.getBoundingClientRect().top : 0;
+      setShowScrollTop((resultsScroll?.scrollTop ?? 0) > 280 || panelTop < -280);
+    }
+
+    updateScrollTopVisibility();
+    resultsScroll?.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
+    window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
+    window.addEventListener("resize", updateScrollTopVisibility);
+
+    return () => {
+      resultsScroll?.removeEventListener("scroll", updateScrollTopVisibility);
+      window.removeEventListener("scroll", updateScrollTopVisibility);
+      window.removeEventListener("resize", updateScrollTopVisibility);
+    };
+  }, []);
+
+  const scrollResultsToTop = useCallback(() => {
+    const resultsScroll = resultsScrollRef.current;
+    const scrollsInternally = resultsScroll ? getComputedStyle(resultsScroll).overflowY !== "visible" : false;
+
+    if (resultsScroll && scrollsInternally) {
+      resultsScroll.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const panelTop = resultsPanelRef.current ? resultsPanelRef.current.getBoundingClientRect().top + window.scrollY - 12 : 0;
+    window.scrollTo({ top: Math.max(panelTop, 0), behavior: "smooth" });
+  }, []);
 
   const handleViewportSearch = useCallback(
     (request: ViewportSearchRequest) => {
@@ -334,7 +371,7 @@ export function ExploreResults({
         places={mapPlaces}
         preserveViewOnUpdate
       />
-      <div className="results-panel">
+      <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
           <span className="result-count-chip" aria-label={resultCountLabel(result.meta)}>
@@ -347,7 +384,7 @@ export function ExploreResults({
         </section>
         <SearchInterpretation meta={result.meta.search} params={activeParams} />
 
-        <div className="results-scroll" data-results-scroll>
+        <div className="results-scroll" data-results-scroll ref={resultsScrollRef}>
           {pendingSearchKind ? <div className="results-inline-status">{pendingStatusLabel(pendingSearchKind)}</div> : null}
           <div className="results">
             {result.items.map((place, index) => (
@@ -358,6 +395,12 @@ export function ExploreResults({
             ) : null}
           </div>
         </div>
+        {showScrollTop ? (
+          <button className="result-scroll-top-button" type="button" onClick={scrollResultsToTop} aria-label="검색 결과 맨 위로 이동" title="검색 결과 맨 위로">
+            <ArrowUp size={17} aria-hidden="true" />
+            <span>맨 위</span>
+          </button>
+        ) : null}
         <Pagination meta={result.meta} onPage={handlePage} />
       </div>
     </section>
