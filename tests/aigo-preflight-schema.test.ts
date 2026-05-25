@@ -126,6 +126,27 @@ describe("AiGo preflight schema inventory", () => {
       "constraint.user_place_saves.user_place_saves_active_state_check"
     ]);
   });
+
+  it("reports missing recent place view artifacts", () => {
+    const inventory = completeInventory();
+    inventory.columns = inventory.columns.filter(
+      (row) =>
+        !(row.tableName === "user_place_views" && row.columnName === "last_viewed_at") &&
+        !(row.tableName === "user_place_views" && row.columnName === "view_count")
+    );
+    inventory.indexes = inventory.indexes.filter(
+      (row) => row.name !== "user_place_views_user_place_unique" && row.name !== "user_place_views_user_last_viewed_at_idx"
+    );
+    inventory.constraints = inventory.constraints.filter((row) => row.name !== "user_place_views_view_count_check");
+
+    expect(missingDatabaseSchemaArtifacts(inventory)).toEqual([
+      "user_place_views.last_viewed_at",
+      "user_place_views.view_count",
+      "index.user_place_views.user_place_views_user_place_unique",
+      "index.user_place_views.user_place_views_user_last_viewed_at_idx",
+      "constraint.user_place_views.user_place_views_view_count_check"
+    ]);
+  });
 });
 
 function completeInventory(): DatabaseSchemaInventory {

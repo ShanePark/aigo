@@ -400,6 +400,29 @@ export const userPlaceSaves = pgTable(
   })
 );
 
+export const userPlaceViews = pgTable(
+  "user_place_views",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }).notNull().defaultNow(),
+    viewCount: integer("view_count").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userPlaceUnique: uniqueIndex("user_place_views_user_place_unique").on(table.userId, table.placeId),
+    userLastViewedAtIdx: index("user_place_views_user_last_viewed_at_idx").on(table.userId, table.lastViewedAt),
+    placeIdx: index("user_place_views_place_id_idx").on(table.placeId),
+    viewCountCheck: check("user_place_views_view_count_check", sql`${table.viewCount} > 0`)
+  })
+);
+
 export const placeVersions = pgTable(
   "place_versions",
   {
