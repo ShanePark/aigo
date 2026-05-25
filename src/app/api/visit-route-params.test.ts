@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { DELETE as deletePlaceMemo, PATCH as patchPlaceMemo } from "@/app/api/place-memos/[memoId]/route";
 import { GET as getPlaceMemos, POST as postPlaceMemo } from "@/app/api/places/[placeId]/memos/route";
+import { POST as postPlaceView } from "@/app/api/places/[placeId]/views/route";
 import { GET as getPlaceVisits, POST as postPlaceVisit } from "@/app/api/places/[placeId]/visits/route";
 import { DELETE as deleteVisitPhoto, GET as getVisitPhoto } from "@/app/api/visit-photos/[photoId]/route";
 import { DELETE as deleteVisit, PATCH as patchVisit } from "@/app/api/visits/[visitId]/route";
@@ -27,6 +28,7 @@ describe("visit API route params", () => {
   it.each([
     ["GET place visits", () => getPlaceVisits(request(), context("placeId", "not-a-uuid")), "placeId"],
     ["POST place visit", () => postPlaceVisit(request("POST"), context("placeId", "not-a-uuid")), "placeId"],
+    ["POST place view", () => postPlaceView(request("POST"), context("placeId", "not-a-uuid")), "placeId"],
     ["GET place memos", () => getPlaceMemos(request(), context("placeId", "not-a-uuid")), "placeId"],
     ["POST place memo", () => postPlaceMemo(request("POST"), context("placeId", "not-a-uuid")), "placeId"],
     ["PATCH place memo", () => patchPlaceMemo(request("PATCH"), context("memoId", "not-a-uuid")), "memoId"],

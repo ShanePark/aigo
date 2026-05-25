@@ -9,6 +9,7 @@ import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
 import { PlaceScoreDialog } from "@/app/places/place-score-dialog";
 import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
+import { PlaceViewRecorder } from "@/app/places/place-view-recorder";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLabel } from "@/lib/pricing";
@@ -85,6 +86,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
 
   return (
     <div className="page detail-page">
+      <PlaceViewRecorder placeId={place.id} />
       <header className="detail-sticky-head">
         <BackToSearchLink href={backHref} />
         <div className="detail-header-score">
