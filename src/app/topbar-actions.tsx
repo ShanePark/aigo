@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, Menu, X } from "lucide-react";
+import { ClipboardList, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -46,6 +46,10 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
       </button>
       {isOpen ? (
         <div className={styles.menuPanel}>
+          <Link className={styles.link} href="/me" onClick={() => setIsOpen(false)}>
+            <UserRound size={16} aria-hidden="true" />
+            <span>내 정보</span>
+          </Link>
           <Link className={styles.link} href="/visits" onClick={() => setIsOpen(false)}>
             <ClipboardList size={16} aria-hidden="true" />
             <span>방문 로그</span>
