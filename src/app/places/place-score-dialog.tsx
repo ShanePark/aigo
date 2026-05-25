@@ -43,10 +43,6 @@ export function PlaceScoreDialog({ breakdown, rationale, reasons, score, storedP
         <span className="detail-score-ring">
           <strong>{score}</strong>
         </span>
-        <span className="detail-score-copy">
-          <span>점수</span>
-          <small>보기</small>
-        </span>
       </button>
 
       {open ? (

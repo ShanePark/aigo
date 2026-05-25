@@ -205,6 +205,10 @@ Use a clear action hierarchy:
 - Filters and categories should read as chips or segmented choices, not as little buttons with nested boxes. Avoid decorative plus boxes or redundant state glyphs; use fill, border, color, and a simple check state when selection needs confirmation.
 - Dense operational areas should use restrained elevation, consistent gaps, and predictable alignment. Prefer compact, scannable controls over marketing-style decoration.
 - Header actions should stay consolidated. When more than one or two utilities accumulate in the topbar, put them behind a menu button so the brand and primary workflow remain visually quiet.
+- Saved-place user-facing terminology should use `찜` for the want-to-go state. Keep internal API/schema names such as `wantToGo` unchanged unless the data contract itself is intentionally migrated.
+- Binary or saved-state controls should look clearly different before and after selection: inactive controls stay neutral and quiet, while selected controls may use the semantic color fill. Do not make unchecked save buttons look already selected.
+- Related header actions should feel like one composed control surface rather than separate nested capsules. Prefer simple segmented or grouped controls with shared height, radius, and rhythm.
+- Score affordances should stay minimal. Show the score number as the primary signal, and use click/tap to reveal explanatory detail instead of adding visible helper text like "점수 보기" when the interaction is already clear.
 - Do not use native `alert`, `confirm`, or `prompt` for product flows. Use shared app UI such as `ConfirmDialog`, an in-context editor, toast/status copy, or a purpose-built modal.
 - Editing an existing record should happen in that record's local context whenever possible, not by repurposing a separate create form.
 - New UI patterns should define reusable tokens/classes first when they are likely to repeat. Do not let each feature invent its own button radius, shadow, padding, or hover language.

@@ -153,7 +153,7 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
       {
         active: state?.wantToGo ?? false,
         icon: Bookmark,
-        label: "가고 싶음",
+        label: "찜",
         target: "wantToGo" as const
       },
       {
@@ -245,7 +245,7 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
             title={buttonLabel}
             type="button"
           >
-            <Icon size={compact ? 14 : 15} aria-hidden="true" fill={item.target === "hearted" && item.active ? "currentColor" : "none"} />
+            <Icon size={compact ? 14 : 15} aria-hidden="true" fill={item.active ? "currentColor" : "none"} />
             <span className={compact ? "sr-only" : ""}>{buttonText}</span>
           </button>
         );

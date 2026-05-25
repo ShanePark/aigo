@@ -16,7 +16,7 @@ type SavedPlacesPageProps = {
 
 const FILTERS: Array<{ href: Route; label: string; value: SavedPlacesFilter }> = [
   { href: "/saved-places", label: "전체", value: "all" },
-  { href: "/saved-places?filter=wantToGo", label: "가고 싶음", value: "wantToGo" },
+  { href: "/saved-places?filter=wantToGo", label: "찜", value: "wantToGo" },
   { href: "/saved-places?filter=hearted", label: "하트", value: "hearted" }
 ];
 
@@ -36,7 +36,7 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
           <div className="empty-state-copy">
             <p className="empty-state-kicker">저장한 장소</p>
             <h1>로그인 후 저장한 장소를 볼 수 있어요</h1>
-            <p>장소 카드나 상세에서 가고 싶은 곳과 하트 장소를 따로 저장해두고 다시 비교할 수 있습니다.</p>
+            <p>장소 카드나 상세에서 찜과 하트 장소를 따로 저장해두고 다시 비교할 수 있습니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">
@@ -62,13 +62,13 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
         <div className="visits-hero-copy">
           <p className="category">저장한 장소</p>
           <h1>다시 보고 싶은 후보들</h1>
-          <p className="lede">가고 싶은 장소와 마음에 든 장소를 나눠 저장하고, 다음 외출 후보를 빠르게 다시 꺼내 봅니다.</p>
+          <p className="lede">찜한 장소와 마음에 든 장소를 나눠 저장하고, 다음 외출 후보를 빠르게 다시 꺼내 봅니다.</p>
         </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="저장한 장소 요약">
             <span className="saved-place-summary-pill is-want-to-go">
               <Bookmark size={15} aria-hidden="true" />
-              가고 싶음 {summary.wantToGoCount}
+              찜 {summary.wantToGoCount}
             </span>
             <span className="saved-place-summary-pill is-hearted">
               <Heart size={15} aria-hidden="true" fill="currentColor" />
@@ -131,7 +131,7 @@ function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
           {item.wantToGo ? (
             <span className="trust-badge positive">
               <Bookmark size={13} aria-hidden="true" />
-              가고 싶음
+              찜
             </span>
           ) : null}
           {item.hearted ? (
@@ -182,7 +182,7 @@ function regionLabel(item: Pick<SavedPlaceItem, "regionSido" | "regionSigungu">)
 }
 
 function emptyTitle(filter: SavedPlacesFilter) {
-  if (filter === "wantToGo") return "가고 싶은 장소가 아직 없어요";
+  if (filter === "wantToGo") return "찜한 장소가 아직 없어요";
   if (filter === "hearted") return "하트 장소가 아직 없어요";
   return "첫 장소를 저장해보세요";
 }
