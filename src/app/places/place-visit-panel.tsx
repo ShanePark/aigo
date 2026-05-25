@@ -36,6 +36,9 @@ type VisitItem = {
 type VisitsResponse = {
   summary: {
     averageRating: number | null;
+    latestVisitedOn: string | null;
+    publicPhotoCount: number;
+    publicReviewCount: number;
     ratingCount: number;
   };
   hasVisited: boolean;
@@ -115,9 +118,18 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           </h2>
           <p>
             {visits?.summary.ratingCount
-              ? `가족 평가 ${visits.summary.averageRating?.toFixed(1) ?? "-"}점 · ${visits.summary.ratingCount}건`
+              ? `방문평가 ${visits.summary.averageRating?.toFixed(1) ?? "-"}점 · ${visits.summary.ratingCount}건`
               : "첫 방문 기록을 남겨보세요"}
           </p>
+          {visits?.summary.ratingCount ? (
+            <div className="trust-row place-visit-header-summary" aria-label="방문 평가 요약">
+              <span className="trust-badge neutral">공개리뷰 {visits.summary.publicReviewCount}</span>
+              <span className="trust-badge neutral">공개사진 {visits.summary.publicPhotoCount}</span>
+              {visits.summary.latestVisitedOn ? (
+                <span className="trust-badge neutral">최근 방문 {visits.summary.latestVisitedOn}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {myLatestVisit ? (
           <span className="place-visit-owned">

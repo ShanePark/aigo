@@ -3005,6 +3005,10 @@ h3 {
   margin: 0;
 }
 
+.place-visit-header-summary {
+  margin-top: 8px;
+}
+
 .place-visit-owned {
   align-items: center;
   background: var(--mint-soft);

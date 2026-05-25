@@ -93,12 +93,8 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
   await assertPlaceExists(placeId, executor);
   const viewerId = viewerUserId ?? null;
 
-  const [summaryRows, visitRows] = await Promise.all([
-    executor<{ ratingCount: string; averageRating: string | null }[]>`
-      select count(*)::text as "ratingCount", avg(rating)::text as "averageRating"
-      from place_visits
-      where place_id = ${placeId}
-    `,
+  const [summaryMap, visitRows] = await Promise.all([
+    listPlaceVisitSummaries([placeId], executor),
     executor<VisitRow[]>`
       select
         v.id::text as id,
@@ -122,15 +118,12 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
     `
   ]);
 
-  const summary = summaryRows[0] ?? { ratingCount: "0", averageRating: null };
+  const summary = summaryMap.get(placeId) ?? emptyPlaceVisitSummary();
   const items = visitRows.map((row) => placeVisitItemFromRow(row, viewerUserId));
   const myVisits = viewerUserId ? items.filter((item) => item.isMine) : [];
 
   return {
-    summary: {
-      averageRating: summary.averageRating ? Number(Number(summary.averageRating).toFixed(2)) : null,
-      ratingCount: Number(summary.ratingCount)
-    },
+    summary,
     hasVisited: myVisits.length > 0,
     myVisits,
     items
@@ -349,6 +342,16 @@ export function placeVisitSummaryFromRow(row: PlaceVisitSummaryRow): PlaceVisitS
     publicReviewCount: Number(row.publicReviewCount),
     publicPhotoCount: Number(row.publicPhotoCount),
     latestVisitedOn: row.latestVisitedOn
+  };
+}
+
+function emptyPlaceVisitSummary(): PlaceVisitSummary {
+  return {
+    averageRating: null,
+    ratingCount: 0,
+    publicReviewCount: 0,
+    publicPhotoCount: 0,
+    latestVisitedOn: null
   };
 }
 

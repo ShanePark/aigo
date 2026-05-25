@@ -4,6 +4,7 @@ import {
   createPlaceVisit,
   createPlaceVisitSchema,
   groupMyVisitLogRows,
+  listPlaceVisits,
   listPlaceVisitSummaries,
   placeVisitSummaryFromRow,
   placeVisitItemFromRow,
@@ -81,6 +82,37 @@ describe("place visit creation", () => {
 });
 
 describe("place visit privacy formatting", () => {
+  it("returns search-card-compatible aggregate summaries for place detail visits", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: baseVisitRow.placeId }],
+      [
+        {
+          placeId: baseVisitRow.placeId,
+          averageRating: "4.5000000000",
+          ratingCount: "2",
+          publicReviewCount: "1",
+          publicPhotoCount: "3",
+          latestVisitedOn: "2026-05-25"
+        }
+      ],
+      [{ ...baseVisitRow, visibility: "public", photoCount: 3 }]
+    ]);
+
+    await expect(listPlaceVisits(baseVisitRow.placeId, baseVisitRow.userId, executor)).resolves.toMatchObject({
+      hasVisited: true,
+      summary: {
+        averageRating: 4.5,
+        latestVisitedOn: "2026-05-25",
+        publicPhotoCount: 3,
+        publicReviewCount: 1,
+        ratingCount: 2
+      }
+    });
+    expect(calls[1]).toContain('"publicReviewCount"');
+    expect(calls[1]).toContain('"publicPhotoCount"');
+    expect(calls[1]).toContain('"latestVisitedOn"');
+  });
+
   it("hides another user's private rating, text, display name, and photo count", () => {
     expect(placeVisitItemFromRow(baseVisitRow, "other-user")).toMatchObject({
       rating: null,
