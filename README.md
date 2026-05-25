@@ -26,11 +26,11 @@ Unknown is an acceptable value when evidence is weak. AiGo should not invent ame
 
 ## MVP Boundary
 
-The MVP focuses on structured place data, source-backed updates, duplicate review, search, details, image provenance, version history, and a lightweight visit/review loop. It includes the database and app APIs needed for dev-only login, place visits, integer ratings, short reviews, private/public visibility, local visit-photo uploads, and a personal visit log.
+The MVP focuses on structured place data, source-backed updates, duplicate review, search, details, image provenance, version history, and a lightweight account-backed visit/review/personalization loop. It includes the database and app APIs needed for dev-only login, child profile defaults, home-location settings, place visits, integer ratings, short reviews, private/public visibility, local visit-photo uploads, and a personal visit log.
 
 Out of scope for the current MVP:
 
-- Public signup, social login, account recovery, family sharing, and account-backed family profiles
+- Public signup, social login, account recovery, family sharing, and multi-user family/profile sharing
 - Saved lists and broad community/social features
 - Full natural-language trip planning as an API responsibility
 - Full itinerary generation, real-time crowding, reservations, payments, lodging booking flows, photo resizing, HEIC conversion, CDN storage, and moderation workflows
@@ -41,7 +41,8 @@ Out of scope for the current MVP:
 The web app provides a Korean place-search UI with:
 
 - Keyword, category, age, map-viewport/distance, and family-logistics filters
-- Local-only child profile preference restore through `localStorage` while account-backed family profiles remain a future feature
+- Account-backed child defaults through `/me`, storing child birth year-month and gender for logged-in users; guests can still use local search-form child conditions
+- Account-backed home-location settings through `/me`; search filters such as indoor, parking, stroller, nursing room, baby chair, and required/soft preference mode remain immediate search controls rather than saved profile defaults
 - Development-only one-click login as `dev@aigo.local` for exercising user-owned visit features without building public signup yet
 - Map-first browsing: the first landing view uses browser geolocation when available, then pan or zoom the map and tap `현 지도에서 검색` to refresh the list from the visible map area without changing results during casual map movement
 - Soft matching instead of hard exclusion for age and amenity mismatches
@@ -95,6 +96,8 @@ AiGo stores places in PostgreSQL/PostGIS with Drizzle schema definitions in [`sr
 - `place_images` - remote image URLs with provenance, display tier, review status, visual features, and primary-image selection
 - `place_versions` - wiki-style snapshots created after create/update actions
 - `users` and `auth_sessions` - future-compatible user/session foundations, currently used for the dev-only local login flow
+- `user_children` - user-owned child birth year-month and gender defaults for search child conditions
+- `user_home_locations` - user-owned home coordinates and label/address memo for future home-origin search shortcuts
 - `place_visits` - user-owned visit records with server-owned visit dates, inferred revisit status, 1-5 ratings, short review text, and visibility
 - `place_visit_photos` - metadata for visit photos stored under the local upload directory
 
