@@ -205,6 +205,8 @@ Use a clear action hierarchy:
 - Filters and categories should read as chips or segmented choices, not as little buttons with nested boxes. Avoid decorative plus boxes or redundant state glyphs; use fill, border, color, and a simple check state when selection needs confirmation.
 - Dense operational areas should use restrained elevation, consistent gaps, and predictable alignment. Prefer compact, scannable controls over marketing-style decoration.
 - Header actions should stay consolidated. When more than one or two utilities accumulate in the topbar, put them behind a menu button so the brand and primary workflow remain visually quiet.
+- Do not use native `alert`, `confirm`, or `prompt` for product flows. Use shared app UI such as `ConfirmDialog`, an in-context editor, toast/status copy, or a purpose-built modal.
+- Editing an existing record should happen in that record's local context whenever possible, not by repurposing a separate create form.
 - New UI patterns should define reusable tokens/classes first when they are likely to repeat. Do not let each feature invent its own button radius, shadow, padding, or hover language.
 
 ## Editing Rules

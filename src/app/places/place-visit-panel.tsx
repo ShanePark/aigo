@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, ChangeEvent, FormEvent, KeyboardEvent, PointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "../confirm-dialog";
 
 type User = {
   displayName: string;
@@ -62,6 +63,14 @@ type VisitsResponse = {
   items: VisitItem[];
 };
 
+type ConfirmAction = {
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => Promise<void>;
+  title: string;
+  tone?: "danger" | "neutral";
+};
+
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
 const MIN_VISIT_RATING = 0.5;
 const MAX_VISIT_RATING = 5;
@@ -69,34 +78,21 @@ const RATING_STEP = 0.5;
 
 export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; placeName: string }) {
   const router = useRouter();
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [devLoginEnabled, setDevLoginEnabled] = useState(false);
   const [visits, setVisits] = useState<VisitsResponse | null>(null);
   const [rating, setRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
-  const [editingVisit, setEditingVisit] = useState<VisitItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
   const publicVisits = useMemo(() => visits?.items.filter((visit) => !visit.isMine) ?? [], [visits]);
-  const photoPreviews = useMemo(
-    () =>
-      photoFiles.map((file, index) => ({
-        file,
-        id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
-        url: URL.createObjectURL(file)
-      })),
-    [photoFiles]
-  );
-  const photoHelpId = `visit-photo-help-${placeId}`;
-  const selectedPhotoId = `visit-photo-selected-${placeId}`;
   const refreshVisits = useCallback(async () => {
     const response = await fetch(`/api/places/${placeId}/visits`, { credentials: "same-origin" });
     if (!response.ok) return;
@@ -138,12 +134,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     };
   }, [placeId, refreshVisits]);
 
-  useEffect(() => {
-    return () => {
-      photoPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
-    };
-  }, [photoPreviews]);
-
   return (
     <section className="place-visit-panel info-block full" aria-label={`${placeName} 방문 기록`}>
       <div className="place-visit-header">
@@ -184,131 +174,15 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         </div>
       ) : user ? (
         <form className="place-visit-form" onSubmit={submitVisit}>
-          <fieldset className="place-visit-rating">
-            <legend>평점</legend>
-            <div className="place-visit-rating-control">
-              <div
-                aria-label="방문 평점"
-                aria-valuemax={MAX_VISIT_RATING}
-                aria-valuemin={MIN_VISIT_RATING}
-                aria-valuenow={rating}
-                aria-valuetext={`${formatRating(rating)}점`}
-                className={`place-visit-stars ${busy ? "is-disabled" : ""}`}
-                onBlur={() => setHoverRating(null)}
-                onKeyDown={handleRatingKeyDown}
-                onMouseLeave={() => setHoverRating(null)}
-                onPointerDown={handleRatingPointer}
-                onPointerMove={handleRatingPointer}
-                role="slider"
-                style={{ "--rating-fill": `${((hoverRating ?? rating) / MAX_VISIT_RATING) * 100}%` } as CSSProperties}
-                tabIndex={busy ? -1 : 0}
-              >
-                <span className="place-visit-star-row" aria-hidden="true">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <Star key={value} size={30} />
-                  ))}
-                </span>
-                <span className="place-visit-star-row place-visit-star-fill" aria-hidden="true">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <Star key={value} size={30} />
-                  ))}
-                </span>
-              </div>
-              <output className="place-visit-rating-value" aria-live="polite">
-                {formatRating(hoverRating ?? rating)}
-              </output>
-            </div>
-            <p className="place-visit-rating-label">{formatRating(rating)}점 선택됨</p>
-          </fieldset>
-
-          <fieldset className="place-visit-visibility">
-            <legend>공개 범위</legend>
-            <label className="place-visit-switch">
-              <input
-                checked={visibility === "public"}
-                disabled={busy}
-                onChange={(event) => setVisibility(event.currentTarget.checked ? "public" : "private")}
-                role="switch"
-                type="checkbox"
-              />
-              <span aria-hidden="true">
-                <Globe2 size={14} />
-                <Lock size={14} />
-              </span>
-              <strong>{visibility === "public" ? "공개" : "비공개"}</strong>
-            </label>
-          </fieldset>
-
-          <label className="place-visit-field place-visit-review">
-            <span>
-              짧은 리뷰
-              <small>{reviewText.length}/2000</small>
-            </span>
-            <textarea
-              disabled={busy}
-              maxLength={2000}
-              rows={4}
-              value={reviewText}
-              onChange={(event) => setReviewText(event.currentTarget.value)}
-              placeholder="다시 가고 싶은 이유, 아이 반응, 부모 입장에서 좋았던 점"
-            />
-          </label>
-
-          <div className="place-visit-field place-visit-photo">
-            <div className="place-visit-photo-label">
-              <span>
-                <Camera size={15} aria-hidden="true" />
-                사진
-              </span>
-              <small id={photoHelpId}>여러 장 선택 가능 · 장당 10MB 이하</small>
-            </div>
-            <div className={`place-visit-upload-card ${photoFiles.length > 0 ? "has-file" : ""}`}>
-              <button
-                aria-describedby={photoFiles.length > 0 ? selectedPhotoId : photoHelpId}
-                className="place-visit-upload-button"
-                disabled={busy}
-                onClick={() => photoInputRef.current?.click()}
-                type="button"
-              >
-                <ImagePlus size={18} aria-hidden="true" />
-                <span>{photoFiles.length > 0 ? "사진 더 추가" : "사진 추가"}</span>
-              </button>
-              {photoPreviews.length > 0 ? (
-                <div className="place-visit-selected-photos" id={selectedPhotoId}>
-                  {photoPreviews.map((preview, index) => (
-                    <figure className="place-visit-selected-photo" key={preview.id}>
-                      <Image alt={`선택한 방문 사진 ${index + 1}`} fill sizes="96px" src={preview.url} unoptimized />
-                      <button aria-label={`선택한 사진 ${index + 1} 제거`} disabled={busy} onClick={() => removePhotoFile(index)} type="button">
-                        <X size={14} aria-hidden="true" />
-                      </button>
-                    </figure>
-                  ))}
-                </div>
-              ) : (
-                <p>사진을 선택하면 이곳에 미리보기가 표시됩니다.</p>
-              )}
-            </div>
-            <input
-              accept="image/jpeg,image/png,image/webp"
-              aria-hidden="true"
-              className="place-visit-file-input"
-              multiple
-              ref={photoInputRef}
-              tabIndex={-1}
-              type="file"
-              onChange={handlePhotoChange}
-            />
-          </div>
+          <VisitRatingInput disabled={busy} label="평점" onChange={setRating} value={rating} />
+          <VisitVisibilitySwitch disabled={busy} onChange={setVisibility} value={visibility} />
+          <VisitReviewField disabled={busy} onChange={setReviewText} value={reviewText} />
+          <VisitPhotoPicker disabled={busy} files={photoFiles} idPrefix={`visit-new-${placeId}`} onChange={setPhotoFiles} />
 
           <div className="place-visit-submit">
             <button className="primary-button" disabled={busy || loading} type="submit">
-              {busy ? "저장 중" : editingVisit ? "수정 저장" : "방문 기록 저장"}
+              {busy ? "저장 중" : "방문 기록 저장"}
             </button>
-            {editingVisit ? (
-              <button className="place-visit-cancel-edit" disabled={busy} onClick={resetVisitForm} type="button">
-                취소
-              </button>
-            ) : null}
             {status ? <p>{status}</p> : null}
           </div>
         </form>
@@ -361,9 +235,9 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
                   key={visit.id}
                   visit={visit}
                   busy={busy}
-                  onDelete={deleteVisit}
-                  onDeletePhoto={deletePhoto}
-                  onEdit={startEditVisit}
+                  onDelete={requestDeleteVisit}
+                  onDeletePhoto={requestDeletePhoto}
+                  onSave={saveVisitEdit}
                 />
               ))}
             </div>
@@ -389,6 +263,20 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           </div>
         ) : null}
       </div>
+      <ConfirmDialog
+        body={confirmAction?.body ?? ""}
+        confirmLabel={confirmAction?.confirmLabel ?? "확인"}
+        disabled={busy}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => {
+          const action = confirmAction;
+          if (!action) return;
+          void action.onConfirm();
+        }}
+        open={confirmAction !== null}
+        title={confirmAction?.title ?? ""}
+        tone={confirmAction?.tone}
+      />
     </section>
   );
 
@@ -399,7 +287,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     setBusy(true);
     setStatus(null);
     try {
-      const response = await fetch(editingVisit ? `/api/visits/${editingVisit.id}` : `/api/places/${placeId}/visits`, {
+      const response = await fetch(`/api/places/${placeId}/visits`, {
         body: JSON.stringify({
           rating,
           reviewText,
@@ -407,7 +295,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        method: editingVisit ? "PATCH" : "POST"
+        method: "POST"
       });
       if (!response.ok) throw new Error(await errorMessage(response));
       const body = (await response.json()) as { item: VisitItem };
@@ -424,7 +312,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         if (!photoResponse.ok) throw new Error(`방문은 저장됐지만 사진 저장에 실패했습니다. ${await errorMessage(photoResponse)}`);
       }
 
-      setStatus(editingVisit ? "수정했습니다." : "저장했습니다.");
+      setStatus("저장했습니다.");
       resetVisitForm();
       await refreshVisits();
     } catch (error) {
@@ -459,37 +347,66 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     }
   }
 
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextFiles = Array.from(event.currentTarget.files ?? []);
-    setPhotoFiles((current) => [...current, ...nextFiles]);
-    event.currentTarget.value = "";
-  }
-
-  function removePhotoFile(index: number) {
-    setPhotoFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
-  }
-
   function resetVisitForm() {
-    setEditingVisit(null);
     setRating(5);
-    setHoverRating(null);
     setVisibility("public");
     setReviewText("");
     setPhotoFiles([]);
-    if (photoInputRef.current) photoInputRef.current.value = "";
   }
 
-  function startEditVisit(visit: VisitItem) {
-    setEditingVisit(visit);
-    setRating(visit.rating ?? 5);
-    setHoverRating(null);
-    setVisibility(visit.visibility);
-    setReviewText(visit.reviewText ?? "");
-    setPhotoFiles([]);
+  async function saveVisitEdit(
+    visit: VisitItem,
+    nextVisit: { rating: number; reviewText: string; visibility: "public" | "private" },
+    nextPhotos: File[]
+  ) {
+    if (busy) return false;
+
+    setBusy(true);
+    setStatus(null);
+    try {
+      const response = await fetch(`/api/visits/${visit.id}`, {
+        body: JSON.stringify(nextVisit),
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        method: "PATCH"
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+
+      if (nextPhotos.length > 0) {
+        const formData = new FormData();
+        nextPhotos.forEach((file) => formData.append("photos", file));
+        formData.set("visibility", nextVisit.visibility);
+        const photoResponse = await fetch(`/api/visits/${visit.id}/photos`, {
+          body: formData,
+          credentials: "same-origin",
+          method: "POST"
+        });
+        if (!photoResponse.ok) throw new Error(`기록은 수정됐지만 사진 저장에 실패했습니다. ${await errorMessage(photoResponse)}`);
+      }
+
+      setStatus("수정했습니다.");
+      await refreshVisits();
+      return true;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "수정하지 못했습니다.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function requestDeleteVisit(visit: VisitItem) {
+    setConfirmAction({
+      body: "삭제하면 별점, 리뷰, 등록한 사진이 함께 사라집니다. 이 작업은 되돌릴 수 없습니다.",
+      confirmLabel: "삭제",
+      onConfirm: () => deleteVisit(visit),
+      title: "이 방문 기록을 삭제할까요?",
+      tone: "danger"
+    });
   }
 
   async function deleteVisit(visit: VisitItem) {
-    if (busy || !window.confirm("이 방문 기록을 삭제할까요?")) return;
+    if (busy) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -498,7 +415,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         method: "DELETE"
       });
       if (!response.ok) throw new Error(await errorMessage(response));
-      if (editingVisit?.id === visit.id) resetVisitForm();
+      setConfirmAction(null);
       setStatus("삭제했습니다.");
       await refreshVisits();
     } catch (error) {
@@ -508,8 +425,18 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     }
   }
 
+  function requestDeletePhoto(photo: VisitPhoto) {
+    setConfirmAction({
+      body: "이 사진만 방문 기록에서 삭제됩니다. 나머지 별점과 리뷰는 그대로 유지됩니다.",
+      confirmLabel: "사진 삭제",
+      onConfirm: () => deletePhoto(photo),
+      title: "이 사진을 삭제할까요?",
+      tone: "danger"
+    });
+  }
+
   async function deletePhoto(photo: VisitPhoto) {
-    if (busy || !window.confirm("이 사진을 삭제할까요?")) return;
+    if (busy) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -518,6 +445,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         method: "DELETE"
       });
       if (!response.ok) throw new Error(await errorMessage(response));
+      setConfirmAction(null);
       setStatus("사진을 삭제했습니다.");
       await refreshVisits();
     } catch (error) {
@@ -527,52 +455,61 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
     }
   }
 
-  function handleRatingPointer(event: PointerEvent<HTMLElement>) {
-    if (busy) return;
-    const nextRating = handleRatingFromPointer(event);
-    setHoverRating(nextRating);
-    if (event.type === "pointerdown") {
-      event.currentTarget.setPointerCapture(event.pointerId);
-      setRating(nextRating);
-    }
-  }
-
-  function handleRatingKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (busy) return;
-    const keySteps: Record<string, number> = {
-      ArrowDown: -RATING_STEP,
-      ArrowLeft: -RATING_STEP,
-      ArrowRight: RATING_STEP,
-      ArrowUp: RATING_STEP,
-      End: MAX_VISIT_RATING - rating,
-      Home: MIN_VISIT_RATING - rating
-    };
-    const step = keySteps[event.key];
-    if (step === undefined) return;
-    event.preventDefault();
-    setHoverRating(null);
-    setRating(clampRating(rating + step));
-  }
-
 }
 
 function VisitSummary({
   busy,
   onDelete,
   onDeletePhoto,
-  onEdit,
+  onSave,
   title,
   visit
 }: {
   busy?: boolean;
   onDelete?: (visit: VisitItem) => void;
   onDeletePhoto?: (photo: VisitPhoto) => void;
-  onEdit?: (visit: VisitItem) => void;
+  onSave?: (
+    visit: VisitItem,
+    nextVisit: { rating: number; reviewText: string; visibility: "public" | "private" },
+    nextPhotos: File[]
+  ) => Promise<boolean>;
   title?: string;
   visit: VisitItem;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftRating, setDraftRating] = useState(visit.rating ?? 5);
+  const [draftVisibility, setDraftVisibility] = useState<"public" | "private">(visit.visibility);
+  const [draftReviewText, setDraftReviewText] = useState(visit.reviewText ?? "");
+  const [draftPhotoFiles, setDraftPhotoFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftRating(visit.rating ?? 5);
+      setDraftVisibility(visit.visibility);
+      setDraftReviewText(visit.reviewText ?? "");
+      setDraftPhotoFiles([]);
+    }
+  }, [isEditing, visit.rating, visit.reviewText, visit.visibility]);
+
+  const canEdit = visit.isMine && onSave && onDelete;
+
+  async function submitEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onSave) return;
+    const saved = await onSave(
+      visit,
+      {
+        rating: draftRating,
+        reviewText: draftReviewText,
+        visibility: draftVisibility
+      },
+      draftPhotoFiles
+    );
+    if (saved) setIsEditing(false);
+  }
+
   return (
-    <article className="place-visit-summary">
+    <article className={`place-visit-summary ${isEditing ? "is-editing" : ""}`}>
       <div className="place-visit-summary-top">
         <div>
           {title ? <h3>{title}</h3> : null}
@@ -585,9 +522,9 @@ function VisitSummary({
             {visit.photoCount > 0 ? <span>사진 {visit.photoCount}</span> : null}
           </div>
         </div>
-        {visit.isMine && onEdit && onDelete ? (
+        {canEdit ? (
           <div className="place-visit-summary-actions">
-            <button disabled={busy} onClick={() => onEdit(visit)} type="button">
+            <button disabled={busy || isEditing} onClick={() => setIsEditing(true)} type="button">
               <Edit3 size={14} aria-hidden="true" />
               수정
             </button>
@@ -598,7 +535,26 @@ function VisitSummary({
           </div>
         ) : null}
       </div>
-      {visit.reviewText ? <p>{visit.reviewText}</p> : visit.isPrivatePlaceholder ? <p>비공개 리뷰입니다.</p> : null}
+      {isEditing ? (
+        <form className="place-visit-inline-edit" onSubmit={submitEdit}>
+          <VisitRatingInput disabled={busy} label="평점 수정" onChange={setDraftRating} value={draftRating} />
+          <VisitVisibilitySwitch disabled={busy} onChange={setDraftVisibility} value={draftVisibility} />
+          <VisitReviewField disabled={busy} onChange={setDraftReviewText} value={draftReviewText} />
+          <VisitPhotoPicker disabled={busy} files={draftPhotoFiles} idPrefix={`visit-edit-${visit.id}`} onChange={setDraftPhotoFiles} />
+          <div className="place-visit-edit-actions">
+            <button className="primary-button" disabled={busy} type="submit">
+              {busy ? "저장 중" : "수정 저장"}
+            </button>
+            <button className="place-visit-cancel-edit" disabled={busy} onClick={() => setIsEditing(false)} type="button">
+              취소
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          {visit.reviewText ? <p>{visit.reviewText}</p> : visit.isPrivatePlaceholder ? <p>비공개 리뷰입니다.</p> : null}
+        </>
+      )}
       {visit.photos.length > 0 ? (
         <div className="place-visit-photo-grid" aria-label="방문 사진">
           {visit.photos.map((photo, index) => (
@@ -614,6 +570,233 @@ function VisitSummary({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function VisitRatingInput({
+  disabled,
+  label,
+  onChange,
+  value
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const activeRating = hoverRating ?? value;
+
+  function handlePointer(event: PointerEvent<HTMLElement>) {
+    if (disabled) return;
+    const nextRating = handleRatingFromPointer(event);
+    setHoverRating(nextRating);
+    if (event.type === "pointerdown") {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      onChange(nextRating);
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (disabled) return;
+    const keySteps: Record<string, number> = {
+      ArrowDown: -RATING_STEP,
+      ArrowLeft: -RATING_STEP,
+      ArrowRight: RATING_STEP,
+      ArrowUp: RATING_STEP,
+      End: MAX_VISIT_RATING - value,
+      Home: MIN_VISIT_RATING - value
+    };
+    const step = keySteps[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    setHoverRating(null);
+    onChange(clampRating(value + step));
+  }
+
+  return (
+    <fieldset className="place-visit-rating">
+      <legend>{label}</legend>
+      <div className="place-visit-rating-control">
+        <div
+          aria-label="방문 평점"
+          aria-valuemax={MAX_VISIT_RATING}
+          aria-valuemin={MIN_VISIT_RATING}
+          aria-valuenow={value}
+          aria-valuetext={`${formatRating(value)}점`}
+          className={`place-visit-stars ${disabled ? "is-disabled" : ""}`}
+          onBlur={() => setHoverRating(null)}
+          onKeyDown={handleKeyDown}
+          onMouseLeave={() => setHoverRating(null)}
+          onPointerDown={handlePointer}
+          onPointerMove={handlePointer}
+          role="slider"
+          style={{ "--rating-fill": `${(activeRating / MAX_VISIT_RATING) * 100}%` } as CSSProperties}
+          tabIndex={disabled ? -1 : 0}
+        >
+          <span className="place-visit-star-row" aria-hidden="true">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} size={30} />
+            ))}
+          </span>
+          <span className="place-visit-star-row place-visit-star-fill" aria-hidden="true">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} size={30} />
+            ))}
+          </span>
+        </div>
+        <output className="place-visit-rating-value" aria-live="polite">
+          {formatRating(activeRating)}
+        </output>
+      </div>
+      <p className="place-visit-rating-label">{formatRating(value)}점 선택됨</p>
+    </fieldset>
+  );
+}
+
+function VisitVisibilitySwitch({
+  disabled,
+  onChange,
+  value
+}: {
+  disabled?: boolean;
+  onChange: (value: "public" | "private") => void;
+  value: "public" | "private";
+}) {
+  return (
+    <fieldset className="place-visit-visibility">
+      <legend>공개 범위</legend>
+      <label className="place-visit-switch">
+        <input
+          checked={value === "public"}
+          disabled={disabled}
+          onChange={(event) => onChange(event.currentTarget.checked ? "public" : "private")}
+          role="switch"
+          type="checkbox"
+        />
+        <span aria-hidden="true">
+          <Globe2 size={14} />
+          <Lock size={14} />
+        </span>
+        <strong>{value === "public" ? "공개" : "비공개"}</strong>
+      </label>
+    </fieldset>
+  );
+}
+
+function VisitReviewField({
+  disabled,
+  onChange,
+  value
+}: {
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="place-visit-field place-visit-review">
+      <span>
+        짧은 리뷰
+        <small>{value.length}/2000</small>
+      </span>
+      <textarea
+        disabled={disabled}
+        maxLength={2000}
+        rows={4}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        placeholder="다시 가고 싶은 이유, 아이 반응, 부모 입장에서 좋았던 점"
+      />
+    </label>
+  );
+}
+
+function VisitPhotoPicker({
+  disabled,
+  files,
+  idPrefix,
+  onChange
+}: {
+  disabled?: boolean;
+  files: File[];
+  idPrefix: string;
+  onChange: (files: File[]) => void;
+}) {
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const photoHelpId = `${idPrefix}-photo-help`;
+  const selectedPhotoId = `${idPrefix}-photo-selected`;
+  const photoPreviews = useMemo(
+    () =>
+      files.map((file, index) => ({
+        file,
+        id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+        url: URL.createObjectURL(file)
+      })),
+    [files]
+  );
+
+  useEffect(() => {
+    return () => {
+      photoPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [photoPreviews]);
+
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const nextFiles = Array.from(event.currentTarget.files ?? []);
+    onChange([...files, ...nextFiles]);
+    event.currentTarget.value = "";
+  }
+
+  function removePhotoFile(index: number) {
+    onChange(files.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  return (
+    <div className="place-visit-field place-visit-photo">
+      <div className="place-visit-photo-label">
+        <span>
+          <Camera size={15} aria-hidden="true" />
+          사진
+        </span>
+        <small id={photoHelpId}>여러 장 선택 가능 · 장당 10MB 이하</small>
+      </div>
+      <div className={`place-visit-upload-card ${files.length > 0 ? "has-file" : ""}`}>
+        <button
+          aria-describedby={files.length > 0 ? selectedPhotoId : photoHelpId}
+          className="place-visit-upload-button"
+          disabled={disabled}
+          onClick={() => photoInputRef.current?.click()}
+          type="button"
+        >
+          <ImagePlus size={18} aria-hidden="true" />
+          <span>{files.length > 0 ? "사진 더 추가" : "사진 추가"}</span>
+        </button>
+        {photoPreviews.length > 0 ? (
+          <div className="place-visit-selected-photos" id={selectedPhotoId}>
+            {photoPreviews.map((preview, index) => (
+              <figure className="place-visit-selected-photo" key={preview.id}>
+                <Image alt={`선택한 방문 사진 ${index + 1}`} fill sizes="96px" src={preview.url} unoptimized />
+                <button aria-label={`선택한 사진 ${index + 1} 제거`} disabled={disabled} onClick={() => removePhotoFile(index)} type="button">
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </figure>
+            ))}
+          </div>
+        ) : (
+          <p>사진을 선택하면 이곳에 미리보기가 표시됩니다.</p>
+        )}
+      </div>
+      <input
+        accept="image/jpeg,image/png,image/webp"
+        aria-hidden="true"
+        className="place-visit-file-input"
+        multiple
+        ref={photoInputRef}
+        tabIndex={-1}
+        type="file"
+        onChange={handlePhotoChange}
+      />
+    </div>
   );
 }
 

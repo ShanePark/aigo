@@ -3120,6 +3120,146 @@ h3 {
   gap: 6px;
 }
 
+.app-confirm-backdrop {
+  align-items: center;
+  background: rgba(21, 28, 25, 0.46);
+  backdrop-filter: blur(5px);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: var(--z-modal);
+}
+
+.app-confirm-dialog {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 28px 76px rgba(13, 18, 16, 0.28);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  max-width: 440px;
+  padding: 16px;
+  width: min(100%, 440px);
+}
+
+.app-confirm-icon {
+  align-items: center;
+  background: var(--blue-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--blue);
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.app-confirm-dialog.is-danger .app-confirm-icon {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+.app-confirm-copy {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.app-confirm-title-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.app-confirm-title-row h2 {
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.app-confirm-copy p {
+  color: var(--body-copy);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.app-confirm-close,
+.app-confirm-cancel,
+.app-confirm-submit {
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 38px;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.app-confirm-close {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  flex: 0 0 auto;
+  height: 34px;
+  min-height: 34px;
+  width: 34px;
+}
+
+.app-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.app-confirm-cancel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 0 13px;
+}
+
+.app-confirm-submit {
+  background: var(--text);
+  border: 1px solid var(--text);
+  color: var(--panel);
+  padding: 0 14px;
+}
+
+.app-confirm-dialog.is-danger .app-confirm-submit {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: #fff;
+}
+
+.app-confirm-close:hover:not(:disabled),
+.app-confirm-cancel:hover:not(:disabled),
+.app-confirm-submit:hover:not(:disabled) {
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.app-confirm-close:disabled,
+.app-confirm-cancel:disabled,
+.app-confirm-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
 .score-reason-chip {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
@@ -3275,7 +3415,8 @@ h3 {
   grid-template-columns: minmax(260px, 0.85fr) minmax(190px, 0.5fr);
 }
 
-.place-visit-form fieldset {
+.place-visit-form fieldset,
+.place-visit-inline-edit fieldset {
   border: 0;
   margin: 0;
   min-width: 0;
@@ -3283,6 +3424,7 @@ h3 {
 }
 
 .place-visit-form legend,
+.place-visit-inline-edit legend,
 .place-visit-field > span,
 .place-visit-photo-label > span {
   align-items: center;
@@ -3729,6 +3871,14 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 11px;
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.place-visit-summary.is-editing {
+  border-color: var(--highlight-border);
+  box-shadow: 0 0 0 3px var(--highlight-ring);
 }
 
 .place-visit-summary-top {
@@ -3781,6 +3931,29 @@ h3 {
 
 .place-visit-photo-grid {
   margin-top: 10px;
+}
+
+.place-visit-inline-edit {
+  background: color-mix(in srgb, var(--panel) 92%, var(--mint-soft));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(180px, 0.55fr);
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.place-visit-edit-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.place-visit-edit-actions .primary-button {
+  min-height: 38px;
 }
 
 .place-visit-public-list {
@@ -5115,6 +5288,16 @@ dd {
     padding: 14px;
   }
 
+  .app-confirm-dialog {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .app-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .score-dialog-summary {
     grid-template-columns: 1fr;
   }
@@ -5330,6 +5513,7 @@ dd {
   .related-place-grid,
   .image-gallery-grid,
   .place-visit-form,
+  .place-visit-inline-edit,
   .place-visit-lists,
   dl {
     grid-template-columns: 1fr;
@@ -5365,6 +5549,17 @@ dd {
   }
 
   .place-visit-submit .primary-button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .place-visit-edit-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .place-visit-edit-actions .primary-button,
+  .place-visit-cancel-edit {
     justify-content: center;
     width: 100%;
   }

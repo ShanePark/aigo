@@ -22,6 +22,13 @@ Global design tokens live in `src/app/globals.css` under `:root`.
 
 When adding a new feature, first reuse an existing class pattern if the element is equivalent. If a new class is necessary, consume the tokens above and keep local CSS focused on layout or domain-specific color.
 
+## Interaction Rules
+
+- Do not use native `alert`, `confirm`, or `prompt` for product flows. Use shared app UI such as `ConfirmDialog`, an in-context editor, toast/status copy, or a purpose-built modal so visual hierarchy, keyboard behavior, and mobile layout stay consistent.
+- Destructive actions should show concise custom confirmation UI with explicit cancel and destructive buttons. The confirmation should explain what will be removed and keep the user in the same workflow after canceling.
+- Editing existing content should happen in place whenever possible. Avoid moving the user to a separate create form or repurposing a new-record surface as an edit surface.
+- Verify meaningful interaction changes with Browser/Playwright across the affected desktop and mobile layouts before finishing.
+
 ## Naming
 
 Use user-facing score names consistently:
