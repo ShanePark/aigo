@@ -398,17 +398,7 @@ function normalizeSignalToken(value: string) {
 function pricingHasFreeAdmission(pricing: unknown) {
   const record = isRecord(pricing) ? pricing : null;
   if (!record) return false;
-  const admissionItems = pricingAdmissionItems(record);
-  const hasPaidAdmission = admissionItems.some((item) => item.amount > 0);
-  const text = pricingText(record);
-  if (hasFreeAdmissionText(text) && !hasPaidAdmission) return true;
-
-  return admissionItems.length > 0 && admissionItems.every((item) => item.amount === 0);
-}
-
-function hasFreeAdmissionText(text: string) {
-  if (!/(?:무료\s*(?:입장|관람|이용)?|입장료\s*무료|free\s*(?:admission|entry)?)/i.test(text)) return false;
-  return !/(?:무료[·ㆍ/,\s]*(?:할인|조건|대상|여부)|(?:어린이|아동|유아|영유아|36개월|개월|미만|이하)[^\n.。]{0,24}무료|free[·/\s-]*(?:discount|condition|eligible))/i.test(text);
+  return truthySignal(record.freeAdmission);
 }
 
 function pricingHasLowCostAdmission(pricing: unknown) {

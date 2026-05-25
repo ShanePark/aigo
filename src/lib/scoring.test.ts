@@ -673,6 +673,79 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
   });
 
+  it("requires explicit pricing freeAdmission before treating bundled amenities as free admission", () => {
+    const bundledAmenity = scorePlace(
+      {
+        primaryCategory: "resort",
+        tags: ["resort", "kids_club", "water_play"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 12,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "mixed",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "unknown",
+        kidsToilet: "partial",
+        elevator: "yes",
+        babyChair: "partial",
+        foodAllowed: "partial",
+        distanceKm: 120,
+        pricing: {
+          summary: "숙박객은 키즈클럽과 일부 워터파크 프로그램을 무료로 이용할 수 있습니다.",
+          notes: "무료 문구는 리조트 입장료가 아니라 숙박 포함 부대시설 조건입니다."
+        },
+        scoring: {
+          placeScore: 8,
+          placeScoreRationale: "숙박객 대상 키즈 프로그램이 있는 리조트.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 7,
+          scoreSignals: { facilityScale: "large" },
+          scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "dayTrip" }
+    );
+    const explicitFreeAdmission = scorePlace(
+      {
+        primaryCategory: "public_child_facility",
+        tags: ["children_experience", "public"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 120,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "yes",
+        nursingRoom: "partial",
+        diaperChangingTable: "yes",
+        kidsToilet: "yes",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 8,
+        pricing: {
+          summary: "입장료 무료",
+          freeAdmission: true
+        },
+        scoring: {
+          placeScore: 7.5,
+          placeScoreRationale: "무료로 이용 가능한 공공 어린이 시설.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 7,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "weekendHalfDay" }
+    );
+
+    expect(bundledAmenity.reasonCodes).toContain("FACILITY_SCALE_LARGE");
+    expect(bundledAmenity.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
+    expect(explicitFreeAdmission.reasonCodes).toContain("PUBLIC_FREE_ADMISSION");
+  });
+
   it("prevents unscored places from saturating the ranking", () => {
     const strongLogistics = {
       primaryCategory: "kids_cafe",
