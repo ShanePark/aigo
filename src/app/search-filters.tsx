@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Baby, Blocks, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Trash2, TreePine, Utensils, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import type { ChildParamSource } from "@/app/account-child-defaults";
@@ -35,15 +36,42 @@ type SearchFiltersProps = {
 
 type FilterKey = "babyChair" | "indoor" | "nursing" | "parking" | "sandPlay" | "stroller";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
+type FilterDefinition = {
+  hint: string;
+  icon: LucideIcon;
+  key: FilterKey;
+  label: string;
+};
 
-const FILTERS: Array<{ key: FilterKey; label: string }> = [
-  { key: "indoor", label: "실내" },
-  { key: "parking", label: "주차" },
-  { key: "stroller", label: "유모차" },
-  { key: "sandPlay", label: "모래놀이" },
-  { key: "nursing", label: "수유실" },
-  { key: "babyChair", label: "아기의자" }
+const FILTER_GROUPS: Array<{
+  description: string;
+  filters: FilterDefinition[];
+  title: string;
+}> = [
+  {
+    title: "놀이/환경",
+    description: "날씨와 놀이감",
+    filters: [
+      { key: "indoor", label: "실내", hint: "비/더위 대피", icon: Home },
+      { key: "sandPlay", label: "모래놀이", hint: "감각 놀이", icon: TreePine }
+    ]
+  },
+  {
+    title: "아기 돌봄",
+    description: "영아 동반 편의",
+    filters: [
+      { key: "nursing", label: "수유실", hint: "수유/기저귀", icon: Baby },
+      { key: "babyChair", label: "아기의자", hint: "식사 보조", icon: Utensils },
+      { key: "stroller", label: "유모차", hint: "이동 동선", icon: Blocks }
+    ]
+  },
+  {
+    title: "편의/동선",
+    description: "차량 접근",
+    filters: [{ key: "parking", label: "주차", hint: "하차/귀가 편함", icon: Car }]
+  }
 ];
+const FILTERS = FILTER_GROUPS.flatMap((group) => group.filters);
 
 const DEFAULT_DRAFT_GENDER: ChildGender = "boy";
 const DEFAULT_DRAFT_AGE_BAND: ChildAgeBandId = "6-12";
@@ -202,18 +230,42 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
         </span>
       </summary>
 
-      <div className="advanced-checks" aria-label="선호 조건">
+      <div className="advanced-filter-groups" aria-label="선호 조건">
         <SearchPreferenceHiddenInputs params={initialParams} />
-        {FILTERS.map((filter) => (
-          <label className="check" key={filter.key}>
-            <input
-              name={filter.key}
-              type="checkbox"
-              checked={selectedFilters[filter.key]}
-              onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
-            />
-            <span>{filter.label}</span>
-          </label>
+        {FILTER_GROUPS.map((group) => (
+          <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
+            <div className="advanced-filter-group-head">
+              <strong>{group.title}</strong>
+              <small>{group.description}</small>
+            </div>
+            <div className="advanced-filter-options">
+              {group.filters.map((filter) => {
+                const Icon = filter.icon;
+                const isSelected = selectedFilters[filter.key];
+
+                return (
+                  <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
+                    <input
+                      name={filter.key}
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
+                    />
+                    <span className="advanced-filter-option-icon">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                    <span className="advanced-filter-option-copy">
+                      <strong>{filter.label}</strong>
+                      <small>{filter.hint}</small>
+                    </span>
+                    <span className="advanced-filter-option-state" aria-hidden="true">
+                      <Check size={13} />
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
         ))}
       </div>
 

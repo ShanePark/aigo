@@ -716,6 +716,147 @@ h3 {
   color: var(--mint);
 }
 
+.advanced-filter-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.advanced-filter-group {
+  display: grid;
+  gap: 9px;
+}
+
+.advanced-filter-group-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.advanced-filter-group-head strong {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.advanced-filter-group-head small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-body);
+}
+
+.advanced-filter-options {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+}
+
+.advanced-filter-option {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 58px;
+  padding: 9px 10px;
+  position: relative;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.advanced-filter-option input {
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.advanced-filter-option-icon,
+.advanced-filter-option-state {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.advanced-filter-option-icon {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  height: 34px;
+  width: 34px;
+}
+
+.advanced-filter-option-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.advanced-filter-option-copy strong,
+.advanced-filter-option-copy small {
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.advanced-filter-option-copy strong {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.advanced-filter-option-copy small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.advanced-filter-option-state {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: transparent;
+  height: 20px;
+  width: 20px;
+}
+
+.advanced-filter-option:hover,
+.advanced-filter-option:focus-within {
+  background: var(--panel);
+  border-color: var(--hover-border);
+  box-shadow: 0 10px 24px rgba(24, 33, 29, 0.06);
+  transform: translateY(-1px);
+}
+
+.advanced-filter-option:focus-within {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.advanced-filter-option.is-selected {
+  background: color-mix(in srgb, var(--mint) 12%, var(--panel));
+  border-color: var(--line-strong);
+}
+
+.advanced-filter-option.is-selected .advanced-filter-option-icon {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--accent-text);
+}
+
+.advanced-filter-option.is-selected .advanced-filter-option-copy strong {
+  color: var(--mint);
+}
+
+.advanced-filter-option.is-selected .advanced-filter-option-state {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--accent-text);
+}
+
 .primary-button,
 .reset-search-button {
   background: var(--mint);
