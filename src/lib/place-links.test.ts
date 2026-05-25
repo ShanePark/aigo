@@ -66,6 +66,34 @@ describe("place info links", () => {
     expect(searchFallback[0].url).toContain(encodeURIComponent("외부 URL 없는 장소 대전광역시 중구"));
   });
 
+  it("prefers official source links over map links for the primary information CTA", () => {
+    const links = buildPlaceInfoLinks({
+      name: "대전오월드",
+      address: "대전광역시 중구 사정공원로 70",
+      roadAddress: null,
+      contact: {
+        officialUrl: null,
+        reservationUrl: null,
+        kakaoPlaceUrl: "https://map.kakao.com/?q=%EB%8C%80%EC%A0%84%EC%98%A4%EC%9B%94%EB%93%9C"
+      },
+      externalRefs: {},
+      sources: [
+        {
+          sourceType: "official_site",
+          title: "대전오월드 공식 홈페이지",
+          url: "https://www.oworld.kr/",
+          summary: "공식 홈페이지입니다."
+        }
+      ]
+    });
+
+    expect(links[0]).toMatchObject({
+      label: "대전오월드 공식 홈페이지",
+      provider: "oworld.kr",
+      url: "https://www.oworld.kr/"
+    });
+  });
+
   it("selects a direct Naver map link for the primary detail CTA", () => {
     const link = buildNaverMapLink({
       name: "토이빌리지",

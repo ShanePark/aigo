@@ -232,7 +232,7 @@ function infoLinksFromSources(sources: PlaceLinkSource[]): RankedPlaceInfoLink[]
 }
 
 function sourceRank(sourceType: string) {
-  if (/official|operator/.test(sourceType)) return 4;
+  if (/official|operator/.test(sourceType)) return sourceType.includes("image_source") ? 6 : 2;
   if (/public_agency|public_tourism/.test(sourceType)) return 5;
   if (/listing|news|place|map|kakao|naver|google/.test(sourceType)) return 6;
   return 7;
