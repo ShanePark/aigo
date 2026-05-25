@@ -2259,16 +2259,16 @@ h3 {
   box-shadow: 0 8px 18px rgba(24, 33, 29, 0.2);
   color: #ffffff;
   display: inline-flex;
-  font-size: var(--text-xs);
+  font-size: 13px;
   font-weight: var(--weight-strong);
-  height: 30px;
+  height: 34px;
   justify-content: center;
-  left: 10px;
+  left: 5px;
   line-height: 1;
-  min-width: 30px;
-  padding: 0 9px;
+  min-width: 34px;
+  padding: 0 10px;
   position: absolute;
-  top: 10px;
+  top: 5px;
   z-index: 4;
 }
 
@@ -6800,6 +6800,10 @@ dd {
   .score-pill,
   .result-metric-pill {
     font-size: 11px;
+  }
+
+  .rank-badge {
+    font-size: 12px;
   }
 
   .category-pill,
