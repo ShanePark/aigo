@@ -85,6 +85,7 @@ export function PlacesMap({
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
   const locationRequestTimerRef = useRef<number | null>(null);
   const locationRequestTokenRef = useRef(0);
+  const suppressMarkerRevealUntilRef = useRef(0);
   const viewKeyRef = useRef(mapViewKey(origin));
   const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "denied" | "unsupported">("idle");
@@ -195,7 +196,12 @@ export function PlacesMap({
           offset: [0, -18],
           opacity: 0.92
         });
-        marker.on("mouseover focus", () => {
+        marker.on("mouseover", () => {
+          marker.getElement()?.classList.add("is-hovered");
+          if (Date.now() < suppressMarkerRevealUntilRef.current) return;
+          revealResultCard(place.placeId);
+        });
+        marker.on("focus", () => {
           marker.getElement()?.classList.add("is-hovered");
           revealResultCard(place.placeId);
         });
@@ -305,7 +311,10 @@ export function PlacesMap({
             <button
               className="map-search-button is-suggested"
               type="button"
-              onClick={() => onViewportSearch?.(viewportSearchRequest)}
+              onClick={() => {
+                suppressMarkerRevealUntilRef.current = Date.now() + 900;
+                onViewportSearch?.(viewportSearchRequest);
+              }}
               disabled={isViewportSearchPending || !onViewportSearch}
             >
               <RefreshCw size={15} aria-hidden="true" />

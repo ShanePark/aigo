@@ -234,6 +234,7 @@ export function ExploreResults({
       }
 
       const nextResult = (await response.json()) as SearchResult;
+      resetResultsScrollPosition(resultsScrollRef.current);
       setActiveInput(input);
       setResult(nextResult);
       if (nextParams) {
@@ -1105,4 +1106,10 @@ function restoreScrollPosition(scrollY: number) {
       window.scrollTo({ top: scrollY });
     });
   });
+}
+
+function resetResultsScrollPosition(resultsScroll: HTMLDivElement | null) {
+  if (!resultsScroll) return;
+
+  resultsScroll.scrollTo({ top: 0, behavior: "instant" });
 }
