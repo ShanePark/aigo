@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { CSSProperties, ChangeEvent, FormEvent, KeyboardEvent, PointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "../confirm-dialog";
@@ -92,19 +92,16 @@ const RATING_STEP = 0.5;
 const PUBLIC_VISITS_PER_PAGE = 5;
 
 export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; placeName: string }) {
-  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
-  const [devLoginEnabled, setDevLoginEnabled] = useState(false);
   const [visits, setVisits] = useState<VisitsResponse | null>(null);
   const [rating, setRating] = useState(5);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [reviewText, setReviewText] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
-  const [authBusy, setAuthBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
-  const [authStatus, setAuthStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [publicVisitPage, setPublicVisitPage] = useState(1);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
@@ -134,7 +131,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         const me = meResponse.ok ? ((await meResponse.json()) as MeResponse) : null;
         const nextVisits = visitsResponse.ok ? ((await visitsResponse.json()) as VisitsResponse) : null;
         if (!active) return;
-        setDevLoginEnabled(me?.devLoginEnabled ?? false);
         setUser(me?.user ?? null);
         setVisits(nextVisits);
       } finally {
@@ -227,27 +223,15 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
             </p>
           </div>
           <div className="place-visit-login-actions">
-            {devLoginEnabled ? (
-              <button
-                className="primary-button place-visit-login-button"
-                disabled={authBusy || loading}
-                onClick={loginFromPanel}
-                type="button"
-              >
-                <LogIn size={16} aria-hidden="true" />
-                {authBusy ? "로그인 중" : "dev 로그인하고 기록하기"}
-              </button>
-            ) : null}
+            <Link className="primary-button place-visit-login-button" href={`/login?next=${encodeURIComponent(pathname)}`}>
+              <LogIn size={16} aria-hidden="true" />
+              로그인하고 기록하기
+            </Link>
             <Link className="place-visit-login-link" href="/">
               <Search size={16} aria-hidden="true" />
               다른 장소 찾기
             </Link>
           </div>
-          {authStatus ? (
-            <p className="place-visit-auth-status" role="alert">
-              {authStatus}
-            </p>
-          ) : null}
         </div>
       )}
 
@@ -375,31 +359,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       setStatus(error instanceof Error ? error.message : "저장하지 못했습니다.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function loginFromPanel() {
-    if (!devLoginEnabled || authBusy) return;
-
-    setAuthBusy(true);
-    setAuthStatus(null);
-    try {
-      const response = await fetch("/api/auth/dev-login", {
-        credentials: "same-origin",
-        method: "POST"
-      });
-      if (!response.ok) throw new Error(await errorMessage(response));
-      const body = (await response.json()) as { user: User };
-      setUser(body.user);
-      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
-      router.refresh();
-      await refreshVisits();
-    } catch (error) {
-      setAuthStatus(
-        error instanceof Error ? `로그인하지 못했습니다. ${error.message}` : "로그인하지 못했습니다."
-      );
-    } finally {
-      setAuthBusy(false);
     }
   }
 

@@ -2661,6 +2661,146 @@ h3 {
   color: var(--accent-text);
 }
 
+.login-page {
+  align-items: center;
+  display: grid;
+  min-height: min(680px, calc(100vh - 148px));
+}
+
+.login-panel {
+  margin: 0 auto;
+  max-width: 640px;
+  width: 100%;
+}
+
+.login-card {
+  background: var(--panel-elevated);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 22px 60px rgba(24, 33, 29, 0.12);
+  display: grid;
+  gap: 22px;
+  padding: clamp(20px, 4vw, 34px);
+}
+
+.login-card-head {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.login-card h1 {
+  font-size: clamp(30px, 8vw, 36px);
+  word-break: keep-all;
+}
+
+.login-icon,
+.login-option-icon {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.login-icon {
+  background: var(--mint-soft);
+  color: var(--mint);
+  height: 48px;
+  width: 48px;
+}
+
+.login-options {
+  display: grid;
+  gap: 10px;
+}
+
+.login-option {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 72px;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.login-option:hover:not(:disabled),
+.login-option:focus-visible:not(:disabled) {
+  border-color: var(--hover-border);
+  box-shadow: 0 12px 30px rgba(24, 33, 29, 0.09);
+  transform: translateY(-1px);
+}
+
+.login-option.is-primary {
+  background: color-mix(in srgb, var(--mint) 13%, var(--panel));
+  border-color: var(--line-strong);
+}
+
+.login-option:disabled {
+  color: var(--disabled-text);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+.login-option-icon {
+  background: var(--panel);
+  color: var(--mint);
+  height: 38px;
+  width: 38px;
+}
+
+.login-option strong,
+.login-option small {
+  display: block;
+  min-width: 0;
+}
+
+.login-option strong {
+  font-size: var(--text-base);
+  line-height: 1.3;
+}
+
+.login-option small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  margin-top: 3px;
+  word-break: keep-all;
+}
+
+.login-status,
+.login-error {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  gap: 8px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.login-status.is-success {
+  background: var(--mint-soft);
+  border: 1px solid var(--line-strong);
+  color: var(--mint);
+}
+
+.login-error {
+  background: var(--coral-soft);
+  border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line));
+  color: var(--caution-text);
+}
+
 .detail-page {
   max-width: 1160px;
 }

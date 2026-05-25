@@ -1,6 +1,7 @@
 "use client";
 
 import { LogIn, LogOut, UserRound } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -75,35 +76,13 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
           </button>
         </>
       ) : devLoginEnabled ? (
-        <button className={`${styles.button} ${styles.primary}`} disabled={busy || loading} onClick={login} type="button">
+        <Link className={`${styles.button} ${styles.primary}`} href="/login">
           <LogIn size={15} aria-hidden="true" />
-          <span>dev 로그인</span>
-        </button>
+          <span>로그인</span>
+        </Link>
       ) : null}
     </div>
   );
-
-  async function login() {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/auth/dev-login", {
-        credentials: "same-origin",
-        method: "POST"
-      });
-      if (!response.ok) {
-        setError(await errorMessage(response, "로그인 실패"));
-        return;
-      }
-      const body = (await response.json()) as Pick<MeResponse, "user">;
-      setUser(body.user);
-      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
-      router.refresh();
-    } finally {
-      setBusy(false);
-      setLoading(false);
-    }
-  }
 
   async function logout() {
     setBusy(true);

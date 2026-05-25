@@ -29,16 +29,16 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
           <div className="empty-state-copy">
             <p className="empty-state-kicker">방문 로그</p>
             <h1>로그인 후 방문 기록을 볼 수 있어요</h1>
-            <p>상단의 dev 로그인 버튼으로 들어오면 내가 남긴 장소 평가, 방문일, 사진 수를 날짜별로 확인할 수 있습니다.</p>
+            <p>로그인 페이지에서 개발용 계정으로 들어오면 내가 남긴 장소 평가, 방문일, 사진 수를 날짜별로 확인할 수 있습니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">
               <Home size={15} aria-hidden="true" />
               AiGo 홈
             </Link>
-            <Link className="empty-state-action is-primary" href="/">
-              <MapPin size={15} aria-hidden="true" />
-              장소 찾기
+            <Link className="empty-state-action is-primary" href="/login?next=/visits">
+              <History size={15} aria-hidden="true" />
+              로그인
             </Link>
           </div>
         </section>
