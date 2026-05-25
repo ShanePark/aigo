@@ -634,6 +634,45 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
   });
 
+  it("does not treat variable paid ticket notes with child-free conditions as free admission", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "theme_park",
+        tags: ["theme_park", "indoor_character"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "indoor",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "yes",
+        elevator: "yes",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 42,
+        pricing: {
+          notes: "어린이 무료·할인 조건, 사전예약 가능 여부, 당일권 판매 여부는 방문일별 공식 티켓 안내를 우선 확인해야 합니다.",
+          summary: "입장권 가격과 운영시간은 방문일에 따라 달라지는 구조로 공식 티켓·캘린더 확인이 필요합니다.",
+          currency: "JPY"
+        },
+        scoring: {
+          placeScore: 8,
+          placeScoreRationale: "공식 날짜별 유료 입장권을 확인해야 하는 실내 테마파크.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: 8,
+          scoreSignals: {},
+          scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+        }
+      },
+      { ...baseInput, visitContext: "weekendHalfDay" }
+    );
+
+    expect(result.reasonCodes).not.toContain("PUBLIC_FREE_ADMISSION");
+  });
+
   it("prevents unscored places from saturating the ranking", () => {
     const strongLogistics = {
       primaryCategory: "kids_cafe",
