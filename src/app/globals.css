@@ -1859,10 +1859,10 @@ h3 {
 }
 
 .result-card {
-  --result-thumb-size: 118px;
+  --result-thumb-size: 132px;
   background: var(--panel);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 12px 32px rgba(24, 33, 29, 0.07);
   display: grid;
   min-height: 100%;
   outline: 2px solid transparent;
@@ -1902,6 +1902,12 @@ h3 {
 .result-card:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
+}
+
+.result-image-frame {
+  height: var(--result-thumb-size);
+  position: relative;
+  width: var(--result-thumb-size);
 }
 
 .result-image {
@@ -1978,9 +1984,9 @@ h3 {
 .result-card-body {
   align-content: start;
   display: grid;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  padding: 13px;
+  padding: 15px 16px;
 }
 
 .results-panel .result-card {
@@ -2008,15 +2014,23 @@ h3 {
 }
 
 .rank-badge {
-  background: var(--coral-soft);
-  border: 1px solid var(--line-strong);
-  color: var(--coral);
+  align-items: center;
+  background: rgba(24, 33, 29, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow: 0 8px 18px rgba(24, 33, 29, 0.2);
+  color: #ffffff;
+  display: inline-flex;
   font-size: var(--text-xs);
   font-weight: var(--weight-strong);
-  height: 28px;
+  height: 30px;
   justify-content: center;
-  min-width: 28px;
-  padding: 0 8px;
+  left: 10px;
+  line-height: 1;
+  min-width: 30px;
+  padding: 0 9px;
+  position: absolute;
+  top: 10px;
+  z-index: 4;
 }
 
 .distance-pill {
@@ -2032,14 +2046,37 @@ h3 {
 }
 
 .category-pill {
-  background: var(--blue-soft);
-  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--blue-soft) 82%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--blue) 18%, var(--line));
   color: var(--blue);
   font-size: var(--text-xs);
   font-weight: var(--weight-strong);
   max-width: min(100%, 15ch);
   overflow: hidden;
   padding: 6px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-card-body > h3 {
+  display: -webkit-box;
+  font-size: 18px;
+  line-height: 1.28;
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.result-card-summary {
+  color: var(--body-copy);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2060,6 +2097,61 @@ h3 {
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.result-metric-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.result-metric-pill {
+  align-items: center;
+  background: var(--chip-neutral-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--chip-neutral-text);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.result-metric-pill strong {
+  color: var(--text);
+  font-weight: var(--weight-strong);
+}
+
+.result-metric-pill.score-high,
+.result-metric-pill.score-good {
+  background: var(--mint-soft);
+  border-color: color-mix(in srgb, var(--mint) 20%, var(--line));
+  color: var(--mint);
+}
+
+.result-metric-pill.score-high strong,
+.result-metric-pill.score-good strong {
+  color: var(--mint);
+}
+
+.result-metric-pill.score-mid {
+  background: var(--yellow-soft);
+  border-color: color-mix(in srgb, var(--yellow) 28%, var(--line));
+}
+
+.result-metric-pill.score-low {
+  background: var(--coral-soft);
+  border-color: color-mix(in srgb, var(--coral) 24%, var(--line));
+  color: var(--coral);
+}
+
+.result-metric-pill.score-low strong {
+  color: var(--coral);
 }
 
 .result-score-row {
@@ -2115,7 +2207,7 @@ h3 {
 .keyword-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 
@@ -2127,8 +2219,16 @@ h3 {
 }
 
 .keyword-row span {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  line-height: 1;
   max-width: 100%;
   overflow: hidden;
+  padding: 7px 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4381,14 +4481,24 @@ dd {
   .rank-badge,
   .distance-pill,
   .category-pill,
-  .score-pill {
+  .score-pill,
+  .result-metric-pill {
     font-size: 11px;
   }
 
   .category-pill,
   .distance-pill,
-  .score-pill {
+  .score-pill,
+  .result-metric-pill {
     padding-inline: 7px;
+  }
+
+  .result-card-body > h3 {
+    font-size: 16px;
+  }
+
+  .result-card-summary {
+    font-size: var(--text-xs);
   }
 
   .result-card-title-row {

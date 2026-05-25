@@ -9,10 +9,8 @@ import { PlaceImage } from "@/app/place-image";
 import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import {
-  placeQualityScoreLabel,
   placeQualityScoreTitle,
   resultScoreRowLabel,
-  searchRelevanceScoreLabel,
   searchRelevanceScoreTitle
 } from "@/app/result-score-labels";
 import {
@@ -25,12 +23,10 @@ import {
   type SearchParamsRecord
 } from "@/app/search-url-state";
 import {
-  SearchResultTrustBadges,
   type SearchResultBadgeOpeningHoursSummary,
   type SearchResultBadgeRecommendationReadiness,
   type SearchResultBadgeSourceSummary
 } from "@/app/search-result-badges";
-import { pricingSummaryLabel } from "@/lib/pricing";
 import { searchPlacesSchema, type SearchPlacesInput } from "@/lib/schemas";
 
 const DEFAULT_ORIGIN = {
@@ -167,6 +163,7 @@ type SearchItem = {
     url: string;
   } | null;
   recommendationReadiness?: SearchResultBadgeRecommendationReadiness | null;
+  reasons?: Array<{ labelKo?: string } | string>;
   score: number;
   placeQualityScore?: {
     rationale: string | null;
@@ -175,6 +172,10 @@ type SearchItem = {
   } | null;
   sourceSummary: SearchResultBadgeSourceSummary;
   tags: string[];
+  notes?: {
+    parent?: string | null;
+    safety?: string | null;
+  } | null;
   userRatingSummary?: {
     averageRating: number | null;
     latestVisitedOn: string | null;
@@ -508,9 +509,9 @@ function SearchEmptyState({
 function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
-  const priceLabel = pricingSummaryLabel(place.pricing);
   const category = categoryLabel(place.primaryCategory);
-  const userRatingSummary = place.userRatingSummary;
+  const summary = resultCardSummary(place, category, keywords);
+  const metrics = resultCardMetrics(place);
 
   return (
     <Link
@@ -522,58 +523,32 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       id={`place-card-${place.placeId}`}
       href={placeDetailHref(place.placeId, returnHref)}
     >
-      <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
+      <div className="result-image-frame">
+        <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
+        <span className="rank-badge" aria-label={`${index}번째 결과`}>
+          {index}
+        </span>
+      </div>
       <div className="result-card-body">
         <div className="result-card-topline">
-          <span className="rank-badge">{index}</span>
           <span className="category-pill">{category}</span>
-          <span className="distance-pill">
-            <MapPin size={14} aria-hidden="true" />
-            {distanceLabel(place.distanceKm)}
-          </span>
         </div>
-        <div className="result-card-title-row">
-          <h3>{place.name}</h3>
-          <div className="result-score-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-            <span className={`score-pill ${scoreTone(place.score)}`} title={searchRelevanceScoreTitle(place.score)}>
-              {searchRelevanceScoreLabel(place.score)}
+        <h3>{place.name}</h3>
+        <p className="result-card-summary">{summary}</p>
+        <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
+          {metrics.map((metric) => (
+            <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.label}>
+              {metric.icon ? metric.icon : null}
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
             </span>
-            {place.placeQualityScore ? (
-              <span className={`score-pill place-quality-score-pill ${scoreTone(place.placeQualityScore.score)}`} title={placeQualityScoreTitle(place.placeQualityScore.score)}>
-                {placeQualityScoreLabel(place.placeQualityScore.score)}
-              </span>
-            ) : null}
-          </div>
+          ))}
         </div>
         <div className="keyword-row" aria-label="키워드">
           {keywords.map((keyword) => (
             <span key={keyword}>{keyword}</span>
           ))}
         </div>
-        {priceLabel ? (
-          <div className="trust-row">
-            <span className="trust-badge warning">{priceLabel}</span>
-          </div>
-        ) : null}
-        {userRatingSummary && userRatingSummary.ratingCount > 0 ? (
-          <div className="trust-row">
-            <span className="trust-badge positive result-rating-badge">
-              <Star size={12} aria-hidden="true" />
-              방문평가 {userRatingSummary.averageRating?.toFixed(1) ?? "-"} · {userRatingSummary.ratingCount}건
-            </span>
-            {userRatingSummary.publicReviewCount > 0 ? (
-              <span className="trust-badge neutral">공개리뷰 {userRatingSummary.publicReviewCount}</span>
-            ) : null}
-            {userRatingSummary.publicPhotoCount > 0 ? (
-              <span className="trust-badge neutral">공개사진 {userRatingSummary.publicPhotoCount}</span>
-            ) : null}
-          </div>
-        ) : null}
-        <SearchResultTrustBadges
-          openingHoursSummary={place.openingHoursSummary}
-          recommendationReadiness={place.recommendationReadiness}
-          sourceSummary={place.sourceSummary}
-        />
       </div>
     </Link>
   );
@@ -816,11 +791,62 @@ function resultKeywordChips(place: SearchItem) {
   const keywords = [
     indoorLabel(place.facilities.indoorType),
     ...positivePlayFeatureKeywords(place),
-    ...place.tags.map(formatKeyword),
-    ...positiveFacilityKeywords(place)
+    ...positiveFacilityKeywords(place),
+    ...place.tags.map(formatKeyword)
   ];
 
-  return Array.from(new Set(keywords.filter(Boolean))).slice(0, 5);
+  return Array.from(new Set(keywords.filter((keyword) => keyword && !lowSignalResultKeyword(keyword)))).slice(0, 4);
+}
+
+function resultCardSummary(place: SearchItem, category: string, keywords: string[]) {
+  const note = firstText([place.notes?.parent, place.notes?.safety]);
+  if (note) return note;
+
+  const reason = firstText(place.reasons?.map((reasonItem) => (typeof reasonItem === "string" ? reasonItem : reasonItem.labelKo)));
+  if (reason) return reason;
+
+  const keywordText = keywords.slice(0, 3).join(", ");
+  return keywordText ? `${category} 후보 · ${keywordText} 중심으로 비교해볼 만한 곳` : `${category} 후보 · 가족 외출 기준으로 비교해볼 만한 곳`;
+}
+
+function resultCardMetrics(place: SearchItem) {
+  const qualityScore = place.placeQualityScore?.score ?? null;
+  const userRating = place.userRatingSummary?.averageRating ?? null;
+  const evaluationValue = qualityScore !== null ? String(Math.round(qualityScore)) : userRating !== null ? userRating.toFixed(1) : "-";
+  const evaluationTitle = qualityScore !== null ? placeQualityScoreTitle(qualityScore) : "방문 평가 데이터가 충분하지 않습니다.";
+
+  return [
+    {
+      icon: <MapPin size={13} aria-hidden="true" />,
+      label: "거리",
+      title: "검색 기준점에서의 직선 거리",
+      value: distanceLabel(place.distanceKm)
+    },
+    {
+      label: "관련도",
+      title: searchRelevanceScoreTitle(place.score),
+      tone: scoreTone(place.score),
+      value: String(Math.round(place.score))
+    },
+    {
+      icon: <Star size={13} aria-hidden="true" />,
+      label: "평가",
+      title: evaluationTitle,
+      tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,
+      value: evaluationValue
+    }
+  ];
+}
+
+function firstText(values: Array<string | null | undefined> | undefined) {
+  const text = values?.find((value) => value && value.trim().length > 0)?.trim();
+  if (!text) return null;
+  const sentence = text.split(/[.!?。！？]\s*/)[0]?.trim() || text;
+  return sentence.length > 92 ? `${sentence.slice(0, 91)}...` : sentence;
+}
+
+function lowSignalResultKeyword(keyword: string) {
+  return /^(공식|공공|오늘|최근|확인|예약|회차|출처|운영정보|가격|관련도|평가)/.test(keyword) || keyword.length > 10;
 }
 
 function positivePlayFeatureKeywords(place: SearchItem) {
