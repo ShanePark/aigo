@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Lightbulb, LogIn, MessageSquareText, Search, Trash2 } from "lucide-react";
+import { Edit3, Info, Lightbulb, LogIn, MessageSquareText, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
@@ -55,6 +55,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [memoHelpOpen, setMemoHelpOpen] = useState(false);
   const [memoDialogOpen, setMemoDialogOpen] = useState(false);
   const myMemo = useMemo(() => memos?.items.find((memo) => memo.isMine) ?? null, [memos]);
   const publicMemos = memos?.items ?? [];
@@ -106,8 +107,8 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
           <h2>
             <MessageSquareText size={18} aria-hidden="true" />
             장소 이용 팁
+            <InfoButton label="장소 이용 팁 안내" onClick={() => setMemoHelpOpen(true)} />
           </h2>
-          <p>방문 여부와 별점에는 반영하지 않는 공개 메모입니다. 주차, 동선, 준비물처럼 다른 가족에게 바로 도움이 되는 정보를 남겨주세요.</p>
         </div>
       </div>
 
@@ -121,8 +122,7 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
       ) : user && !myMemo ? (
         <div className="place-memo-action-card">
           <div className="place-memo-action-copy">
-            <strong>주차, 동선, 준비물 팁을 공유할 수 있어요.</strong>
-            <p>버튼을 누르면 입력창이 열리고, 저장 전까지 상세 화면은 그대로 유지됩니다.</p>
+            <strong>주차, 동선, 준비물 팁 공유</strong>
           </div>
           <button
             className="primary-button place-memo-open-button"
@@ -141,14 +141,15 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
       ) : user ? (
         <div className="place-memo-hint">
           <Lightbulb size={16} aria-hidden="true" />
-          <p>장소당 공개 팁은 하나만 유지합니다. 아래 내 팁에서 내용을 수정하거나 삭제할 수 있어요.</p>
+          <p>내 공개 팁은 하나만 유지됩니다.</p>
+          <InfoButton label="공개 팁 수정 안내" onClick={() => setMemoHelpOpen(true)} />
           {status ? <span>{status}</span> : null}
         </div>
       ) : (
         <div className="place-memo-login-card">
           <div className="place-memo-login-copy">
             <strong>공개 팁은 로그인 후 남길 수 있어요.</strong>
-            <p>방문 후기와 달리 별점이나 방문 로그에는 반영되지 않고, 장소 이용 노하우만 공개로 공유됩니다.</p>
+            <p>장소 이용 노하우를 공개로 공유합니다.</p>
           </div>
           <div className="place-memo-login-actions">
             <Link className="primary-button place-memo-login-button" href={`/login?next=${encodeURIComponent(pathname)}`}>
@@ -199,6 +200,13 @@ export function PlacePublicMemoPanel({ placeId, placeName }: { placeId: string; 
         title={confirmAction?.title ?? ""}
         tone={confirmAction?.tone}
       />
+      <AppModal onClose={() => setMemoHelpOpen(false)} open={memoHelpOpen} title="장소 이용 팁 안내">
+        <div className="app-modal-copy">
+          <p>방문 여부와 별점에는 반영하지 않는 공개 메모입니다.</p>
+          <p>주차, 동선, 준비물, 유모차, 대기처럼 다른 가족이 바로 참고할 수 있는 정보를 남겨주세요.</p>
+          <p>장소당 내 공개 팁은 하나만 유지되며, 아래 내 팁에서 언제든 수정하거나 삭제할 수 있습니다.</p>
+        </div>
+      </AppModal>
       <AppModal
         description="방문 기록과 별점에는 반영하지 않는 공개 장소 이용 팁입니다."
         disabled={busy}
@@ -395,6 +403,14 @@ function MemoBodyField({
         value={value}
       />
     </label>
+  );
+}
+
+function InfoButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button className="context-info-button" aria-label={label} onClick={onClick} type="button">
+      <Info size={14} aria-hidden="true" />
+    </button>
   );
 }
 

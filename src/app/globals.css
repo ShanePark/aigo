@@ -3668,8 +3668,8 @@ h3 {
 
 .app-modal-backdrop {
   align-items: center;
-  background: rgba(21, 28, 25, 0.46);
-  backdrop-filter: blur(5px);
+  background: rgba(15, 21, 18, 0.5);
+  backdrop-filter: blur(6px);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -3682,19 +3682,19 @@ h3 {
   background: var(--panel);
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  box-shadow: 0 28px 76px rgba(13, 18, 16, 0.28);
+  box-shadow: 0 24px 70px rgba(13, 18, 16, 0.28);
   display: grid;
-  gap: 16px;
-  max-height: min(780px, calc(100vh - 36px));
-  max-width: 640px;
-  overflow: auto;
-  padding: 18px;
-  width: min(100%, 640px);
+  gap: 0;
+  max-height: min(760px, calc(100vh - 40px));
+  max-width: 600px;
+  overflow: hidden;
+  padding: 0;
+  width: min(100%, 600px);
 }
 
 .app-modal-wide {
-  max-width: 760px;
-  width: min(100%, 760px);
+  max-width: 720px;
+  width: min(100%, 720px);
 }
 
 .app-modal-media {
@@ -3704,13 +3704,21 @@ h3 {
 
 .app-modal-head {
   align-items: flex-start;
+  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  padding: 18px 20px 15px;
+}
+
+.app-modal-title-block {
+  min-width: 0;
 }
 
 .app-modal-head h2 {
-  font-size: 20px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
   letter-spacing: 0;
   line-height: 1.3;
   margin: 0;
@@ -3719,8 +3727,37 @@ h3 {
 .app-modal-head p {
   color: var(--body-copy);
   font-size: 13px;
-  line-height: 1.5;
-  margin: 5px 0 0;
+  line-height: 1.48;
+  margin: 6px 0 0;
+  max-width: 58ch;
+}
+
+.app-modal-body {
+  display: grid;
+  gap: 13px;
+  max-height: calc(min(760px, 100vh - 40px) - 72px);
+  overflow: auto;
+  padding: 16px 20px 20px;
+}
+
+.app-modal-copy {
+  background: color-mix(in srgb, var(--panel) 94%, var(--panel-soft));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  overflow: hidden;
+}
+
+.app-modal-copy p {
+  color: var(--body-copy);
+  font-size: 13px;
+  line-height: 1.52;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.app-modal-copy p + p {
+  border-top: 1px solid var(--line);
 }
 
 .app-modal-close {
@@ -3732,9 +3769,9 @@ h3 {
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  height: 36px;
+  height: 34px;
   justify-content: center;
-  width: 36px;
+  width: 34px;
 }
 
 .app-modal-close:hover:not(:disabled) {
@@ -3752,11 +3789,11 @@ h3 {
   align-items: end;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 10px;
+  gap: 9px;
   grid-column: 1 / -1;
   justify-items: end;
-  margin-top: 2px;
-  padding-top: 14px;
+  margin-top: 3px;
+  padding-top: 13px;
 }
 
 .app-modal-status {
@@ -3803,7 +3840,37 @@ h3 {
 .app-modal-submit {
   background: var(--text);
   border: 1px solid var(--text);
-  color: var(--panel);
+  color: var(--accent-text);
+}
+
+.context-info-button {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 26px;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+  width: 26px;
+}
+
+.context-info-button:hover,
+.context-info-button:focus-visible {
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
 .app-modal-cancel:hover:not(:disabled),
@@ -4013,10 +4080,9 @@ h3 {
 }
 
 .place-visit-form.is-modal {
-  background: color-mix(in srgb, var(--panel) 94%, var(--mint-soft));
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
+  background: transparent;
+  border: 0;
+  padding: 0;
 }
 
 .place-visit-form fieldset,
@@ -4703,7 +4769,7 @@ h3 {
 }
 
 .place-memo-hint {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
 }
 
 .place-memo-hint svg {
@@ -4803,7 +4869,9 @@ h3 {
 }
 
 .place-memo-form.is-modal {
-  background: color-mix(in srgb, var(--panel) 94%, var(--info-bg));
+  background: transparent;
+  border: 0;
+  padding: 0;
 }
 
 .place-memo-inline-edit {

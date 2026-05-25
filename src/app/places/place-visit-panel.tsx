@@ -8,6 +8,7 @@ import {
   Edit3,
   Globe2,
   ImagePlus,
+  Info,
   Lock,
   LogIn,
   Maximize2,
@@ -105,6 +106,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [visitHelpOpen, setVisitHelpOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [publicVisitPage, setPublicVisitPage] = useState(1);
   const myLatestVisit = user ? visits?.myVisits[0] ?? null : null;
@@ -171,6 +173,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           <h2>
             <Star size={18} aria-hidden="true" />
             방문했어요
+            <InfoButton label="방문 기록 안내" onClick={() => setVisitHelpOpen(true)} />
           </h2>
           <p>
             {visits?.summary.ratingCount
@@ -205,8 +208,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
       ) : user ? (
         <div className="place-visit-action-card">
           <div className="place-visit-action-copy">
-            <strong>방문 날짜의 기록, 별점, 사진을 따로 남길 수 있어요.</strong>
-            <p>등록 버튼을 누르면 입력창이 열리고, 공개 범위는 저장 전에 고를 수 있습니다.</p>
+            <strong>별점, 리뷰, 사진 기록</strong>
           </div>
           <button
             className="primary-button place-visit-open-button"
@@ -226,10 +228,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         <div className="place-visit-login-card">
           <div className="place-visit-login-copy">
             <strong>방문 기록은 로그인 후 남길 수 있어요.</strong>
-            <p>
-              별점과 짧은 리뷰를 저장하면 나중에 다시 가고 싶은 장소를 찾기 쉬워집니다.
-              공개 기록은 다른 가족도 참고할 수 있고, 비공개 기록은 평균 별점에만 반영돼요.
-            </p>
+            <p>별점, 리뷰, 사진을 내 기록으로 저장합니다.</p>
           </div>
           <div className="place-visit-login-actions">
             <Link className="primary-button place-visit-login-button" href={`/login?next=${encodeURIComponent(pathname)}`}>
@@ -326,6 +325,13 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         title={confirmAction?.title ?? ""}
         tone={confirmAction?.tone}
       />
+      <AppModal onClose={() => setVisitHelpOpen(false)} open={visitHelpOpen} title="방문 기록 안내">
+        <div className="app-modal-copy">
+          <p>방문 날짜의 기록, 별점, 사진을 남길 수 있습니다.</p>
+          <p>등록 버튼을 누르면 입력창이 열리고, 공개 범위는 저장 전에 선택합니다.</p>
+          <p>공개 기록은 다른 가족이 참고할 수 있고, 비공개 기록은 내 기록과 평균 별점에만 반영됩니다.</p>
+        </div>
+      </AppModal>
       <AppModal
         description="별점과 짧은 리뷰를 남기고, 사진과 공개 범위를 함께 정할 수 있습니다."
         disabled={busy}
@@ -874,6 +880,14 @@ function VisitPhotoPicker({
         onChange={handlePhotoChange}
       />
     </div>
+  );
+}
+
+function InfoButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button className="context-info-button" aria-label={label} onClick={onClick} type="button">
+      <Info size={14} aria-hidden="true" />
+    </button>
   );
 }
 

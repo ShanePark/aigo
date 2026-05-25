@@ -47,7 +47,7 @@ export function AppModal({ children, description, disabled = false, onClose, ope
         role="dialog"
       >
         <div className="app-modal-head">
-          <div>
+          <div className="app-modal-title-block">
             <h2 id={titleId}>{title}</h2>
             {description ? <p id={descriptionId}>{description}</p> : null}
           </div>
@@ -55,7 +55,7 @@ export function AppModal({ children, description, disabled = false, onClose, ope
             <X size={18} aria-hidden="true" />
           </button>
         </div>
-        {children}
+        <div className="app-modal-body">{children}</div>
       </div>
     </div>
   );
