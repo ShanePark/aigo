@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
 import type { MyProfile } from "@/lib/user-profile";
 
+import { homeLocationHasUsableCoordinates, homeSaveUiState, type HomeDraft } from "../me-home-state";
 import {
   childAgeBandLabelFromBirthYearMonth,
   childAgeLabelFromBirthYearMonth,
@@ -24,14 +25,6 @@ type ChildDraft = {
   gender: ChildGender;
 };
 
-type HomeDraft = {
-  addressText: string;
-  enabled: boolean;
-  label: string;
-  lat: string;
-  lng: string;
-};
-
 type SaveStatus = {
   message: string;
   tone: "idle" | "saving" | "saved" | "error";
@@ -47,8 +40,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const savedChildSignatures = useMemo(() => new Map(savedChildren.map((child) => [child.clientId, childSignature(child)])), [savedChildren]);
   const isSaving = status.tone === "saving";
-  const homeDirty = homeSignature(homeLocation) !== homeSignature(savedHomeLocation);
-  const hasSavedHomeLocation = savedHomeLocation.enabled;
+  const homeSaveState = homeSaveUiState(homeLocation, savedHomeLocation, { isSaving, saving: savingTarget === "home" });
 
   function addChild() {
     setChildren((current) => [...current, { birthYearMonth: maxBirthYearMonth, clientId: createClientId(), gender: "boy" }]);
@@ -92,7 +84,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
         }
       : null;
 
-    if (nextHomeLocation && (!Number.isFinite(nextHomeLocation.lat) || !Number.isFinite(nextHomeLocation.lng))) {
+    if (homeLocationToSave.enabled && !homeLocationHasUsableCoordinates(homeLocationToSave)) {
       setStatus({ message: "집 위치 좌표를 확인해 주세요.", tone: "error" });
       return;
     }
@@ -235,10 +227,13 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             <input
               type="checkbox"
               checked={homeLocation.enabled}
-              onChange={(event) => updateHomeLocation((current) => ({ ...current, enabled: event.currentTarget.checked }))}
+              onChange={(event) => {
+                const enabled = event.currentTarget.checked;
+                updateHomeLocation((current) => ({ ...current, enabled }));
+              }}
               disabled={isSaving}
             />
-            <span>{homeLocation.enabled ? "사용 중" : "미사용"}</span>
+            <span>{homeLocation.enabled ? "사용 중" : homeSaveState.statusLabel}</span>
           </label>
         </header>
 
@@ -248,7 +243,10 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
               <span>이름</span>
               <input
                 value={homeLocation.label}
-                onChange={(event) => updateHomeLocation((current) => ({ ...current, label: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const label = event.currentTarget.value;
+                  updateHomeLocation((current) => ({ ...current, label }));
+                }}
                 maxLength={40}
                 placeholder="home"
               />
@@ -262,7 +260,10 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                 max="90"
                 step="0.000001"
                 value={homeLocation.lat}
-                onChange={(event) => updateHomeLocation((current) => ({ ...current, lat: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const lat = event.currentTarget.value;
+                  updateHomeLocation((current) => ({ ...current, lat }));
+                }}
                 required={homeLocation.enabled}
               />
             </label>
@@ -275,7 +276,10 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                 max="180"
                 step="0.000001"
                 value={homeLocation.lng}
-                onChange={(event) => updateHomeLocation((current) => ({ ...current, lng: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const lng = event.currentTarget.value;
+                  updateHomeLocation((current) => ({ ...current, lng }));
+                }}
                 required={homeLocation.enabled}
               />
             </label>
@@ -283,19 +287,27 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
               <span>주소 메모</span>
               <input
                 value={homeLocation.addressText}
-                onChange={(event) => updateHomeLocation((current) => ({ ...current, addressText: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const addressText = event.currentTarget.value;
+                  updateHomeLocation((current) => ({ ...current, addressText }));
+                }}
                 maxLength={200}
                 placeholder="대략적인 주소"
               />
             </label>
           </div>
         ) : (
-          <p className="me-empty-note">집 위치를 쓰지 않습니다.</p>
+          <p className="me-empty-note">{homeSaveState.statusLabel === "삭제 예정" ? "저장하면 등록된 집 위치가 삭제됩니다." : "집 위치가 아직 설정되지 않았습니다."}</p>
         )}
         <div className="me-section-actions">
-          <button className={`me-section-save ${homeDirty ? "is-dirty" : "is-clean"}`} type="button" onClick={() => saveProfile({ target: "home" })} disabled={isSaving || !homeDirty}>
-            {homeDirty ? <Save size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
-            {savingTarget === "home" ? "저장 중" : homeDirty ? (hasSavedHomeLocation ? "수정 저장" : "집 위치 저장") : "저장됨"}
+          <button
+            className={`me-section-save ${homeSaveState.dirty ? "is-dirty" : "is-clean"}`}
+            type="button"
+            onClick={() => saveProfile({ target: "home" })}
+            disabled={homeSaveState.disabled}
+          >
+            {homeSaveState.dirty ? <Save size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
+            {homeSaveState.buttonText}
           </button>
         </div>
       </section>
@@ -345,16 +357,4 @@ function createClientId() {
 
 function childSignature(child: ChildDraft) {
   return `${child.birthYearMonth}|${child.gender}`;
-}
-
-function homeSignature(homeLocation: HomeDraft) {
-  if (!homeLocation.enabled) return "disabled";
-
-  return [
-    "enabled",
-    homeLocation.label.trim() || "home",
-    homeLocation.lat.trim(),
-    homeLocation.lng.trim(),
-    homeLocation.addressText.trim()
-  ].join("|");
 }
