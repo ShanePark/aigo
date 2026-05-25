@@ -67,7 +67,7 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
       <header className="visits-hero">
         <div className="visits-hero-copy">
           <p className="category">저장한 장소</p>
-          <h1>찜과 하트 모아보기</h1>
+          <h1>다시 보고 싶은 후보들</h1>
         </div>
         <div className="visits-hero-side">
           <SavedPlaceFilters activeFilter={filter} summary={summary} />
