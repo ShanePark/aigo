@@ -97,14 +97,15 @@ export default async function Home({ searchParams }: HomeProps) {
           <LocationStateInputs params={effectiveParams} />
           <SearchFormLocationReset />
           <div className="search-bar">
-            <label className="query-field">
-              <span className="sr-only">검색어</span>
-              <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
-            </label>
-            <button type="submit" className="primary-button">
-              <Search size={17} aria-hidden="true" />
-              검색
-            </button>
+            <div className="search-query-capsule">
+              <label className="query-field">
+                <span className="sr-only">검색어</span>
+                <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
+              </label>
+              <button type="submit" className="primary-button" aria-label="검색">
+                <Search size={18} aria-hidden="true" />
+              </button>
+            </div>
             <SearchResetButton />
           </div>
 

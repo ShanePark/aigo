@@ -39,7 +39,7 @@ export function SearchResetButton() {
       disabled={isResetting}
     >
       <RotateCcw size={16} aria-hidden="true" />
-      {isResetting ? "초기화 중" : "초기화"}
+      <span className="reset-search-button-label">{isResetting ? "초기화 중" : "초기화"}</span>
     </button>
   );
 }
