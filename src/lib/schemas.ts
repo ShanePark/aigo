@@ -220,6 +220,20 @@ export const pricingSchema = z
   })
   .catchall(z.unknown());
 
+export const reviewSearchEvidenceItemSchema = z.object({
+  query: nonEmptyString.max(200),
+  searchedAt: z.string().datetime({ offset: true }).optional(),
+  sourceUrl: urlString.optional(),
+  language: z.string().trim().max(50).optional(),
+  countryCode: countryCodeSchema,
+  city: z.string().trim().max(200).optional(),
+  accessStatus: z.enum(["opened", "snippet_only", "blocked", "not_found"]).optional(),
+  snippetSummary: z.string().trim().max(1000).optional(),
+  confidence: z.enum(["low", "medium", "high"]).optional()
+});
+
+export const reviewSearchEvidenceSchema = z.array(reviewSearchEvidenceItemSchema).max(50);
+
 const writablePlaceFields = {
   name: nonEmptyString.optional(),
   slug: z.string().trim().optional(),
@@ -247,6 +261,7 @@ const writablePlaceFields = {
   playFeatures: playFeaturesSchema.optional(),
   taxonomy: taxonomySchema.optional(),
   pricing: pricingSchema.optional(),
+  reviewSearchEvidence: reviewSearchEvidenceSchema.optional(),
   routeSupport: routeSupportSchema.optional(),
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
@@ -505,6 +520,7 @@ export type SourceInput = z.infer<typeof sourceSchema>;
 export type PlaceImageInput = z.infer<typeof placeImageInputSchema>;
 export type RelatedPlaceInput = z.infer<typeof relatedPlaceInputSchema>;
 export type PricingInput = z.infer<typeof pricingSchema>;
+export type ReviewSearchEvidenceInput = z.infer<typeof reviewSearchEvidenceSchema>;
 export type PlaceTaxonomyInput = z.infer<typeof taxonomySchema>;
 export type RouteSupportInput = z.infer<typeof routeSupportSchema>;
 export type SearchTaxonomyInput = z.infer<typeof searchTaxonomySchema>;

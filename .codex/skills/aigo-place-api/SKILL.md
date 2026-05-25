@@ -197,6 +197,8 @@ For overseas place payloads, use first-class location and pricing fields when so
 
 For overseas duplicate and exact-name checks, pass `countryCode`, `city`, and candidate `aliases` when available. Search and duplicate matching can use both `externalRefs.aliases` and `externalRefs.koreanSearchAliases`, which is useful for pairs such as official English resort names and Korean parent-search names.
 
+When parent-facing review evidence is discovered through search snippets, unstable blog pages, or pages that cannot be opened reliably, record it in `reviewSearchEvidence` with the query, search timestamp, language/country/city context, access status, agent-written snippet summary, and confidence. Keep this separate from official `sources` so agents can distinguish identity/operation evidence from parent-review search evidence.
+
 Before registering create payloads copied from `agent-research/`, run the read-only workflow lint:
 
 ```bash

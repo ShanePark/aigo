@@ -143,6 +143,10 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    reviewSearchEvidence: jsonb("review_search_evidence")
+      .$type<Record<string, unknown>[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     routeSupport: jsonb("route_support")
       .$type<Record<string, unknown>>()
       .notNull()

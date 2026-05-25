@@ -44,6 +44,7 @@ export const requiredDatabaseSchema: RequiredDatabaseSchema = {
       "play_features",
       "taxonomy",
       "pricing",
+      "review_search_evidence",
       "route_support",
       "search_text",
       "opening_hours",

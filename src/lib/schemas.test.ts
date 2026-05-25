@@ -251,6 +251,34 @@ describe("place schemas", () => {
     expect(result.pricing?.items?.[0]?.currency).toBe("PHP");
   });
 
+  it("accepts structured parent review search evidence", () => {
+    const result = createPlaceSchema.parse({
+      name: "싱가포르 동물원",
+      primaryCategory: "aquarium_zoo",
+      regionSido: "Singapore",
+      countryCode: "sg",
+      city: "Singapore",
+      lat: 1.4043,
+      lng: 103.793,
+      reviewSearchEvidence: [
+        {
+          query: "싱가포르 동물원 아이랑 후기",
+          searchedAt: "2026-05-25T12:00:00.000+09:00",
+          language: "ko",
+          countryCode: "sg",
+          city: "Singapore",
+          accessStatus: "snippet_only",
+          snippetSummary: "한국 부모 여행 후기가 검색 결과에서 반복적으로 확인됨",
+          confidence: "medium"
+        }
+      ],
+      sources: [{ sourceType: "official_site", url: "https://example.com/singapore-zoo" }]
+    });
+
+    expect(result.reviewSearchEvidence?.[0]?.countryCode).toBe("SG");
+    expect(result.reviewSearchEvidence?.[0]?.accessStatus).toBe("snippet_only");
+  });
+
   it("defaults search pagination and keeps facility preferences soft", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },

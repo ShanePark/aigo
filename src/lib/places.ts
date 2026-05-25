@@ -73,6 +73,7 @@ type PlaceRow = {
   play_features: Record<string, unknown>;
   taxonomy: PlaceTaxonomy;
   pricing: Record<string, unknown>;
+  review_search_evidence: Record<string, unknown>[];
   route_support: Record<string, unknown>;
   status: string;
   data_confidence: string;
@@ -256,6 +257,7 @@ const columnMap = {
   playFeatures: "play_features",
   taxonomy: "taxonomy",
   pricing: "pricing",
+  reviewSearchEvidence: "review_search_evidence",
   routeSupport: "route_support",
   status: "status",
   dataConfidence: "data_confidence",
@@ -503,6 +505,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       playFeatures: place.playFeatures,
       taxonomy: place.taxonomy,
       pricing: place.pricing,
+      reviewSearchEvidence: place.reviewSearchEvidence,
       routeSupport: place.routeSupport,
       region: place.region,
       lat: place.lat,
@@ -862,6 +865,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     dataConfidence: item.dataConfidence,
     taxonomy: item.taxonomy,
     pricing: item.pricing,
+    reviewSearchEvidence: item.reviewSearchEvidence,
     routeSupport: item.routeSupport,
     recommendedAgeMonths: item.recommendedAgeMonths,
     infantLogistics: item.infantLogistics,
@@ -3726,7 +3730,15 @@ function quoteIdentifier(identifier: string) {
 }
 
 function placeholderFor(column: string, index: number) {
-  if (column === "external_refs" || column === "opening_hours" || column === "pricing" || column === "route_support" || column === "score_signals" || column === "taxonomy") {
+  if (
+    column === "external_refs" ||
+    column === "opening_hours" ||
+    column === "pricing" ||
+    column === "review_search_evidence" ||
+    column === "route_support" ||
+    column === "score_signals" ||
+    column === "taxonomy"
+  ) {
     return `$${index}::jsonb`;
   }
   if (column === "play_features") {
@@ -3736,7 +3748,16 @@ function placeholderFor(column: string, index: number) {
 }
 
 function toSqlParam(column: string, value: unknown): SqlParam {
-  if (column === "external_refs" || column === "opening_hours" || column === "play_features" || column === "pricing" || column === "route_support" || column === "score_signals" || column === "taxonomy") {
+  if (
+    column === "external_refs" ||
+    column === "opening_hours" ||
+    column === "play_features" ||
+    column === "pricing" ||
+    column === "review_search_evidence" ||
+    column === "route_support" ||
+    column === "score_signals" ||
+    column === "taxonomy"
+  ) {
     return JSON.stringify(value ?? {}) as SqlParam;
   }
   return value as SqlParam;
@@ -3776,6 +3797,7 @@ function mapPlace(row: PlaceRow) {
     playFeatures: row.play_features ?? {},
     taxonomy: row.taxonomy ?? emptyPlaceTaxonomy(),
     pricing: row.pricing ?? {},
+    reviewSearchEvidence: row.review_search_evidence ?? [],
     routeSupport: row.route_support ?? {},
     status: row.status,
     dataConfidence: row.data_confidence,

@@ -720,6 +720,40 @@ components:
           type: string
         notes:
           type: string
+    ReviewSearchEvidenceItem:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          maxLength: 200
+          description: Search query used to find parent-facing review evidence.
+        searchedAt:
+          type: string
+          format: date-time
+        sourceUrl:
+          type: string
+          format: uri
+        language:
+          type: string
+          maxLength: 50
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        city:
+          type: string
+          maxLength: 200
+        accessStatus:
+          type: string
+          enum: [opened, snippet_only, blocked, not_found]
+          description: Whether the source was opened directly or only search/snippet evidence was available.
+        snippetSummary:
+          type: string
+          maxLength: 1000
+          description: Agent-written summary of visible search or review evidence; do not copy long source text.
+        confidence:
+          type: string
+          enum: [low, medium, high]
     PlaceWritableFields:
       type: object
       properties:
@@ -799,6 +833,12 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        reviewSearchEvidence:
+          type: array
+          maxItems: 50
+          description: Agent-maintained parent-review search evidence, useful when official sources and parent snippets must be distinguished.
+          items:
+            $ref: "#/components/schemas/ReviewSearchEvidenceItem"
         routeSupport:
           $ref: "#/components/schemas/RouteSupport"
         imageUrls:
@@ -1553,6 +1593,7 @@ components:
         - playFeatures
         - taxonomy
         - pricing
+        - reviewSearchEvidence
         - routeSupport
         - score
         - placeQualityScore
@@ -1675,6 +1716,10 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        reviewSearchEvidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewSearchEvidenceItem"
         routeSupport:
           $ref: "#/components/schemas/RouteSupport"
         lat:
@@ -1751,6 +1796,7 @@ components:
         - openingHoursSummary
         - recommendationReadiness
         - pricing
+        - reviewSearchEvidence
         - routeSupport
         - facilities
         - visit
@@ -1814,6 +1860,10 @@ components:
           $ref: "#/components/schemas/RecommendationReadiness"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        reviewSearchEvidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewSearchEvidenceItem"
         routeSupport:
           $ref: "#/components/schemas/RouteSupport"
         facilities:
@@ -2932,6 +2982,7 @@ components:
         - playFeatures
         - taxonomy
         - pricing
+        - reviewSearchEvidence
         - routeSupport
         - status
         - dataConfidence
@@ -3054,6 +3105,10 @@ components:
           $ref: "#/components/schemas/PlaceTaxonomy"
         pricing:
           $ref: "#/components/schemas/Pricing"
+        reviewSearchEvidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewSearchEvidenceItem"
         routeSupport:
           $ref: "#/components/schemas/RouteSupport"
         status:
