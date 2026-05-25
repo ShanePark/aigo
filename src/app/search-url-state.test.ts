@@ -4,6 +4,7 @@ import {
   clearMapLocationParamsForTextSearch,
   hasMapLocationParams,
   searchParamsForCurrentLocation,
+  searchParamsForHomeLocation,
   searchParamsRecordFromURLSearchParams,
   searchParamsForViewportSearch,
   searchParamsWithQueryValue,
@@ -199,9 +200,39 @@ describe("search URL state", () => {
     });
   });
 
+  it("builds home-location state without keeping stale current location, viewport, or paging params", () => {
+    expect(
+      searchParamsForHomeLocation(
+        {
+          categoryGroup: "playground",
+          maxLat: "36.400000",
+          maxLng: "127.500000",
+          minLat: "36.300000",
+          minLng: "127.400000",
+          nearby: "1",
+          page: "3",
+          parking: "on",
+          query: "모래놀이",
+          sort: "recommended"
+        },
+        { lat: 36.33, lng: 127.43 },
+        { sort: "recommended" }
+      )
+    ).toEqual({
+      categoryGroup: "playground",
+      home: "1",
+      lat: "36.330000",
+      lng: "127.430000",
+      parking: "on",
+      query: "모래놀이",
+      sort: "recommended"
+    });
+  });
+
   it("detects map location params", () => {
     expect(hasMapLocationParams({ query: "키즈카페" })).toBe(false);
     expect(hasMapLocationParams({ lat: "37.566500" })).toBe(true);
+    expect(hasMapLocationParams({ home: "1" })).toBe(true);
     expect(hasMapLocationParams({ maxLat: ["", "37.600000"] })).toBe(true);
   });
 

@@ -28,6 +28,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
   const nearby = textParam(params.nearby) === "1";
+  const home = textParam(params.home) === "1";
   const query = textParam(params.query)?.trim();
   const viewportBounds = viewportBoundsFromParams(params);
   const shouldFilterByRadius = viewportBounds ? false : shouldApplyRadiusFilter(params, Boolean(query));
@@ -42,7 +43,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
   const taxonomyActivityTypes = params.sandPlay === "on" ? ["sand_play" as const] : undefined;
 
   return {
-    origin: { lat, lng, label: nearby ? "현재 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
+    origin: { lat, lng, label: nearby ? "현재 위치" : home ? "집 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
     visitContext: (textParam(params.visitContext) || undefined) as SearchPlacesInput["visitContext"],
     radiusKm: shouldFilterByRadius ? radiusKm : undefined,
     filterByRadius: shouldFilterByRadius,
@@ -113,7 +114,14 @@ function currentPageParam(params: Record<string, string | string[] | undefined>)
 }
 
 function hasExplicitLocationParams(params: Record<string, string | string[] | undefined>) {
-  return Boolean(textParam(params.nearby) === "1" || textParam(params.lat) || textParam(params.lng) || textParam(params.radiusKm) || viewportBoundsFromParams(params));
+  return Boolean(
+    textParam(params.nearby) === "1" ||
+      textParam(params.home) === "1" ||
+      textParam(params.lat) ||
+      textParam(params.lng) ||
+      textParam(params.radiusKm) ||
+      viewportBoundsFromParams(params)
+  );
 }
 
 function shouldApplyRadiusFilter(params: Record<string, string | string[] | undefined>, hasQuery: boolean) {

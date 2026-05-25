@@ -20,7 +20,7 @@ export type MapViewportSearchRequest = {
   };
 };
 
-export const MAP_LOCATION_PARAM_KEYS = ["lat", "lng", "radiusKm", "nearby", "minLat", "minLng", "maxLat", "maxLng"] as const;
+export const MAP_LOCATION_PARAM_KEYS = ["lat", "lng", "radiusKm", "nearby", "home", "minLat", "minLng", "maxLat", "maxLng"] as const;
 
 const RESET_ON_SEARCH_PARAM_KEYS = ["page", "offset"] as const;
 const CATEGORY_PARAM_KEYS = ["category", "categoryGroup", "categoryGroups"] as const;
@@ -69,6 +69,32 @@ export function searchParamsForCurrentLocation(
   next.lat = coordinateParam(location.lat);
   next.lng = coordinateParam(location.lng);
   next.nearby = "1";
+  delete next.home;
+
+  if (options.radiusKm) {
+    next.radiusKm = options.radiusKm;
+  }
+  if (options.sort) {
+    next.sort = options.sort;
+  }
+
+  return next;
+}
+
+export function searchParamsForHomeLocation(
+  params: SearchParamsRecord,
+  location: { lat: number; lng: number },
+  options: { radiusKm?: string; sort?: string } = {}
+): SearchParamsRecord {
+  const next = cloneSearchParamsRecord(params);
+
+  for (const key of RESET_ON_SEARCH_PARAM_KEYS) delete next[key];
+  for (const key of VIEWPORT_PARAM_KEYS) delete next[key];
+
+  next.lat = coordinateParam(location.lat);
+  next.lng = coordinateParam(location.lng);
+  next.home = "1";
+  delete next.nearby;
 
   if (options.radiusKm) {
     next.radiusKm = options.radiusKm;

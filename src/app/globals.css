@@ -1356,8 +1356,11 @@ h3 {
 .map-location-control {
   align-items: flex-start;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: flex-end;
+  max-width: 124px;
   position: absolute;
   right: 14px;
   top: 14px;
@@ -1401,9 +1404,11 @@ h3 {
   border-radius: 999px;
   box-shadow: var(--shadow-soft);
   color: var(--text);
+  flex-basis: 100%;
   font-size: 12px;
   font-weight: 800;
   padding: 6px 9px;
+  text-align: right;
   white-space: nowrap;
 }
 

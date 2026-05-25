@@ -1,6 +1,6 @@
 "use client";
 
-import { LocateFixed, RefreshCw } from "lucide-react";
+import { Home, LocateFixed, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
@@ -22,9 +22,18 @@ export type MapOrigin = {
   lng: number;
 } | null;
 
+export type MapHomeLocation = {
+  addressText?: string | null;
+  label: string;
+  lat: number;
+  lng: number;
+};
+
 type PlacesMapProps = {
   autoLocateOnInitialLoad?: boolean;
+  homeLocation?: MapHomeLocation | null;
   isViewportSearchPending?: boolean;
+  onHomeLocationSearch?: (location: UserLocation) => void;
   onLocationSearch?: (location: UserLocation) => void;
   onViewportSearch?: (request: ViewportSearchRequest) => void;
   origin: MapOrigin;
@@ -68,7 +77,9 @@ let initialGeolocationRequest: Promise<GeolocationPosition> | null = null;
 
 export function PlacesMap({
   autoLocateOnInitialLoad = false,
+  homeLocation = null,
   isViewportSearchPending = false,
+  onHomeLocationSearch,
   onLocationSearch,
   onViewportSearch,
   origin,
@@ -90,8 +101,8 @@ export function PlacesMap({
   const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "denied" | "unsupported">("idle");
 
-  const focusCurrentLocation = useCallback(
-    async (lat: number, lng: number, options: { runSearch?: boolean } = {}) => {
+  const focusLocation = useCallback(
+    async (lat: number, lng: number, options: { label: string; markerTitle: string; runSearch?: boolean } = { label: "현재 위치", markerTitle: "내 위치" }) => {
       const map = mapRef.current;
       if (!map) {
         setLocationStatus("idle");
@@ -104,15 +115,19 @@ export function PlacesMap({
         lng: Number(lng.toFixed(6))
       };
 
-      userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target);
+      userLocationMarkerRef.current = updateUserLocationMarker(L, map, userLocationMarkerRef.current, target, options.markerTitle);
       const targetZoom = map.getZoom();
       if (options.runSearch) {
-        viewKeyRef.current = mapViewKey({ ...target, label: "현재 위치" });
+        viewKeyRef.current = mapViewKey({ ...target, label: options.label });
       }
       map.flyTo([target.lat, target.lng], targetZoom, { animate: true, duration: 0.65 });
 
       if (options.runSearch) {
-        onLocationSearch?.(target);
+        if (options.label === "집 위치") {
+          onHomeLocationSearch?.(target);
+        } else {
+          onLocationSearch?.(target);
+        }
       } else {
         if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
         locationRequestTimerRef.current = window.setTimeout(() => {
@@ -122,7 +137,20 @@ export function PlacesMap({
       }
       setLocationStatus("idle");
     },
-    [onLocationSearch]
+    [onHomeLocationSearch, onLocationSearch]
+  );
+
+  const focusCurrentLocation = useCallback(
+    (lat: number, lng: number, options: { runSearch?: boolean } = {}) => focusLocation(lat, lng, { label: "현재 위치", markerTitle: "내 위치", ...options }),
+    [focusLocation]
+  );
+
+  const focusHomeLocation = useCallback(
+    (options: { runSearch?: boolean } = {}) => {
+      if (!homeLocation) return;
+      return focusLocation(homeLocation.lat, homeLocation.lng, { label: "집 위치", markerTitle: "집 위치", ...options });
+    },
+    [focusLocation, homeLocation]
   );
 
   const requestInitialLocation = useCallback(() => {
@@ -140,10 +168,14 @@ export function PlacesMap({
       },
       () => {
         if (locationRequestTokenRef.current !== requestToken) return;
+        if (homeLocation) {
+          void focusHomeLocation({ runSearch: true });
+          return;
+        }
         setLocationStatus("denied");
       }
     );
-  }, [focusCurrentLocation]);
+  }, [focusCurrentLocation, focusHomeLocation, homeLocation]);
 
   useEffect(() => {
     return () => {
@@ -302,6 +334,7 @@ export function PlacesMap({
   }
 
   const locationStatusLabel = locationStatusMessage(locationStatus);
+  const homeLocationTitle = homeLocation?.addressText ? `집 위치로 지도 이동: ${homeLocation.addressText}` : "집 위치로 지도 이동";
 
   return (
     <aside className="map-card" aria-label="검색 결과 지도">
@@ -323,6 +356,16 @@ export function PlacesMap({
           ) : null}
         </div>
         <div className="map-location-control">
+          <button
+            aria-label={homeLocation ? "집 위치로 지도 이동" : "내 정보에서 집 위치를 먼저 저장해 주세요"}
+            className="map-location-button"
+            disabled={!homeLocation}
+            onClick={() => void focusHomeLocation({ runSearch: true })}
+            title={homeLocationTitle}
+            type="button"
+          >
+            <Home size={17} aria-hidden="true" />
+          </button>
           <button
             aria-label={locationStatus === "locating" ? "현재 위치 확인 중" : "내 위치로 지도 이동"}
             className="map-location-button"
@@ -443,10 +486,12 @@ function updateUserLocationMarker(
   location: {
     lat: number;
     lng: number;
-  }
+  },
+  title: string
 ) {
   if (marker) {
     marker.setLatLng([location.lat, location.lng]);
+    marker.options.title = title;
     return marker;
   }
 
@@ -454,7 +499,7 @@ function updateUserLocationMarker(
     icon: userLocationIcon(L),
     interactive: false,
     keyboard: false,
-    title: "내 위치"
+    title
   }).addTo(map);
 }
 

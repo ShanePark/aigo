@@ -6,7 +6,7 @@ import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
-import { PlacesMap, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
+import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import {
   placeQualityScoreTitle,
@@ -17,6 +17,7 @@ import {
   CLIENT_SEARCH_EVENT,
   MAP_LOCATION_PARAM_KEYS,
   searchParamsForCurrentLocation,
+  searchParamsForHomeLocation,
   searchParamsForViewportSearch,
   searchParamsWithQueryValue,
   type ClientSearchEventDetail,
@@ -95,7 +96,9 @@ type ExploreResultsProps = {
   activeCategoryGroup: string;
   activeCategoryGroupLabel: string;
   activeSort: HomeSearchSort;
+  autoLocateOnInitialLoad?: boolean;
   categoryGroups: Record<string, CategoryGroupSummary>;
+  homeLocation?: MapHomeLocation | null;
   initialInput: SearchPlacesInput;
   initialParams: Record<string, string | string[]>;
   initialResult: SearchResult;
@@ -193,7 +196,9 @@ export function ExploreResults({
   activeCategoryGroup,
   activeCategoryGroupLabel,
   activeSort,
+  autoLocateOnInitialLoad = false,
   categoryGroups,
+  homeLocation,
   initialInput,
   initialParams,
   initialResult
@@ -343,6 +348,30 @@ export function ExploreResults({
     [activeInput, activeParams, activeSort, runClientSearch]
   );
 
+  const handleHomeLocationSearch = useCallback(
+    (location: { lat: number; lng: number }) => {
+      const sort = homeSort(activeInput.sort, activeSort);
+      const nextParams = searchParamsForHomeLocation(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), location, { sort });
+      const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
+      const nextInput = {
+        ...nextSearchInput,
+        filterByRadius: true,
+        offset: 0,
+        origin: {
+          lat: location.lat,
+          lng: location.lng,
+          label: "집 위치"
+        },
+        radiusKm: activeInput.radiusKm ?? 80,
+        sort,
+        viewportBounds: undefined
+      } satisfies SearchPlacesInput;
+
+      void runClientSearch(nextInput, nextParams, "location");
+    },
+    [activeInput, activeParams, activeSort, runClientSearch]
+  );
+
   const handlePage = useCallback(
     (page: number) => {
       const limit = activeInput.limit ?? result.meta.limit;
@@ -366,7 +395,10 @@ export function ExploreResults({
   return (
     <section className="explore-layout">
       <PlacesMap
+        autoLocateOnInitialLoad={autoLocateOnInitialLoad}
+        homeLocation={homeLocation}
         isViewportSearchPending={isClientSearchPending}
+        onHomeLocationSearch={handleHomeLocationSearch}
         onLocationSearch={handleLocationSearch}
         onViewportSearch={handleViewportSearch}
         origin={mapOrigin}

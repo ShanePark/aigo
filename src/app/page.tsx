@@ -29,7 +29,7 @@ import {
 import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
 import { SearchResetButton } from "@/app/search-reset-button";
-import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
+import { MAP_LOCATION_PARAM_KEYS, hasMapLocationParams } from "@/app/search-url-state";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
@@ -65,7 +65,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const rawParams = await searchParams;
-  const { childParamSource, params } = await paramsWithAccountDefaults(rawParams);
+  const { childParamSource, homeLocation, params } = await paramsWithAccountDefaults(rawParams);
   let effectiveParams = params;
   let activeCategoryGroups = categoryGroupParams(params);
   let input = searchPlacesSchema.parse(buildSearchInput(params));
@@ -85,6 +85,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const activeCategoryGroupLabel = categoryGroupSelectionLabel(activeCategoryGroups);
   const activeSort = sortParam(effectiveParams);
+  const shouldAutoLocateWithHomeFallback = Boolean(homeLocation && !hasMapLocationParams(effectiveParams));
 
   return (
     <div className="page">
@@ -140,7 +141,9 @@ export default async function Home({ searchParams }: HomeProps) {
         activeCategoryGroup={activeCategoryGroups[0] ?? "all"}
         activeCategoryGroupLabel={activeCategoryGroupLabel}
         activeSort={activeSort}
+        autoLocateOnInitialLoad={shouldAutoLocateWithHomeFallback}
         categoryGroups={clientCategoryGroups()}
+        homeLocation={homeLocation}
         initialInput={input}
         initialParams={clientParams(effectiveParams)}
         initialResult={result}
@@ -153,11 +156,11 @@ async function paramsWithAccountDefaults(params: Record<string, string | string[
   const cookieStore = await cookies();
   const user = await currentUserFromSessionToken(cookieStore.get(AIGO_SESSION_COOKIE)?.value);
   if (!user) {
-    return { childParamSource: childParamSourceForParams(params), params };
+    return { childParamSource: childParamSourceForParams(params), homeLocation: null, params };
   }
 
   const profile = await getMyProfile(user.id);
-  return applyAccountChildDefaults(params, profile.children);
+  return { ...applyAccountChildDefaults(params, profile.children), homeLocation: profile.homeLocation };
 }
 
 function LocationStateInputs({ params }: { params: Record<string, string | string[] | undefined> }) {

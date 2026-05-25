@@ -43,6 +43,18 @@ describe("home search input", () => {
     });
   });
 
+  it("labels saved home location searches separately from current location searches", () => {
+    expect(buildSearchInput({ home: "1", lat: "36.33", lng: "127.43" })).toMatchObject({
+      filterByRadius: true,
+      origin: {
+        label: "집 위치",
+        lat: 36.33,
+        lng: 127.43
+      },
+      radiusKm: 80
+    });
+  });
+
   it("uses category-specific default radii for distance-sensitive browsing", () => {
     expect(buildSearchInput({ categoryGroup: "playground", lat: "36.35", lng: "127.38" })).toMatchObject({
       filterByRadius: true,
