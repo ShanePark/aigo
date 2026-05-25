@@ -9,7 +9,7 @@ export const PLACE_CATEGORY_LABELS: Record<string, string> = {
   museum: "박물관",
   science_museum: "과학관",
   experience_center: "체험관",
-  aquarium_zoo: "동물 시설",
+  aquarium_zoo: "동물원",
   park: "공원",
   playground: "놀이터",
   family_cafe: "가족 카페",
