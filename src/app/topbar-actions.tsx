@@ -34,6 +34,7 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
 
   return (
     <div className={styles.actions} ref={rootRef}>
+      <ThemeToggle />
       <button
         aria-expanded={isOpen}
         aria-label={isOpen ? "메뉴 닫기" : "메뉴 열기"}
@@ -51,10 +52,6 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
           </Link>
           <div className={styles.menuSection}>
             <DevAuthControls devLoginEnabled={devLoginEnabled} />
-          </div>
-          <div className={styles.menuSection}>
-            <span className={styles.menuLabel}>화면 모드</span>
-            <ThemeToggle />
           </div>
         </div>
       ) : null}
