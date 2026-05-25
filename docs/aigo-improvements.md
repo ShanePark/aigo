@@ -61,6 +61,7 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 - 진행 메모: 2026-05-26 스물세 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 말바위어린이공원, 망골어린이공원, 매봉어린이공원 2건이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 255건이다.
 - 진행 메모: 2026-05-26 스물네 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 멋티어린이공원 놀이터, 명일근린공원 앨리스 유아숲체험원, 명학어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 252건이다.
 - 진행 메모: 2026-05-26 스물다섯 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 모롱이어린이공원 놀이터, 모산어린이공원 놀이터, 목동1 소공원놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 249건이다.
+- 진행 메모: 2026-05-26 스물여섯 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 목상 생태놀이터, 목상어린이공원, 목운어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 246건이다.
 - `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
 - `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
 - `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.
