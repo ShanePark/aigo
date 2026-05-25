@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Baby, Check, Home, Plus, Save, Trash2 } from "lucide-react";
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
 import type { MyProfile } from "@/lib/user-profile";
@@ -41,6 +41,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [children, setChildren] = useState(() => childrenFromProfile(initialProfile));
   const [homeLocation, setHomeLocation] = useState(() => homeFromProfile(initialProfile));
   const [status, setStatus] = useState<SaveStatus>({ message: "", tone: "idle" });
+  const [savingTarget, setSavingTarget] = useState<string | null>(null);
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const isSaving = status.tone === "saving";
 
@@ -56,19 +57,21 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, gender } : child)));
   }
 
-  function removeChild(clientId: string) {
-    setChildren((current) => current.filter((child) => child.clientId !== clientId));
+  async function removeChild(clientId: string) {
+    const nextChildren = children.filter((child) => child.clientId !== clientId);
+    setChildren(nextChildren);
+    await saveProfile({ children: nextChildren, target: `child-${clientId}` });
   }
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const nextHomeLocation = homeLocation.enabled
+  async function saveProfile(options: { children?: ChildDraft[]; homeLocation?: HomeDraft; target?: string } = {}) {
+    const childrenToSave = options.children ?? children;
+    const homeLocationToSave = options.homeLocation ?? homeLocation;
+    const nextHomeLocation = homeLocationToSave.enabled
       ? {
-          addressText: homeLocation.addressText.trim() || null,
-          label: homeLocation.label.trim() || "home",
-          lat: Number(homeLocation.lat),
-          lng: Number(homeLocation.lng)
+          addressText: homeLocationToSave.addressText.trim() || null,
+          label: homeLocationToSave.label.trim() || "home",
+          lat: Number(homeLocationToSave.lat),
+          lng: Number(homeLocationToSave.lng)
         }
       : null;
 
@@ -77,12 +80,13 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       return;
     }
 
+    setSavingTarget(options.target ?? "profile");
     setStatus({ message: "저장 중", tone: "saving" });
 
     try {
       const response = await fetch("/api/me/profile", {
         body: JSON.stringify({
-          children: children.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender })),
+          children: childrenToSave.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender })),
           homeLocation: nextHomeLocation
         }),
         headers: { "content-type": "application/json" },
@@ -101,11 +105,13 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       window.dispatchEvent(new CustomEvent("aigo-profile-change", { detail: profile }));
     } catch (error) {
       setStatus({ message: error instanceof Error ? error.message : "내 정보 저장에 실패했습니다.", tone: "error" });
+    } finally {
+      setSavingTarget(null);
     }
   }
 
   return (
-    <form className="me-profile-form" onSubmit={saveProfile}>
+    <div className="me-profile-form">
       <section className="me-profile-section" aria-labelledby="me-children-title">
         <header className="me-section-head">
           <span className="me-section-icon">
@@ -125,12 +131,15 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           <div className="me-children-grid">
             {children.map((child) => (
               <article className="me-child-card" key={child.clientId}>
-                <span className="me-child-avatar">
-                  <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, child.gender)} alt="" aria-hidden="true" width={74} height={74} />
-                </span>
-                <div className="me-child-copy">
-                  <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
-                  <span>{childAgeBandLabelFromBirthYearMonth(child.birthYearMonth)}</span>
+                <div className="me-child-summary">
+                  <span className="me-child-avatar">
+                    <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, child.gender)} alt="" aria-hidden="true" width={82} height={82} />
+                  </span>
+                  <div className="me-child-copy">
+                    <span className="me-child-kicker">{child.gender === "girl" ? "여아" : "남아"}</span>
+                    <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
+                    <span>{childAgeBandLabelFromBirthYearMonth(child.birthYearMonth)}</span>
+                  </div>
                 </div>
                 <div className="me-child-fields">
                   <label className="me-field">
@@ -143,20 +152,34 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                       required
                     />
                   </label>
-                  <label className="me-field">
+                  <div className="me-field">
                     <span>성별</span>
-                    <select value={child.gender} onChange={(event) => updateChildGender(child.clientId, event.currentTarget.value as ChildGender)} disabled={isSaving}>
+                    <div className="me-child-gender-segments" role="group" aria-label="아이 성별">
                       {CHILD_GENDERS.map((gender) => (
-                        <option value={gender.id} key={gender.id}>
+                        <button
+                          className={child.gender === gender.id ? "is-selected" : ""}
+                          type="button"
+                          key={gender.id}
+                          onClick={() => updateChildGender(child.clientId, gender.id)}
+                          aria-pressed={child.gender === gender.id}
+                          disabled={isSaving}
+                        >
                           {gender.label}
-                        </option>
+                        </button>
                       ))}
-                    </select>
-                  </label>
+                    </div>
+                  </div>
                 </div>
-                <button className="me-icon-button" type="button" onClick={() => removeChild(child.clientId)} aria-label="아이 삭제" disabled={isSaving}>
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
+                <div className="me-child-actions">
+                  <button className="me-child-save" type="button" onClick={() => saveProfile({ target: `child-${child.clientId}` })} disabled={isSaving || child.birthYearMonth.length === 0}>
+                    {savingTarget === `child-${child.clientId}` ? <Check size={15} aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+                    저장
+                  </button>
+                  <button className="me-child-delete" type="button" onClick={() => removeChild(child.clientId)} aria-label="아이 삭제" disabled={isSaving}>
+                    <Trash2 size={15} aria-hidden="true" />
+                    삭제
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -235,18 +258,20 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
         ) : (
           <p className="me-empty-note">집 위치를 쓰지 않습니다.</p>
         )}
+        <div className="me-section-actions">
+          <button className="me-section-save" type="button" onClick={() => saveProfile({ target: "home" })} disabled={isSaving}>
+            {savingTarget === "home" ? <Check size={15} aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+            집 위치 저장
+          </button>
+        </div>
       </section>
 
       <footer className="me-form-actions">
-        <button className="primary-button" type="submit" disabled={isSaving}>
-          {isSaving ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
-          내 정보 저장
-        </button>
         <span className={`me-form-status ${status.tone === "error" ? "is-error" : ""}`} role="status" aria-live="polite">
           {status.message}
         </span>
       </footer>
-    </form>
+    </div>
   );
 }
 
