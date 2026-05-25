@@ -6,7 +6,6 @@ import {
   BedDouble,
   Blocks,
   Building2,
-  Check,
   Puzzle,
   Search,
   ShoppingBag,
@@ -124,11 +123,6 @@ export default async function Home({ searchParams }: HomeProps) {
                 >
                   <Icon size={17} aria-hidden="true" />
                   <span>{group.label}</span>
-                  {isActive && groupId !== "all" ? (
-                    <span className="category-tab-state" aria-hidden="true">
-                      <Check size={13} />
-                    </span>
-                  ) : null}
                 </Link>
               );
             })}
