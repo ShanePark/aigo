@@ -165,14 +165,21 @@ html {
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  display: flex;
+  flex-direction: column;
   font-family:
     Arial,
     "Apple SD Gothic Neo",
     "Noto Sans KR",
     sans-serif;
+}
+
+main {
+  flex: 1 0 auto;
 }
 
 a {
@@ -375,6 +382,27 @@ summary {
   margin: 0 auto;
   max-width: 1240px;
   padding: 22px 22px 48px;
+}
+
+.site-footer {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  gap: 6px 12px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: 18px 22px 24px;
+  width: 100%;
+}
+
+.site-footer p {
+  margin: 0;
 }
 
 .sr-only {

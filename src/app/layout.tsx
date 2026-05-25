@@ -6,6 +6,8 @@ import "./globals.css";
 import { TopbarActions } from "./topbar-actions";
 import { isDevLoginEnabled } from "@/lib/app-auth";
 
+const currentYear = new Date().getFullYear();
+
 const themeInitScript = `
 (() => {
   try {
@@ -62,6 +64,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <TopbarActions devLoginEnabled={isDevLoginEnabled()} />
         </header>
         <main>{children}</main>
+        <footer className="site-footer">
+          <p>© {currentYear} AiGo. All rights reserved.</p>
+          <p>Developed by Shane Park 개발자</p>
+        </footer>
       </body>
     </html>
   );
