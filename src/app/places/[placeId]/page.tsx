@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
+import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
 import { PlaceScoreDialog } from "@/app/places/place-score-dialog";
 import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
@@ -162,6 +163,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       </section>
 
       <PlaceVisitPanel placeId={place.id} placeName={place.name} />
+      <PlacePublicMemoPanel placeId={place.id} placeName={place.name} />
 
       <section className="detail-grid">
         <div className="info-block">
