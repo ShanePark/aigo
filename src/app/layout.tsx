@@ -65,8 +65,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </header>
         <main>{children}</main>
         <footer className="site-footer">
-          <p>© {currentYear} AiGo. All rights reserved.</p>
-          <p>Developed by Shane Park 개발자</p>
+          <p>© {currentYear} AiGo · Shane Park</p>
         </footer>
       </body>
     </html>
