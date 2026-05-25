@@ -1,9 +1,9 @@
 "use client";
 
 import { Bookmark, Heart } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-type PlaceSaveState = {
+export type PlaceSaveState = {
   heartCount: number;
   hearted: boolean;
   placeId: string;
@@ -12,49 +12,141 @@ type PlaceSaveState = {
 };
 
 type SaveTarget = "wantToGo" | "hearted";
+type SaveControlStatus = "idle" | "login" | "error";
+
+type PlaceSaveControlsContextValue = {
+  loaded: boolean;
+  setPlaceState: (state: PlaceSaveState) => void;
+  setStatus: (status: SaveControlStatus) => void;
+  states: Map<string, PlaceSaveState>;
+  status: SaveControlStatus;
+};
 
 type PlaceSaveControlsProps = {
   compact?: boolean;
   placeId: string;
 };
 
-export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControlsProps) {
-  const [state, setState] = useState<PlaceSaveState | null>(null);
-  const [pendingTarget, setPendingTarget] = useState<SaveTarget | null>(null);
-  const [status, setStatus] = useState<"idle" | "login" | "error">("idle");
+const PlaceSaveControlsContext = createContext<PlaceSaveControlsContextValue | null>(null);
+
+export function PlaceSaveControlsProvider({ children, placeIds }: { children: ReactNode; placeIds: string[] }) {
+  const placeIdKey = Array.from(new Set(placeIds)).filter(Boolean).join("|");
+  const uniquePlaceIds = useMemo(() => (placeIdKey ? placeIdKey.split("|") : []), [placeIdKey]);
+  const [states, setStates] = useState<Map<string, PlaceSaveState>>(new Map());
+  const [loaded, setLoaded] = useState(uniquePlaceIds.length === 0);
+  const [status, setStatus] = useState<SaveControlStatus>("idle");
 
   useEffect(() => {
     let ignore = false;
-    setState(null);
+    setStates(new Map());
+    setLoaded(uniquePlaceIds.length === 0);
     setStatus("idle");
 
-    void fetch(`/api/places/${placeId}/saves`, { credentials: "same-origin" })
+    if (uniquePlaceIds.length === 0) return;
+
+    void fetch("/api/places/save-states", {
+      body: JSON.stringify({ placeIds: uniquePlaceIds }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    })
       .then(async (response) => {
         if (ignore) return;
         if (response.status === 401) {
           setStatus("login");
-          setState(emptyState(placeId));
+          setStates(new Map<string, PlaceSaveState>(uniquePlaceIds.map((placeId) => [placeId, emptyState(placeId)])));
+          setLoaded(true);
           return;
         }
         if (!response.ok) {
           setStatus("error");
-          setState(emptyState(placeId));
+          setStates(new Map<string, PlaceSaveState>(uniquePlaceIds.map((placeId) => [placeId, emptyState(placeId)])));
+          setLoaded(true);
           return;
         }
 
-        const body = (await response.json()) as { item: PlaceSaveState };
-        setState(body.item);
+        const body = (await response.json()) as { items: PlaceSaveState[] };
+        const nextStates = new Map<string, PlaceSaveState>(uniquePlaceIds.map((placeId) => [placeId, emptyState(placeId)]));
+        for (const item of body.items) {
+          nextStates.set(item.placeId, item);
+        }
+        setStates(nextStates);
+        setLoaded(true);
       })
       .catch(() => {
         if (ignore) return;
         setStatus("error");
-        setState(emptyState(placeId));
+        setStates(new Map<string, PlaceSaveState>(uniquePlaceIds.map((placeId) => [placeId, emptyState(placeId)])));
+        setLoaded(true);
       });
 
     return () => {
       ignore = true;
     };
-  }, [placeId]);
+  }, [placeIdKey, uniquePlaceIds]);
+
+  const contextValue = useMemo<PlaceSaveControlsContextValue>(
+    () => ({
+      loaded,
+      setPlaceState: (state) => {
+        setStates((current) => {
+          const next = new Map(current);
+          next.set(state.placeId, state);
+          return next;
+        });
+      },
+      setStatus,
+      states,
+      status
+    }),
+    [loaded, states, status]
+  );
+
+  return <PlaceSaveControlsContext.Provider value={contextValue}>{children}</PlaceSaveControlsContext.Provider>;
+}
+
+export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControlsProps) {
+  const batch = useContext(PlaceSaveControlsContext);
+  const [localState, setLocalState] = useState<PlaceSaveState | null>(null);
+  const [pendingTarget, setPendingTarget] = useState<SaveTarget | null>(null);
+  const [localStatus, setLocalStatus] = useState<SaveControlStatus>("idle");
+  const state = batch ? (batch.loaded ? (batch.states.get(placeId) ?? emptyState(placeId)) : null) : localState;
+  const status = batch ? batch.status : localStatus;
+
+  useEffect(() => {
+    if (batch) return;
+
+    let ignore = false;
+    setLocalState(null);
+    setLocalStatus("idle");
+
+    void fetch(`/api/places/${placeId}/saves`, { credentials: "same-origin" })
+      .then(async (response) => {
+        if (ignore) return;
+        if (response.status === 401) {
+          setLocalStatus("login");
+          setLocalState(emptyState(placeId));
+          return;
+        }
+        if (!response.ok) {
+          setLocalStatus("error");
+          setLocalState(emptyState(placeId));
+          return;
+        }
+
+        const body = (await response.json()) as { item: PlaceSaveState };
+        setLocalState(body.item);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setLocalStatus("error");
+        setLocalState(emptyState(placeId));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [batch, placeId]);
 
   const items = useMemo(
     () => [
@@ -77,13 +169,17 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
   async function toggle(target: SaveTarget) {
     if (!state || pendingTarget) return;
     if (status === "login") {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      redirectToLogin();
       return;
     }
 
     const nextValue = !state[target];
     setPendingTarget(target);
-    setStatus("idle");
+    if (batch) {
+      batch.setStatus("idle");
+    } else {
+      setLocalStatus("idle");
+    }
 
     try {
       const response = await fetch(`/api/places/${placeId}/saves`, {
@@ -94,18 +190,30 @@ export function PlaceSaveControls({ compact = false, placeId }: PlaceSaveControl
       });
 
       if (response.status === 401) {
-        setStatus("login");
+        redirectToLogin();
         return;
       }
       if (!response.ok) {
-        setStatus("error");
+        if (batch) {
+          batch.setStatus("error");
+        } else {
+          setLocalStatus("error");
+        }
         return;
       }
 
       const body = (await response.json()) as { item: PlaceSaveState };
-      setState(body.item);
+      if (batch) {
+        batch.setPlaceState(body.item);
+      } else {
+        setLocalState(body.item);
+      }
     } catch {
-      setStatus("error");
+      if (batch) {
+        batch.setStatus("error");
+      } else {
+        setLocalStatus("error");
+      }
     } finally {
       setPendingTarget(null);
     }
@@ -148,4 +256,8 @@ function emptyState(placeId: string): PlaceSaveState {
     updatedAt: null,
     wantToGo: false
   };
+}
+
+function redirectToLogin() {
+  window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
 }

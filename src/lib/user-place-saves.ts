@@ -14,9 +14,13 @@ export const updatePlaceSaveSchema = z
   .refine((value) => value.wantToGo !== undefined || value.hearted !== undefined, "At least one save state is required");
 
 export const savedPlacesFilterSchema = z.enum(["all", "wantToGo", "hearted"]).default("all");
+export const placeSaveStatesRequestSchema = z.object({
+  placeIds: z.array(z.string().uuid()).min(1).max(100)
+});
 
 export type UpdatePlaceSaveInput = z.infer<typeof updatePlaceSaveSchema>;
 export type SavedPlacesFilter = z.infer<typeof savedPlacesFilterSchema>;
+export type PlaceSaveStatesRequest = z.infer<typeof placeSaveStatesRequestSchema>;
 
 type SaveStateRow = {
   placeId: string;
@@ -53,6 +57,43 @@ export type SavedPlaceItem = PlaceSaveState & {
 export async function getPlaceSaveState(placeId: string, userId: string, executor: SqlExecutor = pg) {
   await assertPlaceExists(placeId, executor);
   return { item: await placeSaveStateForUser(placeId, userId, executor) };
+}
+
+export async function listPlaceSaveStates(placeIds: string[], userId: string, executor: SqlExecutor = pg) {
+  const uniquePlaceIds = Array.from(new Set(placeIds));
+  if (uniquePlaceIds.length === 0) return { items: [] };
+
+  const rows = await executor<SaveStateRow[]>`
+    with requested as (
+      select unnest(${uniquePlaceIds}::uuid[]) as place_id
+    ),
+    heart_counts as (
+      select s.place_id, count(*)::int as "heartCount"
+      from user_place_saves s
+      join requested r on r.place_id = s.place_id
+      where s.hearted
+      group by s.place_id
+    )
+    select
+      r.place_id::text as "placeId",
+      coalesce(s.want_to_go, false) as "wantToGo",
+      coalesce(s.hearted, false) as "hearted",
+      coalesce(h."heartCount", 0)::int as "heartCount",
+      s.updated_at as "updatedAt"
+    from requested r
+    join places p on p.id = r.place_id
+    left join user_place_saves s on s.user_id = ${userId}
+      and s.place_id = r.place_id
+    left join heart_counts h on h.place_id = r.place_id
+  `;
+  const statesByPlaceId = new Map(rows.map((row) => [row.placeId, placeSaveStateFromRow(row, row.placeId)]));
+
+  return {
+    items: uniquePlaceIds.flatMap((placeId) => {
+      const state = statesByPlaceId.get(placeId);
+      return state ? [state] : [];
+    })
+  };
 }
 
 export async function updatePlaceSaveState(placeId: string, userId: string, input: UpdatePlaceSaveInput, executor: SqlExecutor = pg) {

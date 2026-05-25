@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/errors";
 import {
   getPlaceSaveState,
+  listPlaceSaveStates,
   listSavedPlaces,
   placeSaveStateFromRow,
+  placeSaveStatesRequestSchema,
   savedPlacesFilterSchema,
   updatePlaceSaveSchema,
   updatePlaceSaveState
@@ -14,6 +16,7 @@ type QueryResponse = Array<Record<string, unknown>>;
 
 const userId = "11111111-1111-4111-8111-111111111111";
 const placeId = "22222222-2222-4222-8222-222222222222";
+const otherPlaceId = "33333333-3333-4333-8333-333333333333";
 
 function fakeExecutor(responses: QueryResponse[]) {
   const calls: string[] = [];
@@ -29,9 +32,11 @@ describe("user place save schemas", () => {
   it("accepts independent save states and filters", () => {
     expect(updatePlaceSaveSchema.parse({ wantToGo: true })).toEqual({ wantToGo: true });
     expect(updatePlaceSaveSchema.parse({ hearted: false })).toEqual({ hearted: false });
+    expect(placeSaveStatesRequestSchema.parse({ placeIds: [placeId] })).toEqual({ placeIds: [placeId] });
     expect(savedPlacesFilterSchema.parse(undefined)).toBe("all");
     expect(savedPlacesFilterSchema.parse("hearted")).toBe("hearted");
     expect(() => updatePlaceSaveSchema.parse({})).toThrow("At least one save state is required");
+    expect(() => placeSaveStatesRequestSchema.parse({ placeIds: [] })).toThrow();
     expect(() => savedPlacesFilterSchema.parse("planned")).toThrow();
   });
 });
@@ -64,6 +69,37 @@ describe("user place save state", () => {
       heartCount: 2,
       updatedAt: null
     });
+  });
+
+  it("lists multiple requested place states in request order without duplicate rows", async () => {
+    const { calls, executor } = fakeExecutor([
+      [
+        { placeId, wantToGo: true, hearted: false, heartCount: "2", updatedAt: new Date("2026-05-25T04:00:00.000Z") },
+        { placeId: otherPlaceId, wantToGo: false, hearted: true, heartCount: 5, updatedAt: null }
+      ]
+    ]);
+
+    await expect(listPlaceSaveStates([placeId, otherPlaceId, placeId], userId, executor)).resolves.toEqual({
+      items: [
+        {
+          placeId,
+          wantToGo: true,
+          hearted: false,
+          heartCount: 2,
+          updatedAt: "2026-05-25T04:00:00.000Z"
+        },
+        {
+          placeId: otherPlaceId,
+          wantToGo: false,
+          hearted: true,
+          heartCount: 5,
+          updatedAt: null
+        }
+      ]
+    });
+    expect(calls[0]).toContain("with requested as");
+    expect(calls[0]).toContain("left join user_place_saves s");
+    expect(calls[0]).toContain("left join heart_counts h");
   });
 
   it("rejects unknown places", async () => {

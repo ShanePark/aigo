@@ -6,7 +6,7 @@ import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
-import { PlaceSaveControls } from "@/app/places/place-save-controls";
+import { PlaceSaveControls, PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
 import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import { buildLocationSearchState } from "@/app/location-search-state";
@@ -404,14 +404,16 @@ export function ExploreResults({
 
         <div className="results-scroll" data-results-scroll ref={resultsScrollRef}>
           {pendingSearchKind ? <div className="results-inline-status">{pendingStatusLabel(pendingSearchKind)}</div> : null}
-          <div className="results">
-            {result.items.map((place, index) => (
-              <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
-            ))}
-            {result.items.length === 0 ? (
-              <SearchEmptyState activeCategoryGroup={activeCategoryGroup} categoryGroups={categoryGroups} params={activeParams} />
-            ) : null}
-          </div>
+          <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
+            <div className="results">
+              {result.items.map((place, index) => (
+                <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
+              ))}
+              {result.items.length === 0 ? (
+                <SearchEmptyState activeCategoryGroup={activeCategoryGroup} categoryGroups={categoryGroups} params={activeParams} />
+              ) : null}
+            </div>
+          </PlaceSaveControlsProvider>
         </div>
         {showScrollTop ? (
           <button className="result-scroll-top-button" type="button" onClick={scrollResultsToTop} aria-label="검색 결과 맨 위로 이동" title="검색 결과 맨 위로">
