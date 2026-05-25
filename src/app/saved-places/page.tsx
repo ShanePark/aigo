@@ -1,11 +1,18 @@
-import { Bookmark, Heart, Home, MapPin } from "lucide-react";
+import { Bookmark, Heart, Home, MapPin, type LucideIcon } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { Route } from "next";
 
 import { PlaceImage } from "@/app/place-image";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
-import { listSavedPlaces, savedPlacesFilterSchema, type SavedPlaceItem, type SavedPlacesFilter } from "@/lib/user-place-saves";
+import {
+  getSavedPlacesSummary,
+  listSavedPlaces,
+  savedPlacesFilterSchema,
+  type SavedPlaceItem,
+  type SavedPlacesFilter,
+  type SavedPlacesSummary
+} from "@/lib/user-place-saves";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,10 +21,10 @@ type SavedPlacesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const FILTERS: Array<{ href: Route; label: string; value: SavedPlacesFilter }> = [
-  { href: "/saved-places", label: "전체", value: "all" },
-  { href: "/saved-places?filter=wantToGo", label: "찜", value: "wantToGo" },
-  { href: "/saved-places?filter=hearted", label: "하트", value: "hearted" }
+const FILTERS: Array<{ getCount: (summary: SavedPlacesSummary) => number; href: Route; icon: LucideIcon; label: string; value: SavedPlacesFilter }> = [
+  { getCount: (summary) => summary.totalCount, href: "/saved-places", icon: Bookmark, label: "전체", value: "all" },
+  { getCount: (summary) => summary.wantToGoCount, href: "/saved-places?filter=wantToGo", icon: Bookmark, label: "찜", value: "wantToGo" },
+  { getCount: (summary) => summary.heartedCount, href: "/saved-places?filter=hearted", icon: Heart, label: "하트", value: "hearted" }
 ];
 
 export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageProps) {
@@ -53,8 +60,7 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
     );
   }
 
-  const { items } = await listSavedPlaces(user.id, filter);
-  const summary = summarizeSavedPlaces(items);
+  const [{ items }, summary] = await Promise.all([listSavedPlaces(user.id, filter), getSavedPlacesSummary(user.id)]);
 
   return (
     <div className="page visits-page">
@@ -65,17 +71,7 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
           <p className="lede">찜한 장소와 마음에 든 장소를 나눠 저장하고, 다음 외출 후보를 빠르게 다시 꺼내 봅니다.</p>
         </div>
         <div className="visits-hero-side">
-          <div className="visits-summary" aria-label="저장한 장소 요약">
-            <span className="saved-place-summary-pill is-want-to-go">
-              <Bookmark size={15} aria-hidden="true" />
-              찜 {summary.wantToGoCount}
-            </span>
-            <span className="saved-place-summary-pill is-hearted">
-              <Heart size={15} aria-hidden="true" fill="currentColor" />
-              하트 {summary.heartedCount}
-            </span>
-          </div>
-          <SavedPlaceFilters activeFilter={filter} />
+          <SavedPlaceFilters activeFilter={filter} summary={summary} />
         </div>
       </header>
 
@@ -107,14 +103,21 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
   );
 }
 
-function SavedPlaceFilters({ activeFilter }: { activeFilter: SavedPlacesFilter }) {
+function SavedPlaceFilters({ activeFilter, summary }: { activeFilter: SavedPlacesFilter; summary: SavedPlacesSummary }) {
   return (
     <nav className="limit-control saved-place-filters" aria-label="저장한 장소 필터">
-      {FILTERS.map((filter) => (
-        <Link className={`limit-option ${activeFilter === filter.value ? "is-active" : ""}`} href={filter.href} key={filter.value}>
-          {filter.label}
-        </Link>
-      ))}
+      {FILTERS.map((filter) => {
+        const Icon = filter.icon;
+        const count = filter.getCount(summary);
+        const iconFill = filter.value === "hearted" ? "currentColor" : "none";
+        return (
+          <Link className={`limit-option ${activeFilter === filter.value ? "is-active" : ""}`} href={filter.href} key={filter.value}>
+            <Icon size={14} aria-hidden="true" fill={iconFill} />
+            <span>{filter.label}</span>
+            <span className="saved-place-filter-count">{count}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -160,17 +163,6 @@ function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
 function savedPlacesFilter(value: string | string[] | undefined): SavedPlacesFilter {
   const firstValue = Array.isArray(value) ? value[0] : value;
   return savedPlacesFilterSchema.catch("all").parse(firstValue ?? "all");
-}
-
-function summarizeSavedPlaces(items: SavedPlaceItem[]) {
-  return items.reduce(
-    (summary, item) => {
-      if (item.wantToGo) summary.wantToGoCount += 1;
-      if (item.hearted) summary.heartedCount += 1;
-      return summary;
-    },
-    { heartedCount: 0, wantToGoCount: 0 }
-  );
 }
 
 function placeHref(placeId: string): Route {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/lib/errors";
 import {
+  getSavedPlacesSummary,
   getPlaceSaveState,
   listPlaceSaveStates,
   listSavedPlaces,
@@ -152,6 +153,20 @@ describe("user place save mutation", () => {
 });
 
 describe("saved place listing", () => {
+  it("summarizes saved-place counts independently from the active filter", async () => {
+    const { calls, executor } = fakeExecutor([[{ totalCount: "6", wantToGoCount: "4", heartedCount: "3" }]]);
+
+    await expect(getSavedPlacesSummary(userId, executor)).resolves.toEqual({
+      totalCount: 6,
+      wantToGoCount: 4,
+      heartedCount: 3
+    });
+    expect(calls[0]).toContain('count(*)::int as "totalCount"');
+    expect(calls[0]).toContain("count(*) filter (where want_to_go)");
+    expect(calls[0]).toContain("count(*) filter (where hearted)");
+    expect(calls[0]).toContain("where user_id = ?");
+  });
+
   it("lists saved places with status filters and heart counts", async () => {
     const { calls, executor } = fakeExecutor([
       [

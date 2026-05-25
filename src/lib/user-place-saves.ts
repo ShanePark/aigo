@@ -38,6 +38,12 @@ type SavedPlaceRow = SaveStateRow & {
   regionSigungu: string | null;
 };
 
+type SavedPlacesSummaryRow = {
+  totalCount: number | string;
+  wantToGoCount: number | string;
+  heartedCount: number | string;
+};
+
 export type PlaceSaveState = {
   placeId: string;
   wantToGo: boolean;
@@ -52,6 +58,12 @@ export type SavedPlaceItem = PlaceSaveState & {
   imageUrl: string | null;
   regionSido: string | null;
   regionSigungu: string | null;
+};
+
+export type SavedPlacesSummary = {
+  totalCount: number;
+  wantToGoCount: number;
+  heartedCount: number;
 };
 
 export async function getPlaceSaveState(placeId: string, userId: string, executor: SqlExecutor = pg) {
@@ -162,6 +174,23 @@ export async function listSavedPlaces(userId: string, filter: SavedPlacesFilter 
   `;
 
   return { items: rows.map(savedPlaceItemFromRow) };
+}
+
+export async function getSavedPlacesSummary(userId: string, executor: SqlExecutor = pg): Promise<SavedPlacesSummary> {
+  const rows = await executor<SavedPlacesSummaryRow[]>`
+    select
+      count(*)::int as "totalCount",
+      count(*) filter (where want_to_go)::int as "wantToGoCount",
+      count(*) filter (where hearted)::int as "heartedCount"
+    from user_place_saves
+    where user_id = ${userId}
+  `;
+
+  return {
+    totalCount: numberValue(rows[0]?.totalCount),
+    wantToGoCount: numberValue(rows[0]?.wantToGoCount),
+    heartedCount: numberValue(rows[0]?.heartedCount)
+  };
 }
 
 export function placeSaveStateFromRow(row: SaveStateRow | null | undefined, placeId: string): PlaceSaveState {
