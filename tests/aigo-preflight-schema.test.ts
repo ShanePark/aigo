@@ -94,6 +94,22 @@ describe("AiGo preflight schema inventory", () => {
       "constraint.user_home_locations.user_home_locations_lat_check"
     ]);
   });
+
+  it("reports missing public place memo artifacts", () => {
+    const inventory = completeInventory();
+    inventory.columns = inventory.columns.filter((row) => !(row.tableName === "place_public_memos" && row.columnName === "body"));
+    inventory.indexes = inventory.indexes.filter(
+      (row) => row.name !== "place_public_memos_user_place_unique" && row.name !== "place_public_memos_place_updated_at_idx"
+    );
+    inventory.constraints = inventory.constraints.filter((row) => row.name !== "place_public_memos_body_length_check");
+
+    expect(missingDatabaseSchemaArtifacts(inventory)).toEqual([
+      "place_public_memos.body",
+      "index.place_public_memos.place_public_memos_user_place_unique",
+      "index.place_public_memos.place_public_memos_place_updated_at_idx",
+      "constraint.place_public_memos.place_public_memos_body_length_check"
+    ]);
+  });
 });
 
 function completeInventory(): DatabaseSchemaInventory {

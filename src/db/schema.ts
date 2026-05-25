@@ -354,6 +354,28 @@ export const placeVisitPhotos = pgTable(
   })
 );
 
+export const placePublicMemos = pgTable(
+  "place_public_memos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userPlaceUnique: uniqueIndex("place_public_memos_user_place_unique").on(table.userId, table.placeId),
+    placeUpdatedAtIdx: index("place_public_memos_place_updated_at_idx").on(table.placeId, table.updatedAt),
+    userIdx: index("place_public_memos_user_id_idx").on(table.userId),
+    bodyLengthCheck: check("place_public_memos_body_length_check", sql`length(trim(${table.body})) between 1 and 1000`)
+  })
+);
+
 export const placeVersions = pgTable(
   "place_versions",
   {
