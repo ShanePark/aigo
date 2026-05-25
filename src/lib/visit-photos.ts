@@ -10,6 +10,7 @@ type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export const VISIT_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const VISIT_PHOTO_ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const VISIT_PHOTO_STORAGE_PREFIX = "visit-photos";
 
 type VisitPhotoMimeType = (typeof VISIT_PHOTO_ALLOWED_MIME_TYPES)[number];
 type VisitPhotoVisibility = "public" | "private";
@@ -84,7 +85,7 @@ export async function createVisitPhoto(
 
   const validation = validateVisitPhotoFile(file);
   const photoId = randomUUID();
-  const storageKey = `visit-photos/${visitId}/${photoId}.${extensionForMime(validation.mimeType)}`;
+  const storageKey = `${VISIT_PHOTO_STORAGE_PREFIX}/${visitId}/${photoId}.${extensionForMime(validation.mimeType)}`;
   const uploadPath = resolveVisitPhotoPath(storageKey);
   const photoVisibility = visit.visibility === "private" ? "private" : visibility ?? visit.visibility;
 
@@ -242,6 +243,10 @@ export function resolveVisitPhotoPath(storageKey: string) {
     throw new ApiError(400, "Invalid photo storage key");
   }
   return resolved;
+}
+
+export function visitPhotoUploadRoot() {
+  return uploadRoot();
 }
 
 function visitPhotoItemFromRow(row: VisitPhotoRow): VisitPhotoItem {
