@@ -1219,6 +1219,17 @@ h3 {
   padding: 9px;
 }
 
+.app-modal-body .child-profile-picker {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.app-modal-body .child-profile-options {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  justify-content: stretch;
+}
+
 .child-profile-picker-row {
   align-items: center;
   display: grid;
@@ -7225,6 +7236,20 @@ dd {
 
   .child-profile-segmented button {
     min-height: 58px;
+  }
+
+  .app-modal-body .child-profile-picker {
+    gap: 10px;
+  }
+
+  .app-modal-body .child-profile-option {
+    min-height: 112px;
+    padding: 7px 6px 6px;
+  }
+
+  .app-modal-body .child-profile-option-icon {
+    height: 70px;
+    width: 70px;
   }
 
   .child-profile-options {

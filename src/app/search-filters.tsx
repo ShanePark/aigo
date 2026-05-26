@@ -6,6 +6,7 @@ import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, T
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import { AppModal, AppModalActions } from "@/app/app-modal";
 import type { ChildParamSource } from "@/app/account-child-defaults";
 import {
   CHILD_AGE_BANDS,
@@ -287,17 +288,23 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               type="button"
               onClick={togglePicker}
               disabled={isPending || (!isPickerOpen && isAtProfileLimit)}
-              aria-expanded={isPickerOpen}
             >
-              {isPickerOpen ? <X size={15} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
-              {isPickerOpen ? "닫기" : isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
+              <Plus size={15} aria-hidden="true" />
+              {isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
             </button>
           </div>
 
           <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
           <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
 
-          {isPickerOpen ? (
+          <AppModal
+            description="아이 나이와 성별을 추가하면 검색 결과의 연령 적합도를 더 잘 맞출 수 있어요."
+            disabled={isPending}
+            onClose={cancelDraftProfile}
+            open={isPickerOpen}
+            size="wide"
+            title="아이 조건 추가"
+          >
             <div className="child-profile-picker">
               <div className="child-profile-picker-row">
                 <span className="child-profile-picker-label">성별 선택</span>
@@ -348,7 +355,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                 })}
               </div>
 
-              <div className="child-profile-picker-actions">
+              <AppModalActions>
                 <button className="child-profile-cancel" type="button" onClick={cancelDraftProfile}>
                   <X size={15} aria-hidden="true" />
                   취소
@@ -357,9 +364,9 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                   <Check size={15} aria-hidden="true" />
                   아이 적용
                 </button>
-              </div>
+              </AppModalActions>
             </div>
-          ) : null}
+          </AppModal>
 
           {childProfiles.length > 0 ? (
             <div className="child-profile-grid">
