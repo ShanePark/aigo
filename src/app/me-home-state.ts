@@ -75,9 +75,7 @@ export function homeSignature(homeLocation: HomeDraft) {
 
   return [
     "enabled",
-    homeLocation.label.trim() || "home",
     homeLocation.lat.trim(),
-    homeLocation.lng.trim(),
-    homeLocation.addressText.trim()
+    homeLocation.lng.trim()
   ].join("|");
 }

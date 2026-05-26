@@ -54,4 +54,11 @@ describe("me home location state", () => {
     expect(homeLocationHasUsableCoordinates({ ...savedHome, lat: "" })).toBe(false);
     expect(homeLocationHasUsableCoordinates({ ...savedHome, lat: "91" })).toBe(false);
   });
+
+  it("ignores internal label and address metadata in the save state", () => {
+    expect(homeSaveUiState({ ...savedHome, addressText: "", label: "집" }, savedHome)).toMatchObject({
+      dirty: false,
+      statusLabel: "저장됨"
+    });
+  });
 });

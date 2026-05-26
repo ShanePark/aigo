@@ -123,8 +123,8 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     const homeLocationToSave = options.homeLocation ?? homeLocation;
     const nextHomeLocation = homeLocationToSave.enabled
       ? {
-          addressText: homeLocationToSave.addressText.trim() || null,
-          label: homeLocationToSave.label.trim() || "home",
+          addressText: null,
+          label: "home",
           lat: Number(homeLocationToSave.lat),
           lng: Number(homeLocationToSave.lng)
         }
@@ -326,33 +326,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 
         <MeHomeLocationMap lat={homeLocation.lat} lng={homeLocation.lng} onSelect={selectHomeLocation} />
 
-        <div className="me-home-fields">
-          <label className="me-field">
-            <span>이름</span>
-            <input
-              value={homeLocation.label}
-              onChange={(event) => {
-                const label = event.currentTarget.value;
-                updateHomeLocation((current) => ({ ...current, label }));
-              }}
-              maxLength={40}
-              placeholder="home"
-            />
-          </label>
-          <label className="me-field me-home-address">
-            <span>주소 메모</span>
-            <input
-              value={homeLocation.addressText}
-              onChange={(event) => {
-                const addressText = event.currentTarget.value;
-                updateHomeLocation((current) => ({ ...current, addressText }));
-              }}
-              maxLength={200}
-              placeholder="대략적인 주소"
-            />
-          </label>
-        </div>
-
         <p className="me-empty-note">
           {homeSaveState.statusLabel === "삭제 예정"
             ? "저장하면 등록된 집 위치가 삭제됩니다."
@@ -399,9 +372,9 @@ function childrenFromProfile(profile: MyProfile): ChildDraft[] {
 function homeFromProfile(profile: MyProfile): HomeDraft {
   return profile.homeLocation
     ? {
-        addressText: profile.homeLocation.addressText ?? "",
+        addressText: "",
         enabled: true,
-        label: profile.homeLocation.label,
+        label: "home",
         lat: String(profile.homeLocation.lat),
         lng: String(profile.homeLocation.lng)
       }
