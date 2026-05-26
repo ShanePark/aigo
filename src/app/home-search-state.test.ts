@@ -98,27 +98,38 @@ describe("home search input", () => {
     });
   });
 
-  it("passes required preference mode from search params", () => {
-    expect(buildSearchInput({ diaperChangingTable: "on", elevator: "on", foodAllowed: "on", kidsToilet: "on", nursing: "on", preferenceMode: "required" })).toMatchObject({
-      preferenceMode: "required",
+  it("keeps detail filters as ranking preferences from search params", () => {
+    expect(
+      buildSearchInput({
+        diaperChangingTable: "on",
+        elevator: "on",
+        foodAllowed: "on",
+        kidsToilet: "on",
+        nursing: "on",
+        toiletNearby: "on",
+        preferenceMode: "required"
+      })
+    ).toMatchObject({
       preferences: {
         diaperChangingTable: true,
         elevator: true,
         foodAllowed: true,
         kidsToilet: true,
-        nursingRoom: true
+        nursingRoom: true,
+        toiletNearby: true
       }
     });
+    expect(buildSearchInput({ parking: "on", preferenceMode: "required" })).not.toHaveProperty("preferenceMode");
   });
 
   it("treats explicit off preference params as URL overrides without applying filters", () => {
     expect(buildSearchInput({ indoor: "off", nursing: "off", preferenceMode: "soft" })).toMatchObject({
-      preferenceMode: undefined,
       preferences: {
         indoorTypes: undefined,
         nursingRoom: undefined
       }
     });
+    expect(buildSearchInput({ indoor: "off", nursing: "off", preferenceMode: "soft" })).not.toHaveProperty("preferenceMode");
   });
 
   it("uses the supported result page sizes", () => {
@@ -143,7 +154,7 @@ describe("home search input", () => {
     });
     expect(buildSearchInput({ handsOnExperience: "on", readingBooks: "on", sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
       taxonomy: {
-        mode: "required",
+        mode: "soft",
         activityTypes: ["sand_play", "water_play", "reading_books", "hands_on_experience"]
       }
     });

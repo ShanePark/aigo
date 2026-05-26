@@ -45,6 +45,7 @@ type ScoreablePlace = Pick<
   visit?: VisitScores;
   scoring?: PlaceScoringSignals;
   pricing?: Record<string, unknown> | null;
+  playFeatures?: Record<string, unknown> | null;
   taxonomy?: PlaceTaxonomy | null;
 };
 
@@ -193,17 +194,17 @@ function scorePlaceInternal(
     const indoorTypes = input.preferences?.indoorTypes;
     if (indoorTypes?.length) {
       if (indoorTypes.includes(place.indoorType as never)) {
-        addScore("preferences", 5);
+        addScore("preferences", 10);
         reasonCodes.add("INDOOR_TYPE_MATCH");
       } else if (place.indoorType === "unknown") {
         reasonCodes.add("INDOOR_TYPE_UNKNOWN");
       } else {
-        addScore("preferences", -4);
         reasonCodes.add("INDOOR_TYPE_MISMATCH");
       }
     }
 
     applyTriStatePreference("parkingAvailable", "PARKING", place.parkingAvailable, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyToiletNearbyPreference(place, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("strollerFriendly", "STROLLER", place.strollerFriendly, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("elevator", "ELEVATOR", place.elevator, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("nursingRoom", "NURSING_ROOM", place.nursingRoom, input, reasonCodes, (delta) => addScore("preferences", delta));
@@ -752,17 +753,45 @@ function applyTriStatePreference(
   if (!input.preferences?.[key]) return;
 
   if (value === "yes") {
-    addScore(3);
+    addScore(9);
     reasonCodes.add(`${codePrefix}_YES`);
   } else if (value === "partial") {
-    addScore(1.5);
+    addScore(5);
     reasonCodes.add(`${codePrefix}_PARTIAL`);
   } else if (value === "no") {
-    addScore(-4);
     reasonCodes.add(`${codePrefix}_NO`);
   } else {
     reasonCodes.add(`${codePrefix}_UNKNOWN`);
   }
+}
+
+function applyToiletNearbyPreference(
+  place: Pick<ScoreablePlace, "kidsToilet" | "playFeatures">,
+  input: SearchPlacesInput,
+  reasonCodes: Set<string>,
+  addScore: (delta: number) => void
+) {
+  if (!input.preferences?.toiletNearby) return;
+
+  const value = strongestTriStateValue([place.playFeatures?.toiletNearby, place.kidsToilet]);
+  if (value === "yes") {
+    addScore(9);
+    reasonCodes.add("TOILET_NEARBY_YES");
+  } else if (value === "partial") {
+    addScore(5);
+    reasonCodes.add("TOILET_NEARBY_PARTIAL");
+  } else if (value === "no") {
+    reasonCodes.add("TOILET_NEARBY_NO");
+  } else {
+    reasonCodes.add("TOILET_NEARBY_UNKNOWN");
+  }
+}
+
+function strongestTriStateValue(values: unknown[]) {
+  if (values.includes("yes")) return "yes";
+  if (values.includes("partial")) return "partial";
+  if (values.includes("no")) return "no";
+  return "unknown";
 }
 
 function applyVisitFitSignal(visit: VisitScores | undefined, input: SearchPlacesInput, reasonCodes: Set<string>, addScore: (delta: number) => void) {

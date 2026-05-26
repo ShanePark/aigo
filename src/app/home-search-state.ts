@@ -58,10 +58,10 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     playgroundOnly: isSingleCategoryGroup(categoryGroups, "playground") ? true : undefined,
     kidsCafeOnly: isSingleCategoryGroup(categoryGroups, "kidsCafe") ? true : undefined,
     childAgeMonths: ages,
-    preferenceMode: preferenceModeParam(params),
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
       parkingAvailable: params.parking === "on" ? true : undefined,
+      toiletNearby: params.toiletNearby === "on" ? true : undefined,
       strollerFriendly: params.stroller === "on" ? true : undefined,
       elevator: params.elevator === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
@@ -72,7 +72,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     },
     taxonomy: taxonomyActivityTypes.length > 0
       ? {
-          mode: preferenceModeParam(params) ?? "soft",
+          mode: "soft",
           activityTypes: taxonomyActivityTypes
         }
       : undefined,
@@ -95,11 +95,6 @@ export function sortParam(params: Record<string, string | string[] | undefined>)
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
-}
-
-export function preferenceModeParam(params: Record<string, string | string[] | undefined>): SearchPlacesInput["preferenceMode"] {
-  const value = textParam(params.preferenceMode);
-  return value === "required" ? "required" : undefined;
 }
 
 export function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {

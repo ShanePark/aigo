@@ -82,6 +82,10 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   KIDS_TOILET_PARTIAL: { labelKo: "유아화장실 일부", group: "preference", tone: "partial", basePriority: 5 },
   KIDS_TOILET_NO: { labelKo: "유아화장실 없음", group: "preference", tone: "negative", basePriority: 4 },
   KIDS_TOILET_UNKNOWN: { labelKo: "유아화장실 미확인", group: "preference", tone: "unknown", basePriority: 6 },
+  TOILET_NEARBY_YES: { labelKo: "화장실 가까움", group: "preference", tone: "positive", basePriority: 5 },
+  TOILET_NEARBY_PARTIAL: { labelKo: "화장실 일부 확인", group: "preference", tone: "partial", basePriority: 5 },
+  TOILET_NEARBY_NO: { labelKo: "화장실 확인 안 됨", group: "preference", tone: "negative", basePriority: 4 },
+  TOILET_NEARBY_UNKNOWN: { labelKo: "화장실 미확인", group: "preference", tone: "unknown", basePriority: 6 },
   ELEVATOR_YES: { labelKo: "엘리베이터 있음", group: "preference", tone: "positive", basePriority: 5 },
   ELEVATOR_PARTIAL: { labelKo: "엘리베이터 일부", group: "preference", tone: "partial", basePriority: 5 },
   ELEVATOR_NO: { labelKo: "엘리베이터 없음", group: "preference", tone: "negative", basePriority: 4 },
@@ -134,6 +138,7 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
 const preferencePrefixes: Array<[keyof NonNullable<SearchPlacesInput["preferences"]>, string]> = [
   ["indoorTypes", "INDOOR_TYPE"],
   ["parkingAvailable", "PARKING"],
+  ["toiletNearby", "TOILET_NEARBY"],
   ["strollerFriendly", "STROLLER"],
   ["elevator", "ELEVATOR"],
   ["nursingRoom", "NURSING_ROOM"],

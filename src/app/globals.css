@@ -757,10 +757,10 @@ h3 {
   border-radius: var(--radius-control);
   cursor: pointer;
   display: grid;
-  gap: 9px;
+  gap: 8px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 58px;
-  padding: 9px 10px;
+  min-height: 46px;
+  padding: 7px 9px;
   position: relative;
   transition:
     background 0.16s ease,
@@ -787,13 +787,12 @@ h3 {
   background: var(--panel);
   border: 1px solid var(--line);
   color: var(--muted);
-  height: 34px;
-  width: 34px;
+  height: 30px;
+  width: 30px;
 }
 
 .advanced-filter-option-copy {
   display: grid;
-  gap: 3px;
   min-width: 0;
 }
 

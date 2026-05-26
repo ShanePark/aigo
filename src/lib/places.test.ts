@@ -1268,14 +1268,14 @@ describe("place search helpers", () => {
       requestedKeys: ["babyChair", "indoorTypes", "nursingRoom"],
       unknownValuesRemainEligible: true,
       mismatchesRemainEligible: true,
-      hardFilteringSupported: true
+      hardFilteringSupported: false
     });
-    expect(buildSearchPreferenceSemantics({ babyChair: true }, "required")).toEqual({
-      mode: "required",
+    expect(buildSearchPreferenceSemantics({ babyChair: true })).toEqual({
+      mode: "soft",
       requestedKeys: ["babyChair"],
-      unknownValuesRemainEligible: false,
-      mismatchesRemainEligible: false,
-      hardFilteringSupported: true
+      unknownValuesRemainEligible: true,
+      mismatchesRemainEligible: true,
+      hardFilteringSupported: false
     });
   });
 

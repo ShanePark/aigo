@@ -200,7 +200,7 @@ async function safeSearch(input: SearchPlacesInput) {
           suggestedExactNameQuery: null,
           appliedPreferences: input.preferences ?? null,
           appliedTaxonomy: input.taxonomy ?? null,
-          preferenceSemantics: buildSearchPreferenceSemantics(input.preferences, input.preferenceMode),
+          preferenceSemantics: buildSearchPreferenceSemantics(input.preferences),
           visitContext: input.visitContext ?? null,
           normalized: false
         }

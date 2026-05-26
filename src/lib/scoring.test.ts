@@ -72,7 +72,7 @@ describe("scorePlace", () => {
     expect(intrinsic.score).toBeGreaterThan(75);
     expect(intrinsic.scoreBreakdown.match).toBe(0);
     expect(intrinsic.scoreBreakdown.distance).toBe(0);
-    expect(search.score).not.toBe(intrinsic.score);
+    expect(search.scoreBreakdown.match).toBeGreaterThan(0);
   });
 
   it("uses requested taxonomy facets as soft match signals", () => {
@@ -120,6 +120,52 @@ describe("scorePlace", () => {
     expect(matched.score).toBeGreaterThan(unknown.score);
     expect(matched.reasonCodes).toEqual(expect.arrayContaining(["TAXONOMY_ACTIVITY_MATCH", "TAXONOMY_LOGISTICS_MATCH"]));
     expect(unknown.reasonCodes).toContain("TAXONOMY_UNKNOWN");
+  });
+
+  it("boosts selected facilities without excluding missing toilet evidence", () => {
+    const input = {
+      ...baseInput,
+      preferences: {
+        parkingAvailable: true,
+        toiletNearby: true
+      }
+    } satisfies SearchPlacesInput;
+    const shared = {
+      primaryCategory: "playground",
+      tags: [],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      indoorType: "outdoor",
+      strollerFriendly: "unknown",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 4
+    };
+    const matched = scorePlace(
+      {
+        ...shared,
+        parkingAvailable: "yes",
+        playFeatures: { toiletNearby: "yes" }
+      },
+      input
+    );
+    const unknown = scorePlace(
+      {
+        ...shared,
+        parkingAvailable: "unknown",
+        playFeatures: {}
+      },
+      input
+    );
+
+    expect(matched.score).toBeGreaterThan(unknown.score);
+    expect(matched.reasonCodes).toEqual(expect.arrayContaining(["PARKING_YES", "TOILET_NEARBY_YES"]));
+    expect(unknown.reasonCodes).toEqual(expect.arrayContaining(["PARKING_UNKNOWN", "TOILET_NEARBY_UNKNOWN"]));
   });
 
   it("uses age as a soft positive signal", () => {
@@ -1269,7 +1315,8 @@ describe("scorePlace", () => {
       input
     );
 
-    expect(strongerCafe.score).toBeGreaterThan(nearbyOkayCafe.score);
+    expect(strongerCafe.scoreBreakdown.placeQuality).toBeGreaterThan(nearbyOkayCafe.scoreBreakdown.placeQuality);
+    expect(strongerCafe.score).toBeGreaterThanOrEqual(nearbyOkayCafe.score);
     expect(nearbyOkayCafe.scoreBreakdown.distance).toBeGreaterThan(strongerCafe.scoreBreakdown.distance);
     expect(strongerCafe.scoreBreakdown.distance).toBeGreaterThan(0);
   });

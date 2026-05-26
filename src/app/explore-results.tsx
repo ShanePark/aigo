@@ -87,6 +87,7 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "readingBooks",
   "sandPlay",
   "stroller",
+  "toiletNearby",
   "waterPlay",
   "diaperChangingTable",
   "kidsToilet",
@@ -410,7 +411,7 @@ export function ExploreResults({
             <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
-        <SearchInterpretation meta={result.meta.search} params={activeParams} />
+        <SearchInterpretation meta={result.meta.search} />
 
         <div className="results-scroll" data-results-scroll ref={resultsScrollRef}>
           {pendingSearchKind ? <div className="results-inline-status">{pendingStatusLabel(pendingSearchKind)}</div> : null}
@@ -437,14 +438,10 @@ export function ExploreResults({
   );
 }
 
-function SearchInterpretation({ meta, params }: { meta: SearchMeta | null | undefined; params: Record<string, string | string[]> }) {
+function SearchInterpretation({ meta }: { meta: SearchMeta | null | undefined }) {
   const chips = searchInterpretationChips(meta);
-  const hasRequiredModeTarget =
-    meta?.preferenceSemantics.mode === "soft" &&
-    (meta.preferenceSemantics.requestedKeys.length > 0 || hasAppliedTaxonomyFacets(meta.appliedTaxonomy));
-  const requiredHref = hasRequiredModeTarget ? requiredPreferenceModeHref(params) : null;
 
-  if (chips.length === 0 && !requiredHref) return null;
+  if (chips.length === 0) return null;
 
   return (
     <section className="search-interpretation-panel" aria-label="검색 해석">
@@ -452,15 +449,10 @@ function SearchInterpretation({ meta, params }: { meta: SearchMeta | null | unde
         {chips.map((chip, index) => (
           <span className={chip.tone ? `search-interpretation-chip ${chip.tone}` : "search-interpretation-chip"} key={`${chip.label}-${chip.value}-${index}`}>
             <strong>{chip.label}</strong>
-            {chip.value}
+            {chip.value ? <span>{chip.value}</span> : null}
           </span>
         ))}
       </div>
-      {requiredHref ? (
-        <Link className="search-interpretation-action" href={requiredHref}>
-          필수 조건으로
-        </Link>
-      ) : null}
     </section>
   );
 }
@@ -745,7 +737,7 @@ function resultLimitParam(params: Record<string, string | string[]>) {
 function searchInterpretationChips(meta: SearchMeta | null | undefined) {
   if (!meta) return [];
 
-  const chips: Array<{ label: string; tone?: "is-soft" | "is-required"; value: string }> = [];
+  const chips: Array<{ label: string; tone?: "is-soft" | "is-required"; value?: string }> = [];
   if (meta.locationQuery) chips.push({ label: "지역", value: meta.locationQuery });
   if (meta.normalizedQuery && meta.normalizedQuery !== meta.locationQuery) chips.push({ label: "검색어", value: meta.normalizedQuery });
   if (meta.visitContext) chips.push({ label: "상황", value: visitContextLabel(meta.visitContext) });
@@ -753,24 +745,18 @@ function searchInterpretationChips(meta: SearchMeta | null | undefined) {
   for (const preference of preferenceLabels(meta.appliedPreferences, meta.preferenceSemantics.requestedKeys)) {
     chips.push({
       label: preference,
-      tone: meta.preferenceSemantics.mode === "required" ? "is-required" : "is-soft",
-      value: meta.preferenceSemantics.mode === "required" ? "필수" : "소프트"
+      tone: "is-soft"
     });
   }
   for (const taxonomy of taxonomyLabels(meta.appliedTaxonomy)) {
     chips.push({
       label: taxonomy,
-      tone: meta.preferenceSemantics.mode === "required" ? "is-required" : "is-soft",
-      value: meta.preferenceSemantics.mode === "required" ? "필수" : "소프트"
+      tone: "is-soft"
     });
   }
   if (meta.suggestedExactNameQuery) chips.push({ label: "장소명", value: meta.suggestedExactNameQuery });
 
   return chips.slice(0, 8);
-}
-
-function hasAppliedTaxonomyFacets(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
-  return Boolean(taxonomy && Object.entries(taxonomy).some(([key, value]) => key !== "mode" && Array.isArray(value) && value.length > 0));
 }
 
 function taxonomyLabels(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
@@ -800,6 +786,7 @@ function preferenceLabels(preferences: SearchPlacesInput["preferences"] | null, 
     kidsToilet: "유아화장실",
     nursingRoom: "수유실",
     parkingAvailable: "주차",
+    toiletNearby: "화장실",
     strollerFriendly: "유모차"
   };
 
@@ -1039,12 +1026,6 @@ function sortHref(params: Record<string, string | string[]>, sort: HomeSearchSor
 function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number]): UrlObject {
   const query = queryWithout(params, ["page", "offset", "limit", "visitContext"]);
   query.limit = String(limit);
-  return { pathname: "/", query };
-}
-
-function requiredPreferenceModeHref(params: Record<string, string | string[]>): UrlObject {
-  const query = queryWithout(params, ["page", "offset", "preferenceMode", "visitContext"]);
-  query.preferenceMode = "required";
   return { pathname: "/", query };
 }
 

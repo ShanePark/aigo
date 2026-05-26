@@ -470,6 +470,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       foodAllowed: place.facilities.foodAllowed,
       openingHours: place.openingHours,
       visit: place.visit,
+      playFeatures: place.playFeatures,
       taxonomy: place.taxonomy,
       pricing: place.pricing,
       distanceKm: place.distanceKm
@@ -635,7 +636,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
         queryNormalization: buildSearchQueryNormalizationMeta(input, normalizedInput),
         appliedPreferences: normalizedInput.preferences ?? null,
         appliedTaxonomy: normalizedInput.taxonomy ?? null,
-        preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
+        preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences),
         visitContext: normalizedInput.visitContext ?? null,
         normalized:
           input.query !== normalizedInput.query ||
@@ -2845,6 +2846,7 @@ const broadParentCoreTerms = new Set([
 
 const queryPreferenceTerms = {
   parkingAvailable: new Set(["주차", "주차장", "parking"]),
+  toiletNearby: new Set(["화장실", "화장실근처", "화장실인근", "toilet"]),
   strollerFriendly: new Set(["유모차", "쌍둥이유모차", "stroller"]),
   elevator: new Set(["엘리베이터", "승강기", "elevator"]),
   nursingRoom: new Set(["수유실", "수유", "수유공간", "베이비라운지", "베이비룸", "유아휴게실", "아기휴게실", "분유", "nursing"]),
@@ -4345,15 +4347,13 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   return false;
 }
 
-export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined, preferenceMode: SearchPlacesInput["preferenceMode"] = "soft") {
-  const mode = preferenceMode ?? "soft";
-
+export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {
   return {
-    mode,
+    mode: "soft" as const,
     requestedKeys: searchPreferenceKeys(preferences),
-    unknownValuesRemainEligible: mode !== "required",
-    mismatchesRemainEligible: mode !== "required",
-    hardFilteringSupported: true
+    unknownValuesRemainEligible: true,
+    mismatchesRemainEligible: true,
+    hardFilteringSupported: false
   };
 }
 

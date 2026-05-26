@@ -47,54 +47,52 @@ type FilterKey =
   | "readingBooks"
   | "sandPlay"
   | "stroller"
+  | "toiletNearby"
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
 type FilterDefinition = {
-  hint: string;
   icon: LucideIcon;
   key: FilterKey;
   label: string;
 };
 
 const FILTER_GROUPS: Array<{
-  description: string;
   filters: FilterDefinition[];
   title: string;
 }> = [
   {
     title: "놀이/환경",
-    description: "날씨와 놀이감",
     filters: [
-      { key: "indoor", label: "실내", hint: "비/더위 대피", icon: Home },
-      { key: "sandPlay", label: "모래놀이", hint: "감각 놀이", icon: TreePine },
-      { key: "waterPlay", label: "물놀이", hint: "분수/물놀이터", icon: Waves },
-      { key: "readingBooks", label: "책놀이", hint: "그림책/자료실", icon: BookOpen },
-      { key: "handsOnExperience", label: "체험/만들기", hint: "전시/공작 체험", icon: Paintbrush }
+      { key: "indoor", label: "실내", icon: Home },
+      { key: "sandPlay", label: "모래놀이", icon: TreePine },
+      { key: "waterPlay", label: "물놀이", icon: Waves },
+      { key: "readingBooks", label: "책놀이", icon: BookOpen },
+      { key: "handsOnExperience", label: "체험/만들기", icon: Paintbrush }
     ]
   },
   {
     title: "아기 돌봄",
-    description: "영아 동반 편의",
     filters: [
-      { key: "nursing", label: "수유실", hint: "수유/기저귀", icon: Baby },
-      { key: "diaperChangingTable", label: "기저귀대", hint: "갈이 공간", icon: Baby },
-      { key: "kidsToilet", label: "유아화장실", hint: "아이 전용", icon: Toilet },
-      { key: "stroller", label: "유모차", hint: "이동 동선", icon: Blocks },
-      { key: "elevator", label: "엘리베이터", hint: "층 이동", icon: ArrowUpDown }
+      { key: "nursing", label: "수유실", icon: Baby },
+      { key: "diaperChangingTable", label: "기저귀대", icon: Baby },
+      { key: "kidsToilet", label: "유아화장실", icon: Toilet },
+      { key: "stroller", label: "유모차", icon: Blocks },
+      { key: "elevator", label: "엘리베이터", icon: ArrowUpDown }
     ]
   },
   {
     title: "식사/휴식",
-    description: "먹이고 쉬기",
     filters: [
-      { key: "babyChair", label: "아기의자", hint: "식사 보조", icon: Utensils },
-      { key: "foodAllowed", label: "간식 가능", hint: "음식 반입", icon: Cookie }
+      { key: "babyChair", label: "아기의자", icon: Utensils },
+      { key: "foodAllowed", label: "간식 가능", icon: Cookie }
     ]
   },
   {
     title: "편의/동선",
-    description: "차량 접근",
-    filters: [{ key: "parking", label: "주차", hint: "하차/귀가 편함", icon: Car }]
+    filters: [
+      { key: "parking", label: "주차", icon: Car },
+      { key: "toiletNearby", label: "화장실", icon: Toilet }
+    ]
   }
 ];
 const FILTERS = FILTER_GROUPS.flatMap((group) => group.filters);
@@ -262,7 +260,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
           <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
             <div className="advanced-filter-group-head">
               <strong>{group.title}</strong>
-              <small>{group.description}</small>
             </div>
             <div className="advanced-filter-options">
               {group.filters.map((filter) => {
@@ -282,7 +279,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                     </span>
                     <span className="advanced-filter-option-copy">
                       <strong>{filter.label}</strong>
-                      <small>{filter.hint}</small>
                     </span>
                     <span className="advanced-filter-option-state" aria-hidden="true">
                       <Check size={13} />
@@ -396,12 +392,9 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 }
 
 function SearchPreferenceHiddenInputs({ params }: { params: Record<string, string | string[]> }) {
-  const preferenceMode = textParam(params.preferenceMode);
-
   return (
     <>
       {FILTERS.map((filter) => (textParam(params[filter.key]) === "off" ? <input name={filter.key} type="hidden" value="off" key={filter.key} /> : null))}
-      {preferenceMode ? <input name="preferenceMode" type="hidden" value={preferenceMode} /> : null}
     </>
   );
 }
