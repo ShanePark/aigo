@@ -69,6 +69,26 @@ const playgroundPlayFeatureKeys = [
   "outdoorPlayground",
   "playground"
 ];
+const broadParkNameTerms = [
+  "수목원",
+  "식물원",
+  "공원",
+  "대공원",
+  "자연휴양림",
+  "산림욕장",
+  "치유의숲",
+  "행복숲",
+  "화목원",
+  "군립공원",
+  "관광지",
+  "화석산지",
+  "테마공원",
+  "호수공원",
+  "문화체육공원",
+  "해양누리공원",
+  "아리랑대공원",
+  "어린이대공원"
+];
 
 export function buildPrimaryCategorySplitAudit(rows: PrimaryCategorySplitAuditRow[], generatedAt = new Date().toISOString()): PrimaryCategorySplitAudit {
   const items = rows.map(suggestPrimaryCategorySplit);
@@ -91,11 +111,21 @@ export function suggestPrimaryCategorySplit(row: PrimaryCategorySplitAuditRow): 
 
   if (row.primary_category === "park") {
     const termEvidence = matchingTerms(text, playgroundTerms);
+    const nameTermEvidence = matchingTerms(row.name.toLowerCase(), playgroundTerms);
     const playFeatureEvidence = matchingPlayFeatureKeys(row.play_features);
     const taxonomyEvidence = taxonomyActivityTypes.filter((value) => /playground|sand_play|water_play|outdoor_play/.test(value));
-    if (termEvidence.length > 0 || playFeatureEvidence.length > 0 || taxonomyEvidence.length > 0) {
+    const hasPlaygroundEvidence = termEvidence.length > 0 || playFeatureEvidence.length > 0 || taxonomyEvidence.length > 0;
+    const hasBroadParkName = matchingTerms(row.name.toLowerCase(), broadParkNameTerms).length > 0;
+    if (hasPlaygroundEvidence && hasBroadParkName && nameTermEvidence.length === 0) {
+      suggestedPrimaryCategory = "park";
+      confidence = "medium";
+      reasonCodes.push("BROAD_PARK_PLAYGROUND_CONTEXT_ONLY");
+      evidence.push(...formatTermEvidence("playground", termEvidence));
+      evidence.push(...playFeatureEvidence.map((key) => `playFeatures:${key}`));
+      evidence.push(...taxonomyEvidence.map((value) => `taxonomy.activityTypes:${value}`));
+    } else if (hasPlaygroundEvidence) {
       suggestedPrimaryCategory = "playground";
-      confidence = termEvidence.some((term) => row.name.includes(term)) ? "high" : "medium";
+      confidence = nameTermEvidence.length > 0 ? "high" : "medium";
       reasonCodes.push("PLAYGROUND_EVIDENCE");
       evidence.push(...formatTermEvidence("playground", termEvidence));
       evidence.push(...playFeatureEvidence.map((key) => `playFeatures:${key}`));

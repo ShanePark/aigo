@@ -31,7 +31,7 @@ describe("suggestPrimaryCategorySplit", () => {
     expect(suggestion.reasonCodes).toContain("NO_PLAYGROUND_EVIDENCE");
   });
 
-  it("does not make broad park rows high-confidence from taxonomy alone", () => {
+  it("keeps broad park rows as park when playground evidence only appears in context", () => {
     const suggestion = suggestPrimaryCategorySplit(
       row({
         primary_category: "park",
@@ -40,9 +40,37 @@ describe("suggestPrimaryCategorySplit", () => {
       })
     );
 
-    expect(suggestion.suggestedPrimaryCategory).toBe("playground");
+    expect(suggestion.suggestedPrimaryCategory).toBe("park");
     expect(suggestion.confidence).toBe("medium");
+    expect(suggestion.reasonCodes).toContain("BROAD_PARK_PLAYGROUND_CONTEXT_ONLY");
     expect(suggestion.evidence).toContain("taxonomy.activityTypes:outdoor_playground");
+  });
+
+  it("keeps named parks as park when playground terms are not part of the place name", () => {
+    const suggestion = suggestPrimaryCategorySplit(
+      row({
+        primary_category: "park",
+        name: "가오근린공원",
+        description: "공원 안에 물놀이터와 미끄럼틀이 있다.",
+        play_features: { waterPlayground: "yes" }
+      })
+    );
+
+    expect(suggestion.suggestedPrimaryCategory).toBe("park");
+    expect(suggestion.reasonCodes).toContain("BROAD_PARK_PLAYGROUND_CONTEXT_ONLY");
+  });
+
+  it("still suggests playground when a broad park name explicitly names a playground facility", () => {
+    const suggestion = suggestPrimaryCategorySplit(
+      row({
+        primary_category: "park",
+        name: "국립중앙과학관 어린이 과학놀이터",
+        taxonomy: taxonomyWithActivity("outdoor_playground")
+      })
+    );
+
+    expect(suggestion.suggestedPrimaryCategory).toBe("playground");
+    expect(suggestion.confidence).toBe("high");
   });
 
   it("splits art museums from generic museum rows", () => {
