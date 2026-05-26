@@ -2525,7 +2525,8 @@ const requiredPreferenceColumnMap = {
   nursingRoom: "nursing_room",
   diaperChangingTable: "diaper_changing_table",
   kidsToilet: "kids_toilet",
-  babyChair: "baby_chair"
+  babyChair: "baby_chair",
+  foodAllowed: "food_allowed"
 } as const;
 const taxonomyFacetKeys = Object.keys(taxonomyFacetFamilies) as TaxonomyFacetFamily[];
 
@@ -2847,8 +2848,10 @@ const queryPreferenceTerms = {
   nursingRoom: new Set(["수유실", "수유", "수유공간", "베이비라운지", "베이비룸", "유아휴게실", "아기휴게실", "분유", "nursing"]),
   diaperChangingTable: new Set(["기저귀", "기저귀갈이대", "기저귀교환대", "기저귀대", "diaper"]),
   kidsToilet: new Set(["어린이화장실", "유아화장실", "아이화장실"]),
-  babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"])
+  babyChair: new Set(["아기의자", "유아의자", "하이체어", "babychair"]),
+  foodAllowed: new Set(["밥", "식사", "간식", "도시락", "외부음식", "음식반입", "food"])
 } satisfies Record<keyof Omit<NonNullable<SearchPlacesInput["preferences"]>, "indoorTypes">, Set<string>>;
+const foodDisallowedTerms = new Set(["음식불가", "음식금지", "외부음식금지", "반입금지", "취식금지"]);
 
 const nonFilterLogisticsTerms = new Set([
   "기저귀",
@@ -3232,6 +3235,7 @@ function inferPreferencesFromQuery(query: string) {
   const termSet = new Set(terms);
   const preferences: Partial<NonNullable<SearchPlacesInput["preferences"]>> = {};
   const indoorTypes = new Set<"indoor" | "outdoor" | "mixed">();
+  const hasFoodDisallowedTerm = terms.some((term) => foodDisallowedTerms.has(term));
   const hasDayTripNatureFallbackIntent =
     (termSet.has("1시간권") || termSet.has("당일치기") || termSet.has("근교")) &&
     terms.some((term) => broadNatureIntentTerms.has(term)) &&
@@ -3244,6 +3248,7 @@ function inferPreferencesFromQuery(query: string) {
       preferences.nursingRoom = true;
     }
     for (const [key, values] of Object.entries(queryPreferenceTerms)) {
+      if (key === "foodAllowed" && hasFoodDisallowedTerm) continue;
       if (values.has(term)) {
         preferences[key as keyof typeof queryPreferenceTerms] = true as never;
       }

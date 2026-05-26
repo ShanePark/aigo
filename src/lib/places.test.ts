@@ -1723,6 +1723,7 @@ describe("place search helpers", () => {
       query: "놀이방식당",
       preferences: {
         babyChair: true,
+        foodAllowed: true,
         parkingAvailable: true,
         strollerFriendly: true
       }
@@ -1789,7 +1790,8 @@ describe("place search helpers", () => {
       query: "놀이방식당"
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "서구 어린이도서관 간식 음식불가 그림책방" })).toMatchObject({
-      query: "서구 어린이도서관 음식불가 그림책방"
+      query: "서구 어린이도서관 음식불가 그림책방",
+      preferences: {}
     });
     expect(normalizeSearchInput({ ...baseSearchInput, query: "창원 장난감 가게" })).toMatchObject({
       query: "창원 장난감가게"

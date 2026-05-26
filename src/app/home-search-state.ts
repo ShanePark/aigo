@@ -62,7 +62,8 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       nursingRoom: params.nursing === "on" ? true : undefined,
       diaperChangingTable: params.diaperChangingTable === "on" ? true : undefined,
       kidsToilet: params.kidsToilet === "on" ? true : undefined,
-      babyChair: params.babyChair === "on" ? true : undefined
+      babyChair: params.babyChair === "on" ? true : undefined,
+      foodAllowed: params.foodAllowed === "on" ? true : undefined
     },
     taxonomy: taxonomyActivityTypes
       ? {

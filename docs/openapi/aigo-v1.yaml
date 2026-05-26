@@ -1177,6 +1177,8 @@ components:
               type: boolean
             babyChair:
               type: boolean
+            foodAllowed:
+              type: boolean
         preferenceMode:
           type: string
           enum: [soft, required]

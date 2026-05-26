@@ -324,7 +324,8 @@ describe("place schemas", () => {
       kidsCafeOnly: true,
       preferences: {
         strollerFriendly: true,
-        babyChair: true
+        babyChair: true,
+        foodAllowed: true
       }
     });
 
@@ -336,6 +337,7 @@ describe("place schemas", () => {
     expect(result.city).toBe("Lapu-Lapu");
     expect(result.preferences?.strollerFriendly).toBe(true);
     expect(result.preferences?.babyChair).toBe(true);
+    expect(result.preferences?.foodAllowed).toBe(true);
   });
 
   it("accepts required preference search mode", () => {

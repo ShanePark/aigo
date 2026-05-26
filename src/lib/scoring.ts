@@ -210,6 +210,7 @@ function scorePlaceInternal(
     applyTriStatePreference("diaperChangingTable", "DIAPER_TABLE", place.diaperChangingTable, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("kidsToilet", "KIDS_TOILET", place.kidsToilet, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("babyChair", "BABY_CHAIR", place.babyChair, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("foodAllowed", "FOOD_ALLOWED", place.foodAllowed, input, reasonCodes, (delta) => addScore("preferences", delta));
   }
 
   if (mode.includeOpeningHours) {

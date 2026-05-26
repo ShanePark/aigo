@@ -421,7 +421,8 @@ const searchPlacesBaseSchema = z.object({
       nursingRoom: z.boolean().optional(),
       diaperChangingTable: z.boolean().optional(),
       kidsToilet: z.boolean().optional(),
-      babyChair: z.boolean().optional()
+      babyChair: z.boolean().optional(),
+      foodAllowed: z.boolean().optional()
     })
     .optional(),
   sort: z.enum(["recommended", "distance", "rating", "updatedAt"]).default("recommended"),

@@ -232,7 +232,8 @@ curl -sS http://localhost:3000/v1/places/search \
       "elevator": true,
       "nursingRoom": true,
       "diaperChangingTable": true,
-      "babyChair": true
+      "babyChair": true,
+      "foodAllowed": true
     },
     "limit": 20
   }'
