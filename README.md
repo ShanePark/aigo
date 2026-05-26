@@ -212,10 +212,10 @@ SSH_PRIVATE_KEY
 Optional repository secret:
 
 ```bash
-DEPLOY_PATH=/aigo
+DEPLOY_PATH=/home/shane/aigo
 ```
 
-If `DEPLOY_PATH` is not set, the workflow deploys from `/aigo`.
+If `DEPLOY_PATH` is not set, the workflow deploys from `/home/shane/aigo`.
 
 ## Useful Commands
 
