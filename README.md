@@ -74,6 +74,14 @@ All `/v1` agent API routes require bearer auth:
 Authorization: Bearer $AIGO_API_KEY
 ```
 
+For live place-data work, agents should target the deployed API:
+
+```bash
+export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
+```
+
+Use `http://localhost:3000` only for local development or route implementation testing. The local default key `change-me` must not be used against the deployed API.
+
 ## App Auth And Visits
 
 User-facing app routes use the `aigo_session` httpOnly, sameSite=lax cookie instead of the `/v1` bearer token. In development, `POST /api/auth/dev-login` creates or reuses the `dev@aigo.local` user and issues a local session; `POST /api/auth/logout` clears it; `GET /api/me` returns the current viewer.
@@ -234,7 +242,9 @@ pnpm tsx scripts/apply-taxonomy-migration.ts --limit=5
 ## API Example
 
 ```bash
-curl -sS http://localhost:3000/v1/places/search \
+export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
+
+curl -sS "$AIGO_API_BASE_URL/v1/places/search" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
