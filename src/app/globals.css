@@ -717,11 +717,11 @@ h3 {
 }
 
 .advanced-filter-layout {
-  align-items: flex-start;
+  align-items: stretch;
   display: grid;
   gap: 10px;
   grid-auto-flow: dense;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .advanced-filter-groups {
@@ -733,6 +733,7 @@ h3 {
 
 .advanced-filter-group,
 .child-profile-panel {
+  align-content: start;
   background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
@@ -749,27 +750,27 @@ h3 {
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(1) {
-  grid-column: span 1;
+  grid-column: span 2;
   order: 1;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(2) {
-  grid-column: span 2;
+  grid-column: span 3;
   order: 2;
-}
-
-.child-profile-panel {
-  grid-column: span 2;
-  order: 3;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(3) {
   grid-column: span 1;
+  order: 3;
+}
+
+.child-profile-panel {
+  grid-column: span 3;
   order: 4;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(4) {
-  grid-column: span 2;
+  grid-column: span 3;
   order: 5;
 }
 
@@ -1405,7 +1406,7 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  max-width: 430px;
+  max-width: 370px;
 }
 
 .child-profile-card {
@@ -1415,12 +1416,17 @@ h3 {
   display: grid;
   gap: 6px;
   justify-items: center;
-  max-width: 124px;
-  min-height: 128px;
-  min-width: 104px;
+  max-width: 112px;
+  min-height: 116px;
+  min-width: 96px;
   padding: 8px 7px 7px;
   position: relative;
   text-align: center;
+}
+
+.child-profile-card .child-profile-icon {
+  height: 76px;
+  width: 76px;
 }
 
 .child-profile-card.tone-blue,
