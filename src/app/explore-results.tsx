@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UrlObject } from "url";
-import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
+import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
@@ -573,9 +573,9 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
             <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
             <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
               {metrics.map((metric) => (
-                <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.title}>
+                <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
                   {metric.icon ? metric.icon : null}
-                  {metric.label ? <span>{metric.label}</span> : null}
+                  {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
                   <strong>{metric.value}</strong>
                 </span>
               ))}
@@ -604,15 +604,21 @@ function SortControls({
 }) {
   return (
     <nav className="sort-control" aria-label="목록 정렬">
-      <span className="sort-control-label">정렬기준</span>
+      <span className="sort-control-label">
+        <SlidersHorizontal size={13} aria-hidden="true" />
+        정렬기준
+      </span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
-        관련도
+        <Target size={13} aria-hidden="true" />
+        <span>관련도</span>
       </Link>
       <Link className={`sort-option ${activeSort === "distance" ? "is-active" : ""}`} href={sortHref(params, "distance")}>
-        거리
+        <MapPin size={13} aria-hidden="true" />
+        <span>거리</span>
       </Link>
       <Link className={`sort-option ${activeSort === "rating" ? "is-active" : ""}`} href={sortHref(params, "rating")}>
-        평가
+        <Star size={13} aria-hidden="true" />
+        <span>평가</span>
       </Link>
     </nav>
   );
@@ -883,12 +889,15 @@ function resultCardMetrics(place: SearchItem) {
   return [
     {
       icon: <MapPin size={13} aria-hidden="true" />,
+      key: "distance",
       label: "",
       title: "검색 기준점에서의 직선 거리",
       tone: distanceTone(place.distanceKm),
       value: distanceLabel(place.distanceKm)
     },
     {
+      icon: <Target size={13} aria-hidden="true" />,
+      key: "relevance",
       label: "관련도",
       title: searchRelevanceScoreTitle(place.score),
       tone: scoreTone(place.score),
@@ -896,6 +905,7 @@ function resultCardMetrics(place: SearchItem) {
     },
     {
       icon: <Star size={13} aria-hidden="true" />,
+      key: "evaluation",
       label: "평가",
       title: evaluationTitle,
       tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,
