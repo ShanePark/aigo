@@ -545,8 +545,11 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       <Link className="result-card-main" href={placeDetailHref(place.placeId, returnHref)}>
         <div className="result-image-frame">
           <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-          <span className="rank-badge" aria-label={`${index}번째 결과`}>
-            {index}
+          <span className="result-image-meta">
+            <span className="rank-badge" aria-label={`${index}번째 결과`}>
+              {index}
+            </span>
+            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill result-image-category" />
           </span>
         </div>
         <div className="result-card-body">

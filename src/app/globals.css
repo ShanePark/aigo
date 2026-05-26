@@ -2498,6 +2498,26 @@ h3 {
   z-index: 4;
 }
 
+.result-image-meta {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+  left: 5px;
+  position: absolute;
+  top: 5px;
+  z-index: 4;
+}
+
+.result-image-meta .rank-badge {
+  left: auto;
+  position: static;
+  top: auto;
+}
+
+.result-image-category {
+  display: none;
+}
+
 .distance-pill {
   background: var(--mint-soft);
   border: 1px solid var(--line-strong);
@@ -7411,20 +7431,42 @@ dd {
   }
 
   .results-panel .result-card-main {
-    --result-thumb-size: 96px;
+    --result-thumb-size: 78px;
     grid-template-columns: var(--result-thumb-size) minmax(0, 1fr);
   }
 
-  .result-card-body {
-    gap: 7px;
-    padding: 10px;
-  }
-
-  .result-card-topline {
+  .results-panel .results {
     gap: 6px;
   }
 
+  .results-panel .result-card {
+    box-shadow: none;
+    min-height: 0;
+  }
+
+  .results-panel .result-image-frame {
+    min-height: var(--result-thumb-size);
+  }
+
+  .result-card-body {
+    gap: 4px;
+    padding: 7px 56px 7px 8px;
+  }
+
+  .result-card-topline {
+    gap: 4px;
+    min-height: 0;
+    order: 2;
+    padding-right: 0;
+  }
+
+  .result-card-topline > .category-pill {
+    display: none;
+  }
+
   .result-metric-row {
+    flex-wrap: nowrap;
+    gap: 3px;
     justify-content: flex-start;
     margin-left: 0;
   }
@@ -7438,26 +7480,92 @@ dd {
   }
 
   .rank-badge {
-    font-size: 12px;
+    font-size: 11px;
+    height: 26px;
+    min-width: 26px;
+    padding: 0 7px;
+  }
+
+  .result-image-meta {
+    gap: 4px;
+    left: 4px;
+    top: 4px;
+  }
+
+  .result-image-category {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 18px rgba(24, 33, 29, 0.18);
+    display: inline-flex;
+    font-size: 10px;
+    gap: 0;
+    max-width: 44px;
+    min-height: 26px;
+    padding: 0 5px;
+  }
+
+  .result-image-category img,
+  .result-image-category svg {
+    display: none;
   }
 
   .category-pill,
   .distance-pill,
   .score-pill,
   .result-metric-pill {
-    padding-inline: 7px;
+    padding-inline: 5px;
+  }
+
+  .result-metric-pill {
+    border-radius: 999px;
+    font-size: 10px;
+    gap: 2px;
+    min-height: 22px;
+  }
+
+  .result-metric-pill svg {
+    height: 11px;
+    width: 11px;
+  }
+
+  .result-metric-pill span {
+    max-width: 3.5em;
+    overflow: hidden;
+    text-overflow: clip;
   }
 
   .result-card-body > h3 {
-    font-size: 16px;
+    font-size: 14px;
+    line-height: 1.22;
+    order: 1;
   }
 
   .result-card-summary {
-    font-size: var(--text-xs);
+    display: none;
+  }
+
+  .keyword-row {
+    display: none;
   }
 
   .result-card-title-row {
     gap: 6px;
+  }
+
+  .result-card > .place-save-controls {
+    gap: 4px;
+    right: 7px;
+    top: 7px;
+  }
+
+  .place-save-controls.is-compact .place-save-button {
+    height: 28px;
+    min-height: 28px;
+    width: 28px;
+  }
+
+  .place-save-controls.is-compact .place-save-button svg {
+    height: 14px;
+    width: 14px;
   }
 
   h1 {
