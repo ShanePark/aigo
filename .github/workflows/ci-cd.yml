@@ -55,6 +55,22 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Notify Slack deployment start
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            exit 0
+          fi
+
+          short_sha="${COMMIT_SHA::7}"
+          payload="$(jq -n \
+            --arg text ":baby: AiGo 배포를 시작했어요. 앱이 잠시 재시작될 수 있습니다. (${short_sha})" \
+            '{username: "AiGo Deploy", icon_emoji: ":baby:", text: $text}')"
+
+          curl -fsS -X POST -H "Content-Type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -74,3 +90,37 @@ jobs:
             git pull --ff-only origin main
             docker compose up -d --build --remove-orphans
             docker image prune -f
+
+      - name: Notify Slack deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            exit 0
+          fi
+
+          short_sha="${COMMIT_SHA::7}"
+          payload="$(jq -n \
+            --arg text ":child: AiGo 앱이 올라왔어요. main 배포 완료. (${short_sha})" \
+            '{username: "AiGo Deploy", icon_emoji: ":child:", text: $text}')"
+
+          curl -fsS -X POST -H "Content-Type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Notify Slack deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            exit 0
+          fi
+
+          short_sha="${COMMIT_SHA::7}"
+          payload="$(jq -n \
+            --arg text ":children_crossing: AiGo 배포가 실패했어요. 앱 상태를 확인해주세요. (${short_sha})" \
+            '{username: "AiGo Deploy", icon_emoji: ":children_crossing:", text: $text}')"
+
+          curl -fsS -X POST -H "Content-Type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL"

@@ -208,13 +208,19 @@ GitHub Actions runs lint, typecheck, tests, a Next.js production build, and a Do
 
 Pushes to `main` also deploy through SSH. The deployment host should already have this repository checked out, a populated `.env`, Docker Compose, and the external `aigo_caddy` network used by `docker-compose.yml`.
 
-Required repository secrets:
+Required repository secrets for deployment:
 
 ```bash
 SSH_IP
 SSH_PORT
 SSH_USER
 SSH_PRIVATE_KEY
+```
+
+Required repository secret for Slack deployment notifications:
+
+```bash
+SLACK_WEBHOOK_URL
 ```
 
 Optional repository secret:
