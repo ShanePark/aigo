@@ -7487,9 +7487,8 @@ dd {
   }
 
   .result-image-meta {
-    gap: 4px;
-    left: 4px;
-    top: 4px;
+    inset: 4px 4px auto 4px;
+    justify-content: space-between;
   }
 
   .result-image-meta .result-image-category {
@@ -7503,6 +7502,7 @@ dd {
     justify-content: center;
     max-width: 26px;
     min-height: 26px;
+    min-width: 26px;
     overflow: hidden;
     padding: 0;
     width: 26px;
