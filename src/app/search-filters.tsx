@@ -362,7 +362,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
                 </button>
                 <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
                   <Check size={15} aria-hidden="true" />
-                  아이 적용
+                  아이 추가
                 </button>
               </AppModalActions>
             </div>
