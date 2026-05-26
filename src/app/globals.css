@@ -1850,8 +1850,6 @@ h3 {
   box-shadow: 0 8px 18px var(--marker-shadow);
   color: var(--marker-text);
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 900;
   height: 32px;
   justify-content: center;
   position: relative;
@@ -1861,6 +1859,13 @@ h3 {
     box-shadow 160ms ease,
     transform 160ms ease;
   width: 32px;
+}
+
+.map-place-marker svg {
+  display: block;
+  height: 17px;
+  stroke-width: 2.8;
+  width: 17px;
 }
 
 .map-place-marker.is-hovered span {

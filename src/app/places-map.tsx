@@ -1,10 +1,12 @@
 "use client";
 
 import { Home, LocateFixed, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { createElement, useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
+import { placeCategoryIcon, placeCategoryLabel } from "@/app/place-category-badge";
 
 export type MapPlace = {
   category: string;
@@ -245,14 +247,15 @@ export function PlacesMap({
         }).addTo(markers);
       }
 
-      places.forEach((place, index) => {
+      places.forEach((place) => {
+        const categoryLabel = placeCategoryLabel(place.category);
         const marker = L.marker([place.lat, place.lng], {
-          icon: placeIcon(L, place.category, index + 1),
+          icon: placeIcon(L, place.category),
           keyboard: true,
-          title: `${place.name} ${place.distance}`
+          title: `${place.name} ${place.distance} ${categoryLabel}`
         });
 
-        marker.bindTooltip(`${place.name} ${place.distance}`, {
+        marker.bindTooltip(`${place.name} ${place.distance} · ${categoryLabel}`, {
           direction: "top",
           offset: [0, -18],
           opacity: 0.92
@@ -491,13 +494,18 @@ function getOrCreateMarkerLayer(L: LeafletModule, map: LeafletMap, markersRef: M
   return markers;
 }
 
-function placeIcon(L: LeafletModule, category: string, index: number) {
+function placeIcon(L: LeafletModule, category: string) {
   return L.divIcon({
     className: `map-place-marker ${markerTone(category)}`,
-    html: `<span>${index}</span>`,
+    html: `<span>${categoryIconHtml(category)}</span>`,
     iconAnchor: [16, 16],
     iconSize: [32, 32]
   });
+}
+
+function categoryIconHtml(category: string) {
+  const Icon = placeCategoryIcon(category);
+  return renderToStaticMarkup(createElement(Icon, { "aria-hidden": true, focusable: false, size: 17, strokeWidth: 2.8 }));
 }
 
 function originIcon(L: LeafletModule) {
