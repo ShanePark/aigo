@@ -67,7 +67,7 @@ const FILTER_GROUPS: Array<{
     title: "아기 돌봄",
     filters: [
       { key: "nursing", label: "수유실", icon: Baby },
-      { key: "diaperChangingTable", label: "기저귀대", icon: Baby },
+      { key: "diaperChangingTable", label: "기저귀갈이대", icon: Baby },
       { key: "kidsToilet", label: "유아화장실", icon: Toilet }
     ]
   },
