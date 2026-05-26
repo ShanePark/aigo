@@ -155,6 +155,91 @@ describe("scorePlace", () => {
     expect(matched.reasonCodes).toContain("TAXONOMY_ACTIVITY_MATCH");
   });
 
+  it("prioritizes exact indoor places over mixed indoor-outdoor places", () => {
+    const input = {
+      ...baseInput,
+      preferences: {
+        indoorTypes: ["indoor", "mixed"]
+      }
+    } satisfies SearchPlacesInput;
+    const shared = {
+      primaryCategory: "experience_center",
+      tags: [],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 4
+    };
+    const indoor = scorePlace({ ...shared, indoorType: "indoor" }, input);
+    const mixed = scorePlace({ ...shared, indoorType: "mixed" }, input);
+
+    expect(indoor.score).toBeGreaterThan(mixed.score);
+    expect(indoor.scoreBreakdown.preferences - mixed.scoreBreakdown.preferences).toBeGreaterThanOrEqual(20);
+  });
+
+  it("prioritizes dedicated reading and indoor hands-on destinations", () => {
+    const shared = {
+      tags: [],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      indoorType: "indoor",
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 4
+    };
+    const readingInput = {
+      ...baseInput,
+      taxonomy: { mode: "soft", activityTypes: ["reading_books"] }
+    } satisfies SearchPlacesInput;
+    const library = scorePlace(
+      { ...shared, primaryCategory: "library", taxonomy: { ...emptyPlaceTaxonomy(), sourceBacked: { ...emptyPlaceTaxonomy().sourceBacked, activityTypes: ["reading_books"] } } },
+      readingInput
+    );
+    const broadCenter = scorePlace(
+      { ...shared, primaryCategory: "experience_center", taxonomy: { ...emptyPlaceTaxonomy(), sourceBacked: { ...emptyPlaceTaxonomy().sourceBacked, activityTypes: ["reading_books"] } } },
+      readingInput
+    );
+    const handsInput = {
+      ...baseInput,
+      taxonomy: { mode: "soft", activityTypes: ["hands_on_experience"] }
+    } satisfies SearchPlacesInput;
+    const indoorMuseum = scorePlace(
+      {
+        ...shared,
+        primaryCategory: "museum",
+        taxonomy: { ...emptyPlaceTaxonomy(), sourceBacked: { ...emptyPlaceTaxonomy().sourceBacked, activityTypes: ["hands_on_experience"] } }
+      },
+      handsInput
+    );
+    const outdoorVenue = scorePlace(
+      {
+        ...shared,
+        indoorType: "outdoor",
+        primaryCategory: "sports_venue",
+        taxonomy: { ...emptyPlaceTaxonomy(), sourceBacked: { ...emptyPlaceTaxonomy().sourceBacked, activityTypes: ["hands_on_experience"] } }
+      },
+      handsInput
+    );
+
+    expect(library.scoreBreakdown.match).toBeGreaterThan(broadCenter.scoreBreakdown.match);
+    expect(indoorMuseum.scoreBreakdown.match).toBeGreaterThan(outdoorVenue.scoreBreakdown.match);
+  });
+
   it("boosts selected facilities without excluding missing toilet evidence", () => {
     const input = {
       ...baseInput,

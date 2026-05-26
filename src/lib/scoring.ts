@@ -183,7 +183,7 @@ function scorePlaceInternal(
       addScore("match", Math.min(4, matchedTags.length * 1.5));
       reasonCodes.add("TAG_MATCH");
     }
-    applyTaxonomySignal(place.taxonomy, place.playFeatures, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
+    applyTaxonomySignal(place, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
   }
 
   if (mode.includeAge) {
@@ -193,8 +193,11 @@ function scorePlaceInternal(
   if (mode.includePreferences) {
     const indoorTypes = input.preferences?.indoorTypes;
     if (indoorTypes?.length) {
-      if (indoorTypes.includes(place.indoorType as never)) {
-        addScore("preferences", 10);
+      if (place.indoorType === "indoor" && indoorTypes.includes("indoor")) {
+        addScore("preferences", indoorPreferenceDelta(place, input));
+        reasonCodes.add("INDOOR_TYPE_MATCH");
+      } else if (place.indoorType === "mixed" && indoorTypes.includes("mixed")) {
+        addScore("preferences", 6);
         reasonCodes.add("INDOOR_TYPE_MATCH");
       } else if (place.indoorType === "unknown") {
         reasonCodes.add("INDOOR_TYPE_UNKNOWN");
@@ -437,28 +440,27 @@ function pricingAdmissionItems(record: Record<string, unknown>) {
 }
 
 function applyTaxonomySignal(
-  taxonomy: PlaceTaxonomy | null | undefined,
-  playFeatures: Record<string, unknown> | null | undefined,
+  place: Pick<ScoreablePlace, "indoorType" | "playFeatures" | "primaryCategory" | "taxonomy">,
   requested: SearchPlacesInput["taxonomy"] | undefined,
   reasonCodes: Set<string>,
   addScore: (delta: number) => void
 ) {
   if (!requested || !hasRequestedTaxonomyFacets(requested)) return;
 
-  const placeFacets = combinedPlaceTaxonomyFacets(taxonomy, playFeatures);
+  const placeFacets = combinedPlaceTaxonomyFacets(place.taxonomy, place.playFeatures);
   let hasUnknownFacetFamily = false;
   for (const family of taxonomyFacetKeys) {
     const requestedValues = requested[family] ?? [];
     if (requestedValues.length === 0) continue;
 
     const availableValues = placeFacets[family];
-    const matchCount = requestedValues.filter((value) => availableValues.has(value)).length;
-    if (matchCount === 0) {
+    const matchedValues = requestedValues.filter((value) => availableValues.has(value));
+    if (matchedValues.length === 0) {
       if (availableValues.size === 0) hasUnknownFacetFamily = true;
       continue;
     }
 
-    addScore(taxonomyFacetDelta(family, matchCount));
+    addScore(taxonomyFacetDelta(family, matchedValues, place));
     reasonCodes.add(taxonomyReasonCode(family));
   }
 
@@ -484,10 +486,11 @@ function hasRequestedTaxonomyFacets(taxonomy: NonNullable<SearchPlacesInput["tax
   return taxonomyFacetKeys.some((family) => (taxonomy[family]?.length ?? 0) > 0);
 }
 
-function taxonomyFacetDelta(family: TaxonomyFacetFamily, matchCount: number) {
+function taxonomyFacetDelta(family: TaxonomyFacetFamily, requestedValues: readonly string[], place: Pick<ScoreablePlace, "indoorType" | "primaryCategory">) {
+  const matchCount = requestedValues.length;
   switch (family) {
     case "activityTypes":
-      return Math.min(36, matchCount * 24);
+      return Math.min(48, requestedValues.reduce((sum, value) => sum + activityTypeDelta(value, place), 0));
     case "visitUseCases":
     case "familyFitGates":
       return Math.min(4, matchCount * 2);
@@ -500,6 +503,24 @@ function taxonomyFacetDelta(family: TaxonomyFacetFamily, matchCount: number) {
     default:
       return 0;
   }
+}
+
+function activityTypeDelta(value: string, place: Pick<ScoreablePlace, "indoorType" | "primaryCategory">) {
+  if (value === "reading_books") {
+    if (["library", "toy_library"].includes(place.primaryCategory)) return 38;
+    if (place.primaryCategory === "indoor_playground") return 16;
+    return 8;
+  }
+  if (value === "hands_on_experience") {
+    const categoryDelta = ["science_museum", "museum"].includes(place.primaryCategory)
+      ? 30
+      : place.primaryCategory === "experience_center"
+        ? 24
+        : 14;
+    const indoorDelta = place.indoorType === "indoor" ? 8 : place.indoorType === "mixed" ? 0 : -6;
+    return Math.max(8, categoryDelta + indoorDelta);
+  }
+  return 24;
 }
 
 function taxonomyReasonCode(family: TaxonomyFacetFamily) {
@@ -530,6 +551,9 @@ function applyEvidenceCaps(value: number, place: ScoreablePlace, input: SearchPl
 
   if (isImmediateVisitContext(input) && openingHoursStatus(place.openingHours, now).state === "unknown") {
     cap = Math.min(cap, input.visitContext === "nearbyNow" ? 82 : 92);
+  }
+  if (isImmediateVisitContext(input) && openingHoursStatus(place.openingHours, now).state === "closed") {
+    cap = Math.min(cap, input.visitContext === "nearbyNow" ? 72 : 86);
   }
 
   if (isImmediateKidActivityIntent(input) && isGenericFamilySpace(place.primaryCategory) && !isKidPrimaryPlace(place.primaryCategory, new Set(place.tags))) {
@@ -766,6 +790,13 @@ function applyTriStatePreference(
   } else {
     reasonCodes.add(`${codePrefix}_UNKNOWN`);
   }
+}
+
+function indoorPreferenceDelta(place: Pick<ScoreablePlace, "distanceKm" | "indoorType">, input: SearchPlacesInput) {
+  if (input.visitContext === "dayTrip" && typeof place.distanceKm === "number" && place.distanceKm < 15) {
+    return 6;
+  }
+  return 28;
 }
 
 function applyToiletNearbyPreference(
