@@ -27,11 +27,20 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-aigo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-aigo}
       AIGO_API_KEY: ${AIGO_API_KEY:?Set AIGO_API_KEY in .env}
       TZ: ${TZ:-Asia/Seoul}
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    expose:
+      - "3000"
     volumes:
       - ./data/uploads:/app/data/uploads
+    networks:
+      - default
+      - caddy
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+
+networks:
+  default:
+    name: aigo_internal
+  caddy:
+    name: aigo_caddy

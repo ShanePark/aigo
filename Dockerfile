@@ -2,6 +2,7 @@ FROM node:24-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml* ./
+COPY pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM node:24-alpine AS builder
@@ -20,4 +21,4 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]

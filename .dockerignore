@@ -1,0 +1,14 @@
+.env
+.env*
+.git
+.next
+.next-build
+node_modules
+coverage
+dist
+test-results
+tsconfig.tsbuildinfo
+*.log
+
+data
+agent-research
