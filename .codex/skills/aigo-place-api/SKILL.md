@@ -120,8 +120,11 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 6. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
-   - The default development key `change-me` is local-only. When `NODE_ENV=production` or `AIGO_REQUIRE_STRONG_API_KEY=true`, configure a non-default `AIGO_API_KEY` before calling the API.
-   - Base URL is normally `http://localhost:3000`.
+   - Real place data work should target the deployed AiGo API at `https://aigo.o-r.kr` by default. Set `AIGO_API_BASE_URL=https://aigo.o-r.kr` for curl commands and helper scripts unless the user explicitly asks for local-only development data work or route implementation testing.
+   - If `AIGO_API_KEY` is not already available in the current shell/session, ask the user for the production AiGo API key before any duplicate, search, create, update, delete, image-health, or version-history API call. Do not guess, use the local default, or proceed with unauthenticated calls.
+   - Keep API keys out of tracked files, research notes, command transcripts, commit messages, and final summaries. Use a session-scoped environment variable or an inline environment assignment that does not echo the value back. Do not store production keys in `.env` or any repository file unless the user explicitly asks to update deployment configuration.
+   - The default development key `change-me` is local-only. Never use it against `https://aigo.o-r.kr`. When targeting localhost, only use `change-me` for disposable local development data and clearly state that the work is not mutating production data.
+   - Before mutation, confirm the target base URL in the work notes or user update. If the requested operation is meant to affect the live site and the configured base URL is localhost or unclear, stop and correct it before calling the API.
    - Creates use `POST /v1/places`.
    - Updates use `PATCH /v1/places/{placeId}`.
    - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. The endpoint performs a source-backed soft delete by setting `status: "closed"` and preserving sources, images, and version history. Requests must include `confirmation: "close_place"`, the exact `confirmName`, at least one source, and a `changeSummary`.
@@ -605,7 +608,9 @@ If only logos, favicons, generic thumbnails, unrelated branch images, or rights-
 Duplicate check:
 
 ```bash
-curl -sS http://localhost:3000/v1/places/duplicates \
+export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
+
+curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -620,7 +625,7 @@ curl -sS http://localhost:3000/v1/places/duplicates \
 Address-based duplicate check when coordinates are not source-backed:
 
 ```bash
-curl -sS http://localhost:3000/v1/places/duplicates \
+curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -635,7 +640,7 @@ curl -sS http://localhost:3000/v1/places/duplicates \
 Create:
 
 ```bash
-curl -sS http://localhost:3000/v1/places \
+curl -sS "$AIGO_API_BASE_URL/v1/places" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -684,7 +689,7 @@ curl -sS http://localhost:3000/v1/places \
 Update:
 
 ```bash
-curl -sS -X PATCH http://localhost:3000/v1/places/<placeId> \
+curl -sS -X PATCH "$AIGO_API_BASE_URL/v1/places/<placeId>" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -709,10 +714,10 @@ curl -sS -X PATCH http://localhost:3000/v1/places/<placeId> \
 Verify:
 
 ```bash
-curl -sS http://localhost:3000/v1/places/<placeId> \
+curl -sS "$AIGO_API_BASE_URL/v1/places/<placeId>" \
   -H "Authorization: Bearer $AIGO_API_KEY"
 
-curl -sS http://localhost:3000/v1/places/<placeId>/versions \
+curl -sS "$AIGO_API_BASE_URL/v1/places/<placeId>/versions" \
   -H "Authorization: Bearer $AIGO_API_KEY"
 ```
 

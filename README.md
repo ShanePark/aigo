@@ -74,6 +74,14 @@ All `/v1` agent API routes require bearer auth:
 Authorization: Bearer $AIGO_API_KEY
 ```
 
+For live place-data work, agents should target the deployed API:
+
+```bash
+export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
+```
+
+Use `http://localhost:3000` only for local development or route implementation testing. The local default key `change-me` must not be used against the deployed API.
+
 ## App Auth And Visits
 
 User-facing app routes use the `aigo_session` httpOnly, sameSite=lax cookie instead of the `/v1` bearer token. In development, `POST /api/auth/dev-login` creates or reuses the `dev@aigo.local` user and issues a local session; `POST /api/auth/logout` clears it; `GET /api/me` returns the current viewer.
@@ -194,6 +202,29 @@ AIGO_UPLOAD_DIR=./data/uploads
 
 Dev login is available automatically outside production. In `NODE_ENV=production`, `AIGO_DEV_LOGIN_ENABLED=true` is ignored unless `AIGO_ENV` is `local` or `staging`, so real production cannot expose the shared dev user by flipping a single flag. Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
 
+## CI/CD
+
+GitHub Actions runs lint, typecheck, tests, a Next.js production build, and a Docker image build for pull requests and pushes to `main`.
+
+Pushes to `main` also deploy through SSH. The deployment host should already have this repository checked out, a populated `.env`, Docker Compose, and the external `aigo_caddy` network used by `docker-compose.yml`.
+
+Required repository secrets:
+
+```bash
+SSH_IP
+SSH_PORT
+SSH_USER
+SSH_PRIVATE_KEY
+```
+
+Optional repository secret:
+
+```bash
+DEPLOY_PATH=/home/shane/aigo
+```
+
+If `DEPLOY_PATH` is not set, the workflow deploys from `/home/shane/aigo`.
+
 ## Useful Commands
 
 ```bash
@@ -211,7 +242,9 @@ pnpm tsx scripts/apply-taxonomy-migration.ts --limit=5
 ## API Example
 
 ```bash
-curl -sS http://localhost:3000/v1/places/search \
+export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
+
+curl -sS "$AIGO_API_BASE_URL/v1/places/search" \
   -H "Authorization: Bearer $AIGO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

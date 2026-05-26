@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import "./globals.css";
+import { GoogleAnalytics } from "./google-analytics";
 import { TopbarActions } from "./topbar-actions";
 import { isDevLoginEnabled } from "@/lib/app-auth";
 
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
+        <GoogleAnalytics />
         <header className="topbar">
           <Link className="brand" href="/">
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
