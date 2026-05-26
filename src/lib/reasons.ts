@@ -21,6 +21,8 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   AGE_HINT_MISMATCH: { labelKo: "월령은 보조 후보", group: "age", tone: "partial", basePriority: 22 },
   AGE_HINT_UNKNOWN: { labelKo: "권장 월령 미확인", group: "age", tone: "unknown", basePriority: 24 },
   CATEGORY_MATCH: { labelKo: "카테고리 일치", group: "match", tone: "positive", basePriority: 55 },
+  NARROW_CATEGORY_SELECTED_BOOST: { labelKo: "목적 카테고리 선택", group: "match", tone: "positive", basePriority: 26 },
+  NARROW_CATEGORY_DEEMPHASIZED: { labelKo: "목적이 좁은 후보", group: "match", tone: "partial", basePriority: 53 },
   TAG_MATCH: { labelKo: "태그 일치", group: "match", tone: "positive", basePriority: 56 },
   QUERY_NAME_EXACT: { labelKo: "검색어와 장소명 정확히 일치", group: "match", tone: "positive", basePriority: 18 },
   QUERY_NAME_MATCH: { labelKo: "장소명에 검색어 포함", group: "match", tone: "positive", basePriority: 19 },

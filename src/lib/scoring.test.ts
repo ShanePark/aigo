@@ -122,6 +122,48 @@ describe("scorePlace", () => {
     expect(unknown.reasonCodes).toContain("TAXONOMY_UNKNOWN");
   });
 
+  it("de-emphasizes narrow shopping and dining categories unless explicitly selected", () => {
+    const shared = {
+      tags: [],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "yes",
+      babyChair: "yes",
+      foodAllowed: "yes",
+      distanceKm: 4,
+      scoring: {
+        placeScore: 7.4,
+        placeScoreRationale: "가족 편의 근거가 있는 보조 목적지.",
+        externalRatingScore: 7.2,
+        externalReviewCount: 60,
+        searchEvidenceScore: 7,
+        scoreSignals: {},
+        scoreUpdatedAt: "2026-05-22T09:00:00+09:00"
+      }
+    };
+    const toyStoreAll = scorePlace({ ...shared, primaryCategory: "toy_store" }, baseInput);
+    const toyStoreSelected = scorePlace({ ...shared, primaryCategory: "toy_store" }, { ...baseInput, primaryCategories: ["toy_store"] });
+    const restaurantAll = scorePlace({ ...shared, primaryCategory: "family_restaurant", tags: ["놀이방식당"] }, baseInput);
+    const restaurantSelected = scorePlace(
+      { ...shared, primaryCategory: "family_restaurant", tags: ["놀이방식당"] },
+      { ...baseInput, primaryCategories: ["family_restaurant"] }
+    );
+
+    expect(toyStoreAll.reasonCodes).toContain("NARROW_CATEGORY_DEEMPHASIZED");
+    expect(toyStoreSelected.reasonCodes).toContain("NARROW_CATEGORY_SELECTED_BOOST");
+    expect(toyStoreSelected.scoreBreakdown.match - toyStoreAll.scoreBreakdown.match).toBeGreaterThanOrEqual(30);
+    expect(restaurantAll.reasonCodes).toContain("NARROW_CATEGORY_DEEMPHASIZED");
+    expect(restaurantSelected.reasonCodes).toContain("NARROW_CATEGORY_SELECTED_BOOST");
+    expect(restaurantSelected.scoreBreakdown.match - restaurantAll.scoreBreakdown.match).toBeGreaterThanOrEqual(30);
+  });
+
   it("uses play feature evidence for activity filter ranking", () => {
     const input = {
       ...baseInput,
