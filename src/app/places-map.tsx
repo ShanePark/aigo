@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
+import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { placeCategoryIcon, placeCategoryLabel } from "@/app/place-category-badge";
 
 export type MapPlace = {
@@ -504,6 +505,11 @@ function placeIcon(L: LeafletModule, category: string) {
 }
 
 function categoryIconHtml(category: string) {
+  const imageSrc = placeCategoryIconImage(category);
+  if (imageSrc) {
+    return `<img src="${imageSrc}" alt="" aria-hidden="true" draggable="false" />`;
+  }
+
   const Icon = placeCategoryIcon(category);
   return renderToStaticMarkup(createElement(Icon, { "aria-hidden": true, focusable: false, size: 17, strokeWidth: 2.8 }));
 }

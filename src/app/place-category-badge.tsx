@@ -20,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 import { placeCategoryLabel } from "@/app/place-category";
 
 export { placeCategoryLabel } from "@/app/place-category";
+export { placeCategoryIconImage } from "@/app/place-category-icon-image";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   accommodation: Hotel,

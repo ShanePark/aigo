@@ -1868,6 +1868,15 @@ h3 {
   width: 17px;
 }
 
+.map-place-marker img {
+  display: block;
+  height: 30px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  width: 30px;
+}
+
 .map-place-marker.is-hovered span {
   border-color: var(--marker-border);
   box-shadow:

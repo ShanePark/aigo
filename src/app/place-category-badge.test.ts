@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { placeCategoryLabel } from "@/app/place-category";
 
 describe("place category display helpers", () => {
@@ -15,5 +16,10 @@ describe("place category display helpers", () => {
     expect(placeCategoryLabel("art_museum")).toBe("미술관");
     expect(placeCategoryLabel("playground")).toBe("놀이터");
     expect(placeCategoryLabel("zoo")).toBe("동물원");
+  });
+
+  it("uses the generated WebP marker image for zoo places", () => {
+    expect(placeCategoryIconImage("zoo")).toBe("/icons/place-categories/zoo.webp");
+    expect(placeCategoryIconImage("park")).toBeNull();
   });
 });
