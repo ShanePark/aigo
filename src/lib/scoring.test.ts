@@ -159,8 +159,16 @@ describe("scorePlace", () => {
     const input = {
       ...baseInput,
       preferences: {
+        indoorTypes: ["indoor", "mixed"],
         parkingAvailable: true,
-        toiletNearby: true
+        toiletNearby: true,
+        strollerFriendly: true,
+        elevator: true,
+        nursingRoom: true,
+        diaperChangingTable: true,
+        kidsToilet: true,
+        babyChair: true,
+        foodAllowed: true
       }
     } satisfies SearchPlacesInput;
     const shared = {
@@ -169,7 +177,7 @@ describe("scorePlace", () => {
       dataConfidence: "agent_collected",
       minRecommendedAgeMonths: 12,
       maxRecommendedAgeMonths: 96,
-      indoorType: "outdoor",
+      indoorType: "unknown",
       strollerFriendly: "unknown",
       nursingRoom: "unknown",
       diaperChangingTable: "unknown",
@@ -182,7 +190,15 @@ describe("scorePlace", () => {
     const matched = scorePlace(
       {
         ...shared,
+        indoorType: "indoor",
         parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        elevator: "yes",
+        nursingRoom: "yes",
+        diaperChangingTable: "yes",
+        kidsToilet: "yes",
+        babyChair: "partial",
+        foodAllowed: "partial",
         playFeatures: { toiletNearby: "yes" }
       },
       input
@@ -197,8 +213,34 @@ describe("scorePlace", () => {
     );
 
     expect(matched.score).toBeGreaterThan(unknown.score);
-    expect(matched.reasonCodes).toEqual(expect.arrayContaining(["PARKING_YES", "TOILET_NEARBY_YES"]));
-    expect(unknown.reasonCodes).toEqual(expect.arrayContaining(["PARKING_UNKNOWN", "TOILET_NEARBY_UNKNOWN"]));
+    expect(matched.reasonCodes).toEqual(
+      expect.arrayContaining([
+        "INDOOR_TYPE_MATCH",
+        "PARKING_YES",
+        "TOILET_NEARBY_YES",
+        "STROLLER_PARTIAL",
+        "ELEVATOR_YES",
+        "NURSING_ROOM_YES",
+        "DIAPER_TABLE_YES",
+        "KIDS_TOILET_YES",
+        "BABY_CHAIR_PARTIAL",
+        "FOOD_ALLOWED_PARTIAL"
+      ])
+    );
+    expect(unknown.reasonCodes).toEqual(
+      expect.arrayContaining([
+        "INDOOR_TYPE_UNKNOWN",
+        "PARKING_UNKNOWN",
+        "TOILET_NEARBY_UNKNOWN",
+        "STROLLER_UNKNOWN",
+        "ELEVATOR_UNKNOWN",
+        "NURSING_ROOM_UNKNOWN",
+        "DIAPER_TABLE_UNKNOWN",
+        "KIDS_TOILET_UNKNOWN",
+        "BABY_CHAIR_UNKNOWN",
+        "FOOD_ALLOWED_UNKNOWN"
+      ])
+    );
   });
 
   it("uses age as a soft positive signal", () => {

@@ -104,8 +104,11 @@ describe("home search input", () => {
         diaperChangingTable: "on",
         elevator: "on",
         foodAllowed: "on",
+        indoor: "on",
         kidsToilet: "on",
         nursing: "on",
+        parking: "on",
+        stroller: "on",
         toiletNearby: "on",
         preferenceMode: "required"
       })
@@ -114,8 +117,11 @@ describe("home search input", () => {
         diaperChangingTable: true,
         elevator: true,
         foodAllowed: true,
+        indoorTypes: ["indoor", "mixed"],
         kidsToilet: true,
         nursingRoom: true,
+        parkingAvailable: true,
+        strollerFriendly: true,
         toiletNearby: true
       }
     });
