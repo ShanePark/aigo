@@ -490,7 +490,7 @@ h3 {
   box-shadow: 0 18px 56px rgba(24, 33, 29, 0.08);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 7fr) minmax(370px, 3fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 300px);
   padding: 12px;
 }
 
