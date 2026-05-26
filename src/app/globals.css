@@ -2519,8 +2519,24 @@ h3 {
   flex: 0 0 auto;
 }
 
+.category-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 18px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  width: 18px;
+}
+
 .category-pill svg {
   color: var(--blue);
+}
+
+.category-pill img {
+  height: 20px;
+  margin: -3px 0;
+  width: 20px;
 }
 
 .result-card-body > h3 {
@@ -3384,6 +3400,12 @@ h3 {
 .detail-category-badge svg {
   flex: 0 0 auto;
   color: var(--mint);
+}
+
+.detail-category-badge img {
+  height: 22px;
+  margin: -4px 0;
+  width: 22px;
 }
 
 .detail-head-meta {
