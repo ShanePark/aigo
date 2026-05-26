@@ -2521,6 +2521,7 @@ function hasSearchTaxonomyFacets(taxonomy: Partial<Record<TaxonomyFacetFamily, r
 const requiredPreferenceColumnMap = {
   parkingAvailable: "parking_available",
   strollerFriendly: "stroller_friendly",
+  elevator: "elevator",
   nursingRoom: "nursing_room",
   diaperChangingTable: "diaper_changing_table",
   kidsToilet: "kids_toilet",
@@ -2842,6 +2843,7 @@ const broadParentCoreTerms = new Set([
 const queryPreferenceTerms = {
   parkingAvailable: new Set(["주차", "주차장", "parking"]),
   strollerFriendly: new Set(["유모차", "쌍둥이유모차", "stroller"]),
+  elevator: new Set(["엘리베이터", "승강기", "elevator"]),
   nursingRoom: new Set(["수유실", "수유", "수유공간", "베이비라운지", "베이비룸", "유아휴게실", "아기휴게실", "분유", "nursing"]),
   diaperChangingTable: new Set(["기저귀", "기저귀갈이대", "기저귀교환대", "기저귀대", "diaper"]),
   kidsToilet: new Set(["어린이화장실", "유아화장실", "아이화장실"]),

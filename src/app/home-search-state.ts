@@ -58,6 +58,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
       parkingAvailable: params.parking === "on" ? true : undefined,
       strollerFriendly: params.stroller === "on" ? true : undefined,
+      elevator: params.elevator === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
       diaperChangingTable: params.diaperChangingTable === "on" ? true : undefined,
       kidsToilet: params.kidsToilet === "on" ? true : undefined,

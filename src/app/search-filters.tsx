@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Baby, Blocks, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, X } from "lucide-react";
+import { ArrowUpDown, Baby, Blocks, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -34,7 +34,7 @@ type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
 };
 
-type FilterKey = "babyChair" | "diaperChangingTable" | "indoor" | "kidsToilet" | "nursing" | "parking" | "sandPlay" | "stroller";
+type FilterKey = "babyChair" | "diaperChangingTable" | "elevator" | "indoor" | "kidsToilet" | "nursing" | "parking" | "sandPlay" | "stroller";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
 type FilterDefinition = {
   hint: string;
@@ -64,7 +64,8 @@ const FILTER_GROUPS: Array<{
       { key: "diaperChangingTable", label: "기저귀대", hint: "갈이 공간", icon: Baby },
       { key: "kidsToilet", label: "유아화장실", hint: "아이 전용", icon: Toilet },
       { key: "babyChair", label: "아기의자", hint: "식사 보조", icon: Utensils },
-      { key: "stroller", label: "유모차", hint: "이동 동선", icon: Blocks }
+      { key: "stroller", label: "유모차", hint: "이동 동선", icon: Blocks },
+      { key: "elevator", label: "엘리베이터", hint: "층 이동", icon: ArrowUpDown }
     ]
   },
   {

@@ -755,6 +755,7 @@ function preferenceLabels(preferences: SearchPlacesInput["preferences"] | null, 
   const labels: Record<string, string> = {
     babyChair: "아기의자",
     diaperChangingTable: "기저귀갈이대",
+    elevator: "엘리베이터",
     indoorTypes: "실내",
     kidsToilet: "유아화장실",
     nursingRoom: "수유실",

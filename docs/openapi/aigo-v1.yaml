@@ -1167,6 +1167,8 @@ components:
               type: boolean
             strollerFriendly:
               type: boolean
+            elevator:
+              type: boolean
             nursingRoom:
               type: boolean
             diaperChangingTable:

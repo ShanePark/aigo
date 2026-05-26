@@ -229,6 +229,7 @@ curl -sS http://localhost:3000/v1/places/search \
       "indoorTypes": ["indoor", "mixed"],
       "parkingAvailable": true,
       "strollerFriendly": true,
+      "elevator": true,
       "nursingRoom": true,
       "diaperChangingTable": true,
       "babyChair": true
