@@ -217,10 +217,10 @@ SSH_USER
 SSH_PRIVATE_KEY
 ```
 
-Required repository secret for Slack deployment notifications:
+Optional `.env` value for Slack startup/shutdown notifications:
 
 ```bash
-SLACK_WEBHOOK_URL
+SLACK_TOKEN=T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 Optional repository secret:
