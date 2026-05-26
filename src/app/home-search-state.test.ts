@@ -102,29 +102,44 @@ describe("home search input", () => {
     expect(
       buildSearchInput({
         diaperChangingTable: "on",
-        elevator: "on",
-        foodAllowed: "on",
         indoor: "on",
         kidsToilet: "on",
         nursing: "on",
         parking: "on",
-        stroller: "on",
         toiletNearby: "on",
         preferenceMode: "required"
       })
     ).toMatchObject({
       preferences: {
         diaperChangingTable: true,
-        elevator: true,
-        foodAllowed: true,
         indoorTypes: ["indoor", "mixed"],
         kidsToilet: true,
         nursingRoom: true,
         parkingAvailable: true,
-        strollerFriendly: true,
         toiletNearby: true
       }
     });
+    expect(
+      buildSearchInput({
+        elevator: "on",
+        foodAllowed: "on",
+        stroller: "on"
+      }).preferences
+    ).not.toHaveProperty("elevator");
+    expect(
+      buildSearchInput({
+        elevator: "on",
+        foodAllowed: "on",
+        stroller: "on"
+      }).preferences
+    ).not.toHaveProperty("foodAllowed");
+    expect(
+      buildSearchInput({
+        elevator: "on",
+        foodAllowed: "on",
+        stroller: "on"
+      }).preferences
+    ).not.toHaveProperty("strollerFriendly");
     expect(buildSearchInput({ parking: "on", preferenceMode: "required" })).not.toHaveProperty("preferenceMode");
   });
 
@@ -161,7 +176,7 @@ describe("home search input", () => {
     expect(buildSearchInput({ handsOnExperience: "on", readingBooks: "on", sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
       taxonomy: {
         mode: "soft",
-        activityTypes: ["sand_play", "water_play", "reading_books", "hands_on_experience"]
+        activityTypes: ["sand_play", "water_play"]
       }
     });
   });

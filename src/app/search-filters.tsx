@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowUpDown, Baby, Blocks, BookOpen, Car, Check, ChevronDown, Cookie, Home, Paintbrush, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves, X } from "lucide-react";
+import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -37,16 +37,11 @@ type SearchFiltersProps = {
 type FilterKey =
   | "babyChair"
   | "diaperChangingTable"
-  | "elevator"
-  | "foodAllowed"
-  | "handsOnExperience"
   | "indoor"
   | "kidsToilet"
   | "nursing"
   | "parking"
-  | "readingBooks"
   | "sandPlay"
-  | "stroller"
   | "toiletNearby"
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
@@ -65,9 +60,7 @@ const FILTER_GROUPS: Array<{
     filters: [
       { key: "indoor", label: "실내", icon: Home },
       { key: "sandPlay", label: "모래놀이", icon: TreePine },
-      { key: "waterPlay", label: "물놀이", icon: Waves },
-      { key: "readingBooks", label: "책놀이", icon: BookOpen },
-      { key: "handsOnExperience", label: "체험/만들기", icon: Paintbrush }
+      { key: "waterPlay", label: "물놀이", icon: Waves }
     ]
   },
   {
@@ -75,17 +68,12 @@ const FILTER_GROUPS: Array<{
     filters: [
       { key: "nursing", label: "수유실", icon: Baby },
       { key: "diaperChangingTable", label: "기저귀대", icon: Baby },
-      { key: "kidsToilet", label: "유아화장실", icon: Toilet },
-      { key: "stroller", label: "유모차", icon: Blocks },
-      { key: "elevator", label: "엘리베이터", icon: ArrowUpDown }
+      { key: "kidsToilet", label: "유아화장실", icon: Toilet }
     ]
   },
   {
     title: "식사/휴식",
-    filters: [
-      { key: "babyChair", label: "아기의자", icon: Utensils },
-      { key: "foodAllowed", label: "간식 가능", icon: Cookie }
-    ]
+    filters: [{ key: "babyChair", label: "아기의자", icon: Utensils }]
   },
   {
     title: "편의/동선",
