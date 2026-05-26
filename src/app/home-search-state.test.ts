@@ -141,10 +141,10 @@ describe("home search input", () => {
         activityTypes: ["sand_play"]
       }
     });
-    expect(buildSearchInput({ sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
+    expect(buildSearchInput({ readingBooks: "on", sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
       taxonomy: {
         mode: "required",
-        activityTypes: ["sand_play", "water_play"]
+        activityTypes: ["sand_play", "water_play", "reading_books"]
       }
     });
   });
