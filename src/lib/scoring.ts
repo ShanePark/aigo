@@ -85,6 +85,9 @@ const intrinsicScoreInput: SearchPlacesInput = {
 };
 
 const baselineScore = 24;
+const narrowIntentCategories = new Set(["toy_store", "family_restaurant"]);
+const narrowIntentUnselectedPenalty = -14;
+const narrowIntentSelectedBonus = 18;
 
 const confidenceScore: Record<string, number> = {
   official_verified: 3,
@@ -177,6 +180,8 @@ function scorePlaceInternal(
       reasonCodes.add("CATEGORY_MATCH");
     }
 
+    applyNarrowIntentCategorySignal(place, input, reasonCodes, (delta) => addScore("match", delta));
+
     const requestedTags = new Set(input.tags ?? []);
     const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
     if (matchedTags.length > 0) {
@@ -234,6 +239,24 @@ function scorePlaceInternal(
     reasonCodes: Array.from(reasonCodes).sort(),
     scoreBreakdown: finalizeBreakdown(breakdown, finalScore)
   };
+}
+
+function applyNarrowIntentCategorySignal(
+  place: Pick<ScoreablePlace, "primaryCategory">,
+  input: SearchPlacesInput,
+  reasonCodes: Set<string>,
+  addScore: (delta: number) => void
+) {
+  if (!narrowIntentCategories.has(place.primaryCategory)) return;
+
+  if (input.primaryCategories?.includes(place.primaryCategory)) {
+    addScore(narrowIntentSelectedBonus);
+    reasonCodes.add("NARROW_CATEGORY_SELECTED_BOOST");
+    return;
+  }
+
+  addScore(narrowIntentUnselectedPenalty);
+  reasonCodes.add("NARROW_CATEGORY_DEEMPHASIZED");
 }
 
 function applyDistanceSignal(

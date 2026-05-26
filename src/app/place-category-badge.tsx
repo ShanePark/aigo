@@ -18,8 +18,10 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { placeCategoryLabel } from "@/app/place-category";
+import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 
 export { placeCategoryLabel } from "@/app/place-category";
+export { placeCategoryIconImage } from "@/app/place-category-icon-image";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   accommodation: Hotel,
@@ -56,11 +58,12 @@ export function placeCategoryIcon(value: string): LucideIcon {
 
 export function PlaceCategoryBadge({ category, className }: PlaceCategoryBadgeProps) {
   const Icon = placeCategoryIcon(category);
+  const imageSrc = placeCategoryIconImage(category);
   const classes = ["category-badge", className].filter(Boolean).join(" ");
 
   return (
     <span className={classes} title={category}>
-      <Icon size={14} aria-hidden="true" />
+      {imageSrc ? <img src={imageSrc} alt="" aria-hidden="true" draggable="false" /> : <Icon size={14} aria-hidden="true" />}
       {placeCategoryLabel(category)}
     </span>
   );

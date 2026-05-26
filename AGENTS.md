@@ -206,6 +206,8 @@ Generated AiGo visual assets should be readable at real UI sizes, warm and famil
 
 AiGo's interface should feel calm, modern, warm, and operationally useful. Before adding new controls, inspect the existing shared CSS primitives in `src/app/globals.css` and compose from them instead of creating one-off button, chip, card, or toolbar styles.
 
+Mobile UI work should be verified with Playwright at least on iPhone 13 mini and iPhone 16 Pro sized viewports when the touched surface is visible on mobile. Check both the primary list/search screen and any affected detail panels for horizontal overflow, wrapped action rows, clipped category/filter controls, excessive blank space, and Korean text that becomes awkwardly narrow or vertical.
+
 Use a clear action hierarchy:
 
 - One visually dominant primary action per local surface, usually the main search or save action.

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UrlObject } from "url";
-import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
+import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
@@ -399,12 +399,8 @@ export function ExploreResults({
       <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
-          <span className="result-count-chip" aria-label={resultCountLabel(result.meta)}>
-            {compactResultCountLabel(result.meta)}
-          </span>
           <div className="result-actions">
             <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
-            <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
         <SearchInterpretation meta={result.meta.search} />
@@ -428,8 +424,28 @@ export function ExploreResults({
             <span>맨 위</span>
           </button>
         ) : null}
-        <Pagination meta={result.meta} onPage={handlePage} />
+        <ResultFooter meta={result.meta} onPage={handlePage} params={activeParams} />
       </div>
+    </section>
+  );
+}
+
+function ResultFooter({
+  meta,
+  onPage,
+  params
+}: {
+  meta: SearchResultMeta;
+  onPage: (page: number) => void;
+  params: Record<string, string | string[]>;
+}) {
+  return (
+    <section className="result-footer" aria-label="검색 결과 페이지 설정">
+      <span className="result-count-chip" aria-label={resultCountLabel(meta)}>
+        {compactResultCountLabel(meta)}
+      </span>
+      <Pagination meta={meta} onPage={onPage} />
+      <LimitControls activeLimit={resultLimitParam(params)} params={params} />
     </section>
   );
 }
@@ -545,8 +561,11 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
       <Link className="result-card-main" href={placeDetailHref(place.placeId, returnHref)}>
         <div className="result-image-frame">
           <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-          <span className="rank-badge" aria-label={`${index}번째 결과`}>
-            {index}
+          <span className="result-image-meta">
+            <span className="rank-badge" aria-label={`${index}번째 결과`}>
+              {index}
+            </span>
+            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill result-image-category" />
           </span>
         </div>
         <div className="result-card-body">
@@ -554,9 +573,9 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
             <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
             <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
               {metrics.map((metric) => (
-                <span className={`result-metric-pill ${metric.tone ?? ""}`} title={metric.title} key={metric.title}>
+                <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
                   {metric.icon ? metric.icon : null}
-                  {metric.label ? <span>{metric.label}</span> : null}
+                  {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
                   <strong>{metric.value}</strong>
                 </span>
               ))}
@@ -585,15 +604,21 @@ function SortControls({
 }) {
   return (
     <nav className="sort-control" aria-label="목록 정렬">
-      <span className="sort-control-label">정렬기준</span>
+      <span className="sort-control-label">
+        <SlidersHorizontal size={13} aria-hidden="true" />
+        정렬기준
+      </span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
-        관련도
+        <Target size={13} aria-hidden="true" />
+        <span>관련도</span>
       </Link>
       <Link className={`sort-option ${activeSort === "distance" ? "is-active" : ""}`} href={sortHref(params, "distance")}>
-        거리
+        <MapPin size={13} aria-hidden="true" />
+        <span>거리</span>
       </Link>
       <Link className={`sort-option ${activeSort === "rating" ? "is-active" : ""}`} href={sortHref(params, "rating")}>
-        평가
+        <Star size={13} aria-hidden="true" />
+        <span>평가</span>
       </Link>
     </nav>
   );
@@ -864,12 +889,15 @@ function resultCardMetrics(place: SearchItem) {
   return [
     {
       icon: <MapPin size={13} aria-hidden="true" />,
+      key: "distance",
       label: "",
       title: "검색 기준점에서의 직선 거리",
       tone: distanceTone(place.distanceKm),
       value: distanceLabel(place.distanceKm)
     },
     {
+      icon: <Target size={13} aria-hidden="true" />,
+      key: "relevance",
       label: "관련도",
       title: searchRelevanceScoreTitle(place.score),
       tone: scoreTone(place.score),
@@ -877,6 +905,7 @@ function resultCardMetrics(place: SearchItem) {
     },
     {
       icon: <Star size={13} aria-hidden="true" />,
+      key: "evaluation",
       label: "평가",
       title: evaluationTitle,
       tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,

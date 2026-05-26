@@ -15,126 +15,9 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 ## Backlog
 
-`[개선 중]` 최우선: `primaryCategory`를 실제 사용자 인식 기준으로 분리하고 기존 장소 데이터를 전수 재분류한다.
-
-현재 `primaryCategory`가 너무 넓게 묶인 값 때문에 검색 결과, 상세 헤더, 저장/최근/방문 목록의 카테고리 뱃지가 장황하거나 부정확하게 보인다. 특히 `aquarium_zoo`는 동물원과 아쿠아리움이 완전히 다른 방문 경험인데 `동물/아쿠아리움`으로 묶여 있고, `park`는 공원과 놀이터가 섞여 있으며, `museum`은 박물관과 미술관이 섞여 있다. `shopping_mall`은 분리 대상은 아니지만 사용자-facing 라벨을 `쇼핑/몰`이 아니라 `쇼핑몰`로 정리한다. 이 작업은 장소 데이터 계약과 기존 DB 데이터에 영향을 주므로 다른 UI 개선보다 먼저 처리한다.
-
-설계 원칙:
-
-- 부모가 장소를 보고 바로 이해하는 실제 장소 종류를 `primaryCategory`에 둔다.
-- 한 카테고리 라벨 안에 `/`로 서로 다른 장소 유형을 붙여 표현하지 않는다. 라벨에 슬래시가 남아 있다면 전부 재검토한다.
-- 세부 놀이 요소, 이용 목적, 편의시설, 위험 신호는 `taxonomy`, `playFeatures`, 시설 필드, 태그로 유지하되, 장소 자체의 대표 유형이 다르면 `primaryCategory`를 분리한다.
-- 기존 API/DB와 검색 경험을 깨지 않도록 enum 확장, 데이터 마이그레이션, 검색 그룹, 스코어링, 문서, 테스트를 한 묶음으로 처리한다.
-
-필수 카테고리 변경 후보:
-
-- `aquarium_zoo`를 `zoo`와 `aquarium`으로 분리한다. 복합 시설은 주된 방문 목적, 공식 명칭, 대표 콘텐츠, 이미지/설명 근거로 판정하고, 둘 다 강하면 taxonomy/activity tag로 보조 표현한다.
-- `park`를 `park`와 `playground`로 분리한다. 넓은 산책/녹지/수목원/생태공원은 `park`, 놀이터·어린이공원·물놀이터·모래놀이터처럼 놀이시설 중심 목적지는 `playground`로 본다.
-- `museum`을 `museum`과 `art_museum`으로 분리한다. 미술관/아트센터/갤러리 성격은 `art_museum`, 역사·자연사·전시관 중심은 `museum`으로 본다.
-- `shopping_mall`의 표시 라벨은 `쇼핑몰`로 바꾼다. 카테고리 값 분리는 하지 않는다.
-- 그 밖에 `place-category-badge`, 저장/최근/방문 목록, 검색 필터, 문서, 테스트에서 슬래시가 들어간 카테고리 라벨을 전수 조사해 실제로 분리해야 하는 값인지, 단순 라벨 정리인지 결정한다.
-
-구현 체크리스트:
-
-- 진행 메모: 2026-05-26 첫 slice로 사용자-facing 카테고리 라벨 helper를 분리하고, 기존 통합 카테고리의 슬래시 라벨을 제거했다. `aquarium`, `zoo`, `playground`, `art_museum` 라벨/아이콘/placeholder fallback도 먼저 받을 수 있게 준비했으며, 아직 스키마 enum과 DB 데이터는 변경하지 않았다.
-- 진행 메모: 2026-05-26 두 번째 slice로 `aquarium`, `zoo`, `playground`, `art_museum`을 API 스키마/OpenAPI/검색 그룹/거리 스코어링/문서 계약에 추가했다. 기존 DB 데이터 재분류와 실제 AiGo API PATCH는 아직 수행하지 않았다.
-- 진행 메모: 2026-05-26 세 번째 slice로 `scripts/audit-primary-category-splits.ts` 읽기 전용 감사 도구를 추가했다. 이 도구는 active 상태의 `aquarium_zoo`, `park`, `museum` 장소를 조회해 `aquarium`, `zoo`, `playground`, `art_museum`, 기존 카테고리 유지, 또는 `needs_review` 후보를 산출한다. 아직 실제 DB 데이터 변경이나 AiGo API PATCH는 수행하지 않았다.
-- 진행 메모: 2026-05-26 네 번째 slice로 `scripts/apply-primary-category-splits.ts` dry-run/apply 도구를 추가했다. 기본은 계획 출력만 수행하고, `--apply`를 붙였을 때만 각 장소를 API로 읽은 뒤 `PATCH /v1/places/{placeId}`로 `primaryCategory`를 변경하고 상세/버전 조회로 검증한다. 아직 실제 `--apply` 실행은 하지 않았다.
-- 진행 메모: 2026-05-26 다섯 번째 slice로 `pnpm tsx scripts/apply-primary-category-splits.ts --category=aquarium_zoo --limit=5 --apply --json`를 실행해 high-confidence 아쿠아리움 4건을 API로 재분류했다. 적용된 장소는 SEA LIFE 부산아쿠아리움, 경포 아쿠아리움, 단양 다누리아쿠아리움, 대구아쿠아리움이며 각 상세 재조회와 버전 수 확인까지 통과했다. 대전아쿠아리움은 복합 근거로 `needs_review`에 남겼다.
-- 진행 메모: 2026-05-26 여섯 번째 slice로 남은 `aquarium_zoo` high-confidence 후보 7건을 추가 API 재분류했다. 대전엑스포아쿠아리움, 롯데월드 아쿠아리움, 오키나와 츄라우미 수족관, 코엑스 아쿠아리움, 플레이아쿠아리움 부천은 `aquarium`으로, 전주동물원과 푸꾸옥 빈펄 사파리는 `zoo`로 변경했고 모두 상세 재조회와 버전 수 확인을 통과했다. 이후 dry-run 기준 high-confidence 자동 적용 후보는 0건이며, 남은 `aquarium_zoo`는 medium 7건과 `needs_review` 7건이다.
-- 진행 메모: 2026-05-26 일곱 번째 slice로 `아쿠아플라넷`, `오셔너리움`을 high-confidence 아쿠아리움 판정 용어에 추가하고 테스트를 보강했다. 이후 `pnpm tsx scripts/apply-primary-category-splits.ts --category=aquarium_zoo --apply --json`를 실행해 싱가포르 오셔너리움, 아쿠아플라넷 광교, 아쿠아플라넷 여수, 아쿠아플라넷 일산, 아쿠아플라넷 제주 5건을 `aquarium`으로 재분류했고, 모두 상세 재조회와 버전 수 확인을 통과했다. 이후 dry-run 기준 `aquarium_zoo` high-confidence 자동 적용 후보는 0건이며, medium 후보는 대전오월드, 알파카월드, 제주해양동물박물관 3건이고 `needs_review`는 6건이다.
-- 진행 메모: 2026-05-26 여덟 번째 slice로 `museum` high-confidence 후보 3건을 API 재분류했다. 대전시립미술관, 이응노미술관, 현대어린이책미술관을 `art_museum`으로 변경했고 모두 상세 재조회와 버전 수 확인을 통과했다. 이후 dry-run 기준 `museum` high-confidence 자동 적용 후보는 0건이다. `park`는 high-confidence 후보가 385건이지만 `outdoor_playground` taxonomy만으로 거제식물원, 고성 덕명리 공룡과 새발자국 화석산지 같은 넓은 공원/관람지를 `playground`로 제안하는 사례가 있어, 대량 적용 전에 이름/시설명 중심으로 high 판정을 보수화해야 한다.
-- 진행 메모: 2026-05-26 아홉 번째 slice로 `park` 분리 판정에서 `outdoor_playground` taxonomy만으로 high-confidence가 되지 않도록 보수화하고 테스트를 보강했다. 이후 `pnpm tsx scripts/apply-primary-category-splits.ts --category=park --limit=25 --apply --json`를 실행해 이름/시설명에 놀이터성이 명확한 15건을 `playground`로 재분류했고, 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 342건이며, 계속 작은 배치로 적용할 수 있다.
-- 진행 메모: 2026-05-26 열 번째 slice로 같은 `park` dry-run/apply 도구를 사용해 다음 25개 스캔 범위에서 high-confidence 13건을 `playground`로 재분류했다. 관악구 유아숲체험원 7건, 관저어린이공원 놀이터, 교촌1-1어린이공원, 구봉근린공원 놀이터, 구봉어린이공원 놀이터, 구암어린이공원, 국립중앙과학관 어린이 과학놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 335건이다.
-- 진행 메모: 2026-05-26 열한 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 군량들 어린이공원, 궁말어린이공원 놀이터, 궁산 유아숲체험원, 금동어린이공원 놀이터, 금바위 공원 놀이터, 금성공원내어린이놀이터, 금성어린이공원 놀이터, 금평어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 327건이다.
-- 진행 메모: 2026-05-26 열두 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 6건을 `playground`로 재분류했다. 개웅산 유아숲체험원, 기은어린이공원놀이터, 꼭두배어린이공원, 꿈키움 유아숲체험원, 나래어린이공원, 나비어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 323건이다.
-- 진행 메모: 2026-05-26 열세 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 남산공원 한남 유아숲체험원, 남산어린이공원, 남선근린공원 유아숲체험원, 낭월3호어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 319건이다.
-- 진행 메모: 2026-05-26 열네 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 낭월4호어린이공원, 낭월7호어린이공원, 낭월8호어린이공원, 노곡어린이공원 놀이터(관저4지구)가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 315건이다.
-- 진행 메모: 2026-05-26 열다섯 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 노원골 유아숲체험원, 노은어린이공원, 노촌어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 312건이다.
-- 진행 메모: 2026-05-26 열여섯 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 2건을 `playground`로 재분류했다. 느리울어린이공원 놀이터, 느티나무어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 310건이다.
-- 진행 메모: 2026-05-26 열일곱 번째 slice로 `park` 다음 25개 스캔 범위에서 high-confidence 1건을 `playground`로 재분류했다. 늘봄어린이공원이 적용됐고 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 309건이다.
-- 진행 메모: 2026-05-26 열여덟 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 16건을 `playground`로 재분류했다. 늘품어린이공원, 답십리공원 유아숲체험원, 당대어린이공원 놀이터, 대동복지관어린이놀이터, 대동쉼터어린이놀이터, 대동어린이공원, 대동어린이놀이터, 대모산 유아숲체험원, 대성어린이공원, 대울 어린이공원, 대전 대덕구 용전근린공원 어린이공원 꿈마루마당, 대전 대덕구 용전근린공원 어린이공원 꿈틀놀이터, 대전 대덕구 용전근린공원 어린이공원 울리불리놀이터, 대전 도안 갑천지구 생태호수공원 생태놀이터, 대청공원 유아숲체험원, 대화쌈지어린이놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 293건이다.
-- 진행 메모: 2026-05-26 열아홉 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 11건을 `playground`로 재분류했다. 대흥1어린이공원놀이터, 대흥어린이공원, 대흥어린이공원 놀이터, 덕명어린이공원, 덕미어린이공원, 덕암어린이공원, 덜레기공원놀이터, 도룡어린이공원, 도리미어린이공원, 도산어린이공원 놀이터, 도안근린공원 유아숲체험원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 282건이다.
-- 진행 메모: 2026-05-26 스무 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 9건을 `playground`로 재분류했다. 도안뜰어린이공원, 도화어린이공원 놀이터, 돌샘어린이공원 놀이터, 동방어린이공원 놀이터, 동산어린이공원, 동자산어린이공원, 동잠놀이터, 두레박어린이공원 놀이터, 둔곡지구 용머리근린공원 물리학놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 273건이다.
-- 진행 메모: 2026-05-26 스물한 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 둔곡지구 용머리근린공원 체력단련 놀이터, 둘리 유아숲체험원, 둥구나무어린이공원 놀이터, 뒷골어린이공원, 뒷뜰어린이공원 놀이터, 들말어린이공원, 들말어린이공원 놀이터, 등마루어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 265건이다.
-- 진행 메모: 2026-05-26 스물두 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 6건을 `playground`로 재분류했다. 뚝섬한강공원 음악분수와 어린이놀이터, 마루메기어린이공원 놀이터, 마포구 매봉산 유아숲체험원, 만남어린이공원, 만년어린이공원 놀이터, 만수어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 259건이다.
-- 진행 메모: 2026-05-26 스물세 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 4건을 `playground`로 재분류했다. 말바위어린이공원, 망골어린이공원, 매봉어린이공원 2건이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 255건이다.
-- 진행 메모: 2026-05-26 스물네 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 멋티어린이공원 놀이터, 명일근린공원 앨리스 유아숲체험원, 명학어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 252건이다.
-- 진행 메모: 2026-05-26 스물다섯 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 모롱이어린이공원 놀이터, 모산어린이공원 놀이터, 목동1 소공원놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 249건이다.
-- 진행 메모: 2026-05-26 스물여섯 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 목상 생태놀이터, 목상어린이공원, 목운어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 246건이다.
-- 진행 메모: 2026-05-26 스물일곱 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 무궁화어린이공원, 무릉어린이공원, 무지개공원놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 243건이다.
-- 진행 메모: 2026-05-26 스물여덟 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 문암생태공원 온가족 힐링놀이터, 문정어린이공원 놀이터, 문지어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 240건이다.
-- 진행 메모: 2026-05-26 스물아홉 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 2건을 `playground`로 재분류했다. 문화어린이놀이터, 물방울어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 238건이다.
-- 진행 메모: 2026-05-26 서른 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 1건을 `playground`로 재분류했다. 미나리어린이공원이 적용됐고 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 237건이다.
-- 진행 메모: 2026-05-26 서른한 번째 slice로 `park` 다음 50개 스캔 범위에서 high-confidence 1건을 `playground`로 재분류했다. 미래어린이공원이 적용됐고 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 236건이다.
-- 진행 메모: 2026-05-26 서른두 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 미리별어린이공원, 바다어린이공원, 바우배기 어린이공원, 박산어린이공원놀이터, 반딧불이 유아숲체험원, 반석어린이공원, 방아다리어린이공원, 방아어린이공원 놀이터(관저4지구)가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 228건이다.
-- 진행 메모: 2026-05-26 서른세 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 방죽어린이공원, 배봉산공원 유아숲체험원, 배울골 어린이공원, 배재대학교 유아숲체험원, 백련산 매바위 유아숲체험원, 백야어린이공원 놀이터, 백운어린이공원 놀이터, 버드내어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 220건이다.
-- 진행 메모: 2026-05-26 서른네 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 7건을 `playground`로 재분류했다. 벌말어린이공원 놀이터, 범골어린이공원, 범바위어린이공원, 범샛골어린이공원, 변정어린이공원 놀이터, 별밭어린이공원, 별빛어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 213건이다.
-- 진행 메모: 2026-05-26 서른다섯 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 5건을 `playground`로 재분류했다. 보라매공원 테마물놀이터와 어린이놀이터, 보라어린이공원, 봉명어린이공원, 봉우재어린이공원 놀이터, 봉촌어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 208건이다.
-- 진행 메모: 2026-05-26 서른여섯 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 3건을 `playground`로 재분류했다. 봉화산 유아숲체험원, 부사1어린이놀이터, 부사산마을어린이 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 205건이다.
-- 진행 메모: 2026-05-26 서른일곱 번째 slice로 `park` 다음 60개 스캔 범위에서 high-confidence 2건을 `playground`로 재분류했다. 북서울꿈의숲 유아숲체험원, 북한산 유아숲체험원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 203건이다.
-- 진행 메모: 2026-05-26 서른여덟 번째 slice로 `park` 다음 70개 스캔 범위에서 high-confidence 8건을 `playground`로 재분류했다. 불암산 유아숲체험원, 불티어린이공원 어린이놀이시설, 비단산 유아숲체험원, 사가정공원 유아숲체험원, 사정1 어린이공원 놀이터, 사정3어린이공원 놀이터, 사정어린이 놀이터, 사정어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 195건이다.
-- 진행 메모: 2026-05-26 서른아홉 번째 slice로 `park` 다음 80개 스캔 범위에서 high-confidence 15건을 `playground`로 재분류했다. 산수어린이공원, 삼괴동어린이놀이터, 삼정어린이공원(시민헌수동산내 놀이터), 상당어린이놀이터, 상암산 유아숲체험원, 새들어린이공원 놀이터, 새뜸어린이공원, 새뜸어린이공원 놀이터, 새말어린이공원, 새말어린이공원 놀이터, 새미래어린이공원, 새아름어린이공원 놀이터, 새터어린이공원, 샘머리근린공원 놀이터, 샛별어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 180건이다.
-- 진행 메모: 2026-05-26 마흔 번째 slice로 `park` 다음 90개 스캔 범위에서 high-confidence 16건을 `playground`로 재분류했다. 서낭당어린이공원 놀이터, 서당어린이공원 놀이터, 서서울호수공원 어린이놀이터, 서오릉 유아숲체험원, 서울숲공원 유아숲체험원, 석봉어린이공원, 선암어린이공원, 선암어린이공원 놀이터, 선유어린이공원 놀이터, 선화 어린이공원 놀이시설, 섬말어린이공원 놀이터, 성남어린이공원, 성동구 매봉산 유아숲체험원, 세천1어린이놀이터, 소계체육공원 와글와글 어린이놀이터, 소롱골놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 164건이다.
-- 진행 메모: 2026-05-26 마흔한 번째 slice로 `park` 다음 90개 스캔 범위에서 high-confidence 12건을 `playground`로 재분류했다. 소마잽이 어린이공원, 속들어린이공원, 속리어린이공원, 솔마루어린이공원, 송강어린이공원, 송림근린공원놀이터, 송촌어린이공원, 송촌체육공원 어린이놀이터1, 송촌체육공원 어린이놀이터2, 송촌체육공원 어린이놀이터3, 수락산 유아숲체험원, 수밋들어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 152건이다.
-- 진행 메모: 2026-05-26 마흔두 번째 slice로 `park` 다음 100개 스캔 범위에서 high-confidence 14건을 `playground`로 재분류했다. 숯골어린이공원, 신선암근린공원 놀이터, 신정산 계남 유아숲체험원, 신정산 우렁바위 유아숲체험원, 신촌어린이공원 놀이터, 쌍청근린공원놀이터, 아래관들어린이공원(어린이공원 3호), 아래텃골어린이공원놀이터, 안골어린이공원 놀이터, 안산뜸어린이공원 놀이터, 안산어린이공원, 안영1 어린이공원 놀이터, 안영2 어린이공원 놀이터, 안영3 어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 139건이다.
-- 진행 메모: 2026-05-26 마흔세 번째 slice로 `park` 다음 110개 스캔 범위에서 high-confidence 15건을 `playground`로 재분류했다. 안터어린이공원, 양지말 어린이공원, 양천구 매봉산 연의골 유아숲체험원, 어은어린이공원놀이터, 엄광산 유아숲체험원, 엉고개어린이공원, 여수금어린이공원, 여태말어린이공원, 연산문화창고 기찻길옆놀이터, 영당말어린이공원, 영축산 유아숲체험원, 예정어린이공원 놀이터, 오당골 근린공원(어린이놀이터 A, B, C), 오동근린공원 유아숲체험원, 오량어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 124건이다.
-- 진행 메모: 2026-05-26 마흔네 번째 slice로 `park` 다음 118개 스캔 범위에서 high-confidence 20건을 `playground`로 재분류했다. 오류어린이공원 놀이터, 오정어린이공원, 오패산 유아숲체험원, 옥토끼어린이공원, 옻샘어린이공원 놀이터, 와룡어린이공원놀이터, 요동어린이공원 놀이터, 용두어린이공원, 용마산 유아숲체험원, 용머리어린이공원 놀이터, 용문어린이공원, 용소어린이공원, 용수골어린이공원, 용왕산 유아숲체험원, 용전어린이공원, 용전어린이놀이터, 용정이어린이공원, 용정체육공원 1번 놀이터, 용정체육공원 2번 놀이터, 용화어린이공원 놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 104건이다.
-- 진행 메모: 2026-05-26 마흔다섯 번째 slice로 `park` 다음 120개 스캔 범위에서 high-confidence 20건을 `playground`로 재분류했다. 우마장어린이공원 놀이터, 우면산 유아숲체험원, 우산봉어린이공원, 우장산 유아숲체험원, 우정가로공원 놀이터, 웅기어린이공원 놀이터, 원계산어린이공원, 원골어린이공원, 원내어린이공원, 원대어린이공원 놀이터, 원도안어린이공원, 원모어린이공원 놀이터, 원비래어린이공원, 원앙어린이공원, 월드컵공원 유아숲체험원, 월봉어린이공원, 월평근린공원 유아숲체험원 유아놀이터, 월평어린이공원 놀이터, 위텃골어린이공원놀이터, 윗관들공원(어린이공원 5호)가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 84건이다.
-- 진행 메모: 2026-05-26 마흔여섯 번째 slice로 `park` 다음 130개 스캔 범위에서 high-confidence 20건을 `playground`로 재분류했다. 윗둔지미어린이공원, 유아숲체험원(달천), 유아숲체험원(봉암), 유아숲체험원(성산), 유아숲체험원(쌀재), 유아숲체험원(편백), 유아숲체험원(현동), 은어송하늘채리버뷰 아파트 옆 어린이공원, 은평근린공원 놀이터, 읍내어린이놀이터, 응굴천어린이공원, 응봉공원 유아숲체험원, 인천대공원 도란도란 유아숲체험원, 자연마당공원 내 놀이터, 장가동어린이공원, 장갓골근린공원 놀이터, 장대놀이터, 장동 유아숲체험원, 장성어린이공원, 저들이어린이공원놀이터가 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 64건이다.
-- 진행 메모: 2026-05-26 마흔일곱 번째 slice로 `park` 다음 132개 스캔 범위에서 high-confidence 20건을 `playground`로 재분류했다. 전광어린이공원, 전민어린이공원, 정려어린이공원, 정림어린이공원 놀이터, 제비네어린이공원 놀이터, 주막어린이공원, 주산동어린이놀이터, 죽궁이어린이공원, 중구 매봉산 유아숲체험원, 중보어린이공원 놀이터, 중봉놀이터, 중앙어린이공원, 중촌근린공원놀이터 2건, 중평(마라본)어린이공원 놀이터, 증척골어린이공원, 지양산 해맞이마을 유아숲체험원, 지족실어린이공원, 지치울어린이공원 놀이터, 진가쟁이어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 44건이다.
-- 진행 메모: 2026-05-26 마흔여덟 번째 slice로 `park` 다음 142개 스캔 범위에서 high-confidence 20건을 `playground`로 재분류했다. 진등어린이공원, 진터어린이공원, 찬샘어린이공원 놀이터, 창골어린이공원 놀이터, 창뜰어린이공원, 창리어린이공원, 천변어린이공원 놀이터, 청룡어린이공원, 청벽산근린공원 어린이놀이터, 청산어린이공원 놀이터, 청솔어린이공원, 초록어린이공원, 초숯골어린이공원놀이터, 초원어린이공원, 탄방어린이공원 어린이놀이터, 탑골어린이공원 놀이터, 태릉 유아숲체험원, 통매바위어린이공원, 판암 어린이공원, 판암어린이공원이 적용됐고 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 전체 `park` dry-run 기준 high-confidence 자동 적용 후보는 24건이다.
-- 진행 메모: 2026-05-26 마흔아홉 번째 slice로 `park` 남은 high-confidence 24건을 `playground`로 재분류했다. 평리어린이공원 놀이터, 푸른어린이공원 놀이터, 풍호공원 우주최고봉 놀이터, 하늘아래 체육공원 놀이터, 하수종말처리장 놀이터, 학댕이어린이공원, 학무정어린이공원, 학하어린이공원, 한들근린공원 어린이놀이터, 한들어린이공원, 한마음어린이공원, 한촌어린이공원, 합수어린이공원, 호산어린이공원, 홈통골어린이공원, 홍도어린이공원, 홍릉공원 유아숲체험원, 화산어린이공원놀이터, 활골어린이공원, 회병골 어린이공원 등 적용 샘플 모두 상세 재조회와 버전 수 확인을 통과했다. 적용 후 `park`, `aquarium_zoo`, `museum` 전체 dry-run 기준 high-confidence 자동 적용 후보는 모두 0건이다.
-- 진행 메모: 2026-05-26 쉰 번째 slice로 `museum` 분리 감사에서 장소 이름이 아니라 설명/태그 같은 주변 문맥에만 `미술관` 근거가 있을 때 `art_museum`으로 제안하지 않도록 보수화했다. `목포자연사박물관` 같은 자연사 중심 박물관 오탐을 막는 회귀 테스트를 추가했고, 적용 후 `museum --min-confidence=medium` dry-run 기준 변경 후보는 0건이다. `park`, `aquarium_zoo`, `museum` high-confidence dry-run도 모두 0건을 유지한다.
-- `src/lib/taxonomy.ts`의 `primaryCategories`에 새 카테고리를 추가하고, 더 이상 쓰지 않을 통합 카테고리를 유지할지 deprecated 처리할지 결정한다.
-- `src/lib/schemas.ts`, `docs/openapi/aigo-v1.yaml`, `docs/aigo-facet-taxonomy-v1.md`, `README.md`, `.codex/skills/aigo-place-api/SKILL.md`, `AGENTS.md`에서 카테고리 계약과 데이터 등록 지침을 동기화한다.
-- `src/app/home-search-state.ts`의 큰 분류 매핑, 검색 URL/필터 테스트, `src/lib/recommendation-scoring.ts`, `src/lib/scoring.ts`, `src/lib/places.ts`의 카테고리 기반 조건을 새 값 기준으로 갱신한다.
-- `src/app/place-category-badge.tsx`, `src/app/place-image.tsx`, 지도 마커/플레이스홀더/카테고리 아이콘이 새 카테고리를 자동으로 표시하도록 공통 매핑을 갱신한다.
-- 기존 DB 장소를 전수 조사한다. `primaryCategory`가 `aquarium_zoo`, `park`, `museum`인 장소를 API 또는 읽기 전용 조회로 뽑고, 이름·공식 출처·설명·태그·taxonomy·이미지 근거를 보고 새 카테고리 후보를 기록한다.
-- 실제 데이터 변경은 직접 DB 수정이 아니라 AiGo API 플로우로 수행한다. 의미 있는 업데이트는 `GET /v1/places/{placeId}` 확인 후 `PATCH /v1/places/{placeId}`로 바꾸고, 변경 후 버전 히스토리를 확인한다.
-- 자동 판정이 애매한 장소는 억지로 바꾸지 말고 보류 목록과 판단 근거를 남긴다. 단, 명백한 동물원/아쿠아리움/놀이터/미술관은 우선 정리한다.
-- 검색 결과, 상세 페이지, 저장한 장소, 최근 본 장소, 방문 로그, 지도 카드에서 새 카테고리 라벨과 아이콘이 잘리지 않는지 데스크톱/모바일/다크모드로 확인한다.
-- 관련 테스트를 갱신한다. 최소한 schema enum, home search category group, recommendation scoring, place search/category aggregation, category badge rendering, 기존 통합 카테고리 데이터 마이그레이션 경로를 검증한다.
-
-
 한 번에 하나의 `[대기]` 항목만 `[개선 중]`으로 바꾸고, 구현과 검증이 끝나면 해당 항목을 삭제한 뒤 관련 파일만 커밋한다. 각 항목은 가능한 한 작은 독립 커밋 단위로 유지한다. 구현 중 새로 필요한 후속 작업, 설계 분기, 테스트 보강, UI 정리, 문서 갱신이 발견되면 현재 항목에 억지로 끼워 넣지 말고 이 문서에 새 `[대기]` 항목으로 다시 등록해 재귀적으로 이어간다.
 
-`[대기]` 계정 기반 개인화 MVP 후속 항목:
-
-회원/세션/방문/리뷰/사진 MVP 기반은 구현 완료된 것으로 보고, 이 섹션은 다음 단계인 계정 기반 개인화에 집중한다. 목표는 사용자가 매번 아이 나이와 출발 위치를 다시 입력하지 않아도 AiGo가 사용자의 가족 맥락을 기본값으로 이해하게 만드는 것이다. 장소 데이터와 공개 리뷰는 여러 가정이 함께 쓰는 공용 기반이고, 내 정보에 저장된 아이 생년월/성별과 집 위치는 런타임 추천과 검색 경험을 개인화하는 사적 기반이다.
-
-이번 묶음은 실제 회원가입, 소셜 로그인, 가족 공유를 만들지 않는다. 현재 dev 단일유저 로그인으로 시작한 계정 구조에 "내 가족 기본값"을 연결하고, 나중에 실제 회원가입이 들어와도 데이터 모델을 크게 갈아엎지 않도록 경계를 잡는다. 내 정보 페이지는 아이 정보와 집 위치를 관리하는 프로필 관리 페이지가 된다.
-
-아이 정보는 생년월과 성별을 저장한다. 화면에서는 저장된 생년월을 현재 날짜 기준 개월수/나이대로 계산하고, 성별별 아이 나이대 아이콘으로 보기 좋게 표시한다. 검색 URL에 아이 조건이 명시되어 있으면 URL을 우선하고, 명시되어 있지 않은 로그인 사용자는 계정 아이 정보를 성별/나이대 조건으로 자동 채운다. 비로그인 사용자는 기존 localStorage 기반 아이 조건을 계속 쓸 수 있어야 한다.
-
-집 위치는 사용자가 지정한 지도 핀 좌표를 저장한다. 첫 진입과 랜딩 검색은 현재 위치 권한이 있으면 현재 위치를 우선하고, 현재 위치를 얻지 못했을 때 저장된 집 위치를 fallback으로 쓴다. 지도/검색 화면에는 현재 위치 아이콘 옆에 집 아이콘을 추가하고, 사용자가 집 아이콘을 누르면 저장된 집 좌표로 지도와 검색 결과를 즉시 갱신한다. 집 위치가 없으면 홈 버튼은 비활성 또는 설정 유도 상태로 보여준다.
-
-현재 집 위치 구현은 이 목표와 맞지 않는다. DB/API는 `user_home_locations`에 좌표를 저장하고 검색 지도는 저장된 좌표로 이동할 수 있지만, `/me` 화면은 지도 없이 위도/경도 숫자 입력과 `미사용` 토글만 보여준다. 사용자는 저장된 집 위치가 지도에서 어디인지 확인할 수 없고, `미사용`은 "집 위치를 삭제/비활성화"하는 의미인지 "현재 화면에서 쓰지 않음"인지 불명확하다. 좌표가 비어 있는 상태에서 사용으로 전환하면 에러가 나기 쉽고, 저장 후에는 `저장됨` 버튼만 남아 다음에 무엇을 할 수 있는지 알기 어렵다. 따라서 집 위치는 "지도에서 핀을 찍어 저장하고, 저장된 핀을 다시 확인/변경/삭제하는 흐름"으로 재정리해야 한다.
-
-세부조건의 실내, 주차, 유모차, 모래놀이, 수유실, 아기의자, 선호 적용 방식은 검색 화면에서 즉시 조작하는 필터로 유지하고 내 정보에는 저장하지 않는다. 내 정보가 검색 필터까지 품으면 의도치 않게 검색이 고정될 수 있으므로, 계정 개인화는 아이 정보와 집 위치처럼 반복 입력 부담이 큰 값에 집중한다.
-
-모든 사용자-facing 구현은 모바일을 1급 기준으로 검증한다. 내 정보 페이지, 검색 홈, 지도/목록, 세부조건 패널, 집 위치 버튼, 로그인/비로그인 상태를 Playwright 모바일 해상도에서 열어 텍스트 겹침, 터치 타깃, 하단 액션, 긴 장소명/주소/조건 표시가 깨지지 않는지 확인한다.
-
-구현 체크리스트:
-
-
-
-`[대기]` 계정 기반 장소 상호작용 후속 항목:
-
-회원/세션/방문/리뷰/사진 MVP 위에 사용자가 장소를 다시 찾고, 저장하고, 공유 정보를 남기는 반복 사용 루프를 만든다. 이 묶음은 실제 회원가입이나 소셜 기능이 아니라 현재 로그인 사용자 모델을 기준으로 한다. 목표는 장소 상세에 들어온 사용자가 "다녀온 후기", "공개 장소 팁", "저장 상태", "최근 확인한 장소"를 서로 헷갈리지 않고 사용할 수 있게 하는 것이다.
-
-방문 후기는 계속 "다녀온 기록"으로 유지한다. 방문 후기에는 방문일, 별점, 재방문 여부, 사진, 공개/비공개 범위가 붙고, 기존 방문 로그와 평균 별점 집계에 반영된다. 공개 장소 메모는 방문 여부와 무관한 "장소 이용 팁/공유 정보"로 분리한다. 메모에는 별점, 방문일, 재방문 여부, 사진, 공개 범위 선택을 붙이지 않는다. 메모는 공개 전용이며 다른 가족에게 도움이 되는 준비물, 주차/동선, 유모차, 날씨, 대기, 안전 주의사항 같은 정보를 공유하는 용도다.
-
-저장한 장소는 단순한 하나의 찜 상태로 만들지 않는다. 사용자는 같은 장소를 `가고 싶은 장소`와 `하트 장소` 두 상태로 독립 저장할 수 있다. `가고 싶은 장소`는 계획성 후보와 방문 예정 성격을 흡수하고, `하트 장소`는 마음에 든 장소나 추천 후보를 가볍게 표시하는 역할로 둔다. 검색 결과에는 장소별 하트 수를 조용한 보조 신호로 보여줘 다른 가족들도 좋게 본 곳을 빠르게 알아볼 수 있게 한다. 단, 하트 수는 방문 후기 별점이나 장소 자체 평가와 다른 사회적 저장 신호로 취급하고 랭킹 품질 점수처럼 과하게 강조하지 않는다. 별도의 `방문 예정` 메뉴는 만들지 않는다.
-
-최근 본 장소는 로그인 사용자의 장소 상세 조회 이력을 최신순으로 보여준다. 중복 장소는 새 행을 만들지 않고 마지막 조회 시각만 갱신한다. 비로그인 localStorage 기반 최근 본 장소는 나중에 확장할 수 있지만, v1 구현은 로그인 사용자의 서버 저장 이력을 기준으로 한다.
-
-햄버거 메뉴는 전역 이동과 개인 장소 루프를 함께 담는다. `장소 찾기`, `내 정보`, `방문 로그`, `저장한 장소`, `최근 본 장소`를 주요 항목으로 두고, 현재 방문 중인 페이지는 하이라이트하며 `aria-current="page"`를 적용한다. `/places/*` 상세 페이지는 별도 메뉴 항목을 만들지 않고 `장소 찾기` 흐름의 하위 화면으로 취급한다.
-
-구현 체크리스트:
-
-
-`[대기]` 세부조건 필터 확장과 아이콘 선택 UI 개선:
+`[개선 중]` 세부조건 필터 확장과 아이콘 선택 UI 개선:
 
 - `[대기]` 세부조건 필터 확장 2단계로 검색 데이터 계약을 정리한다. 현재 UI에 남아 있는 기존 조건과 아래 후보 조건을 비교해 URL 파라미터, API/OpenAPI, 장소 스키마, 검색 매칭, 빈 결과 fallback, 테스트 범위를 먼저 확정한 뒤 새 조건을 작은 묶음으로 추가한다.
 
@@ -143,3 +26,12 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 구현할 때는 기존 장소 스키마의 `amenities`, `playFeatures`, `parentNotes`, `safetyNotes`, 태그/검색 파라미터와 충돌하지 않게 먼저 데이터 계약을 정리한다. 이미 장소 데이터에 존재하는 값은 최대한 재사용하고, 새 조건이 필요하면 API/OpenAPI/스키마/검색 URL/중복 처리/테스트를 함께 갱신한다. 증거가 약한 조건은 장소 데이터에서 `unknown` 또는 미표시로 남기고, 필터가 실제 검색 결과 품질을 해치지 않도록 조건별 매칭 범위와 빈 결과 fallback을 설계한다.
 
 UI는 텍스트만 긴 버튼으로 늘어놓지 말고, lucide 아이콘 또는 일관된 코드-native 아이콘을 우선 사용한다. 아이콘이 부족한 카테고리는 단순하고 귀여운 프로젝트용 래스터 아이콘 세트를 검토하되, 필요하면 `$imagegen` skill로 WebP 에셋을 생성해 `public/` 아래에 넣는다. 선택된 조건은 색/채움/체크 상태가 분명해야 하고, 미선택 조건은 이미 선택된 것처럼 보이지 않게 중립적으로 둔다. 다크모드와 모바일에서 텍스트 겹침, 아이콘 크기, 터치 타깃, 가로 스크롤/접힘 동작을 Playwright로 확인한다.
+
+- `[대기]` 장소 `openingHours.description`만 source-backed로 PATCH하면 상세 응답의 `structuredDataGaps`에는 여전히 `openingHours`가 남는다. 2026-05-26 서울 private kidscafe6 배치에서 `키즈런스포츠파크 목동점`, `점프업`, `곰도리도리 키즈카페`, `베이비온더풀 베이비카페`, `합앤합` 모두 공개 listing 기반 운영시간 설명을 넣었지만 검증 결과 `agent-research/seoul-density-private-kidscafe6-mutations-20260526-0420.results.json`의 gaps에 `openingHours`가 남았다. description-only 운영시간을 readiness/gap에서 부분 인정할지, 또는 validator가 요일별 구조화 키를 요구하도록 handoff 문구와 payload lint를 강화할지 결정한다.
+- `[대기]` `/v1/places/duplicates` 응답의 `score`/`confidence`가 숫자와 문자열 라벨(`high`, `medium`, `low`)을 섞어 반환할 때 mutation executor guard가 숫자 비교만 하면 high duplicate를 통과시킬 수 있다. 2026-05-26 서울 shopping/toys8 AZ 배치에서 `토이저러스 롯데마트김포공항점`은 duplicate precheck에 `토이저러스 김포공항점` high 후보가 있었고, `레고스토어 용산아이파크몰점`은 parent-building high 후보가 있었으나 임시 executor가 문자열 점수를 숫자로 비교해 생성 후 soft-delete 보정했다. duplicate 응답 타입을 OpenAPI/스키마/헬퍼에서 명확히 하거나, 공통 preflight helper가 high 라벨과 숫자 threshold를 모두 blocking으로 처리하게 만든다.
+- `[대기]` 체인/브랜드형 지점 등록에서는 `/v1/places/duplicates`가 주소·좌표가 명확히 다른 branch를 `ALIAS_MATCH`, `REGION_MATCH`, `NAME_SIMILAR`만으로 `hold_duplicate_review`로 묶어 밀도 스프린트 처리량을 떨어뜨린다. 2026-05-26 인천 malls/toys BL 배치에서 `토이저러스 청라점` 생성 후 `토이저러스 부평점`, `토이저러스 계양점`, `토이저러스 송도점`은 각각 다른 공개 listing 주소/좌표가 있었지만 기존 청라점을 low duplicate 후보로 받아 안전 규칙상 hold했다. 같은 브랜드라도 exact address 또는 coordinate distance가 충분히 다르고 지점명이 행정동/상권 단위로 구분되면 duplicate를 차단 신호가 아니라 branch sibling review 신호로 낮추고, executor helper가 별도 branch create를 허용할 수 있게 한다.
+- `[대기]` `/v1/places/duplicates`가 같은 건물 또는 공공 하위시설 관계의 다른 카테고리 장소를 `suggestedAction: "update_existing"`으로 제안하는 사례를 줄인다. 2026-05-26 서울 toy-libraries9 BB 배치에서 `서대문구육아종합지원센터 놀잇감 대여실` precheck가 같은 건물의 `서울형 키즈카페 서대문구 BABY 남가좌1동점`을 `PUBLIC_SUBFACILITY_REVIEW_ONLY` reason과 함께 `update_existing`으로 반환했고, `라온장난감나라 은평구청별관점`도 근처 서울형 키즈카페를 `update_existing`으로 제안했다. `PUBLIC_SUBFACILITY_REVIEW_ONLY`, 다른 `primaryCategory`, 이름 목적 불일치가 같이 있으면 자동 update/create 차단보다 parent-child/same-building review로 분리하도록 duplicate suggestedAction 산출과 executor helper를 조정한다.
+- `[대기]` `/v1/places/duplicates`가 providerPlaceId/address match 없이 `ALIAS_MATCH`, `REGION_MATCH`, `GEO_NEAR`, `NAME_SIMILAR`만으로 다른 공식 branch를 `confidence: "high"`, `suggestedAction: "update_existing"`으로 반환하는 false-positive를 줄인다. 2026-05-26 서울 seoul-kidscafe11 BI 배치에서 `서울형 키즈카페 동대문구 새샘공원점`(DM250901)이 기존 `서울형 키즈카페 동대문구 답십리1동점`(DM250103)을 high update 후보로 받았고, 임시 executor가 patch한 뒤 즉시 `agent-research/seoul-density-seoul-kidscafe11-mutations-20260526-0536.correction-results.json`로 복구했다. 같은 provider 내 branch끼리는 providerPlaceId 또는 exact address가 다르면 high/update_existing을 내리지 말고 `hold_duplicate_review`로 낮춘다.
+- `[대기]` 물놀이터/분수/수변놀이 후보의 duplicate matching이 지역·주소 근거보다 물 관련 일반명사 alias를 과하게 반영해 먼 지역의 다른 시설을 `hold_duplicate_review`로 묶는 문제를 줄인다. 2026-05-26 West Gyeonggi DC batch에서 `부천중앙공원 물놀이터` duplicate precheck가 서울권 `뚝섬 벽천분수`, `반포 달빛무지개분수`, `여의도 수상분수`, `잠원 수영장`, 그리고 용인 `캐리비안 베이`까지 low `hold_duplicate_review` 후보로 반환해 create를 보류했다. `물놀이터`, `분수`, `수영장` 같은 generic activity aliases는 exact-name/nearby-address/regionSigungu match가 없으면 duplicate blocking보다 weak thematic similarity로 낮추고, executor helper가 지역 불일치 low candidates를 별도 noisy warning으로 분리하게 한다. Research context: `agent-research/west-gyeonggi-dc-bucheon-uiwang-anchors-parks-20260526-0738.results.json`.
+- `[대기]` 어린이자료실/장난감도서관 같은 공공 generic subfacility 후보에서 `/v1/places/duplicates`가 주소·좌표가 명확히 다른 타 지역 records를 low `hold_duplicate_review`로 대량 반환해 source-ready create를 막는 문제를 줄인다. 2026-05-26 West Gyeonggi DB batch에서 `광명시립하안도서관 어린이자료실`과 `광명시립철산도서관 어린이자료실`은 exact search 0건, 공식 도서관 페이지·주소·좌표·이미지 근거가 있었지만 duplicate precheck가 부천/양천/서초/인천의 다른 어린이자료실들을 `ALIAS_MATCH`, `SAME_SIDO_GENERIC_REVIEW_ONLY`, `GEO_OUTSIDE_REQUEST_RADIUS`, `OUTSIDE_RADIUS_REVIEW_ONLY`, `NAME_SIMILAR` low `hold_duplicate_review` 후보로 반환해 안전 규칙상 모두 hold했다. exact address/coordinate가 요청 후보와 다르고 밖인 low generic same-category candidates는 blocking hold가 아니라 noisy cross-region warning으로 분리하고, executor helper가 source-ready 후보를 만들 수 있도록 duplicate suggestedAction 산출을 조정한다. Research context: `agent-research/west-gyeonggi-db-public-mutations-20260526-0738.results.json`.
+- `[대기]` 공공 어린이 체험시설과 박물관 하위 체험실 후보에서도 `/v1/places/duplicates`가 주소·좌표가 명확히 다른 타 지역 experience/kids records를 low `hold_duplicate_review`로 반환해 source-ready create를 막는 문제를 줄인다. 2026-05-26 Busan/Ulsan/Gyeongnam NB Ulsan child-public-experience batch에서 `울산시립어린이테마파크`, `약사동제방유적전시관 어린이체험실`, `울산박물관 어린이체험실`은 exact search 0건, 공식 페이지·공개 주소/관광 좌표·공식 이미지 payload가 `validate-research-payloads.ts`를 통과했지만 duplicate precheck가 `인천공룡월드`, `안동 유교랜드`, `아르떼뮤지엄 강릉`, `아동놀이연구소 플레이랩 송파점` 등 주소/좌표 밖의 low `hold_duplicate_review` 후보를 반환해 안전 규칙상 모두 hold했다. `ALIAS_MATCH`와 `NAME_SIMILAR`가 generic child/experience terms only이고 exact address 또는 coordinate radius가 불일치하면 blocking hold가 아니라 noisy warning으로 분리한다. Research context: `agent-research/bugyeong-nb-ulsan-child-public-20260526-1020.results.json`.

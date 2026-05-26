@@ -72,5 +72,7 @@ jobs:
             git fetch origin main
             git checkout main
             git pull --ff-only origin main
+            export GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+            export GIT_COMMIT="$(git rev-parse --short HEAD)"
             docker compose up -d --build --remove-orphans
             docker image prune -f

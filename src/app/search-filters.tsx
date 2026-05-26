@@ -6,6 +6,7 @@ import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, T
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import { AppModal, AppModalActions } from "@/app/app-modal";
 import type { ChildParamSource } from "@/app/account-child-defaults";
 import {
   CHILD_AGE_BANDS,
@@ -92,11 +93,12 @@ const MAX_CHILD_PROFILE_COUNT = 12;
 
 export function SearchFilters({ childParamSource = "none", initialParams }: SearchFiltersProps) {
   const router = useRouter();
-  const rootRef = useRef<HTMLDetailsElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const initialKey = useMemo(() => JSON.stringify({ childParamSource, initialParams }), [childParamSource, initialParams]);
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
@@ -178,6 +180,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     const hasInitialChildParams = childParamSource !== "none" || hasChildParams(initialParams);
     setSelectedFilters(filtersFromParams(initialParams));
     setChildProfiles(profilesFromParams);
+    setIsFilterModalOpen(false);
     setIsPickerOpen(false);
 
     if (childParamSource === "account") {
@@ -212,8 +215,11 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   }, [childParamSource, initialKey, initialParams, router, startTransition]);
 
   return (
-    <details className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
-      <summary>
+    <div className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
+      <SearchPreferenceHiddenInputs params={initialParams} selectedFilters={selectedFilters} />
+      <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
+      <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
+      <button className="advanced-summary-button" type="button" onClick={() => setIsFilterModalOpen(true)} aria-haspopup="dialog">
         <span className="advanced-summary-title">
           <SlidersHorizontal size={16} aria-hidden="true" />
           <span>
@@ -235,153 +241,161 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
             </span>
           ) : null}
           <span className="advanced-toggle-label" aria-hidden="true">
-            <span className="advanced-toggle-open">펼치기</span>
-            <span className="advanced-toggle-close">접기</span>
-            <ChevronDown size={16} />
+            조건 설정
+            <ChevronDown size={16} aria-hidden="true" />
           </span>
         </span>
-      </summary>
+      </button>
 
-      <div className="advanced-filter-layout" aria-label="선호 조건">
-        <SearchPreferenceHiddenInputs params={initialParams} />
-        {FILTER_GROUPS.map((group) => (
-          <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
-            <div className="advanced-filter-group-head">
-              <strong>{group.title}</strong>
-            </div>
-            <div className="advanced-filter-options">
-              {group.filters.map((filter) => {
-                const Icon = filter.icon;
-                const isSelected = selectedFilters[filter.key];
+      <AppModal onClose={() => setIsFilterModalOpen(false)} open={isFilterModalOpen} size="wide" title="세부 조건">
+        <div className="advanced-filter-modal-content">
+          <div className="advanced-filter-layout" aria-label="선호 조건">
+            {FILTER_GROUPS.map((group) => (
+              <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
+                <div className="advanced-filter-group-head">
+                  <strong>{group.title}</strong>
+                </div>
+                <div className="advanced-filter-options">
+                  {group.filters.map((filter) => {
+                    const Icon = filter.icon;
+                    const isSelected = selectedFilters[filter.key];
 
-                return (
-                  <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
-                    <input
-                      name={filter.key}
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
-                    />
-                    <span className="advanced-filter-option-icon">
-                      <Icon size={18} aria-hidden="true" />
-                    </span>
-                    <span className="advanced-filter-option-copy">
-                      <strong>{filter.label}</strong>
-                    </span>
-                    <span className="advanced-filter-option-state" aria-hidden="true">
-                      <Check size={13} />
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-        <section className="child-profile-panel" aria-label="아이 조건">
-          <div className="child-profile-panel-head">
-            <div>
-              <span>아이 조건</span>
-            </div>
-            <button
-              className="child-profile-add-button"
-              type="button"
-              onClick={togglePicker}
-              disabled={isPending || (!isPickerOpen && isAtProfileLimit)}
-              aria-expanded={isPickerOpen}
-            >
-              {isPickerOpen ? <X size={15} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
-              {isPickerOpen ? "닫기" : isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
-            </button>
+                    return (
+                      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
+                        />
+                        <span className="advanced-filter-option-icon">
+                          <Icon size={18} aria-hidden="true" />
+                        </span>
+                        <span className="advanced-filter-option-copy">
+                          <strong>{filter.label}</strong>
+                        </span>
+                        <span className="advanced-filter-option-state" aria-hidden="true">
+                          <Check size={13} />
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
+          <section className="child-profile-panel" aria-label="아이 조건">
+            <div className="child-profile-panel-head">
+              <div>
+                <span>아이 조건</span>
+              </div>
+              <button
+                className="child-profile-add-button"
+                type="button"
+                onClick={togglePicker}
+                disabled={isPending || (!isPickerOpen && isAtProfileLimit)}
+              >
+                <Plus size={15} aria-hidden="true" />
+                {isAtProfileLimit ? "모두 등록됨" : "아이 추가"}
+              </button>
+            </div>
 
-          <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
-          <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
+            <AppModal
+              description="아이 나이와 성별을 추가하면 검색 결과의 연령 적합도를 더 잘 맞출 수 있어요."
+              disabled={isPending}
+              onClose={cancelDraftProfile}
+              open={isPickerOpen}
+              size="wide"
+              title="아이 조건 추가"
+            >
+              <div className="child-profile-picker">
+                <div className="child-profile-picker-row">
+                  <span className="child-profile-picker-label">성별 선택</span>
+                  <div className="child-profile-segmented" role="group" aria-label="아이 성별">
+                    {CHILD_GENDERS.map((gender) => {
+                      const genderPreviewProfile = { ageBand: draftAgeBand, gender: gender.id };
 
-          {isPickerOpen ? (
-            <div className="child-profile-picker">
-              <div className="child-profile-picker-row">
-                <span className="child-profile-picker-label">성별 선택</span>
-                <div className="child-profile-segmented" role="group" aria-label="아이 성별">
-                  {CHILD_GENDERS.map((gender) => {
-                    const genderPreviewProfile = { ageBand: draftAgeBand, gender: gender.id };
+                      return (
+                        <button
+                          className={draftGender === gender.id ? "is-selected" : ""}
+                          type="button"
+                          key={gender.id}
+                          onClick={() => setDraftGender(gender.id)}
+                          aria-label={gender.label}
+                          aria-pressed={draftGender === gender.id}
+                        >
+                          <span className="child-profile-segmented-icon">
+                            <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={52} height={52} />
+                          </span>
+                          <span className="child-profile-segmented-label">{gender.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="child-profile-options" role="group" aria-label="아이 연령대">
+                  {CHILD_AGE_BANDS.map((band) => {
+                    const optionProfile = { ageBand: band.id, gender: draftGender };
+                    const isSelected = draftAgeBand === band.id;
 
                     return (
                       <button
-                        className={draftGender === gender.id ? "is-selected" : ""}
+                        className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
                         type="button"
-                        key={gender.id}
-                        onClick={() => setDraftGender(gender.id)}
-                        aria-label={gender.label}
-                        aria-pressed={draftGender === gender.id}
+                        key={band.id}
+                        onClick={() => setDraftAgeBand(band.id)}
+                        aria-pressed={isSelected}
                       >
-                        <span className="child-profile-segmented-icon">
-                          <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={52} height={52} />
+                        <span className="child-profile-option-icon">
+                          <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={88} height={88} />
                         </span>
-                        <span className="child-profile-segmented-label">{gender.label}</span>
+                        <span className="child-profile-option-copy">
+                          <strong>{band.label}</strong>
+                        </span>
                       </button>
                     );
                   })}
                 </div>
+
+                <AppModalActions>
+                  <button className="child-profile-cancel" type="button" onClick={cancelDraftProfile}>
+                    <X size={15} aria-hidden="true" />
+                    취소
+                  </button>
+                  <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
+                    <Check size={15} aria-hidden="true" />
+                    아이 추가
+                  </button>
+                </AppModalActions>
               </div>
+            </AppModal>
 
-              <div className="child-profile-options" role="group" aria-label="아이 연령대">
-                {CHILD_AGE_BANDS.map((band) => {
-                  const optionProfile = { ageBand: band.id, gender: draftGender };
-                  const isSelected = draftAgeBand === band.id;
-
-                  return (
-                    <button
-                      className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
-                      type="button"
-                      key={band.id}
-                      onClick={() => setDraftAgeBand(band.id)}
-                      aria-pressed={isSelected}
-                    >
-                      <span className="child-profile-option-icon">
-                        <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={88} height={88} />
-                      </span>
-                      <span className="child-profile-option-copy">
-                        <strong>{band.label}</strong>
-                      </span>
-                    </button>
-                  );
-                })}
+            {childProfiles.length > 0 ? (
+              <div className="child-profile-grid">
+                {childProfiles.map((profile, index) => (
+                  <ChildProfileCard
+                    profile={profile}
+                    key={`${childProfileKey(profile)}-${index}`}
+                    onRemove={() => commitProfiles(childProfiles.filter((_, itemIndex) => itemIndex !== index))}
+                  />
+                ))}
               </div>
-
-              <div className="child-profile-picker-actions">
-                <button className="child-profile-cancel" type="button" onClick={cancelDraftProfile}>
-                  <X size={15} aria-hidden="true" />
-                  취소
-                </button>
-                <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
-                  <Check size={15} aria-hidden="true" />
-                  아이 적용
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {childProfiles.length > 0 ? (
-            <div className="child-profile-grid">
-              {childProfiles.map((profile, index) => (
-                <ChildProfileCard
-                  profile={profile}
-                  key={`${childProfileKey(profile)}-${index}`}
-                  onRemove={() => commitProfiles(childProfiles.filter((_, itemIndex) => itemIndex !== index))}
-                />
-              ))}
-            </div>
-          ) : null}
-        </section>
-      </div>
-    </details>
+            ) : null}
+          </section>
+        </div>
+      </AppModal>
+    </div>
   );
 }
 
-function SearchPreferenceHiddenInputs({ params }: { params: Record<string, string | string[]> }) {
+function SearchPreferenceHiddenInputs({ params, selectedFilters }: { params: Record<string, string | string[]>; selectedFilters: Record<FilterKey, boolean> }) {
   return (
     <>
-      {FILTERS.map((filter) => (textParam(params[filter.key]) === "off" ? <input name={filter.key} type="hidden" value="off" key={filter.key} /> : null))}
+      {FILTERS.map((filter) => {
+        if (selectedFilters[filter.key]) return <input name={filter.key} type="hidden" value="on" key={filter.key} />;
+        if (textParam(params[filter.key]) === "off") return <input name={filter.key} type="hidden" value="off" key={filter.key} />;
+        return null;
+      })}
     </>
   );
 }

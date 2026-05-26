@@ -26,6 +26,9 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-aigo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-aigo}
       AIGO_API_KEY: ${AIGO_API_KEY:?Set AIGO_API_KEY in .env}
+      SLACK_TOKEN: ${SLACK_TOKEN:-}
+      GIT_BRANCH: ${GIT_BRANCH:-unknown}
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       TZ: ${TZ:-Asia/Seoul}
     expose:
       - "3000"
