@@ -183,7 +183,7 @@ function scorePlaceInternal(
       addScore("match", Math.min(4, matchedTags.length * 1.5));
       reasonCodes.add("TAG_MATCH");
     }
-    applyTaxonomySignal(place.taxonomy, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
+    applyTaxonomySignal(place.taxonomy, place.playFeatures, input.taxonomy, reasonCodes, (delta) => addScore("match", delta));
   }
 
   if (mode.includeAge) {
@@ -438,13 +438,14 @@ function pricingAdmissionItems(record: Record<string, unknown>) {
 
 function applyTaxonomySignal(
   taxonomy: PlaceTaxonomy | null | undefined,
+  playFeatures: Record<string, unknown> | null | undefined,
   requested: SearchPlacesInput["taxonomy"] | undefined,
   reasonCodes: Set<string>,
   addScore: (delta: number) => void
 ) {
   if (!requested || !hasRequestedTaxonomyFacets(requested)) return;
 
-  const placeFacets = combinedPlaceTaxonomyFacets(taxonomy);
+  const placeFacets = combinedPlaceTaxonomyFacets(taxonomy, playFeatures);
   let hasUnknownFacetFamily = false;
   for (const family of taxonomyFacetKeys) {
     const requestedValues = requested[family] ?? [];
@@ -466,14 +467,16 @@ function applyTaxonomySignal(
   }
 }
 
-function combinedPlaceTaxonomyFacets(taxonomy: PlaceTaxonomy | null | undefined) {
+function combinedPlaceTaxonomyFacets(taxonomy: PlaceTaxonomy | null | undefined, playFeatures?: Record<string, unknown> | null) {
   const combined = Object.fromEntries(taxonomyFacetKeys.map((family) => [family, new Set<string>()])) as Record<TaxonomyFacetFamily, Set<string>>;
-  if (!taxonomy) return combined;
-
-  for (const family of taxonomyFacetKeys) {
-    for (const value of taxonomy.sourceBacked?.[family] ?? []) combined[family].add(value);
-    for (const value of taxonomy.inferred?.[family] ?? []) combined[family].add(value);
+  if (taxonomy) {
+    for (const family of taxonomyFacetKeys) {
+      for (const value of taxonomy.sourceBacked?.[family] ?? []) combined[family].add(value);
+      for (const value of taxonomy.inferred?.[family] ?? []) combined[family].add(value);
+    }
   }
+  if (positivePlayFeatureValue(playFeatures?.sandPlay)) combined.activityTypes.add("sand_play");
+  if (positivePlayFeatureValue(playFeatures?.waterPlayground)) combined.activityTypes.add("water_play");
   return combined;
 }
 
@@ -484,7 +487,7 @@ function hasRequestedTaxonomyFacets(taxonomy: NonNullable<SearchPlacesInput["tax
 function taxonomyFacetDelta(family: TaxonomyFacetFamily, matchCount: number) {
   switch (family) {
     case "activityTypes":
-      return Math.min(10, matchCount * 6);
+      return Math.min(36, matchCount * 24);
     case "visitUseCases":
     case "familyFitGates":
       return Math.min(4, matchCount * 2);
@@ -792,6 +795,10 @@ function strongestTriStateValue(values: unknown[]) {
   if (values.includes("partial")) return "partial";
   if (values.includes("no")) return "no";
   return "unknown";
+}
+
+function positivePlayFeatureValue(value: unknown) {
+  return value === "yes" || value === "partial";
 }
 
 function applyVisitFitSignal(visit: VisitScores | undefined, input: SearchPlacesInput, reasonCodes: Set<string>, addScore: (delta: number) => void) {

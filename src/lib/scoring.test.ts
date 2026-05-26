@@ -122,6 +122,39 @@ describe("scorePlace", () => {
     expect(unknown.reasonCodes).toContain("TAXONOMY_UNKNOWN");
   });
 
+  it("uses play feature evidence for activity filter ranking", () => {
+    const input = {
+      ...baseInput,
+      taxonomy: {
+        mode: "soft",
+        activityTypes: ["sand_play"]
+      }
+    } satisfies SearchPlacesInput;
+    const shared = {
+      primaryCategory: "playground",
+      tags: [],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 96,
+      indoorType: "outdoor",
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 4
+    };
+    const matched = scorePlace({ ...shared, playFeatures: { sandPlay: "yes" } }, input);
+    const unknown = scorePlace({ ...shared, playFeatures: { waterPlayground: "yes" } }, input);
+
+    expect(matched.score).toBeGreaterThan(unknown.score);
+    expect(matched.scoreBreakdown.match).toBeGreaterThanOrEqual(20);
+    expect(matched.reasonCodes).toContain("TAXONOMY_ACTIVITY_MATCH");
+  });
+
   it("boosts selected facilities without excluding missing toilet evidence", () => {
     const input = {
       ...baseInput,
