@@ -40,7 +40,10 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     ? childProfilesToAgeMonths(parseChildProfiles(children, textParam(params.ages)))
     : parseChildAgeMonths(textParam(params.ages));
 
-  const taxonomyActivityTypes = params.sandPlay === "on" ? ["sand_play" as const] : undefined;
+  const taxonomyActivityTypes = [
+    ...(params.sandPlay === "on" ? (["sand_play"] as const) : []),
+    ...(params.waterPlay === "on" ? (["water_play"] as const) : [])
+  ];
 
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : home ? "집 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
@@ -65,7 +68,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       babyChair: params.babyChair === "on" ? true : undefined,
       foodAllowed: params.foodAllowed === "on" ? true : undefined
     },
-    taxonomy: taxonomyActivityTypes
+    taxonomy: taxonomyActivityTypes.length > 0
       ? {
           mode: preferenceModeParam(params) ?? "soft",
           activityTypes: taxonomyActivityTypes

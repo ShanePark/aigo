@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowUpDown, Baby, Blocks, Car, Check, ChevronDown, Cookie, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, X } from "lucide-react";
+import { ArrowUpDown, Baby, Blocks, Car, Check, ChevronDown, Cookie, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -34,7 +34,18 @@ type SearchFiltersProps = {
   initialParams: Record<string, string | string[]>;
 };
 
-type FilterKey = "babyChair" | "diaperChangingTable" | "elevator" | "foodAllowed" | "indoor" | "kidsToilet" | "nursing" | "parking" | "sandPlay" | "stroller";
+type FilterKey =
+  | "babyChair"
+  | "diaperChangingTable"
+  | "elevator"
+  | "foodAllowed"
+  | "indoor"
+  | "kidsToilet"
+  | "nursing"
+  | "parking"
+  | "sandPlay"
+  | "stroller"
+  | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
 type FilterDefinition = {
   hint: string;
@@ -53,7 +64,8 @@ const FILTER_GROUPS: Array<{
     description: "날씨와 놀이감",
     filters: [
       { key: "indoor", label: "실내", hint: "비/더위 대피", icon: Home },
-      { key: "sandPlay", label: "모래놀이", hint: "감각 놀이", icon: TreePine }
+      { key: "sandPlay", label: "모래놀이", hint: "감각 놀이", icon: TreePine },
+      { key: "waterPlay", label: "물놀이", hint: "분수/물놀이터", icon: Waves }
     ]
   },
   {

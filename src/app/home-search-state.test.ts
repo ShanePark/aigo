@@ -134,17 +134,17 @@ describe("home search input", () => {
     });
   });
 
-  it("passes sand play as a taxonomy facet from search params", () => {
+  it("passes play filters as taxonomy facets from search params", () => {
     expect(buildSearchInput({ sandPlay: "on" })).toMatchObject({
       taxonomy: {
         mode: "soft",
         activityTypes: ["sand_play"]
       }
     });
-    expect(buildSearchInput({ sandPlay: "on", preferenceMode: "required" })).toMatchObject({
+    expect(buildSearchInput({ sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
       taxonomy: {
         mode: "required",
-        activityTypes: ["sand_play"]
+        activityTypes: ["sand_play", "water_play"]
       }
     });
   });
