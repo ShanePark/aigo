@@ -12,7 +12,7 @@ export const PLACE_CATEGORY_LABELS: Record<string, string> = {
   park: "공원",
   playground: "놀이터",
   family_cafe: "가족 카페",
-  family_restaurant: "가족 식당",
+  family_restaurant: "놀이방식당",
   sports_venue: "스포츠 시설",
   shopping_mall: "쇼핑몰",
   rest_area: "휴게소",

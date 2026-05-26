@@ -636,6 +636,17 @@ h3 {
   flex: 0 0 auto;
 }
 
+.category-tab img {
+  display: block;
+  flex: 0 0 auto;
+  height: 28px;
+  margin: -3px 0;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  width: 28px;
+}
+
 .category-tab span {
   color: currentColor;
   font-size: 14px;
@@ -7133,6 +7144,12 @@ dd {
   .category-tab svg {
     height: 16px;
     width: 16px;
+  }
+
+  .category-tab img {
+    height: 25px;
+    margin: 0;
+    width: 25px;
   }
 
   .category-tab span {

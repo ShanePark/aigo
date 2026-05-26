@@ -9,7 +9,7 @@ describe("place category display helpers", () => {
     expect(placeCategoryLabel("museum")).toBe("박물관");
     expect(placeCategoryLabel("park")).toBe("공원");
     expect(placeCategoryLabel("shopping_mall")).toBe("쇼핑몰");
-    expect(placeCategoryLabel("family_restaurant")).toBe("가족 식당");
+    expect(placeCategoryLabel("family_restaurant")).toBe("놀이방식당");
   });
 
   it("is ready to display future split categories before the schema migration", () => {

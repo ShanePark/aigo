@@ -29,6 +29,7 @@ import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
 import { SearchResetButton } from "@/app/search-reset-button";
 import { MAP_LOCATION_PARAM_KEYS, hasMapLocationParams } from "@/app/search-url-state";
+import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import { shouldFallbackToAllCategoriesForQuery } from "@/lib/search-intent";
@@ -37,24 +38,26 @@ import { getMyProfile } from "@/lib/user-profile";
 
 const CATEGORY_GROUPS = {
   all: { label: "전체", hint: "모두", icon: Blocks, categories: CATEGORY_GROUP_CATEGORY_FILTERS.all },
-  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, categories: CATEGORY_GROUP_CATEGORY_FILTERS.stay },
+  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, iconCategory: "accommodation", categories: CATEGORY_GROUP_CATEGORY_FILTERS.stay },
   visit: {
     label: "방문",
     hint: "과학관/문화",
     icon: Building2,
+    iconCategory: "experience_center",
     categories: CATEGORY_GROUP_CATEGORY_FILTERS.visit
   },
-  shopping: { label: "쇼핑몰", hint: "백화점/몰", icon: ShoppingBag, categories: CATEGORY_GROUP_CATEGORY_FILTERS.shopping },
-  toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, categories: CATEGORY_GROUP_CATEGORY_FILTERS.toyStore },
-  playground: { label: "놀이터", hint: "공공놀이", icon: TreePine, categories: CATEGORY_GROUP_CATEGORY_FILTERS.playground },
-  kidsCafe: { label: "키즈카페", hint: "상업놀이", icon: Baby, categories: CATEGORY_GROUP_CATEGORY_FILTERS.kidsCafe },
-  playroomDining: { label: "놀이방 식당", hint: "식사+놀이", icon: Utensils, categories: CATEGORY_GROUP_CATEGORY_FILTERS.playroomDining }
+  shopping: { label: "쇼핑몰", hint: "백화점/몰", icon: ShoppingBag, iconCategory: "shopping_mall", categories: CATEGORY_GROUP_CATEGORY_FILTERS.shopping },
+  toyStore: { label: "장난감", hint: "완구 매장", icon: Puzzle, iconCategory: "toy_store", categories: CATEGORY_GROUP_CATEGORY_FILTERS.toyStore },
+  playground: { label: "놀이터", hint: "공공놀이", icon: TreePine, iconCategory: "playground", categories: CATEGORY_GROUP_CATEGORY_FILTERS.playground },
+  kidsCafe: { label: "키즈카페", hint: "상업놀이", icon: Baby, iconCategory: "kids_cafe", categories: CATEGORY_GROUP_CATEGORY_FILTERS.kidsCafe },
+  playroomDining: { label: "놀이방식당", hint: "식사+놀이", icon: Utensils, iconCategory: "family_restaurant", categories: CATEGORY_GROUP_CATEGORY_FILTERS.playroomDining }
 } as const satisfies Record<
   CategoryGroupId,
   {
     categories?: readonly string[];
     hint: string;
     icon: LucideIcon;
+    iconCategory?: string;
     label: string;
   }
 >;
@@ -110,7 +113,6 @@ export default async function Home({ searchParams }: HomeProps) {
 
           <div className="category-tabs" aria-label="큰 분류 다중 선택">
             {Object.entries(CATEGORY_GROUPS).map(([groupId, group]) => {
-              const Icon = group.icon;
               const isActive = categoryGroupIsActive(activeCategoryGroups, groupId as CategoryGroupId);
 
               return (
@@ -121,7 +123,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   aria-label={`${group.label}: ${group.hint} ${isActive ? "해제" : "추가"}`}
                   aria-pressed={isActive}
                 >
-                  <Icon size={17} aria-hidden="true" />
+                  <CategoryGroupIcon group={group} />
                   <span>{group.label}</span>
                 </Link>
               );
@@ -275,6 +277,16 @@ function categoryGroupSelectionLabel(activeGroups: CategoryGroupId[]) {
   const selected = activeGroups.filter((group) => group !== "all");
   if (selected.length === 0) return CATEGORY_GROUPS.all.label;
   return selected.map((group) => CATEGORY_GROUPS[group].label).join(", ");
+}
+
+function CategoryGroupIcon({ group }: { group: (typeof CATEGORY_GROUPS)[CategoryGroupId] }) {
+  const imageSrc = "iconCategory" in group ? placeCategoryIconImage(group.iconCategory) : null;
+  if (imageSrc) {
+    return <img src={imageSrc} alt="" aria-hidden="true" draggable="false" />;
+  }
+
+  const Icon = group.icon;
+  return <Icon size={17} aria-hidden="true" />;
 }
 
 function clientParams(params: Record<string, string | string[] | undefined>) {
