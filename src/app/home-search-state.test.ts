@@ -99,9 +99,10 @@ describe("home search input", () => {
   });
 
   it("passes required preference mode from search params", () => {
-    expect(buildSearchInput({ nursing: "on", preferenceMode: "required" })).toMatchObject({
+    expect(buildSearchInput({ kidsToilet: "on", nursing: "on", preferenceMode: "required" })).toMatchObject({
       preferenceMode: "required",
       preferences: {
+        kidsToilet: true,
         nursingRoom: true
       }
     });
