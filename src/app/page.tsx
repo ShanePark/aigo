@@ -99,7 +99,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="search-query-capsule">
               <label className="query-field">
                 <span className="sr-only">검색어</span>
-                <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="물놀이, 비 오는 날, 수유실..." />
+                <input name="query" defaultValue={textParam(effectiveParams.query)} placeholder="검색" />
               </label>
               <button type="submit" className="primary-button" aria-label="검색">
                 <Search size={18} aria-hidden="true" />
