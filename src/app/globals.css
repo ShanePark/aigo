@@ -1498,6 +1498,7 @@ h3 {
   flex-wrap: wrap;
   gap: var(--space-3);
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 .sort-control,
@@ -7651,6 +7652,7 @@ dd {
   }
 
   .results-panel .result-header {
+    align-items: flex-end;
     min-height: auto;
   }
 
@@ -7671,15 +7673,16 @@ dd {
   }
 
   .result-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    justify-content: stretch;
-    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-left: auto;
+    width: auto;
   }
 
   .sort-control {
     justify-content: space-between;
-    width: 100%;
+    max-width: 100%;
+    width: auto;
   }
 
   .result-footer {
