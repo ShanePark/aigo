@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-aigo}
       POSTGRES_USER: ${POSTGRES_USER:-aigo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aigo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
       TZ: ${TZ:-Asia/Seoul}
     volumes:
@@ -24,8 +24,8 @@ services:
       dockerfile: Dockerfile
     container_name: aigo-app
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-aigo}:${POSTGRES_PASSWORD:-aigo}@postgres:5432/${POSTGRES_DB:-aigo}
-      AIGO_API_KEY: ${AIGO_API_KEY:-change-me}
+      DATABASE_URL: postgres://${POSTGRES_USER:-aigo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-aigo}
+      AIGO_API_KEY: ${AIGO_API_KEY:?Set AIGO_API_KEY in .env}
       TZ: ${TZ:-Asia/Seoul}
     ports:
       - "${APP_PORT:-3000}:3000"
