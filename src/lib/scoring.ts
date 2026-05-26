@@ -206,6 +206,7 @@ function scorePlaceInternal(
     applyTriStatePreference("parkingAvailable", "PARKING", place.parkingAvailable, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("strollerFriendly", "STROLLER", place.strollerFriendly, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("nursingRoom", "NURSING_ROOM", place.nursingRoom, input, reasonCodes, (delta) => addScore("preferences", delta));
+    applyTriStatePreference("diaperChangingTable", "DIAPER_TABLE", place.diaperChangingTable, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("kidsToilet", "KIDS_TOILET", place.kidsToilet, input, reasonCodes, (delta) => addScore("preferences", delta));
     applyTriStatePreference("babyChair", "BABY_CHAIR", place.babyChair, input, reasonCodes, (delta) => addScore("preferences", delta));
   }

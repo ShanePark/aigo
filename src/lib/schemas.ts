@@ -418,6 +418,7 @@ const searchPlacesBaseSchema = z.object({
       parkingAvailable: z.boolean().optional(),
       strollerFriendly: z.boolean().optional(),
       nursingRoom: z.boolean().optional(),
+      diaperChangingTable: z.boolean().optional(),
       kidsToilet: z.boolean().optional(),
       babyChair: z.boolean().optional()
     })

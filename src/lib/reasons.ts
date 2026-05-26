@@ -136,6 +136,7 @@ const preferencePrefixes: Array<[keyof NonNullable<SearchPlacesInput["preference
   ["parkingAvailable", "PARKING"],
   ["strollerFriendly", "STROLLER"],
   ["nursingRoom", "NURSING_ROOM"],
+  ["diaperChangingTable", "DIAPER_TABLE"],
   ["kidsToilet", "KIDS_TOILET"],
   ["babyChair", "BABY_CHAIR"]
 ];

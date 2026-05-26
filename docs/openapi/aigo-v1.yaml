@@ -1169,6 +1169,8 @@ components:
               type: boolean
             nursingRoom:
               type: boolean
+            diaperChangingTable:
+              type: boolean
             kidsToilet:
               type: boolean
             babyChair:

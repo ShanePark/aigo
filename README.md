@@ -230,6 +230,7 @@ curl -sS http://localhost:3000/v1/places/search \
       "parkingAvailable": true,
       "strollerFriendly": true,
       "nursingRoom": true,
+      "diaperChangingTable": true,
       "babyChair": true
     },
     "limit": 20
