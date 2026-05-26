@@ -43,7 +43,8 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
   const taxonomyActivityTypes = [
     ...(params.sandPlay === "on" ? (["sand_play"] as const) : []),
     ...(params.waterPlay === "on" ? (["water_play"] as const) : []),
-    ...(params.readingBooks === "on" ? (["reading_books"] as const) : [])
+    ...(params.readingBooks === "on" ? (["reading_books"] as const) : []),
+    ...(params.handsOnExperience === "on" ? (["hands_on_experience"] as const) : [])
   ];
 
   return {
