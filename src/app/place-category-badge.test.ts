@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { placeCategoryLabel } from "@/app/place-category";
+import { primaryCategories } from "@/lib/taxonomy";
 
 describe("place category display helpers", () => {
   it("uses concise Korean labels without slash-combined category names", () => {
@@ -18,8 +19,11 @@ describe("place category display helpers", () => {
     expect(placeCategoryLabel("zoo")).toBe("동물원");
   });
 
-  it("uses the generated WebP marker image for zoo places", () => {
-    expect(placeCategoryIconImage("zoo")).toBe("/icons/place-categories/zoo.webp");
-    expect(placeCategoryIconImage("park")).toBeNull();
+  it("uses generated WebP category images for every primary category", () => {
+    for (const category of primaryCategories) {
+      expect(placeCategoryIconImage(category)).toBe(`/icons/place-categories/${category}.webp`);
+    }
+
+    expect(placeCategoryIconImage("unknown_category")).toBeNull();
   });
 });
