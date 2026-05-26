@@ -716,13 +716,23 @@ h3 {
   color: var(--mint);
 }
 
+.advanced-filter-layout {
+  align-items: flex-start;
+  display: grid;
+  gap: 10px;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .advanced-filter-groups {
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.advanced-filter-group {
+.advanced-filter-group,
+.child-profile-panel {
   background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
@@ -731,6 +741,36 @@ h3 {
   min-width: 0;
   padding: 10px;
   width: fit-content;
+}
+
+.advanced-filter-layout > .advanced-filter-group,
+.advanced-filter-layout > .child-profile-panel {
+  width: 100%;
+}
+
+.advanced-filter-layout > .advanced-filter-group:nth-of-type(1) {
+  grid-column: span 1;
+  order: 1;
+}
+
+.advanced-filter-layout > .advanced-filter-group:nth-of-type(2) {
+  grid-column: span 2;
+  order: 2;
+}
+
+.child-profile-panel {
+  grid-column: span 2;
+  order: 3;
+}
+
+.advanced-filter-layout > .advanced-filter-group:nth-of-type(3) {
+  grid-column: span 1;
+  order: 4;
+}
+
+.advanced-filter-layout > .advanced-filter-group:nth-of-type(4) {
+  grid-column: span 2;
+  order: 5;
 }
 
 .advanced-filter-group-head {
@@ -1131,18 +1171,10 @@ h3 {
   margin-top: 0;
 }
 
-.child-profile-panel {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 12px;
-  margin-top: 13px;
-  padding-top: 13px;
-}
-
 .child-profile-panel-head {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
 }
 
@@ -1370,10 +1402,10 @@ h3 {
 }
 
 .child-profile-grid {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 132px));
-  justify-content: start;
+  max-width: 430px;
 }
 
 .child-profile-card {
@@ -1383,7 +1415,9 @@ h3 {
   display: grid;
   gap: 6px;
   justify-items: center;
+  max-width: 124px;
   min-height: 128px;
+  min-width: 104px;
   padding: 8px 7px 7px;
   position: relative;
   text-align: center;
@@ -6863,7 +6897,13 @@ dd {
     grid-row: 3;
   }
 
-  .advanced-filter-group {
+  .advanced-filter-layout {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .advanced-filter-group,
+  .child-profile-panel {
     width: 100%;
   }
 
