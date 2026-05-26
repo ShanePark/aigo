@@ -399,12 +399,8 @@ export function ExploreResults({
       <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
-          <span className="result-count-chip" aria-label={resultCountLabel(result.meta)}>
-            {compactResultCountLabel(result.meta)}
-          </span>
           <div className="result-actions">
             <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
-            <LimitControls activeLimit={resultLimitParam(activeParams)} params={activeParams} />
           </div>
         </section>
         <SearchInterpretation meta={result.meta.search} />
@@ -428,8 +424,28 @@ export function ExploreResults({
             <span>맨 위</span>
           </button>
         ) : null}
-        <Pagination meta={result.meta} onPage={handlePage} />
+        <ResultFooter meta={result.meta} onPage={handlePage} params={activeParams} />
       </div>
+    </section>
+  );
+}
+
+function ResultFooter({
+  meta,
+  onPage,
+  params
+}: {
+  meta: SearchResultMeta;
+  onPage: (page: number) => void;
+  params: Record<string, string | string[]>;
+}) {
+  return (
+    <section className="result-footer" aria-label="검색 결과 페이지 설정">
+      <span className="result-count-chip" aria-label={resultCountLabel(meta)}>
+        {compactResultCountLabel(meta)}
+      </span>
+      <Pagination meta={meta} onPage={onPage} />
+      <LimitControls activeLimit={resultLimitParam(params)} params={params} />
     </section>
   );
 }

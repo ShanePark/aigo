@@ -565,7 +565,8 @@ function revealResultCard(placeId: string) {
   card.classList.add("is-map-highlighted");
 
   const scroller = card.closest("[data-results-scroll]") as HTMLElement | null;
-  if (scroller) {
+  const scrollerCanScroll = scroller ? getComputedStyle(scroller).overflowY !== "visible" && scroller.scrollHeight > scroller.clientHeight : false;
+  if (scroller && scrollerCanScroll) {
     const cardRect = card.getBoundingClientRect();
     const scrollerRect = scroller.getBoundingClientRect();
     const centeredTop = scroller.scrollTop + cardRect.top - scrollerRect.top - (scroller.clientHeight - cardRect.height) / 2;
