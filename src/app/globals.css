@@ -621,6 +621,7 @@ h3 {
 }
 
 .category-tab {
+  -webkit-tap-highlight-color: transparent;
   background: var(--control-bg);
   border: 1px solid var(--line);
   color: var(--muted);
@@ -7099,11 +7100,33 @@ dd {
 
   .category-tab {
     aspect-ratio: 1;
+    border-radius: 999px;
     gap: 0;
     justify-content: center;
     min-height: 34px;
     min-width: 0;
     padding: 0;
+    touch-action: manipulation;
+  }
+
+  .category-tab:hover,
+  .category-tab:active {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .category-tab:active:not(.is-active) {
+    background: var(--control-bg);
+    border-color: var(--line);
+    color: var(--muted);
+  }
+
+  .category-tab.is-active,
+  .category-tab.is-active:active {
+    background: color-mix(in srgb, var(--mint) 13%, var(--panel));
+    border-color: var(--line-strong);
+    box-shadow: none;
+    color: var(--mint);
   }
 
   .category-tab svg {
