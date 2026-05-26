@@ -376,7 +376,7 @@ export function ExploreResults({
   );
 
   const mapOrigin = mapOriginFromMeta(result.meta);
-  const mapPlaces = result.items.map((place) => mapPlaceForMap(place, searchReturnHref));
+  const mapPlaces = result.items.map(mapPlaceForMap);
   const shownError = clientError ?? result.error;
 
   if (shownError) {
@@ -822,11 +822,10 @@ function mapOriginFromMeta(meta: SearchResultMeta): MapOrigin {
   };
 }
 
-function mapPlaceForMap(place: SearchItem, returnHref: string): MapPlace {
+function mapPlaceForMap(place: SearchItem): MapPlace {
   return {
     category: place.primaryCategory,
     distance: distanceLabel(place.distanceKm),
-    href: placeDetailPath(place.placeId, returnHref),
     lat: place.lat,
     lng: place.lng,
     name: place.name,
@@ -958,11 +957,6 @@ function placeDetailHref(placeId: string, returnHref: string): UrlObject {
     pathname: `/places/${placeId}`,
     query: { returnTo: returnHref }
   };
-}
-
-function placeDetailPath(placeId: string, returnHref: string) {
-  const query = new URLSearchParams({ returnTo: returnHref });
-  return `/places/${placeId}?${query.toString()}`;
 }
 
 function hasRelaxableParams(params: Record<string, string | string[]>) {

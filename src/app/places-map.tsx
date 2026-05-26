@@ -9,7 +9,6 @@ import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/
 export type MapPlace = {
   category: string;
   distance: string;
-  href: string;
   lat: number;
   lng: number;
   name: string;
@@ -72,6 +71,7 @@ type LeafletModule = typeof import("leaflet");
 const DEFAULT_MAP_CENTER = { lat: 36.5, lng: 127.8 };
 const DEFAULT_MAP_ZOOM = 7;
 const MAP_VIEW_STORAGE_KEY = "aigo:places-map-view:v4";
+const MARKER_REVEAL_DELAY_MS = 1000;
 let highlightedResultTimer: number | undefined;
 let initialGeolocationRequest: Promise<GeolocationPosition> | null = null;
 
@@ -94,12 +94,39 @@ export function PlacesMap({
   const initializedViewKeyRef = useRef<string | null>(null);
   const initialLocationRequestedRef = useRef(false);
   const hoveredCardPlaceIdRef = useRef<string | null>(null);
+  const markerRevealTimerRef = useRef<number | null>(null);
   const locationRequestTimerRef = useRef<number | null>(null);
   const locationRequestTokenRef = useRef(0);
   const suppressMarkerRevealUntilRef = useRef(0);
   const viewKeyRef = useRef(mapViewKey(origin));
   const [viewportSearchRequest, setViewportSearchRequest] = useState<ViewportSearchRequest | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "denied" | "unsupported">("idle");
+
+  const cancelPendingMarkerReveal = useCallback(() => {
+    if (!markerRevealTimerRef.current) return;
+    window.clearTimeout(markerRevealTimerRef.current);
+    markerRevealTimerRef.current = null;
+  }, []);
+
+  const revealResultFromMarker = useCallback(
+    (placeId: string) => {
+      cancelPendingMarkerReveal();
+      revealResultCard(placeId);
+    },
+    [cancelPendingMarkerReveal]
+  );
+
+  const scheduleMarkerReveal = useCallback(
+    (placeId: string) => {
+      cancelPendingMarkerReveal();
+      if (Date.now() < suppressMarkerRevealUntilRef.current) return;
+      markerRevealTimerRef.current = window.setTimeout(() => {
+        markerRevealTimerRef.current = null;
+        revealResultCard(placeId);
+      }, MARKER_REVEAL_DELAY_MS);
+    },
+    [cancelPendingMarkerReveal]
+  );
 
   const focusLocation = useCallback(
     async (lat: number, lng: number, options: { label: string; markerTitle: string; runSearch?: boolean } = { label: "현재 위치", markerTitle: "내 위치" }) => {
@@ -179,6 +206,7 @@ export function PlacesMap({
 
   useEffect(() => {
     return () => {
+      cancelPendingMarkerReveal();
       if (locationRequestTimerRef.current) window.clearTimeout(locationRequestTimerRef.current);
       locationRequestTokenRef.current += 1;
       mapRef.current?.remove();
@@ -186,7 +214,7 @@ export function PlacesMap({
       markersRef.current = null;
       userLocationMarkerRef.current = null;
     };
-  }, []);
+  }, [cancelPendingMarkerReveal]);
 
   useEffect(() => {
     let disposed = false;
@@ -204,6 +232,7 @@ export function PlacesMap({
         setViewportSearchRequest(buildViewportSearchRequest(changedMap));
       });
       const markers = getOrCreateMarkerLayer(L, map, markersRef);
+      cancelPendingMarkerReveal();
       markers.clearLayers();
       placeMarkersRef.current.clear();
 
@@ -230,18 +259,18 @@ export function PlacesMap({
         });
         marker.on("mouseover", () => {
           marker.getElement()?.classList.add("is-hovered");
-          if (Date.now() < suppressMarkerRevealUntilRef.current) return;
-          revealResultCard(place.placeId);
+          scheduleMarkerReveal(place.placeId);
         });
         marker.on("focus", () => {
           marker.getElement()?.classList.add("is-hovered");
-          revealResultCard(place.placeId);
+          revealResultFromMarker(place.placeId);
         });
         marker.on("mouseout blur", () => {
+          cancelPendingMarkerReveal();
           marker.getElement()?.classList.remove("is-hovered");
         });
         marker.on("click", () => {
-          window.location.href = place.href;
+          revealResultFromMarker(place.placeId);
         });
         marker.addTo(markers);
         placeMarkersRef.current.set(place.placeId, marker);
@@ -271,7 +300,16 @@ export function PlacesMap({
     return () => {
       disposed = true;
     };
-  }, [autoLocateOnInitialLoad, origin, places, preserveViewOnUpdate, requestInitialLocation]);
+  }, [
+    autoLocateOnInitialLoad,
+    cancelPendingMarkerReveal,
+    origin,
+    places,
+    preserveViewOnUpdate,
+    requestInitialLocation,
+    revealResultFromMarker,
+    scheduleMarkerReveal
+  ]);
 
   useEffect(() => {
     function handleCardEnter(event: Event) {
