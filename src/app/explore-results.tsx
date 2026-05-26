@@ -84,8 +84,16 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "offset",
   "page",
   "parking",
+  "readingBooks",
   "sandPlay",
-  "stroller"
+  "stroller",
+  "waterPlay",
+  "diaperChangingTable",
+  "kidsToilet",
+  "elevator",
+  "babyChair",
+  "foodAllowed",
+  "preferenceMode"
 ]);
 
 export type CategoryGroupSummary = {
@@ -128,6 +136,7 @@ type SearchResultMeta = {
 
 type SearchMeta = {
   appliedPreferences: SearchPlacesInput["preferences"] | null;
+  appliedTaxonomy: SearchPlacesInput["taxonomy"] | null;
   locationQuery: string | null;
   normalized: boolean;
   normalizedQuery: string | null;
@@ -430,7 +439,10 @@ export function ExploreResults({
 
 function SearchInterpretation({ meta, params }: { meta: SearchMeta | null | undefined; params: Record<string, string | string[]> }) {
   const chips = searchInterpretationChips(meta);
-  const requiredHref = meta?.preferenceSemantics.mode === "soft" && meta.preferenceSemantics.requestedKeys.length > 0 ? requiredPreferenceModeHref(params) : null;
+  const hasRequiredModeTarget =
+    meta?.preferenceSemantics.mode === "soft" &&
+    (meta.preferenceSemantics.requestedKeys.length > 0 || hasAppliedTaxonomyFacets(meta.appliedTaxonomy));
+  const requiredHref = hasRequiredModeTarget ? requiredPreferenceModeHref(params) : null;
 
   if (chips.length === 0 && !requiredHref) return null;
 
@@ -745,9 +757,36 @@ function searchInterpretationChips(meta: SearchMeta | null | undefined) {
       value: meta.preferenceSemantics.mode === "required" ? "필수" : "소프트"
     });
   }
+  for (const taxonomy of taxonomyLabels(meta.appliedTaxonomy)) {
+    chips.push({
+      label: taxonomy,
+      tone: meta.preferenceSemantics.mode === "required" ? "is-required" : "is-soft",
+      value: meta.preferenceSemantics.mode === "required" ? "필수" : "소프트"
+    });
+  }
   if (meta.suggestedExactNameQuery) chips.push({ label: "장소명", value: meta.suggestedExactNameQuery });
 
   return chips.slice(0, 8);
+}
+
+function hasAppliedTaxonomyFacets(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
+  return Boolean(taxonomy && Object.entries(taxonomy).some(([key, value]) => key !== "mode" && Array.isArray(value) && value.length > 0));
+}
+
+function taxonomyLabels(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
+  const activityLabels: Record<string, string> = {
+    reading_books: "책놀이",
+    sand_play: "모래놀이",
+    water_play: "물놀이"
+  };
+
+  return [
+    ...(taxonomy?.activityTypes ?? []).map((value) => activityLabels[value] ?? formatKeyword(value)),
+    ...(taxonomy?.visitUseCases ?? []).map((value) => formatKeyword(value)),
+    ...(taxonomy?.familyFitGates ?? []).map((value) => formatKeyword(value)),
+    ...(taxonomy?.logisticsTags ?? []).map((value) => formatKeyword(value)),
+    ...(taxonomy?.ageBands ?? []).map((value) => formatKeyword(value))
+  ].filter(Boolean);
 }
 
 function preferenceLabels(preferences: SearchPlacesInput["preferences"] | null, requestedKeys: string[]) {

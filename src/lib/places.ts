@@ -634,12 +634,14 @@ export async function searchPlaces(input: SearchPlacesInput) {
           input.matchMode === "exactName" && input.query ? suggestedExactNameQuery(input.query) : null,
         queryNormalization: buildSearchQueryNormalizationMeta(input, normalizedInput),
         appliedPreferences: normalizedInput.preferences ?? null,
+        appliedTaxonomy: normalizedInput.taxonomy ?? null,
         preferenceSemantics: buildSearchPreferenceSemantics(normalizedInput.preferences, normalizedInput.preferenceMode),
         visitContext: normalizedInput.visitContext ?? null,
         normalized:
           input.query !== normalizedInput.query ||
           input.visitContext !== normalizedInput.visitContext ||
-          JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null)
+          JSON.stringify(input.preferences ?? null) !== JSON.stringify(normalizedInput.preferences ?? null) ||
+          JSON.stringify(input.taxonomy ?? null) !== JSON.stringify(normalizedInput.taxonomy ?? null)
       }
     }
   };

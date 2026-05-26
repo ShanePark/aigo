@@ -483,7 +483,7 @@ function hasRequestedTaxonomyFacets(taxonomy: NonNullable<SearchPlacesInput["tax
 function taxonomyFacetDelta(family: TaxonomyFacetFamily, matchCount: number) {
   switch (family) {
     case "activityTypes":
-      return Math.min(6, matchCount * 3);
+      return Math.min(10, matchCount * 6);
     case "visitUseCases":
     case "familyFitGates":
       return Math.min(4, matchCount * 2);
