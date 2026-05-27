@@ -42,10 +42,14 @@ export async function GET(request: NextRequest) {
 
 function loginErrorUrl(url: URL, error: unknown) {
   if (error instanceof ApiError) {
-    url.searchParams.set("error", error.message);
+    url.searchParams.set("error", [error.message, stringDetail(error.details)].filter(Boolean).join(": "));
   } else {
     console.error(error);
     url.searchParams.set("error", "Kakao login failed");
   }
   return url;
+}
+
+function stringDetail(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }

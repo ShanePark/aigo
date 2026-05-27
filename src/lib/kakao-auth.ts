@@ -100,7 +100,9 @@ export async function kakaoProfileFromCode(request: NextRequest, code: string) {
   });
   const token = (await tokenResponse.json().catch(() => null)) as KakaoTokenResponse | null;
   if (!tokenResponse.ok || !token?.access_token) {
-    throw new ApiError(401, "Kakao token exchange failed", token?.error_description ?? token?.error);
+    const detail = token?.error_description ?? token?.error ?? `HTTP ${tokenResponse.status}`;
+    console.warn("Kakao token exchange failed", { detail, status: tokenResponse.status });
+    throw new ApiError(401, "Kakao token exchange failed", detail);
   }
 
   const userResponse = await fetch(KAKAO_USER_URL, {
