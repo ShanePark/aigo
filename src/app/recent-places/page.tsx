@@ -23,7 +23,6 @@ export default async function RecentPlacesPage() {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">최근 본 장소</p>
             <h1>로그인 후 최근 확인한 장소를 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
@@ -46,10 +45,6 @@ export default async function RecentPlacesPage() {
   return (
     <div className="page visits-page">
       <header className="visits-hero">
-        <div className="visits-hero-copy">
-          <p className="category">최근 본 장소</p>
-          <h1>방금 살펴본 장소들</h1>
-        </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="최근 본 장소 요약">
             <span>
@@ -71,7 +66,6 @@ export default async function RecentPlacesPage() {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">아직 기록 없음</p>
             <h2>장소 상세를 열면 여기에 쌓여요</h2>
           </div>
           <div className="empty-state-actions">

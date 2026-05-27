@@ -5536,45 +5536,6 @@ h3 {
   max-width: 1040px;
 }
 
-.me-hero {
-  align-items: flex-end;
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 2px 0 4px;
-}
-
-.me-hero-copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.me-overview {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  min-width: min(100%, 420px);
-}
-
-.me-stat {
-  align-items: center;
-  background: var(--chip-neutral-bg);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--chip-neutral-text);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 900;
-  gap: 5px;
-  min-height: 30px;
-  padding: 0 9px;
-  white-space: nowrap;
-}
-
 .me-profile-form {
   display: grid;
   gap: 16px;
@@ -6309,42 +6270,10 @@ h3 {
   margin-bottom: 18px;
 }
 
-.visits-hero-copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
 .saved-places-hero {
   align-items: center;
   margin-bottom: 22px;
   padding-top: 4px;
-}
-
-.saved-places-hero .visits-hero-copy {
-  gap: 10px;
-}
-
-.saved-places-hero .visits-hero-copy::after {
-  background: linear-gradient(90deg, var(--mint), var(--coral));
-  border-radius: 999px;
-  content: "";
-  display: block;
-  height: 5px;
-  width: 74px;
-}
-
-.saved-places-hero h1 {
-  font-size: 44px;
-  line-height: 1.02;
-  margin: 0;
-}
-
-.visits-title-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .visits-demo-badge {
@@ -7219,10 +7148,6 @@ dd {
   .visits-hero {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .saved-places-hero h1 {
-    font-size: 38px;
   }
 
   .visits-hero-side {
@@ -8320,19 +8245,6 @@ dd {
   }
 }
 
-@media (max-width: 860px) {
-  .me-hero {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .me-overview {
-    justify-content: flex-start;
-    min-width: 0;
-    width: 100%;
-  }
-}
-
 @media (max-width: 760px) {
   .me-profile-section {
     padding: 14px;
@@ -8403,13 +8315,4 @@ dd {
     grid-template-columns: 1fr;
   }
 
-  .me-overview {
-    align-items: stretch;
-    display: grid;
-  }
-
-  .me-stat {
-    justify-content: center;
-    min-height: 34px;
-  }
 }

@@ -28,7 +28,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">방문 로그</p>
             <h1>로그인 후 방문 기록을 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
@@ -60,14 +59,8 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
   return (
     <div className="page visits-page">
       <header className="visits-hero">
-        <div className="visits-hero-copy">
-          <div className="visits-title-row">
-            <p className="category">방문 로그</p>
-            {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
-          </div>
-          <h1>우리 가족이 다녀온 곳</h1>
-        </div>
         <div className="visits-hero-side">
+          {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
           <div className="visits-summary" aria-label="방문 로그 요약">
             <span>
               <CalendarDays size={15} aria-hidden="true" />
@@ -96,7 +89,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">아직 기록 없음</p>
             <h2>장소 상세에서 첫 평가를 남겨보세요</h2>
           </div>
           <div className="empty-state-actions">

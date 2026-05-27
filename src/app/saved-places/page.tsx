@@ -42,7 +42,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
             <Bookmark size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">저장한 장소</p>
             <h1>로그인 후 저장한 장소를 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
@@ -65,9 +64,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
   return (
     <div className="page visits-page">
       <header className="visits-hero saved-places-hero">
-        <div className="visits-hero-copy">
-          <h1>저장한 장소</h1>
-        </div>
         <div className="visits-hero-side">
           <SavedPlaceFilters activeFilter={filter} summary={summary} />
         </div>
@@ -79,7 +75,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
             <Bookmark size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">저장한 장소 없음</p>
             <h2>{emptyTitle(filter)}</h2>
           </div>
           <div className="empty-state-actions">
