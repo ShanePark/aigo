@@ -108,8 +108,10 @@
 .menuFooter {
   border-top: 1px solid var(--line);
   color: var(--muted);
+  display: grid;
   font-size: 11px;
   font-weight: var(--weight-label);
+  gap: 2px;
   line-height: 1.35;
   margin: 0;
   padding: 9px 10px 2px;

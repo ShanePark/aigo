@@ -13,7 +13,15 @@ import { ThemeToggle } from "./theme-toggle";
 
 type TopbarUser = Pick<AppUser, "displayName" | "email" | "id">;
 
-export function TopbarActions({ footerText, initialUser }: { footerText: string; initialUser: TopbarUser | null }) {
+export function TopbarActions({
+  appVersion,
+  footerText,
+  initialUser
+}: {
+  appVersion: string;
+  footerText: string;
+  initialUser: TopbarUser | null;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
@@ -72,7 +80,10 @@ export function TopbarActions({ footerText, initialUser }: { footerText: string;
           <div className={styles.menuSection}>
             <AccountControls initialUser={initialUser} />
           </div>
-          <p className={styles.menuFooter}>{footerText}</p>
+          <p className={styles.menuFooter}>
+            <span>{footerText}</span>
+            <span>{appVersion}</span>
+          </p>
         </div>
       ) : null}
     </div>

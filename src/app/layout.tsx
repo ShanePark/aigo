@@ -7,6 +7,7 @@ import "./globals.css";
 import { GoogleAnalytics } from "./google-analytics";
 import { TopbarActions } from "./topbar-actions";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
+import { AIGO_APP_VERSION } from "@/lib/app-version";
 
 const currentYear = new Date().getFullYear();
 
@@ -66,7 +67,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
             <span>AiGo</span>
           </Link>
-          <TopbarActions footerText={`© ${currentYear} AiGo · Shane Park`} initialUser={initialUser} />
+          <TopbarActions appVersion={AIGO_APP_VERSION} footerText={`© ${currentYear} AiGo · Shane Park`} initialUser={initialUser} />
         </header>
         <main>{children}</main>
       </body>

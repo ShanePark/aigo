@@ -238,6 +238,8 @@ Use a clear action hierarchy:
 
 When a task is complete, the changes are cohesive enough to commit, and review/verification finds no blocking issues, proactively create a git commit for only the changes made in the current session or task. Before committing, use `.codex/skills/git-commit/SKILL.md` and commit at sensible, focused boundaries rather than batching unrelated work together.
 
+Before creating a PR, update the shared app version constant in `src/lib/app-version.ts`. Use `vYYYY.MM.DD.NN`, where `NN` starts at `01` for the first PR version of the day and increments as `02`, `03`, and so on for additional PRs on the same date.
+
 Before committing:
 
 - Inspect `git status` and relevant diffs.
