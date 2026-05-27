@@ -207,7 +207,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           childName={draftChild?.name ?? ""}
           confirmDisabled={!draftChild?.birthYearMonth}
           confirmLabel="아이 추가"
-          description="아이의 생년월과 성별을 등록하면 검색 조건에 맞는 나이대를 자동으로 계산해요."
           disabled={isSaving}
           gender={draftChild?.gender ?? "boy"}
           maxBirthYearMonth={maxBirthYearMonth}
@@ -226,7 +225,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           childName={editingChildDraft?.name ?? ""}
           confirmDisabled={!editingChildDraft?.birthYearMonth || childSignature(editingChildDraft) === savedChildSignatures.get(editingChildDraft.clientId)}
           confirmLabel="수정 저장"
-          description="아이의 생년월과 성별을 수정하면 저장 후 검색 기본값에도 반영됩니다."
           disabled={isSaving}
           gender={editingChildDraft?.gender ?? "boy"}
           maxBirthYearMonth={maxBirthYearMonth}

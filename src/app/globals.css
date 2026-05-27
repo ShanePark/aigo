@@ -3902,7 +3902,6 @@ h3 {
   width: 36px;
 }
 
-.score-dialog-copy,
 .score-dialog-rationale {
   color: var(--body-copy);
   line-height: 1.58;
@@ -4306,36 +4305,6 @@ h3 {
 .app-modal-submit:disabled {
   cursor: not-allowed;
   opacity: 0.64;
-}
-
-.context-info-button {
-  align-items: center;
-  background: var(--control-bg);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  flex: 0 0 auto;
-  height: 26px;
-  justify-content: center;
-  margin-left: 2px;
-  padding: 0;
-  transition:
-    background-color var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    color var(--motion-fast),
-    transform var(--motion-fast);
-  width: 26px;
-}
-
-.context-info-button:hover,
-.context-info-button:focus-visible {
-  border-color: var(--hover-border);
-  box-shadow: var(--shadow-soft);
-  color: var(--text);
-  transform: translateY(-1px);
 }
 
 .score-reason-chip {

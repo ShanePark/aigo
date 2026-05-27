@@ -297,7 +297,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               ageBand={draftAgeBand}
               confirmDisabled={isAtProfileLimit}
               confirmLabel="아이 추가"
-              description="아이 나이와 성별을 추가하면 검색 결과의 연령 적합도를 더 잘 맞출 수 있어요."
               disabled={isPending}
               gender={draftGender}
               mode="ageBand"

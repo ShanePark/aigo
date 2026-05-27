@@ -30,7 +30,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
           <div className="empty-state-copy">
             <p className="empty-state-kicker">방문 로그</p>
             <h1>로그인 후 방문 기록을 볼 수 있어요</h1>
-            <p>카카오 로그인 후 내가 남긴 장소 평가, 방문일, 사진 수를 날짜별로 확인할 수 있습니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">
@@ -67,7 +66,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
             {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
           </div>
           <h1>우리 가족이 다녀온 곳</h1>
-          <p className="lede">날짜별 방문 장소와 별점, 짧은 리뷰, 사진 수를 한눈에 모아 봅니다.</p>
         </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="방문 로그 요약">
@@ -100,7 +98,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
           <div className="empty-state-copy">
             <p className="empty-state-kicker">아직 기록 없음</p>
             <h2>장소 상세에서 첫 평가를 남겨보세요</h2>
-            <p>장소 상세에서 별점과 리뷰를 저장하면 오늘 날짜로 로그가 쌓입니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">

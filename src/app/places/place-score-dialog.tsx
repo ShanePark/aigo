@@ -67,11 +67,6 @@ export function PlaceScoreDialog({ breakdown, rationale, reasons, score, storedP
               </button>
             </div>
 
-            <p className="score-dialog-copy">
-              검색어, 거리, 필터 조건을 뺀 장소 자체 평가입니다. 저장된 장소 평가, 출처/외부근거, 가족 편의시설, 방문 부담과 데이터 신뢰도를
-              합산합니다.
-            </p>
-
             <dl className="score-dialog-summary">
               <div>
                 <dt>등록 평가</dt>

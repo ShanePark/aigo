@@ -519,7 +519,6 @@ function SearchEmptyState({
       <div className="empty-state-copy">
         <p className="empty-state-kicker">결과 없음</p>
         <h3>조건에 맞는 장소가 아직 없습니다</h3>
-        <p>실내, 주차, 화장실 같은 조건을 조금 줄이거나 다른 큰 분류에서 다시 찾아볼 수 있습니다.</p>
       </div>
       <div className="empty-state-actions">
         {hasRelaxableParams(params) ? (

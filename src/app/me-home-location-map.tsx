@@ -117,9 +117,7 @@ export function MeHomeLocationMap({ lat, lng, onSelect }: HomeLocationMapProps) 
           {locationStatus === "locating" ? "확인 중" : "현재 위치"}
         </button>
       </div>
-      <p className={locationStatus === "error" ? "is-error" : ""}>
-        {locationStatus === "error" ? "현재 위치를 가져오지 못했습니다. 지도를 눌러 집 위치를 선택해 주세요." : "지도를 누르거나 핀을 드래그해 집 위치를 지정하세요."}
-      </p>
+      {locationStatus === "error" ? <p className="is-error">현재 위치를 가져오지 못했습니다.</p> : null}
     </div>
   );
 }
