@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Check } from "lucide-react";
 
 import type { LinkedSocialAccount, SocialProvider } from "@/lib/social-accounts";
 
@@ -62,7 +63,10 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
                 <span>{linked ? linkedDescription(linkedAccount) : provider.description}</span>
               </div>
               {linked ? (
-                <span className="me-save-pill is-clean">연동됨</span>
+                <span className="me-social-status" aria-label={`${provider.label} 연동됨`}>
+                  <Check size={15} aria-hidden="true" />
+                  연동됨
+                </span>
               ) : provider.id === "kakao" ? (
                 <a className="me-social-link-button" href="/api/auth/kakao?mode=link&next=/me">
                   {provider.actionLabel}
@@ -82,5 +86,5 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
 
 function linkedDescription(account: LinkedSocialAccount | undefined) {
   if (!account) return "연동되어 있습니다.";
-  return account.providerEmail ? `${account.providerEmail} 계정으로 연동되어 있습니다.` : "연동되어 있습니다.";
+  return "연동되어 있습니다.";
 }

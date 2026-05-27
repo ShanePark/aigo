@@ -5698,10 +5698,25 @@ h3 {
   background: color-mix(in srgb, var(--panel) 78%, var(--control-bg));
 }
 
+.me-social-status,
 .me-social-row .me-save-pill {
   grid-column: 1 / -1;
-  justify-self: stretch;
   min-height: 38px;
+}
+
+.me-social-status {
+  align-items: center;
+  background: color-mix(in srgb, var(--mint) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--mint) 28%, var(--line));
+  border-radius: 8px;
+  color: var(--mint-strong);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+  justify-content: center;
+  justify-self: stretch;
+  padding: 0 12px;
 }
 
 .me-social-row.tone-kakao:not(.is-linked) {
