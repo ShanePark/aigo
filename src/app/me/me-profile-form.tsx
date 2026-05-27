@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { Baby, Check, Home, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Baby, Check, Home, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ChildProfilePickerModal } from "@/app/child-profile-picker-modal";
-import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
+import type { ChildGender } from "@/lib/child-ages";
 import type { MyProfile } from "@/lib/user-profile";
 
 import { homeLocationHasUsableCoordinates, homeSaveUiState, type HomeDraft } from "../me-home-state";
@@ -38,14 +38,14 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [savedHomeLocation, setSavedHomeLocation] = useState(() => homeFromProfile(initialProfile));
   const [status, setStatus] = useState<SaveStatus>({ message: "", tone: "idle" });
   const [savingTarget, setSavingTarget] = useState<string | null>(null);
-  const [editingChildId, setEditingChildId] = useState<string | null>(null);
   const [deleteConfirmChildId, setDeleteConfirmChildId] = useState<string | null>(null);
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
   const [draftChild, setDraftChild] = useState<Pick<ChildDraft, "birthYearMonth" | "gender"> | null>(null);
+  const [editingChildDraft, setEditingChildDraft] = useState<ChildDraft | null>(null);
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const savedChildSignatures = useMemo(() => new Map(savedChildren.map((child) => [child.clientId, childSignature(child)])), [savedChildren]);
   const isSaving = status.tone === "saving";
-  const hasActiveChildEdit = editingChildId !== null;
+  const hasActiveChildModal = isAddChildModalOpen || editingChildDraft !== null;
   const homeSaveState = homeSaveUiState(homeLocation, savedHomeLocation, { isSaving, saving: savingTarget === "home" });
 
   function openAddChildModal() {
@@ -55,16 +55,16 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     clearSavedStatus();
   }
 
-  function addDraftChild() {
+  async function addDraftChild() {
     if (!draftChild?.birthYearMonth) return;
 
     const child = { ...draftChild, clientId: createClientId() };
-    setChildren((current) => [...current, child]);
-    setEditingChildId(child.clientId);
+    const nextChildren = [...children, child];
+    setChildren(nextChildren);
     setIsAddChildModalOpen(false);
     setDraftChild(null);
     setDeleteConfirmChildId(null);
-    clearSavedStatus();
+    await saveProfile({ children: nextChildren, target: `child-${child.clientId}` });
   }
 
   function cancelAddChild() {
@@ -72,42 +72,33 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     setDraftChild(null);
   }
 
-  function updateChildBirthYearMonth(clientId: string, birthYearMonth: string) {
-    setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, birthYearMonth } : child)));
-    setDeleteConfirmChildId(null);
-    clearSavedStatus();
-  }
-
-  function updateChildGender(clientId: string, gender: ChildGender) {
-    setChildren((current) => current.map((child) => (child.clientId === clientId ? { ...child, gender } : child)));
-    setDeleteConfirmChildId(null);
-    clearSavedStatus();
-  }
-
   async function removeChild(clientId: string) {
     const nextChildren = children.filter((child) => child.clientId !== clientId);
     setChildren(nextChildren);
-    setEditingChildId(null);
+    setEditingChildDraft(null);
     setDeleteConfirmChildId(null);
     await saveProfile({ children: nextChildren, target: `child-${clientId}` });
   }
 
-  function editChild(clientId: string) {
-    setEditingChildId(clientId);
+  function openEditChildModal(child: ChildDraft) {
+    setEditingChildDraft(child);
     setDeleteConfirmChildId(null);
     clearSavedStatus();
   }
 
-  function cancelChildEdit(clientId: string) {
-    const savedChild = savedChildren.find((child) => child.clientId === clientId);
-    if (savedChild) {
-      setChildren((current) => current.map((child) => (child.clientId === clientId ? savedChild : child)));
-    } else {
-      setChildren((current) => current.filter((child) => child.clientId !== clientId));
-    }
-    setEditingChildId(null);
+  function cancelEditChild() {
+    setEditingChildDraft(null);
+  }
+
+  async function saveEditedChild() {
+    if (!editingChildDraft?.birthYearMonth) return;
+
+    const target = `child-${editingChildDraft.clientId}`;
+    const nextChildren = children.map((child) => (child.clientId === editingChildDraft.clientId ? editingChildDraft : child));
+    setChildren(nextChildren);
+    setEditingChildDraft(null);
     setDeleteConfirmChildId(null);
-    clearSavedStatus();
+    await saveProfile({ children: nextChildren, target });
   }
 
   function updateHomeLocation(next: (current: HomeDraft) => HomeDraft) {
@@ -180,7 +171,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
       setHomeLocation(nextHomeLocationDraft);
       setSavedHomeLocation(nextHomeLocationDraft);
       setStatus({ message: "저장됨", tone: "saved" });
-      setEditingChildId(null);
+      setEditingChildDraft(null);
       setDeleteConfirmChildId(null);
       window.dispatchEvent(new CustomEvent("aigo-profile-change", { detail: profile }));
       return true;
@@ -203,7 +194,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             <h2 id="me-children-title">아이 정보</h2>
             <p>생년월 기준으로 검색 세부조건의 나이대를 계산합니다.</p>
           </div>
-          <button className="me-inline-button" type="button" onClick={openAddChildModal} disabled={isSaving || hasActiveChildEdit}>
+          <button className="me-inline-button" type="button" onClick={openAddChildModal} disabled={isSaving || hasActiveChildModal}>
             <Plus size={15} aria-hidden="true" />
             아이 추가
           </button>
@@ -226,20 +217,34 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           title="아이 정보 추가"
         />
 
+        <ChildProfilePickerModal
+          birthYearMonth={editingChildDraft?.birthYearMonth ?? maxBirthYearMonth}
+          confirmDisabled={!editingChildDraft?.birthYearMonth || childSignature(editingChildDraft) === savedChildSignatures.get(editingChildDraft.clientId)}
+          confirmLabel="수정 저장"
+          description="아이의 생년월과 성별을 수정하면 저장 후 검색 기본값에도 반영됩니다."
+          disabled={isSaving}
+          gender={editingChildDraft?.gender ?? "boy"}
+          maxBirthYearMonth={maxBirthYearMonth}
+          mode="birthYearMonth"
+          onBirthYearMonthChange={(birthYearMonth) => setEditingChildDraft((current) => (current ? { ...current, birthYearMonth } : current))}
+          onCancel={cancelEditChild}
+          onConfirm={saveEditedChild}
+          onGenderChange={(gender) => setEditingChildDraft((current) => (current ? { ...current, gender } : current))}
+          open={editingChildDraft !== null}
+          title="아이 정보 수정"
+        />
+
         {children.length > 0 ? (
           <div className="me-children-grid">
             {children.map((child) => {
               const target = `child-${child.clientId}`;
               const savedSignature = savedChildSignatures.get(child.clientId);
               const childDirty = childSignature(child) !== savedSignature;
-              const childIsNew = savedSignature === undefined;
               const childIsSaving = savingTarget === target;
-              const isEditing = editingChildId === child.clientId;
               const isDeleteConfirming = deleteConfirmChildId === child.clientId;
-              const showChildSaveState = isEditing && (childDirty || childIsSaving);
-              const childSaveText = childIsSaving ? "저장 중" : savedSignature ? "수정 저장" : "아이 저장";
+              const showChildSaveState = childIsSaving || childDirty;
               return (
-                <article className={`me-child-card ${isEditing ? "is-editing" : ""} ${childDirty ? "is-dirty" : "is-clean"}`} key={child.clientId}>
+                <article className={`me-child-card ${childDirty ? "is-dirty" : "is-clean"}`} key={child.clientId}>
                   <div className="me-child-summary">
                     <span className="me-child-avatar">
                       <Image src={childProfileIconSrcFromBirthYearMonth(child.birthYearMonth, child.gender)} alt="" aria-hidden="true" width={82} height={82} />
@@ -249,67 +254,18 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                       <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
                       <span>{child.birthYearMonth}</span>
                     </div>
-                    {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : childIsNew ? "새 아이" : "수정 중"}</span> : null}
+                    {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : "수정 중"}</span> : null}
                   </div>
 
-                  {isEditing ? (
-                    <div className="me-child-fields">
-                      <label className="me-field">
-                        <span>생년월</span>
-                        <input
-                          type="month"
-                          value={child.birthYearMonth}
-                          max={maxBirthYearMonth}
-                          onChange={(event) => updateChildBirthYearMonth(child.clientId, event.currentTarget.value)}
-                          required
-                        />
-                      </label>
-                      <div className="me-field">
-                        <span>성별</span>
-                        <div className="me-child-gender-segments" role="group" aria-label="아이 성별">
-                          {CHILD_GENDERS.map((gender) => (
-                            <button
-                              className={child.gender === gender.id ? "is-selected" : ""}
-                              type="button"
-                              key={gender.id}
-                              onClick={() => updateChildGender(child.clientId, gender.id)}
-                              aria-pressed={child.gender === gender.id}
-                              disabled={isSaving}
-                            >
-                              {gender.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
                   <div className="me-child-actions">
-                    {isEditing ? (
-                      <>
-                        <button
-                          className="me-child-save is-dirty"
-                          type="button"
-                          onClick={() => saveProfile({ target })}
-                          disabled={isSaving || !childDirty || child.birthYearMonth.length === 0}
-                        >
-                          <Save size={15} aria-hidden="true" />
-                          {childSaveText}
-                        </button>
-                        <button className="me-child-cancel" type="button" onClick={() => cancelChildEdit(child.clientId)} disabled={isSaving}>
-                          <X size={15} aria-hidden="true" />
-                          취소
-                        </button>
-                      </>
-                    ) : null}
-                    {!isEditing && !isDeleteConfirming ? (
+                    {!isDeleteConfirming ? (
                       <>
                         <button
                           className="me-child-edit"
                           type="button"
-                          onClick={() => editChild(child.clientId)}
+                          onClick={() => openEditChildModal(child)}
                           aria-label="아이 정보 수정"
-                          disabled={isSaving || hasActiveChildEdit}
+                          disabled={isSaving || hasActiveChildModal}
                         >
                           <Pencil size={15} aria-hidden="true" />
                           수정
@@ -319,14 +275,14 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                           type="button"
                           onClick={() => setDeleteConfirmChildId(child.clientId)}
                           aria-label="아이 삭제 확인 열기"
-                          disabled={isSaving || hasActiveChildEdit}
+                          disabled={isSaving || hasActiveChildModal}
                         >
                           <Trash2 size={15} aria-hidden="true" />
                           삭제
                         </button>
                       </>
                     ) : null}
-                    {!isEditing && isDeleteConfirming ? (
+                    {isDeleteConfirming ? (
                       <div className="me-child-delete-confirm" role="group" aria-label="아이 삭제 확인">
                         <span>삭제할까요?</span>
                         <button className="me-child-delete" type="button" onClick={() => removeChild(child.clientId)} disabled={isSaving}>
