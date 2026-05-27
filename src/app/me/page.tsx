@@ -27,7 +27,6 @@ export default async function MePage() {
       <header className="me-hero">
         <div className="me-hero-copy">
           <p className="category">내 정보</p>
-          <h1>{user.displayName}</h1>
         </div>
       </header>
 
