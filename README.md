@@ -194,6 +194,7 @@ The app has local defaults for development:
 ```bash
 DATABASE_URL=postgres://aigo:aigo@localhost:5431/aigo
 AIGO_API_KEY=change-me
+AIGO_APP_ORIGIN=http://localhost:3000
 KAKAO_REST_API_KEY=your-local-kakao-test-app-rest-api-key
 KAKAO_CLIENT_SECRET=your-local-kakao-test-app-client-secret
 AIGO_UPLOAD_DIR=./data/uploads

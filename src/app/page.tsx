@@ -21,6 +21,7 @@ import {
   buildSearchInput,
   categoryGroupParams,
   resultLimitParam,
+  shouldAutoLocateInitialMap,
   sortParam,
   textParam,
   type CategoryGroupId
@@ -28,7 +29,7 @@ import {
 import { SearchFormLocationReset } from "@/app/search-form-location-reset";
 import { SearchFilters } from "@/app/search-filters";
 import { SearchResetButton } from "@/app/search-reset-button";
-import { MAP_LOCATION_PARAM_KEYS, hasMapLocationParams } from "@/app/search-url-state";
+import { MAP_LOCATION_PARAM_KEYS } from "@/app/search-url-state";
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
@@ -87,7 +88,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const activeCategoryGroupLabel = categoryGroupSelectionLabel(activeCategoryGroups);
   const activeSort = sortParam(effectiveParams);
-  const shouldAutoLocateWithHomeFallback = Boolean(homeLocation && !hasMapLocationParams(effectiveParams));
+  const shouldAutoLocateWithHomeFallback = shouldAutoLocateInitialMap(effectiveParams, Boolean(homeLocation));
 
   return (
     <div className="page">
