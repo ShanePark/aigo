@@ -5682,14 +5682,13 @@ h3 {
 }
 
 .me-social-row {
-  align-content: start;
+  align-items: center;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
   gap: 14px 12px;
   grid-template-columns: auto minmax(0, 1fr);
-  min-height: 154px;
   padding: 14px;
   position: relative;
 }
