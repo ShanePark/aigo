@@ -1,3 +1,4 @@
+import { hasMapLocationParams } from "@/app/search-url-state";
 import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
@@ -90,6 +91,10 @@ export function sortParam(params: Record<string, string | string[] | undefined>)
     return value;
   }
   return textParam(params.nearby) === "1" ? "distance" : "recommended";
+}
+
+export function shouldAutoLocateInitialMap(params: Record<string, string | string[] | undefined>, hasHomeLocation: boolean) {
+  return Boolean(hasHomeLocation && !hasMapLocationParams(params) && !textParam(params.query)?.trim());
 }
 
 export function categoryGroupParam(params: Record<string, string | string[] | undefined>): CategoryGroupId {

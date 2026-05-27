@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSearchInput, resultLimitParam, sortParam } from "@/app/home-search-state";
+import { buildSearchInput, resultLimitParam, shouldAutoLocateInitialMap, sortParam } from "@/app/home-search-state";
 
 describe("home search input", () => {
+  it("does not auto-run an initial location search over a plain text query", () => {
+    expect(shouldAutoLocateInitialMap({ query: "뽀로로" }, true)).toBe(false);
+    expect(shouldAutoLocateInitialMap({ query: "   " }, true)).toBe(true);
+    expect(shouldAutoLocateInitialMap({ query: "뽀로로", home: "1", lat: "36.330000" }, true)).toBe(false);
+    expect(shouldAutoLocateInitialMap({}, false)).toBe(false);
+  });
+
   it("does not apply the default radius filter to a plain text search", () => {
     expect(buildSearchInput({ query: "서울 키즈카페" })).toMatchObject({
       filterByRadius: false,
