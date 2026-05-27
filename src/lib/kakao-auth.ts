@@ -147,7 +147,16 @@ function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: stri
 }
 
 function kakaoRedirectUri(request: NextRequest) {
-  return new URL("/api/auth/kakao/callback", request.url).toString();
+  return new URL("/api/auth/kakao/callback", appOrigin(request)).toString();
+}
+
+function appOrigin(request: NextRequest) {
+  const configuredOrigin = process.env.AIGO_APP_ORIGIN?.trim();
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
+  return request.url;
 }
 
 function kakaoLoginProfile(user: KakaoUserResponse): KakaoLoginProfile {

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { NextRequest } from "next/server";
 
 import {
+  createKakaoAuthorizationUrl,
   decodeKakaoState,
   expiredKakaoStateCookieOptions,
   isKakaoLoginConfigured,
@@ -9,6 +11,7 @@ import {
 } from "@/lib/kakao-auth";
 
 const originalNodeEnv = process.env.NODE_ENV;
+const originalAigoAppOrigin = process.env.AIGO_APP_ORIGIN;
 const originalKakaoRestApiKey = process.env.KAKAO_REST_API_KEY;
 
 function setNodeEnv(value: string | undefined) {
@@ -18,6 +21,11 @@ function setNodeEnv(value: string | undefined) {
 describe("kakao auth helpers", () => {
   afterEach(() => {
     setNodeEnv(originalNodeEnv);
+    if (originalAigoAppOrigin === undefined) {
+      delete process.env.AIGO_APP_ORIGIN;
+    } else {
+      process.env.AIGO_APP_ORIGIN = originalAigoAppOrigin;
+    }
     if (originalKakaoRestApiKey === undefined) {
       delete process.env.KAKAO_REST_API_KEY;
     } else {
@@ -45,6 +53,16 @@ describe("kakao auth helpers", () => {
 
     expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce" });
     expect(decodeKakaoState("not-json")).toBeNull();
+  });
+
+  it("uses the configured app origin for Kakao redirect URIs", () => {
+    process.env.KAKAO_REST_API_KEY = "test-key";
+    process.env.AIGO_APP_ORIGIN = "https://aigo.example";
+
+    const request = new NextRequest("https://localhost:3000/api/auth/kakao");
+    const { url } = createKakaoAuthorizationUrl(request, "/");
+
+    expect(url.searchParams.get("redirect_uri")).toBe("https://aigo.example/api/auth/kakao/callback");
   });
 
   it("uses secure state cookies in production", () => {
