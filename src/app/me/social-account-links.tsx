@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { Check, Link2 } from "lucide-react";
 
 import type { LinkedSocialAccount, SocialProvider } from "@/lib/social-accounts";
 
@@ -37,7 +37,7 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
     <section className="me-profile-section me-social-section" aria-labelledby="me-social-title">
       <header className="me-section-head">
         <span className="me-section-icon me-social-section-icon">
-          <Image src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
+          <Link2 size={20} aria-hidden="true" />
         </span>
         <div className="me-section-title">
           <h2 id="me-social-title">로그인 연동</h2>

@@ -5618,13 +5618,9 @@ h3 {
 }
 
 .me-social-section-icon {
-  background: #fee500;
-  border-color: color-mix(in srgb, #fee500 70%, var(--line));
-  color: #191919;
-}
-
-.me-social-section-icon img {
-  display: block;
+  background: color-mix(in srgb, var(--mint) 12%, var(--panel));
+  border-color: color-mix(in srgb, var(--mint) 26%, var(--line));
+  color: var(--mint-strong);
 }
 
 .me-profile-section {
@@ -5687,7 +5683,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 14px 12px;
+  gap: 14px 14px;
   grid-template-columns: auto minmax(0, 1fr);
   padding: 14px;
   position: relative;
@@ -5723,40 +5719,28 @@ h3 {
   padding: 0 12px;
 }
 
-.me-social-row.tone-kakao:not(.is-linked) {
-  border-color: color-mix(in srgb, #fee500 42%, var(--line));
-}
-
-.me-social-row.tone-naver:not(.is-linked) {
-  border-color: color-mix(in srgb, #03c75a 28%, var(--line));
-}
-
 .me-social-provider-icon {
   align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 8px;
   display: inline-flex;
-  height: 48px;
+  height: 36px;
   justify-content: center;
-  width: 48px;
+  width: 36px;
 }
 
 .me-social-row.tone-kakao .me-social-provider-icon {
   background: #fee500;
-  border-color: color-mix(in srgb, #fee500 72%, var(--line));
 }
 
 .me-social-row.tone-naver .me-social-provider-icon {
   background: #03c75a;
-  border-color: color-mix(in srgb, #03c75a 72%, var(--line));
 }
 
 .me-social-provider-icon img {
   display: block;
-  height: 30px;
+  height: 22px;
   object-fit: contain;
-  width: 30px;
+  width: 22px;
 }
 
 .me-social-copy {
