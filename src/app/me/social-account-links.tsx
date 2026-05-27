@@ -7,22 +7,28 @@ type SocialAccountLinksProps = {
 };
 
 const PROVIDERS: Array<{
+  actionLabel: string;
   description: string;
   iconSrc: string;
   id: SocialProvider;
   label: string;
+  tone: string;
 }> = [
   {
+    actionLabel: "카카오 연동",
     description: "카카오 계정을 연동하면 다음부터 카카오로 바로 로그인할 수 있어요.",
     iconSrc: "/auth/kakao.png",
     id: "kakao",
-    label: "카카오"
+    label: "카카오",
+    tone: "kakao"
   },
   {
+    actionLabel: "준비 중",
     description: "네이버 로그인은 추후 제공 예정입니다.",
     iconSrc: "/auth/naver.svg",
     id: "naver",
-    label: "네이버"
+    label: "네이버",
+    tone: "naver"
   }
 ];
 
@@ -47,7 +53,7 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
           const linked = Boolean(linkedAccount);
           const disabled = provider.id === "naver";
           return (
-            <article className={`me-social-row ${linked ? "is-linked" : ""} ${disabled ? "is-disabled" : ""}`} key={provider.id}>
+            <article className={`me-social-row tone-${provider.tone} ${linked ? "is-linked" : ""} ${disabled ? "is-disabled" : ""}`} key={provider.id}>
               <span className="me-social-provider-icon">
                 <Image src={provider.iconSrc} alt="" aria-hidden="true" width={28} height={28} />
               </span>
@@ -59,11 +65,11 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
                 <span className="me-save-pill is-clean">연동됨</span>
               ) : provider.id === "kakao" ? (
                 <a className="me-social-link-button" href="/api/auth/kakao?mode=link&next=/me">
-                  연동하기
+                  {provider.actionLabel}
                 </a>
               ) : (
                 <button className="me-social-link-button" type="button" disabled>
-                  준비 중
+                  {provider.actionLabel}
                 </button>
               )}
             </article>

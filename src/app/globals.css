@@ -5555,7 +5555,7 @@ h3 {
 }
 
 .me-page {
-  max-width: 980px;
+  max-width: 1040px;
 }
 
 .me-hero {
@@ -5563,7 +5563,8 @@ h3 {
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding: 2px 0 4px;
 }
 
 .me-hero-copy {
@@ -5598,11 +5599,13 @@ h3 {
 
 .me-profile-form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .me-social-section {
-  margin-bottom: 14px;
+  background: var(--panel);
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .me-social-section-icon {
@@ -5665,45 +5668,72 @@ h3 {
 
 .me-social-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .me-social-row {
-  align-items: center;
+  align-content: start;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 72px;
-  padding: 12px;
+  gap: 14px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 154px;
+  padding: 14px;
+  position: relative;
 }
 
 .me-social-row.is-linked {
-  border-color: color-mix(in srgb, var(--mint) 30%, var(--line));
+  background: color-mix(in srgb, var(--panel) 92%, var(--mint-soft));
+  border-color: color-mix(in srgb, var(--mint) 34%, var(--line));
 }
 
 .me-social-row.is-disabled {
-  opacity: 0.72;
+  background: color-mix(in srgb, var(--panel) 78%, var(--control-bg));
+}
+
+.me-social-row .me-save-pill {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  min-height: 38px;
+}
+
+.me-social-row.tone-kakao:not(.is-linked) {
+  border-color: color-mix(in srgb, #fee500 42%, var(--line));
+}
+
+.me-social-row.tone-naver:not(.is-linked) {
+  border-color: color-mix(in srgb, #03c75a 28%, var(--line));
 }
 
 .me-social-provider-icon {
   align-items: center;
-  background: var(--control-bg);
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-flex;
-  height: 44px;
+  height: 48px;
   justify-content: center;
-  width: 44px;
+  width: 48px;
+}
+
+.me-social-row.tone-kakao .me-social-provider-icon {
+  background: #fee500;
+  border-color: color-mix(in srgb, #fee500 72%, var(--line));
+}
+
+.me-social-row.tone-naver .me-social-provider-icon {
+  background: #03c75a;
+  border-color: color-mix(in srgb, #03c75a 72%, var(--line));
 }
 
 .me-social-provider-icon img {
   display: block;
-  height: 28px;
+  height: 30px;
   object-fit: contain;
-  width: 28px;
+  width: 30px;
 }
 
 .me-social-copy {
@@ -5714,7 +5744,7 @@ h3 {
 
 .me-social-copy strong {
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .me-social-copy span {
@@ -5733,10 +5763,25 @@ h3 {
   font-size: 13px;
   font-weight: 900;
   justify-content: center;
+  grid-column: 1 / -1;
+  justify-self: stretch;
   min-height: 38px;
   padding: 0 12px;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.me-social-row.tone-kakao .me-social-link-button:not(:disabled) {
+  background: #fee500;
+  border-color: #fee500;
+  color: #191919;
+}
+
+.me-social-row.tone-kakao .me-social-link-button:not(:disabled):hover,
+.me-social-row.tone-kakao .me-social-link-button:not(:disabled):focus-visible {
+  background: #f7dc00;
+  border-color: #f7dc00;
+  color: #191919;
 }
 
 .me-social-link-button:hover:not(:disabled),
@@ -8347,6 +8392,10 @@ dd {
   .me-social-row {
     align-items: stretch;
     grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .me-social-list {
+    grid-template-columns: 1fr;
   }
 
   .me-social-row .me-save-pill,

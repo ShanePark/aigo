@@ -66,8 +66,8 @@ export default async function MePage() {
         </div>
       </header>
 
-      <SocialAccountLinks accounts={socialAccounts} />
       <MeProfileForm initialProfile={profile} />
+      <SocialAccountLinks accounts={socialAccounts} />
     </div>
   );
 }
