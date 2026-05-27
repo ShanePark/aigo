@@ -767,23 +767,18 @@ h3 {
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(2) {
-  grid-column: span 3;
+  grid-column: span 2;
   order: 2;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(3) {
-  grid-column: span 1;
+  grid-column: span 2;
   order: 3;
 }
 
 .child-profile-panel {
   grid-column: span 3;
   order: 4;
-}
-
-.advanced-filter-layout > .advanced-filter-group:nth-of-type(4) {
-  grid-column: span 3;
-  order: 5;
 }
 
 .advanced-filter-group-head {
@@ -7327,7 +7322,6 @@ dd {
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(1),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(2),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(3),
-  .advanced-filter-layout > .advanced-filter-group:nth-of-type(4),
   .advanced-filter-layout > .child-profile-panel {
     grid-column: auto;
     order: initial;
@@ -7348,35 +7342,39 @@ dd {
   .advanced-filter-options {
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .advanced-filter-option {
     align-items: center;
-    border-radius: 999px;
-    gap: 6px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    border-radius: 8px;
+    gap: 5px;
+    grid-template-columns: 1fr;
+    justify-items: center;
     max-width: none;
-    min-height: 42px;
+    min-height: 66px;
     min-width: 0;
-    padding: 5px 7px;
+    padding: 7px 5px;
   }
 
   .advanced-filter-option-icon {
-    height: 28px;
-    width: 28px;
+    height: 30px;
+    width: 30px;
+  }
+
+  .advanced-filter-option-copy {
+    justify-items: center;
+    text-align: center;
   }
 
   .advanced-filter-option-copy strong {
-    font-size: 12px;
-    line-height: 1.15;
+    font-size: 11.5px;
+    line-height: 1.12;
   }
 
   .app-modal-body .advanced-filter-option-copy strong {
-    font-size: 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 11px;
+    white-space: normal;
   }
 
   .advanced-filter-option-state {
@@ -7388,8 +7386,8 @@ dd {
   }
 
   .app-modal-body .advanced-filter-option {
-    gap: 4px;
-    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5px;
+    grid-template-columns: 1fr;
     padding-inline: 5px;
   }
 
@@ -7398,8 +7396,8 @@ dd {
   }
 
   .app-modal-body .advanced-filter-option-icon {
-    height: 24px;
-    width: 24px;
+    height: 30px;
+    width: 30px;
   }
 
   .child-profile-panel-head {

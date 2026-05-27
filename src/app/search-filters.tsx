@@ -73,12 +73,9 @@ const FILTER_GROUPS: Array<{
     ]
   },
   {
-    title: "식사/휴식",
-    filters: [{ key: "babyChair", label: "아기의자", icon: Utensils }]
-  },
-  {
-    title: "편의/동선",
+    title: "식사/편의",
     filters: [
+      { key: "babyChair", label: "아기의자", icon: Utensils },
       { key: "parking", label: "주차", icon: Car },
       { key: "toiletNearby", label: "화장실", icon: Toilet }
     ]
