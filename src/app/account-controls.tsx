@@ -1,6 +1,6 @@
 "use client";
 
-import { LogIn, LogOut, UserRound } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -62,10 +62,6 @@ export function AccountControls({ initialUser }: { initialUser: AccountUser | nu
       ) : null}
       {user ? (
         <>
-          <span className={styles.identity} title={user.email}>
-            <UserRound size={15} aria-hidden="true" />
-            <span>{user.displayName}</span>
-          </span>
           <button className={styles.button} disabled={busy} onClick={logout} type="button">
             <LogOut size={15} aria-hidden="true" />
             <span>로그아웃</span>
