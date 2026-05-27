@@ -63,12 +63,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
             <span>AiGo</span>
           </Link>
-          <TopbarActions devLoginEnabled={isDevLoginEnabled()} />
+          <TopbarActions devLoginEnabled={isDevLoginEnabled()} footerText={`© ${currentYear} AiGo · Shane Park`} />
         </header>
         <main>{children}</main>
-        <footer className="site-footer">
-          <p>© {currentYear} AiGo · Shane Park</p>
-        </footer>
       </body>
     </html>
   );
