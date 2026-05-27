@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Baby, Check, Home, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ChildProfilePickerModal } from "@/app/child-profile-picker-modal";
 import { CHILD_GENDERS, type ChildGender } from "@/lib/child-ages";
 import type { MyProfile } from "@/lib/user-profile";
 
@@ -39,18 +40,36 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [savingTarget, setSavingTarget] = useState<string | null>(null);
   const [editingChildId, setEditingChildId] = useState<string | null>(null);
   const [deleteConfirmChildId, setDeleteConfirmChildId] = useState<string | null>(null);
+  const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
+  const [draftChild, setDraftChild] = useState<Pick<ChildDraft, "birthYearMonth" | "gender"> | null>(null);
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const savedChildSignatures = useMemo(() => new Map(savedChildren.map((child) => [child.clientId, childSignature(child)])), [savedChildren]);
   const isSaving = status.tone === "saving";
   const hasActiveChildEdit = editingChildId !== null;
   const homeSaveState = homeSaveUiState(homeLocation, savedHomeLocation, { isSaving, saving: savingTarget === "home" });
 
-  function addChild() {
-    const child = { birthYearMonth: maxBirthYearMonth, clientId: createClientId(), gender: "boy" as const };
-    setChildren((current) => [...current, child]);
-    setEditingChildId(child.clientId);
+  function openAddChildModal() {
+    setDraftChild({ birthYearMonth: maxBirthYearMonth, gender: children.at(-1)?.gender ?? "boy" });
+    setIsAddChildModalOpen(true);
     setDeleteConfirmChildId(null);
     clearSavedStatus();
+  }
+
+  function addDraftChild() {
+    if (!draftChild?.birthYearMonth) return;
+
+    const child = { ...draftChild, clientId: createClientId() };
+    setChildren((current) => [...current, child]);
+    setEditingChildId(child.clientId);
+    setIsAddChildModalOpen(false);
+    setDraftChild(null);
+    setDeleteConfirmChildId(null);
+    clearSavedStatus();
+  }
+
+  function cancelAddChild() {
+    setIsAddChildModalOpen(false);
+    setDraftChild(null);
   }
 
   function updateChildBirthYearMonth(clientId: string, birthYearMonth: string) {
@@ -184,11 +203,28 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
             <h2 id="me-children-title">아이 정보</h2>
             <p>생년월 기준으로 검색 세부조건의 나이대를 계산합니다.</p>
           </div>
-          <button className="me-inline-button" type="button" onClick={addChild} disabled={isSaving || hasActiveChildEdit}>
+          <button className="me-inline-button" type="button" onClick={openAddChildModal} disabled={isSaving || hasActiveChildEdit}>
             <Plus size={15} aria-hidden="true" />
             아이 추가
           </button>
         </header>
+
+        <ChildProfilePickerModal
+          birthYearMonth={draftChild?.birthYearMonth ?? maxBirthYearMonth}
+          confirmDisabled={!draftChild?.birthYearMonth}
+          confirmLabel="아이 추가"
+          description="아이의 생년월과 성별을 등록하면 검색 조건에 맞는 나이대를 자동으로 계산해요."
+          disabled={isSaving}
+          gender={draftChild?.gender ?? "boy"}
+          maxBirthYearMonth={maxBirthYearMonth}
+          mode="birthYearMonth"
+          onBirthYearMonthChange={(birthYearMonth) => setDraftChild((current) => ({ birthYearMonth, gender: current?.gender ?? "boy" }))}
+          onCancel={cancelAddChild}
+          onConfirm={addDraftChild}
+          onGenderChange={(gender) => setDraftChild((current) => ({ birthYearMonth: current?.birthYearMonth ?? maxBirthYearMonth, gender }))}
+          open={isAddChildModalOpen}
+          title="아이 정보 추가"
+        />
 
         {children.length > 0 ? (
           <div className="me-children-grid">
@@ -251,15 +287,15 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                   <div className="me-child-actions">
                     {isEditing ? (
                       <>
-                      <button
-                        className="me-child-save is-dirty"
-                        type="button"
-                        onClick={() => saveProfile({ target })}
-                        disabled={isSaving || !childDirty || child.birthYearMonth.length === 0}
-                      >
-                        <Save size={15} aria-hidden="true" />
-                        {childSaveText}
-                      </button>
+                        <button
+                          className="me-child-save is-dirty"
+                          type="button"
+                          onClick={() => saveProfile({ target })}
+                          disabled={isSaving || !childDirty || child.birthYearMonth.length === 0}
+                        >
+                          <Save size={15} aria-hidden="true" />
+                          {childSaveText}
+                        </button>
                         <button className="me-child-cancel" type="button" onClick={() => cancelChildEdit(child.clientId)} disabled={isSaving}>
                           <X size={15} aria-hidden="true" />
                           취소

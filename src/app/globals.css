@@ -1352,6 +1352,27 @@ h3 {
   grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr);
 }
 
+.child-profile-month-field {
+  display: grid;
+  gap: 8px;
+}
+
+.child-profile-month-field input {
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  min-height: 44px;
+  outline: none;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.child-profile-month-field input:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
 .child-profile-cancel,
 .child-profile-confirm {
   border: 1px solid var(--highlight-border);
