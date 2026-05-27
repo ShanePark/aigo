@@ -54,7 +54,7 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
     };
   }, []);
 
-  if (loading && !initialDevLoginEnabled) return null;
+  if (loading) return null;
   if (!devLoginEnabled && !user) return null;
 
   return (
