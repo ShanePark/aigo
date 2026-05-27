@@ -9,7 +9,7 @@ import { DevAuthControls } from "./dev-auth-controls";
 import styles from "./topbar-actions.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean }) {
+export function TopbarActions({ devLoginEnabled, footerText }: { devLoginEnabled: boolean; footerText: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
@@ -68,6 +68,7 @@ export function TopbarActions({ devLoginEnabled }: { devLoginEnabled: boolean })
           <div className={styles.menuSection}>
             <DevAuthControls devLoginEnabled={devLoginEnabled} />
           </div>
+          <p className={styles.menuFooter}>{footerText}</p>
         </div>
       ) : null}
     </div>
