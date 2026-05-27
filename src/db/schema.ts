@@ -57,6 +57,28 @@ export const authSessions = pgTable(
   })
 );
 
+export const userSocialAccounts = pgTable(
+  "user_social_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    providerEmail: text("provider_email"),
+    displayName: text("display_name"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    providerCheck: check("user_social_accounts_provider_check", sql`${table.provider} in ('kakao', 'naver')`),
+    providerUserUnique: uniqueIndex("user_social_accounts_provider_user_unique").on(table.provider, table.providerUserId),
+    userProviderUnique: uniqueIndex("user_social_accounts_user_provider_unique").on(table.userId, table.provider),
+    userIdx: index("user_social_accounts_user_id_idx").on(table.userId)
+  })
+);
+
 export const userChildren = pgTable(
   "user_children",
   {
@@ -450,6 +472,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AuthSession = typeof authSessions.$inferSelect;
 export type NewAuthSession = typeof authSessions.$inferInsert;
+export type UserSocialAccount = typeof userSocialAccounts.$inferSelect;
+export type NewUserSocialAccount = typeof userSocialAccounts.$inferInsert;
 export type UserChild = typeof userChildren.$inferSelect;
 export type NewUserChild = typeof userChildren.$inferInsert;
 export type UserHomeLocation = typeof userHomeLocations.$inferSelect;

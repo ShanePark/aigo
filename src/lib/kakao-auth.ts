@@ -35,6 +35,8 @@ export type KakaoLoginProfile = {
   kakaoId: string;
 };
 
+export type KakaoAuthMode = "link" | "login";
+
 export function isKakaoLoginConfigured(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.KAKAO_REST_API_KEY);
 }
@@ -59,7 +61,7 @@ export function expiredKakaoStateCookieOptions() {
   };
 }
 
-export function createKakaoAuthorizationUrl(request: NextRequest, nextPath: string) {
+export function createKakaoAuthorizationUrl(request: NextRequest, nextPath: string, mode: KakaoAuthMode = "login") {
   const restApiKey = process.env.KAKAO_REST_API_KEY;
   if (!restApiKey) {
     throw new ApiError(503, "Kakao login is not configured");
@@ -67,7 +69,7 @@ export function createKakaoAuthorizationUrl(request: NextRequest, nextPath: stri
 
   const nonce = randomBytes(24).toString("base64url");
   const redirectUri = kakaoRedirectUri(request);
-  const state = encodeState({ nextPath, nonce });
+  const state = encodeState({ mode, nextPath, nonce });
   const url = new URL(KAKAO_AUTHORIZE_URL);
   url.searchParams.set("client_id", restApiKey);
   url.searchParams.set("redirect_uri", redirectUri);
@@ -121,9 +123,10 @@ export function decodeKakaoState(value: string | null | undefined) {
   if (!value) return null;
 
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as { nextPath?: unknown; nonce?: unknown };
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as { mode?: unknown; nextPath?: unknown; nonce?: unknown };
     if (typeof parsed.nonce !== "string" || typeof parsed.nextPath !== "string") return null;
     return {
+      mode: parsed.mode === "link" ? "link" : ("login" as KakaoAuthMode),
       nextPath: safeNextPath(parsed.nextPath),
       nonce: parsed.nonce
     };
@@ -139,7 +142,7 @@ export function safeNextPath(value: string | string[] | undefined) {
   return raw;
 }
 
-function encodeState(value: { nextPath: string; nonce: string }) {
+function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: string }) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 

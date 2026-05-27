@@ -43,7 +43,7 @@ describe("kakao auth helpers", () => {
   it("decodes state and falls back to home for unsafe next paths", () => {
     const state = Buffer.from(JSON.stringify({ nextPath: "https://example.com", nonce: "nonce" }), "utf8").toString("base64url");
 
-    expect(decodeKakaoState(state)).toEqual({ nextPath: "/", nonce: "nonce" });
+    expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce" });
     expect(decodeKakaoState("not-json")).toBeNull();
   });
 

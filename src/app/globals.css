@@ -3249,6 +3249,13 @@ h3 {
   width: 38px;
 }
 
+.login-provider-icon {
+  display: block;
+  height: 24px;
+  object-fit: contain;
+  width: 24px;
+}
+
 .login-option strong,
 .login-option small {
   display: block;
@@ -5573,6 +5580,20 @@ h3 {
   gap: 14px;
 }
 
+.me-social-section {
+  margin-bottom: 14px;
+}
+
+.me-social-section-icon {
+  background: #fee500;
+  border-color: color-mix(in srgb, #fee500 70%, var(--line));
+  color: #191919;
+}
+
+.me-social-section-icon img {
+  display: block;
+}
+
 .me-profile-section {
   background: color-mix(in srgb, var(--panel) 90%, var(--mint-soft));
   border: 1px solid var(--line);
@@ -5619,6 +5640,95 @@ h3 {
   font-size: 13px;
   line-height: 1.45;
   margin: 0;
+}
+
+.me-social-list {
+  display: grid;
+  gap: 10px;
+}
+
+.me-social-row {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.me-social-row.is-linked {
+  border-color: color-mix(in srgb, var(--mint) 30%, var(--line));
+}
+
+.me-social-row.is-disabled {
+  opacity: 0.72;
+}
+
+.me-social-provider-icon {
+  align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.me-social-provider-icon img {
+  display: block;
+  height: 28px;
+  object-fit: contain;
+  width: 28px;
+}
+
+.me-social-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.me-social-copy strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.me-social-copy span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.me-social-link-button {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.me-social-link-button:hover:not(:disabled),
+.me-social-link-button:focus-visible {
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-soft);
+  color: var(--mint);
+  transform: translateY(-1px);
+}
+
+.me-social-link-button:disabled {
+  color: var(--disabled-text);
+  cursor: not-allowed;
 }
 
 .me-inline-button {
@@ -8211,6 +8321,18 @@ dd {
   .me-child-actions,
   .me-section-actions {
     display: grid;
+  }
+
+  .me-social-row {
+    align-items: stretch;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .me-social-row .me-save-pill,
+  .me-social-link-button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    min-height: 40px;
   }
 
   .me-child-actions {

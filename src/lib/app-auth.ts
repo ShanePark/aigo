@@ -68,15 +68,15 @@ export function expiredSessionCookieOptions() {
 
 export async function createDevLoginSession() {
   const user = await ensureDevUser();
-  return createLoginSessionForUser(user);
+  return createLoginSessionForAppUser(user);
 }
 
 export async function createUserLoginSession(input: { displayName: string; email: string }) {
-  const user = await ensureUser(input);
-  return createLoginSessionForUser(user);
+  const user = await upsertAppUser(input);
+  return createLoginSessionForAppUser(user);
 }
 
-async function createLoginSessionForUser(user: AppUser) {
+export async function createLoginSessionForAppUser(user: AppUser) {
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
   const expiresAt = sessionExpiresAt();
@@ -148,10 +148,10 @@ export async function deleteSessionByToken(token: string | undefined | null) {
 }
 
 async function ensureDevUser() {
-  return ensureUser({ displayName: DEV_USER_DISPLAY_NAME, email: DEV_USER_EMAIL });
+  return upsertAppUser({ displayName: DEV_USER_DISPLAY_NAME, email: DEV_USER_EMAIL });
 }
 
-async function ensureUser(input: { displayName: string; email: string }) {
+export async function upsertAppUser(input: { displayName: string; email: string }) {
   const pg = await getPg();
   const email = input.email.trim().toLowerCase();
   const displayName = input.displayName.trim() || "AiGo User";

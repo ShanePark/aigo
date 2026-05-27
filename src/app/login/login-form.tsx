@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2, LogIn, MessageCircle } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, Loader2, LogIn } from "lucide-react";
 import type { Route } from "next";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -66,7 +67,7 @@ export function LoginForm({ devLoginEnabled, initialError, initialUser, kakaoLog
             }}
           >
             <span className="login-option-icon">
-              <MessageCircle size={18} aria-hidden="true" />
+              <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
             </span>
             <span>
               <strong>카카오로 계속하기</strong>
@@ -74,6 +75,16 @@ export function LoginForm({ devLoginEnabled, initialError, initialUser, kakaoLog
             </span>
             <ArrowRight size={17} aria-hidden="true" />
           </a>
+
+          <button className="login-option" disabled type="button">
+            <span className="login-option-icon">
+              <Image className="login-provider-icon" src="/auth/naver.svg" alt="" aria-hidden="true" width={22} height={22} />
+            </span>
+            <span>
+              <strong>네이버로 계속하기</strong>
+              <small>네이버 로그인은 준비 중입니다.</small>
+            </span>
+          </button>
         </div>
 
         {error ? (

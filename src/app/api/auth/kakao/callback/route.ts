@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { AIGO_SESSION_COOKIE, createUserLoginSession, sessionCookieOptions } from "@/lib/app-auth";
+import {
+  AIGO_SESSION_COOKIE,
+  createLoginSessionForAppUser,
+  currentUserFromSessionToken,
+  sessionCookieOptions,
+  upsertAppUser
+} from "@/lib/app-auth";
 import { ApiError } from "@/lib/errors";
 import {
   decodeKakaoState,
@@ -8,6 +14,7 @@ import {
   KAKAO_AUTH_STATE_COOKIE,
   kakaoProfileFromCode
 } from "@/lib/kakao-auth";
+import { findUserBySocialAccount, linkSocialAccount } from "@/lib/social-accounts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,7 +35,34 @@ export async function GET(request: NextRequest) {
     }
 
     const kakaoProfile = await kakaoProfileFromCode(request, code);
-    const { expiresAt, token } = await createUserLoginSession(kakaoProfile);
+    if (state.mode === "link") {
+      const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
+      if (!user) {
+        throw new ApiError(401, "Login required");
+      }
+
+      await linkSocialAccount(user.id, {
+        displayName: kakaoProfile.displayName,
+        provider: "kakao",
+        providerEmail: kakaoProfile.email,
+        providerUserId: kakaoProfile.kakaoId
+      });
+      const response = NextResponse.redirect(new URL(state.nextPath, request.url));
+      response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
+      return response;
+    }
+
+    const linkedUser = await findUserBySocialAccount("kakao", kakaoProfile.kakaoId);
+    const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
+    if (!linkedUser) {
+      await linkSocialAccount(sessionUser.id, {
+        displayName: kakaoProfile.displayName,
+        provider: "kakao",
+        providerEmail: kakaoProfile.email,
+        providerUserId: kakaoProfile.kakaoId
+      });
+    }
+    const { expiresAt, token } = await createLoginSessionForAppUser(sessionUser);
     const response = NextResponse.redirect(new URL(state.nextPath, request.url));
     response.cookies.set(AIGO_SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
