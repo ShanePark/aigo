@@ -177,8 +177,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     const hasInitialChildParams = childParamSource !== "none" || hasChildParams(initialParams);
     setSelectedFilters(filtersFromParams(initialParams));
     setChildProfiles(profilesFromParams);
-    setIsFilterModalOpen(false);
-    setIsPickerOpen(false);
 
     if (childParamSource === "account") {
       return;
