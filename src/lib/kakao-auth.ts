@@ -20,12 +20,6 @@ type KakaoUserResponse = {
   id?: number | string;
   kakao_account?: {
     email?: string;
-    profile?: {
-      nickname?: string;
-    };
-  };
-  properties?: {
-    nickname?: string;
   };
 };
 
@@ -166,7 +160,6 @@ function appOrigin(request: NextRequest) {
 function kakaoLoginProfile(user: KakaoUserResponse): KakaoLoginProfile {
   const kakaoId = String(user.id);
   const email = user.kakao_account?.email?.trim().toLowerCase() || `kakao-${kakaoId}@kakao.aigo.local`;
-  const displayName = user.kakao_account?.profile?.nickname?.trim() || user.properties?.nickname?.trim() || "카카오 사용자";
 
-  return { displayName, email, kakaoId };
+  return { displayName: "AiGo User", email, kakaoId };
 }

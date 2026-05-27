@@ -5,7 +5,7 @@ import Image from "next/image";
 
 type LoginFormProps = {
   initialError: string | null;
-  initialUser: { displayName: string; email: string; id: string } | null;
+  initialUser: { id: string } | null;
   kakaoLoginEnabled: boolean;
   nextPath: string;
 };

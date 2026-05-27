@@ -276,7 +276,7 @@ function demoVisitLogItem(input: {
   const visitedOn = input.visitedOn ?? "2026-05-25";
   return {
     createdAt: `${visitedOn}T00:00:00.000Z`,
-    displayName: "AiGo Dev",
+    displayName: null,
     id: input.id,
     isMine: true,
     isPrivatePlaceholder: false,

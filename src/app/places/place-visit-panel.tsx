@@ -573,7 +573,6 @@ function VisitSummary({
               <time dateTime={visit.visitedOn}>{formatRelativeDate(visit.visitedOn)}</time>
             </button>
             {visit.isMine ? <span className="mine-chip">내 방문 기록</span> : null}
-            {visit.displayName && !visit.isMine ? <span>{visit.displayName}</span> : null}
             {visit.isRevisit ? <span>재방문</span> : null}
             {visit.visibility === "private" ? <span>비공개</span> : null}
           </div>
@@ -924,7 +923,6 @@ function visitSearchText(visit: VisitItem) {
   return normalizeListSearchText(
     [
       visit.reviewText,
-      visit.displayName,
       visit.visitedOn,
       formatRelativeDate(visit.visitedOn),
       visit.isMine ? "내 기록 내가 쓴 기록" : "",

@@ -340,7 +340,6 @@ function MemoSummary({
       <div className="place-memo-summary-top">
         <div className="place-memo-summary-head">
           {memo.isMine ? <strong className="mine-chip">내 장소 팁</strong> : null}
-          {memo.displayName && !memo.isMine ? <span>{memo.displayName}</span> : null}
           <button className="summary-date-button" onClick={() => setDateDialogOpen(true)} type="button">
             <time dateTime={memo.updatedAt}>{formatRelativeDate(memo.updatedAt)}</time>
           </button>
@@ -450,7 +449,7 @@ function ListSearchField({
 
 function memoSearchText(memo: PublicMemoItem) {
   return normalizeListSearchText(
-    [memo.body, memo.displayName, memo.isMine ? "내 팁 내가 쓴 팁" : "", formatRelativeDate(memo.updatedAt), formatExactMemoDate(memo.updatedAt)]
+    [memo.body, memo.isMine ? "내 팁 내가 쓴 팁" : "", formatRelativeDate(memo.updatedAt), formatExactMemoDate(memo.updatedAt)]
       .filter(Boolean)
       .join(" ")
   );

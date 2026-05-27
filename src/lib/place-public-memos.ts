@@ -49,11 +49,10 @@ export async function listPlacePublicMemos(placeId: string, viewerUserId?: strin
       m.user_id::text as "userId",
       m.place_id::text as "placeId",
       m.body,
-      u.display_name as "displayName",
+      null::text as "displayName",
       m.created_at as "createdAt",
       m.updated_at as "updatedAt"
     from place_public_memos m
-    join users u on u.id = m.user_id
     where m.place_id = ${placeId}
     order by (m.user_id = ${viewerId}) desc, m.updated_at desc, m.created_at desc
   `;
@@ -134,7 +133,7 @@ export function placePublicMemoItemFromRow(row: PublicMemoRow, viewerUserId?: st
     userId: row.userId,
     placeId: row.placeId,
     body: row.body,
-    displayName: row.displayName,
+    displayName: null,
     isMine: row.userId === viewerUserId,
     createdAt: dateTimeString(row.createdAt),
     updatedAt: dateTimeString(row.updatedAt)

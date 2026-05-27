@@ -4,9 +4,7 @@ import type { AppUser } from "@/lib/app-auth";
 export type SocialProvider = "kakao" | "naver";
 
 export type LinkedSocialAccount = {
-  displayName: string | null;
   provider: SocialProvider;
-  providerEmail: string | null;
 };
 
 type LinkedSocialAccountRow = LinkedSocialAccount & {
@@ -23,16 +21,14 @@ type LinkedUserRow = {
 export async function linkedSocialAccounts(userId: string) {
   const pg = await getPg();
   const rows = await pg<LinkedSocialAccountRow[]>`
-    select provider, provider_email as "providerEmail", display_name as "displayName"
+    select provider
     from user_social_accounts
     where user_id = ${userId}
     order by provider
   `;
 
   return rows.map((row) => ({
-    displayName: row.displayName,
-    provider: socialProvider(row.provider),
-    providerEmail: row.providerEmail
+    provider: socialProvider(row.provider)
   }));
 }
 
@@ -53,7 +49,6 @@ export async function findUserBySocialAccount(provider: SocialProvider, provider
 export async function linkSocialAccount(
   userId: string,
   input: {
-    displayName?: string | null;
     provider: SocialProvider;
     providerEmail?: string | null;
     providerUserId: string;
@@ -86,7 +81,7 @@ export async function linkSocialAccount(
 
   await pg`
     insert into user_social_accounts (user_id, provider, provider_user_id, provider_email, display_name)
-    values (${userId}, ${input.provider}, ${input.providerUserId}, ${input.providerEmail ?? null}, ${input.displayName ?? null})
+    values (${userId}, ${input.provider}, ${input.providerUserId}, ${input.providerEmail ?? null}, null)
     on conflict (user_id, provider) do update
       set provider_email = excluded.provider_email,
           display_name = excluded.display_name,

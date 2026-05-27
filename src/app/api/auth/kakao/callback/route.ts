@@ -43,7 +43,6 @@ export async function GET(request: NextRequest) {
       }
 
       await linkSocialAccount(user.id, {
-        displayName: kakaoProfile.displayName,
         provider: "kakao",
         providerEmail: kakaoProfile.email,
         providerUserId: kakaoProfile.kakaoId
@@ -57,7 +56,6 @@ export async function GET(request: NextRequest) {
     const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
     if (!linkedUser) {
       await linkSocialAccount(sessionUser.id, {
-        displayName: kakaoProfile.displayName,
         provider: "kakao",
         providerEmail: kakaoProfile.email,
         providerUserId: kakaoProfile.kakaoId
