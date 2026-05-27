@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowRight, CheckCircle2, LogIn } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 
 type LoginFormProps = {
@@ -19,21 +19,14 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
     <div className="login-panel">
       <div className="login-card">
         <div className="login-card-head">
-          <span className="login-icon">
-            <LogIn size={21} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="category">로그인</p>
-            <h1>AiGo 계정으로 계속하기</h1>
-            <p className="lede">가족 기본값, 집 위치, 방문 기록은 로그인한 사용자 기준으로 저장됩니다.</p>
-          </div>
+          <h1>로그인</h1>
         </div>
 
         <div className="login-options" aria-label="로그인 방법">
           {user ? (
             <div className="login-status is-success">
               <CheckCircle2 size={17} aria-hidden="true" />
-              <span>{user.displayName} 계정으로 로그인되어 있어요.</span>
+              <span>로그인되어 있어요.</span>
             </div>
           ) : null}
 
@@ -48,20 +41,21 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
             <span className="login-option-icon">
               <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
             </span>
-            <span>
+            <span className="login-provider-label">
               <strong>카카오로 계속하기</strong>
-              <small>{kakaoLoginEnabled ? "카카오 계정으로 AiGo 세션을 만듭니다." : "카카오 REST API 키 설정이 필요합니다."}</small>
             </span>
-            <ArrowRight size={17} aria-hidden="true" />
+            {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
           </a>
 
-          <button className="login-option" disabled type="button">
+          <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">
             <span className="login-option-icon">
               <Image className="login-provider-icon" src="/auth/naver.svg" alt="" aria-hidden="true" width={22} height={22} />
             </span>
-            <span>
+            <span className="login-provider-label">
               <strong>네이버로 계속하기</strong>
-              <small>네이버 로그인은 준비 중입니다.</small>
+            </span>
+            <span aria-hidden="true" className="login-provider-badge">
+              준비 중
             </span>
           </button>
         </div>
