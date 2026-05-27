@@ -9,6 +9,7 @@ import {
 } from "@/lib/app-auth";
 import { ApiError } from "@/lib/errors";
 import {
+  appUrl,
   decodeKakaoState,
   expiredKakaoStateCookieOptions,
   KAKAO_AUTH_STATE_COOKIE,
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const fallbackUrl = new URL("/login", request.url);
+  const fallbackUrl = appUrl("/login", request);
 
   try {
     const state = decodeKakaoState(request.nextUrl.searchParams.get("state"));
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
         providerEmail: kakaoProfile.email,
         providerUserId: kakaoProfile.kakaoId
       });
-      const response = NextResponse.redirect(new URL(state.nextPath, request.url));
+      const response = NextResponse.redirect(appUrl(state.nextPath, request));
       response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
       return response;
     }
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       });
     }
     const { expiresAt, token } = await createLoginSessionForAppUser(sessionUser);
-    const response = NextResponse.redirect(new URL(state.nextPath, request.url));
+    const response = NextResponse.redirect(appUrl(state.nextPath, request));
     response.cookies.set(AIGO_SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
     return response;
