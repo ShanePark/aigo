@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { Check, Link2 } from "lucide-react";
 
 import type { LinkedSocialAccount, SocialProvider } from "@/lib/social-accounts";
 
@@ -9,7 +9,6 @@ type SocialAccountLinksProps = {
 
 const PROVIDERS: Array<{
   actionLabel: string;
-  description: string;
   iconSrc: string;
   id: SocialProvider;
   label: string;
@@ -17,7 +16,6 @@ const PROVIDERS: Array<{
 }> = [
   {
     actionLabel: "카카오 연동",
-    description: "카카오 계정을 연동하면 다음부터 카카오로 바로 로그인할 수 있어요.",
     iconSrc: "/auth/kakao.png",
     id: "kakao",
     label: "카카오",
@@ -25,7 +23,6 @@ const PROVIDERS: Array<{
   },
   {
     actionLabel: "준비 중",
-    description: "네이버 로그인은 추후 제공 예정입니다.",
     iconSrc: "/auth/naver.svg",
     id: "naver",
     label: "네이버",
@@ -40,11 +37,10 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
     <section className="me-profile-section me-social-section" aria-labelledby="me-social-title">
       <header className="me-section-head">
         <span className="me-section-icon me-social-section-icon">
-          <Image src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
+          <Link2 size={20} aria-hidden="true" />
         </span>
         <div className="me-section-title">
           <h2 id="me-social-title">로그인 연동</h2>
-          <p>자주 쓰는 소셜 계정을 연결해 AiGo에 빠르게 들어올 수 있습니다.</p>
         </div>
       </header>
 
@@ -60,7 +56,6 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
               </span>
               <div className="me-social-copy">
                 <strong>{provider.label}</strong>
-                <span>{linked ? linkedDescription(linkedAccount) : provider.description}</span>
               </div>
               {linked ? (
                 <span className="me-social-status" aria-label={`${provider.label} 연동됨`}>
@@ -82,9 +77,4 @@ export function SocialAccountLinks({ accounts }: SocialAccountLinksProps) {
       </div>
     </section>
   );
-}
-
-function linkedDescription(account: LinkedSocialAccount | undefined) {
-  if (!account) return "연동되어 있습니다.";
-  return "연동되어 있습니다.";
 }

@@ -7,7 +7,6 @@ import {
   Edit3,
   Globe2,
   ImagePlus,
-  Info,
   Lock,
   LogIn,
   Maximize2,
@@ -104,7 +103,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-  const [visitHelpOpen, setVisitHelpOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [publicVisitPage, setPublicVisitPage] = useState(1);
   const [visitSearchQuery, setVisitSearchQuery] = useState("");
@@ -181,7 +179,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
           <h2>
             <Star size={18} aria-hidden="true" />
             방문 기록
-            <InfoButton label="방문 기록 안내" onClick={() => setVisitHelpOpen(true)} />
           </h2>
           <p>
             {visits?.summary.ratingCount
@@ -234,14 +231,12 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         <div className="place-visit-login-card place-visit-loading-state">
           <div className="place-visit-login-copy">
             <strong>방문 기록을 불러오는 중입니다.</strong>
-            <p>로그인 상태와 공개 방문 기록을 확인하고 있어요.</p>
           </div>
         </div>
       ) : !user ? (
         <div className="place-visit-login-card">
           <div className="place-visit-login-copy">
             <strong>방문 기록은 로그인 후 남길 수 있어요.</strong>
-            <p>별점, 리뷰, 사진을 내 기록으로 저장합니다.</p>
           </div>
           <div className="place-visit-login-actions">
             <Link className="primary-button place-visit-login-button" href={`/login?next=${encodeURIComponent(pathname)}`}>
@@ -260,7 +255,6 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         {loading ? (
           <div className="place-visit-public-preview">
             <strong>공개 기록 미리보기</strong>
-            <p>공개 방문 기록을 불러오는 중입니다.</p>
           </div>
         ) : totalVisitCount > 0 ? (
           <div className="place-visit-public-list">
@@ -337,15 +331,7 @@ export function PlaceVisitPanel({ placeId, placeName }: { placeId: string; place
         title={confirmAction?.title ?? ""}
         tone={confirmAction?.tone}
       />
-      <AppModal onClose={() => setVisitHelpOpen(false)} open={visitHelpOpen} title="방문 기록 안내">
-        <div className="app-modal-copy">
-          <p>방문 날짜의 기록, 별점, 사진을 남길 수 있습니다.</p>
-          <p>등록 버튼을 누르면 입력창이 열리고, 공개 범위는 저장 전에 선택합니다.</p>
-          <p>공개 기록은 다른 가족이 참고할 수 있고, 비공개 기록은 내 기록과 평균 별점에만 반영됩니다.</p>
-        </div>
-      </AppModal>
       <AppModal
-        description="별점과 짧은 리뷰를 남기고, 사진과 공개 범위를 함께 정할 수 있습니다."
         disabled={busy}
         onClose={() => setVisitDialogOpen(false)}
         open={visitDialogOpen}
@@ -587,7 +573,6 @@ function VisitSummary({
               <time dateTime={visit.visitedOn}>{formatRelativeDate(visit.visitedOn)}</time>
             </button>
             {visit.isMine ? <span className="mine-chip">내 방문 기록</span> : null}
-            {visit.displayName && !visit.isMine ? <span>{visit.displayName}</span> : null}
             {visit.isRevisit ? <span>재방문</span> : null}
             {visit.visibility === "private" ? <span>비공개</span> : null}
           </div>
@@ -637,7 +622,6 @@ function VisitSummary({
         </div>
       </AppModal>
       <AppModal
-        description={`${visit.visitedOn} 방문 기록을 수정합니다.`}
         disabled={busy}
         onClose={() => setEditDialogOpen(false)}
         open={editDialogOpen}
@@ -884,9 +868,7 @@ function VisitPhotoPicker({
               </figure>
             ))}
           </div>
-        ) : (
-          <p>사진을 선택하면 이곳에 미리보기가 표시됩니다.</p>
-        )}
+        ) : null}
       </div>
       <input
         accept="image/jpeg,image/png,image/webp"
@@ -899,14 +881,6 @@ function VisitPhotoPicker({
         onChange={handlePhotoChange}
       />
     </div>
-  );
-}
-
-function InfoButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button className="context-info-button" aria-label={label} onClick={onClick} type="button">
-      <Info size={14} aria-hidden="true" />
-    </button>
   );
 }
 
@@ -949,7 +923,6 @@ function visitSearchText(visit: VisitItem) {
   return normalizeListSearchText(
     [
       visit.reviewText,
-      visit.displayName,
       visit.visitedOn,
       formatRelativeDate(visit.visitedOn),
       visit.isMine ? "내 기록 내가 쓴 기록" : "",

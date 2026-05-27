@@ -52,7 +52,7 @@ describe("place public memo listing", () => {
       items: [
         {
           body: baseMemoRow.body,
-          displayName: "Dev Parent",
+          displayName: null,
           isMine: true
         }
       ]
@@ -64,7 +64,7 @@ describe("place public memo listing", () => {
   it("formats memo rows without privacy placeholders because memos are public-only", () => {
     expect(placePublicMemoItemFromRow(baseMemoRow, "other-user")).toMatchObject({
       body: baseMemoRow.body,
-      displayName: "Dev Parent",
+      displayName: null,
       isMine: false
     });
   });

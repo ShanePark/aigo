@@ -152,7 +152,7 @@ describe("place visit privacy formatting", () => {
     expect(placeVisitItemFromRow(baseVisitRow, baseVisitRow.userId)).toMatchObject({
       rating: 5,
       reviewText: "다시 가고 싶음",
-      displayName: "Dev Parent",
+      displayName: null,
       photoCount: 2,
       photos: [],
       isPrivatePlaceholder: false,

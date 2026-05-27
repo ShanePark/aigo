@@ -10,7 +10,7 @@ import { CHILD_AGE_BANDS, CHILD_GENDERS, type ChildAgeBandId, type ChildGender }
 type CommonPickerProps = {
   confirmDisabled?: boolean;
   confirmLabel: string;
-  description: string;
+  description?: string;
   disabled?: boolean;
   gender: ChildGender;
   onCancel: () => void;

@@ -1,4 +1,3 @@
-import { Baby, Home } from "lucide-react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -25,24 +24,6 @@ export default async function MePage() {
 
   return (
     <div className="page me-page">
-      <header className="me-hero">
-        <div className="me-hero-copy">
-          <p className="category">내 정보</p>
-          <h1>{user.displayName} 기본 설정</h1>
-          <p className="lede">아이 나이와 집 위치를 저장해 다음 검색의 기본 맥락으로 씁니다.</p>
-        </div>
-        <div className="me-overview" aria-label="내 정보 요약">
-          <span className="me-stat">
-            <Baby size={15} aria-hidden="true" />
-            아이 {profile.children.length}명
-          </span>
-          <span className="me-stat">
-            <Home size={15} aria-hidden="true" />
-            {profile.homeLocation ? "집 위치 저장됨" : "집 위치 없음"}
-          </span>
-        </div>
-      </header>
-
       <MeProfileForm initialProfile={profile} />
       <SocialAccountLinks accounts={socialAccounts} />
     </div>

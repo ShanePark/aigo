@@ -23,9 +23,7 @@ export default async function RecentPlacesPage() {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">최근 본 장소</p>
             <h1>로그인 후 최근 확인한 장소를 볼 수 있어요</h1>
-            <p>장소 상세를 열면 자동으로 기록되고, 나중에 다시 이어서 살펴볼 수 있습니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">
@@ -47,11 +45,6 @@ export default async function RecentPlacesPage() {
   return (
     <div className="page visits-page">
       <header className="visits-hero">
-        <div className="visits-hero-copy">
-          <p className="category">최근 본 장소</p>
-          <h1>방금 살펴본 장소들</h1>
-          <p className="lede">장소 상세에 들어간 기록을 최신순으로 모아, 비교하다 놓친 후보를 다시 꺼내 봅니다.</p>
-        </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="최근 본 장소 요약">
             <span>
@@ -73,9 +66,7 @@ export default async function RecentPlacesPage() {
             <History size={21} aria-hidden="true" />
           </span>
           <div className="empty-state-copy">
-            <p className="empty-state-kicker">아직 기록 없음</p>
             <h2>장소 상세를 열면 여기에 쌓여요</h2>
-            <p>검색 결과에서 궁금한 장소를 눌러 보면 최근 본 장소 목록에 자동으로 저장됩니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action is-primary" href="/">

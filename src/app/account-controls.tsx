@@ -9,7 +9,7 @@ import type { AppUser } from "@/lib/app-auth";
 
 import styles from "./account-controls.module.css";
 
-type AccountUser = Pick<AppUser, "displayName" | "email" | "id">;
+type AccountUser = Pick<AppUser, "id">;
 
 type MeResponse = {
   user: AccountUser | null;

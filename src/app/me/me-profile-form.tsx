@@ -195,7 +195,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           </span>
           <div className="me-section-title">
             <h2 id="me-children-title">아이 정보</h2>
-            <p>생년월 기준으로 검색 세부조건의 나이대를 계산합니다.</p>
           </div>
           <button className="me-inline-button" type="button" onClick={openAddChildModal} disabled={isSaving || hasActiveChildModal}>
             <Plus size={15} aria-hidden="true" />
@@ -208,7 +207,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           childName={draftChild?.name ?? ""}
           confirmDisabled={!draftChild?.birthYearMonth}
           confirmLabel="아이 추가"
-          description="아이의 생년월과 성별을 등록하면 검색 조건에 맞는 나이대를 자동으로 계산해요."
           disabled={isSaving}
           gender={draftChild?.gender ?? "boy"}
           maxBirthYearMonth={maxBirthYearMonth}
@@ -227,7 +225,6 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           childName={editingChildDraft?.name ?? ""}
           confirmDisabled={!editingChildDraft?.birthYearMonth || childSignature(editingChildDraft) === savedChildSignatures.get(editingChildDraft.clientId)}
           confirmLabel="수정 저장"
-          description="아이의 생년월과 성별을 수정하면 저장 후 검색 기본값에도 반영됩니다."
           disabled={isSaving}
           gender={editingChildDraft?.gender ?? "boy"}
           maxBirthYearMonth={maxBirthYearMonth}
@@ -318,20 +315,12 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           </span>
           <div className="me-section-title">
             <h2 id="me-home-title">집 위치</h2>
-            <p>현재 위치를 쓸 수 없을 때 검색 기준점으로 사용합니다.</p>
           </div>
           <span className={`me-save-pill ${homeSaveState.dirty ? "is-dirty" : "is-clean"}`}>{homeSaveState.statusLabel}</span>
         </header>
 
         <MeHomeLocationMap lat={homeLocation.lat} lng={homeLocation.lng} onSelect={selectHomeLocation} />
 
-        <p className="me-empty-note">
-          {homeSaveState.statusLabel === "삭제 예정"
-            ? "저장하면 등록된 집 위치가 삭제됩니다."
-            : homeLocation.enabled && !homeSaveState.invalidCoordinates
-              ? `선택 좌표 ${Number(homeLocation.lat).toFixed(5)}, ${Number(homeLocation.lng).toFixed(5)}`
-              : "집 위치가 아직 설정되지 않았습니다. 지도에서 집 위치를 눌러 선택하세요."}
-        </p>
         <div className="me-section-actions">
           <button
             className={`me-section-save ${homeSaveState.dirty ? "is-dirty" : "is-clean"}`}

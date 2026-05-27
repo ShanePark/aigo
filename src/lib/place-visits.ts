@@ -120,13 +120,12 @@ export async function listPlaceVisits(placeId: string, viewerUserId?: string | n
         v.is_revisit as "isRevisit",
         v.created_at as "createdAt",
         v.updated_at as "updatedAt",
-        u.display_name as "displayName",
+        null::text as "displayName",
         count(ph.id)::int as "photoCount"
       from place_visits v
-      join users u on u.id = v.user_id
       left join place_visit_photos ph on ph.visit_id = v.id and ((v.visibility = 'public' and ph.visibility = 'public') or ph.user_id = ${viewerId})
       where v.place_id = ${placeId}
-      group by v.id, u.display_name
+      group by v.id
       order by v.visited_on desc, v.created_at desc
     `
   ]);
@@ -352,7 +351,7 @@ export function placeVisitItemFromRow(row: VisitRow, viewerUserId?: string | nul
     isRevisit: isPrivatePlaceholder ? null : row.isRevisit,
     isMine,
     isPrivatePlaceholder,
-    displayName: isPrivatePlaceholder ? null : row.displayName ?? null,
+    displayName: null,
     photoCount: isPrivatePlaceholder ? 0 : Number(row.photoCount ?? row.photos?.length ?? 0),
     photos: isPrivatePlaceholder ? [] : row.photos ?? [],
     createdAt: dateTimeString(row.createdAt),

@@ -11,7 +11,7 @@ import { AccountControls } from "./account-controls";
 import styles from "./topbar-actions.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-type TopbarUser = Pick<AppUser, "displayName" | "email" | "id">;
+type TopbarUser = Pick<AppUser, "id">;
 
 export function TopbarActions({
   appVersion,
