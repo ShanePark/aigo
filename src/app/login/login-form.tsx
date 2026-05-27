@@ -7,17 +7,20 @@ import { useState } from "react";
 
 type LoginFormProps = {
   devLoginEnabled: boolean;
+  initialError: string | null;
   initialUser: { displayName: string; email: string; id: string } | null;
+  kakaoLoginEnabled: boolean;
   nextPath: string;
 };
 
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
 
-export function LoginForm({ devLoginEnabled, initialUser, nextPath }: LoginFormProps) {
+export function LoginForm({ devLoginEnabled, initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
+  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}`;
 
   return (
     <div className="login-panel">
@@ -54,15 +57,23 @@ export function LoginForm({ devLoginEnabled, initialUser, nextPath }: LoginFormP
             </button>
           ) : null}
 
-          <button className="login-option" disabled type="button">
+          <a
+            aria-disabled={!kakaoLoginEnabled}
+            className="login-option is-kakao"
+            href={kakaoLoginEnabled ? kakaoLoginHref : undefined}
+            onClick={(event) => {
+              if (!kakaoLoginEnabled) event.preventDefault();
+            }}
+          >
             <span className="login-option-icon">
               <MessageCircle size={18} aria-hidden="true" />
             </span>
             <span>
               <strong>카카오로 계속하기</strong>
-              <small>추후 제공 예정입니다.</small>
+              <small>{kakaoLoginEnabled ? "카카오 계정으로 AiGo 세션을 만듭니다." : "카카오 REST API 키 설정이 필요합니다."}</small>
             </span>
-          </button>
+            <ArrowRight size={17} aria-hidden="true" />
+          </a>
         </div>
 
         {error ? (

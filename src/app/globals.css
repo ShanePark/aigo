@@ -3203,8 +3203,8 @@ h3 {
   width: 100%;
 }
 
-.login-option:hover:not(:disabled),
-.login-option:focus-visible:not(:disabled) {
+.login-option:hover:not(:disabled):not([aria-disabled="true"]),
+.login-option:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--hover-border);
   box-shadow: 0 12px 30px rgba(24, 33, 29, 0.09);
   transform: translateY(-1px);
@@ -3213,6 +3213,27 @@ h3 {
 .login-option.is-primary {
   background: color-mix(in srgb, var(--mint) 13%, var(--panel));
   border-color: var(--line-strong);
+}
+
+.login-option.is-kakao {
+  background: #fee500;
+  border-color: #fee500;
+  color: #191919;
+  text-decoration: none;
+}
+
+.login-option.is-kakao:hover,
+.login-option.is-kakao:focus-visible {
+  background: #f7dc00;
+  border-color: #f7dc00;
+}
+
+.login-option.is-kakao[aria-disabled="true"] {
+  background: color-mix(in srgb, var(--control-bg) 84%, #fee500);
+  border-color: var(--line);
+  color: var(--disabled-text);
+  cursor: not-allowed;
+  opacity: 0.78;
 }
 
 .login-option:disabled {

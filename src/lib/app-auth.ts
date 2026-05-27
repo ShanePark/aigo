@@ -68,6 +68,15 @@ export function expiredSessionCookieOptions() {
 
 export async function createDevLoginSession() {
   const user = await ensureDevUser();
+  return createLoginSessionForUser(user);
+}
+
+export async function createUserLoginSession(input: { displayName: string; email: string }) {
+  const user = await ensureUser(input);
+  return createLoginSessionForUser(user);
+}
+
+async function createLoginSessionForUser(user: AppUser) {
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
   const expiresAt = sessionExpiresAt();
@@ -139,10 +148,16 @@ export async function deleteSessionByToken(token: string | undefined | null) {
 }
 
 async function ensureDevUser() {
+  return ensureUser({ displayName: DEV_USER_DISPLAY_NAME, email: DEV_USER_EMAIL });
+}
+
+async function ensureUser(input: { displayName: string; email: string }) {
   const pg = await getPg();
+  const email = input.email.trim().toLowerCase();
+  const displayName = input.displayName.trim() || "AiGo User";
   const rows = await pg<UserRow[]>`
     insert into users (email, display_name, role)
-    values (${DEV_USER_EMAIL}, ${DEV_USER_DISPLAY_NAME}, 'user')
+    values (${email}, ${displayName}, 'user')
     on conflict (email) do update
       set display_name = excluded.display_name,
           updated_at = now()
