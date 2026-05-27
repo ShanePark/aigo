@@ -31,7 +31,6 @@ type User = {
 };
 
 type MeResponse = {
-  devLoginEnabled: boolean;
   user: User | null;
 };
 

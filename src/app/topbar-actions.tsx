@@ -5,11 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { DevAuthControls } from "./dev-auth-controls";
+import type { AppUser } from "@/lib/app-auth";
+
+import { AccountControls } from "./account-controls";
 import styles from "./topbar-actions.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-export function TopbarActions({ devLoginEnabled, footerText }: { devLoginEnabled: boolean; footerText: string }) {
+type TopbarUser = Pick<AppUser, "displayName" | "email" | "id">;
+
+export function TopbarActions({ footerText, initialUser }: { footerText: string; initialUser: TopbarUser | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
@@ -66,7 +70,7 @@ export function TopbarActions({ devLoginEnabled, footerText }: { devLoginEnabled
             );
           })}
           <div className={styles.menuSection}>
-            <DevAuthControls devLoginEnabled={devLoginEnabled} />
+            <AccountControls initialUser={initialUser} />
           </div>
           <p className={styles.menuFooter}>{footerText}</p>
         </div>

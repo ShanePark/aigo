@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import { AIGO_SESSION_COOKIE, currentUserFromSessionToken, isDevLoginEnabled } from "@/lib/app-auth";
+import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { isKakaoLoginConfigured, safeNextPath } from "@/lib/kakao-auth";
 
 import { LoginForm } from "./login-form";
@@ -20,7 +20,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <div className="page login-page">
       <LoginForm
-        devLoginEnabled={isDevLoginEnabled()}
         initialError={initialError(params.error)}
         initialUser={user}
         kakaoLoginEnabled={isKakaoLoginConfigured()}

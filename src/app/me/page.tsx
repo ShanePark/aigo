@@ -26,7 +26,7 @@ export default async function MePage() {
           <div className="empty-state-copy">
             <p className="empty-state-kicker">내 정보</p>
             <h1>로그인 후 가족 기본값을 관리할 수 있어요</h1>
-            <p>로그인 페이지에서 개발용 계정으로 들어오면 아이 정보와 집 위치를 저장할 수 있습니다.</p>
+            <p>카카오 로그인 후 아이 정보와 집 위치를 저장할 수 있습니다.</p>
           </div>
           <div className="empty-state-actions">
             <Link className="empty-state-action" href="/">

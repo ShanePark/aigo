@@ -5,8 +5,6 @@ import type postgres from "postgres";
 import { ApiError } from "@/lib/errors";
 
 export const AIGO_SESSION_COOKIE = "aigo_session";
-export const DEV_USER_EMAIL = "dev@aigo.local";
-export const DEV_USER_DISPLAY_NAME = "AiGo Dev";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
@@ -25,14 +23,6 @@ type UserRow = {
 };
 
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
-
-export function isDevLoginEnabled(env: NodeJS.ProcessEnv = process.env) {
-  if (env.NODE_ENV !== "production") {
-    return true;
-  }
-
-  return env.AIGO_DEV_LOGIN_ENABLED === "true" && (env.AIGO_ENV === "local" || env.AIGO_ENV === "staging");
-}
 
 export function createSessionToken() {
   return randomBytes(32).toString("base64url");
@@ -64,11 +54,6 @@ export function expiredSessionCookieOptions() {
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production"
   };
-}
-
-export async function createDevLoginSession() {
-  const user = await ensureDevUser();
-  return createLoginSessionForAppUser(user);
 }
 
 export async function createUserLoginSession(input: { displayName: string; email: string }) {
@@ -145,10 +130,6 @@ export async function deleteSessionByToken(token: string | undefined | null) {
     delete from auth_sessions
     where token_hash = ${hashSessionToken(token)}
   `;
-}
-
-async function ensureDevUser() {
-  return upsertAppUser({ displayName: DEV_USER_DISPLAY_NAME, email: DEV_USER_EMAIL });
 }
 
 export async function upsertAppUser(input: { displayName: string; email: string }) {
