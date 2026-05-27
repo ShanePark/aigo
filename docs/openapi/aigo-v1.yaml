@@ -12,6 +12,35 @@ servers:
 security:
   - bearerApiKey: []
 paths:
+  /v1/health:
+    get:
+      summary: Check agent API health and bearer key validity
+      operationId: getAgentHealth
+      description: >-
+        Lightweight readiness check for agent workflows. Requires the same bearer API key
+        as other `/v1` routes, performs a shallow database query, and rate-limits repeated
+        invalid-key attempts from the same client for a short block window.
+      responses:
+        "200":
+          description: API key is valid and the database is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    service: aigo-api
+                    auth: ok
+                    database: ok
+                    checkedAt: "2026-05-27T00:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /v1/places/search:
     post:
       summary: Search places with soft matching
@@ -391,6 +420,18 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Too many invalid API key attempts
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServiceUnavailable:
+      description: Server or database health check failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: Resource not found
       content:
@@ -405,6 +446,25 @@ components:
         error:
           type: string
         details: {}
+    HealthResponse:
+      type: object
+      required: [ok, service, auth, database, checkedAt]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        service:
+          type: string
+          const: aigo-api
+        auth:
+          type: string
+          const: ok
+        database:
+          type: string
+          const: ok
+        checkedAt:
+          type: string
+          format: date-time
     Origin:
       type: object
       required: [lat, lng]

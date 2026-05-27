@@ -120,6 +120,8 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 6. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
+   - Before registration or enrichment batches, call `GET /v1/health` with `Authorization: Bearer $AIGO_API_KEY`. A `200` response means the bearer key is accepted and the API can complete a shallow database query. Treat `401` as a key/configuration issue, `429` as a temporary invalid-key attempt block, and `5xx` as server or database health trouble to resolve before mutation.
+   - Health checks are for readiness only. Do not use deliberately bad keys for probing; repeated invalid health-check attempts from the same client are temporarily blocked.
    - Real place data work should target the deployed AiGo API at `https://aigo.o-r.kr` by default. Set `AIGO_API_BASE_URL=https://aigo.o-r.kr` for curl commands and helper scripts unless the user explicitly asks for local-only development data work or route implementation testing.
    - For new place creation requested by the user, send the same validated `POST /v1/places` payload to both production (`https://aigo.o-r.kr`) and local (`http://localhost:3000`) unless the user explicitly asks for one environment only. Run duplicate checks and verify detail/version/search on both environments, and keep the production API key separate from the local `change-me` key.
    - If `AIGO_API_KEY` is not already available in the current shell/session, ask the user for the production AiGo API key before any duplicate, search, create, update, delete, image-health, or version-history API call. Do not guess, use the local default, or proceed with unauthenticated calls.

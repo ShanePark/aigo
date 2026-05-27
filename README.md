@@ -58,6 +58,7 @@ The OpenAPI contract is in [`docs/openapi/aigo-v1.yaml`](docs/openapi/aigo-v1.ya
 
 Main endpoints:
 
+- `GET /v1/health` - check bearer key validity and shallow API/database health before agent work
 - `POST /v1/places/search` - search places with soft matching and reason codes
 - `POST /v1/places/duplicates` - check likely duplicates before creating or updating data
 - `POST /v1/places` - create a source-backed place and publish it immediately
@@ -81,6 +82,15 @@ export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
 ```
 
 Use `http://localhost:3000` only for local development or route implementation testing. The local default key `change-me` must not be used against the deployed API.
+
+Before registration or enrichment batches, check the agent API health with the same bearer key:
+
+```bash
+curl -sS "$AIGO_API_BASE_URL/v1/health" \
+  -H "Authorization: Bearer $AIGO_API_KEY"
+```
+
+A `200` response means the key is accepted and the database answered a shallow query. Repeated invalid health-check keys from the same client are temporarily blocked with `429`.
 
 ## App Auth And Visits
 
