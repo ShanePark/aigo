@@ -2,15 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves, X } from "lucide-react";
+import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import { AppModal, AppModalActions } from "@/app/app-modal";
+import { AppModal } from "@/app/app-modal";
 import type { ChildParamSource } from "@/app/account-child-defaults";
+import { ChildProfilePickerModal, childProfileIconSrc } from "@/app/child-profile-picker-modal";
 import {
-  CHILD_AGE_BANDS,
-  CHILD_GENDERS,
   childAgeBandById,
   childProfileKey,
   childProfilesToAgeMonths,
@@ -294,76 +293,21 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               </button>
             </div>
 
-            <AppModal
+            <ChildProfilePickerModal
+              ageBand={draftAgeBand}
+              confirmDisabled={isAtProfileLimit}
+              confirmLabel="아이 추가"
               description="아이 나이와 성별을 추가하면 검색 결과의 연령 적합도를 더 잘 맞출 수 있어요."
               disabled={isPending}
-              onClose={cancelDraftProfile}
+              gender={draftGender}
+              mode="ageBand"
+              onAgeBandChange={setDraftAgeBand}
+              onCancel={cancelDraftProfile}
+              onConfirm={addDraftProfile}
+              onGenderChange={setDraftGender}
               open={isPickerOpen}
-              size="wide"
               title="아이 조건 추가"
-            >
-              <div className="child-profile-picker">
-                <div className="child-profile-picker-row">
-                  <span className="child-profile-picker-label">성별 선택</span>
-                  <div className="child-profile-segmented" role="group" aria-label="아이 성별">
-                    {CHILD_GENDERS.map((gender) => {
-                      const genderPreviewProfile = { ageBand: draftAgeBand, gender: gender.id };
-
-                      return (
-                        <button
-                          className={draftGender === gender.id ? "is-selected" : ""}
-                          type="button"
-                          key={gender.id}
-                          onClick={() => setDraftGender(gender.id)}
-                          aria-label={gender.label}
-                          aria-pressed={draftGender === gender.id}
-                        >
-                          <span className="child-profile-segmented-icon">
-                            <Image src={childProfileIconSrc(genderPreviewProfile)} alt="" aria-hidden="true" width={52} height={52} />
-                          </span>
-                          <span className="child-profile-segmented-label">{gender.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="child-profile-options" role="group" aria-label="아이 연령대">
-                  {CHILD_AGE_BANDS.map((band) => {
-                    const optionProfile = { ageBand: band.id, gender: draftGender };
-                    const isSelected = draftAgeBand === band.id;
-
-                    return (
-                      <button
-                        className={`child-profile-option tone-${band.tone} ${isSelected ? "is-selected" : ""}`}
-                        type="button"
-                        key={band.id}
-                        onClick={() => setDraftAgeBand(band.id)}
-                        aria-pressed={isSelected}
-                      >
-                        <span className="child-profile-option-icon">
-                          <Image src={childProfileIconSrc(optionProfile)} alt="" aria-hidden="true" width={88} height={88} />
-                        </span>
-                        <span className="child-profile-option-copy">
-                          <strong>{band.label}</strong>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <AppModalActions>
-                  <button className="child-profile-cancel" type="button" onClick={cancelDraftProfile}>
-                    <X size={15} aria-hidden="true" />
-                    취소
-                  </button>
-                  <button className="child-profile-confirm" type="button" onClick={addDraftProfile} disabled={isPending || isAtProfileLimit}>
-                    <Check size={15} aria-hidden="true" />
-                    아이 추가
-                  </button>
-                </AppModalActions>
-              </div>
-            </AppModal>
+            />
 
             {childProfiles.length > 0 ? (
               <div className="child-profile-grid">
@@ -411,10 +355,6 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
       </button>
     </article>
   );
-}
-
-function childProfileIconSrc(profile: ChildProfile) {
-  return `/icons/child-profiles/${profile.gender}-${profile.ageBand}-avatar.webp`;
 }
 
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {

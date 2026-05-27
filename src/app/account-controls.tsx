@@ -1,24 +1,25 @@
 "use client";
 
-import { LogIn, LogOut, UserRound } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import styles from "./dev-auth-controls.module.css";
+import type { AppUser } from "@/lib/app-auth";
+
+import styles from "./account-controls.module.css";
+
+type AccountUser = Pick<AppUser, "displayName" | "email" | "id">;
 
 type MeResponse = {
-  devLoginEnabled: boolean;
-  user: { displayName: string; email: string; id: string } | null;
+  user: AccountUser | null;
 };
 
 const AUTH_CHANGE_EVENT = "aigo-auth-change";
 
-export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { devLoginEnabled: boolean }) {
+export function AccountControls({ initialUser }: { initialUser: AccountUser | null }) {
   const router = useRouter();
-  const [devLoginEnabled, setDevLoginEnabled] = useState(initialDevLoginEnabled);
-  const [user, setUser] = useState<MeResponse["user"]>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<MeResponse["user"]>(initialUser);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,10 +32,9 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
         if (!response.ok) return;
         const body = (await response.json()) as MeResponse;
         if (!active) return;
-        setDevLoginEnabled(body.devLoginEnabled);
         setUser(body.user);
-      } finally {
-        if (active) setLoading(false);
+      } catch {
+        // Keep the server-rendered auth state if the background refresh fails.
       }
     }
 
@@ -44,7 +44,6 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
       const detail = (event as CustomEvent<{ user: MeResponse["user"] }>).detail;
       setUser(detail?.user ?? null);
       setError(null);
-      setLoading(false);
     }
 
     window.addEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
@@ -53,9 +52,6 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
       window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
     };
   }, []);
-
-  if (loading && !initialDevLoginEnabled) return null;
-  if (!devLoginEnabled && !user) return null;
 
   return (
     <div className={styles.controls}>
@@ -66,21 +62,17 @@ export function DevAuthControls({ devLoginEnabled: initialDevLoginEnabled }: { d
       ) : null}
       {user ? (
         <>
-          <span className={styles.identity} title={user.email}>
-            <UserRound size={15} aria-hidden="true" />
-            <span>{user.displayName}</span>
-          </span>
           <button className={styles.button} disabled={busy} onClick={logout} type="button">
             <LogOut size={15} aria-hidden="true" />
             <span>로그아웃</span>
           </button>
         </>
-      ) : devLoginEnabled ? (
+      ) : (
         <Link className={`${styles.button} ${styles.primary}`} href="/login">
           <LogIn size={15} aria-hidden="true" />
           <span>로그인</span>
         </Link>
-      ) : null}
+      )}
     </div>
   );
 

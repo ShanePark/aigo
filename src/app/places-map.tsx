@@ -398,16 +398,17 @@ export function PlacesMap({
           ) : null}
         </div>
         <div className="map-location-control">
-          <button
-            aria-label={homeLocation ? "집 위치로 지도 이동" : "내 정보에서 집 위치를 먼저 저장해 주세요"}
-            className="map-location-button"
-            disabled={!homeLocation}
-            onClick={() => void focusHomeLocation({ runSearch: true })}
-            title={homeLocationTitle}
-            type="button"
-          >
-            <Home size={17} aria-hidden="true" />
-          </button>
+          {homeLocation ? (
+            <button
+              aria-label="집 위치로 지도 이동"
+              className="map-location-button"
+              onClick={() => void focusHomeLocation({ runSearch: true })}
+              title={homeLocationTitle}
+              type="button"
+            >
+              <Home size={17} aria-hidden="true" />
+            </button>
+          ) : null}
           <button
             aria-label={locationStatus === "locating" ? "현재 위치 확인 중" : "내 위치로 지도 이동"}
             className="map-location-button"

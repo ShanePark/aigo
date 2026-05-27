@@ -43,7 +43,7 @@ The web app provides a Korean place-search UI with:
 - Keyword, category, age, map-viewport/distance, and family-logistics filters
 - Account-backed child defaults through `/me`, storing child birth year-month and gender for logged-in users; guests can still use local search-form child conditions
 - Account-backed home-location settings through `/me`; search filters such as indoor, parking, stroller, nursing room, baby chair, and required/soft preference mode remain immediate search controls rather than saved profile defaults
-- Development-only one-click login as `dev@aigo.local` for exercising user-owned visit features without building public signup yet
+- Kakao login for account-backed family defaults, visit logs, saved places, and place notes
 - Map-first browsing: the first landing view uses browser geolocation when available, then pan or zoom the map and tap `현 지도에서 검색` to refresh the list from the visible map area without changing results during casual map movement
 - Soft matching instead of hard exclusion for age and amenity mismatches
 - Result cards with score, distance, tags, facility chips, play-feature chips, confidence, image tier, parent notes, safety notes, reason codes, and user rating summaries
@@ -84,7 +84,7 @@ Use `http://localhost:3000` only for local development or route implementation t
 
 ## App Auth And Visits
 
-User-facing app routes use the `aigo_session` httpOnly, sameSite=lax cookie instead of the `/v1` bearer token. In development, `POST /api/auth/dev-login` creates or reuses the `dev@aigo.local` user and issues a local session; `POST /api/auth/logout` clears it; `GET /api/me` returns the current viewer.
+User-facing app routes use the `aigo_session` httpOnly, sameSite=lax cookie instead of the `/v1` bearer token. Kakao OAuth creates or reuses the linked app user and issues a local session; `POST /api/auth/logout` clears it; `GET /api/me` returns the current viewer.
 
 Visit and review endpoints are intentionally app-scoped APIs:
 
@@ -194,13 +194,14 @@ The app has local defaults for development:
 ```bash
 DATABASE_URL=postgres://aigo:aigo@localhost:5431/aigo
 AIGO_API_KEY=change-me
-AIGO_DEV_LOGIN_ENABLED=true
+KAKAO_REST_API_KEY=your-local-kakao-test-app-rest-api-key
+KAKAO_CLIENT_SECRET=your-local-kakao-test-app-client-secret
 AIGO_UPLOAD_DIR=./data/uploads
 ```
 
 `AIGO_API_KEY=change-me` is accepted only as a local development convenience. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
 
-Dev login is available automatically outside production. In `NODE_ENV=production`, `AIGO_DEV_LOGIN_ENABLED=true` is ignored unless `AIGO_ENV` is `local` or `staging`, so real production cannot expose the shared dev user by flipping a single flag. Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
+Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
 
 ## CI/CD
 

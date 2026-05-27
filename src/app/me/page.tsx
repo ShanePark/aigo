@@ -1,11 +1,13 @@
-import { Baby, Home, UserRound } from "lucide-react";
+import { Baby, Home } from "lucide-react";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
+import { linkedSocialAccounts } from "@/lib/social-accounts";
 import { getMyProfile } from "@/lib/user-profile";
 
 import { MeProfileForm } from "./me-profile-form";
+import { SocialAccountLinks } from "./social-account-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,33 +17,11 @@ export default async function MePage() {
   const user = await currentUserFromSessionToken(cookieStore.get(AIGO_SESSION_COOKIE)?.value);
 
   if (!user) {
-    return (
-      <div className="page me-page">
-        <section className="empty-state empty-state-page">
-          <span className="empty-state-icon">
-            <UserRound size={21} aria-hidden="true" />
-          </span>
-          <div className="empty-state-copy">
-            <p className="empty-state-kicker">내 정보</p>
-            <h1>로그인 후 가족 기본값을 관리할 수 있어요</h1>
-            <p>로그인 페이지에서 개발용 계정으로 들어오면 아이 정보와 집 위치를 저장할 수 있습니다.</p>
-          </div>
-          <div className="empty-state-actions">
-            <Link className="empty-state-action" href="/">
-              <Home size={15} aria-hidden="true" />
-              AiGo 홈
-            </Link>
-            <Link className="empty-state-action is-primary" href="/login?next=/me">
-              <UserRound size={15} aria-hidden="true" />
-              로그인
-            </Link>
-          </div>
-        </section>
-      </div>
-    );
+    redirect("/login?next=/me");
   }
 
   const profile = await getMyProfile(user.id);
+  const socialAccounts = await linkedSocialAccounts(user.id);
 
   return (
     <div className="page me-page">
@@ -64,6 +44,7 @@ export default async function MePage() {
       </header>
 
       <MeProfileForm initialProfile={profile} />
+      <SocialAccountLinks accounts={socialAccounts} />
     </div>
   );
 }

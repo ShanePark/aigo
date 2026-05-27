@@ -1,66 +1,61 @@
 "use client";
 
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2, LogIn, MessageCircle } from "lucide-react";
-import type { Route } from "next";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 type LoginFormProps = {
-  devLoginEnabled: boolean;
+  initialError: string | null;
   initialUser: { displayName: string; email: string; id: string } | null;
+  kakaoLoginEnabled: boolean;
   nextPath: string;
 };
 
-const AUTH_CHANGE_EVENT = "aigo-auth-change";
-
-export function LoginForm({ devLoginEnabled, initialUser, nextPath }: LoginFormProps) {
-  const router = useRouter();
-  const [user, setUser] = useState(initialUser);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
+  const user = initialUser;
+  const error = initialError;
+  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}`;
 
   return (
     <div className="login-panel">
       <div className="login-card">
         <div className="login-card-head">
-          <span className="login-icon">
-            <LogIn size={21} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="category">로그인</p>
-            <h1>AiGo 계정으로 계속하기</h1>
-            <p className="lede">가족 기본값, 집 위치, 방문 기록은 로그인한 사용자 기준으로 저장됩니다.</p>
-          </div>
+          <h1>로그인</h1>
         </div>
 
         <div className="login-options" aria-label="로그인 방법">
           {user ? (
             <div className="login-status is-success">
               <CheckCircle2 size={17} aria-hidden="true" />
-              <span>{user.displayName} 계정으로 로그인되어 있어요.</span>
+              <span>로그인되어 있어요.</span>
             </div>
           ) : null}
 
-          {devLoginEnabled ? (
-            <button className="login-option is-primary" disabled={busy} onClick={login} type="button">
-              <span className="login-option-icon">
-                {busy ? <Loader2 size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
-              </span>
-              <span>
-                <strong>{busy ? "로그인 중" : "dev 계정으로 로그인"}</strong>
-                <small>개발 환경에서 dev@aigo.local 세션을 바로 만듭니다.</small>
-              </span>
-              <ArrowRight size={17} aria-hidden="true" />
-            </button>
-          ) : null}
-
-          <button className="login-option" disabled type="button">
+          <a
+            aria-disabled={!kakaoLoginEnabled}
+            className="login-option is-kakao"
+            href={kakaoLoginEnabled ? kakaoLoginHref : undefined}
+            onClick={(event) => {
+              if (!kakaoLoginEnabled) event.preventDefault();
+            }}
+          >
             <span className="login-option-icon">
-              <MessageCircle size={18} aria-hidden="true" />
+              <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
             </span>
-            <span>
+            <span className="login-provider-label">
               <strong>카카오로 계속하기</strong>
-              <small>추후 제공 예정입니다.</small>
+            </span>
+            {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
+          </a>
+
+          <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">
+            <span className="login-option-icon">
+              <Image className="login-provider-icon" src="/auth/naver.svg" alt="" aria-hidden="true" width={22} height={22} />
+            </span>
+            <span className="login-provider-label">
+              <strong>네이버로 계속하기</strong>
+            </span>
+            <span aria-hidden="true" className="login-provider-badge">
+              준비 중
             </span>
           </button>
         </div>
@@ -74,37 +69,4 @@ export function LoginForm({ devLoginEnabled, initialUser, nextPath }: LoginFormP
       </div>
     </div>
   );
-
-  async function login() {
-    if (!devLoginEnabled || busy) return;
-
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/auth/dev-login", {
-        credentials: "same-origin",
-        method: "POST"
-      });
-      if (!response.ok) {
-        setError(await errorMessage(response, "로그인하지 못했습니다."));
-        return;
-      }
-      const body = (await response.json()) as { user: NonNullable<LoginFormProps["initialUser"]> };
-      setUser(body.user);
-      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: body.user } }));
-      router.push(nextPath as Route);
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
-  }
-}
-
-async function errorMessage(response: Response, fallback: string) {
-  try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ? `${fallback} ${body.error}` : fallback;
-  } catch {
-    return fallback;
-  }
 }

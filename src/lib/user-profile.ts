@@ -14,6 +14,14 @@ const birthYearMonthSchema = z
 
 const childGenderSchema = z.enum(["boy", "girl"]).default("boy");
 
+const childNameSchema = z
+  .string()
+  .trim()
+  .max(40)
+  .transform((value) => (value.length > 0 ? value : null))
+  .nullable()
+  .optional();
+
 const nullableTextSchema = z
   .string()
   .trim()
@@ -23,7 +31,8 @@ const nullableTextSchema = z
 
 export const userChildInputSchema = z.object({
   birthYearMonth: birthYearMonthSchema,
-  gender: childGenderSchema
+  gender: childGenderSchema,
+  name: childNameSchema
 });
 
 export const userHomeLocationInputSchema = z.object({
@@ -54,6 +63,7 @@ export type MyProfileChild = {
   id: string;
   birthYearMonth: string;
   gender: z.infer<typeof childGenderSchema>;
+  name: string | null;
   sortOrder: number;
 };
 
@@ -79,6 +89,7 @@ export async function getMyProfile(userId: string, executor: SqlExecutor = pg): 
         id::text as id,
         birth_year_month as "birthYearMonth",
         gender,
+        name,
         sort_order as "sortOrder"
       from user_children
       where user_id = ${userId}
@@ -137,13 +148,14 @@ async function replaceUserChildren(userId: string, children: UserChildInput[], e
   const rows = children.map((child, index) => ({
     birth_year_month: child.birthYearMonth,
     gender: child.gender,
+    name: child.name ?? null,
     sort_order: index
   }));
 
   await executor`
-    insert into user_children (user_id, birth_year_month, gender, sort_order)
-    select ${userId}, child.birth_year_month, child.gender, child.sort_order
-    from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as child(birth_year_month text, gender text, sort_order integer)
+    insert into user_children (user_id, birth_year_month, gender, name, sort_order)
+    select ${userId}, child.birth_year_month, child.gender, child.name, child.sort_order
+    from jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) as child(birth_year_month text, gender text, name text, sort_order integer)
   `;
 }
 
@@ -179,6 +191,7 @@ function childFromRow(row: ChildRow): MyProfileChild {
     id: row.id,
     birthYearMonth: row.birthYearMonth,
     gender: row.gender,
+    name: row.name ?? null,
     sortOrder: Number(row.sortOrder)
   };
 }

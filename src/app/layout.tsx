@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
 import "./globals.css";
 import { GoogleAnalytics } from "./google-analytics";
 import { TopbarActions } from "./topbar-actions";
-import { isDevLoginEnabled } from "@/lib/app-auth";
+import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
+import { AIGO_APP_VERSION } from "@/lib/app-version";
 
 const currentYear = new Date().getFullYear();
 
@@ -50,7 +52,9 @@ export const viewport: Viewport = {
   ]
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const initialUser = await getInitialUser();
+
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
@@ -63,10 +67,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Image className="brand-icon" src="/icons/icon-32.png" alt="" width={28} height={28} priority aria-hidden="true" />
             <span>AiGo</span>
           </Link>
-          <TopbarActions devLoginEnabled={isDevLoginEnabled()} footerText={`© ${currentYear} AiGo · Shane Park`} />
+          <TopbarActions appVersion={AIGO_APP_VERSION} footerText={`© ${currentYear} AiGo · Shane Park`} initialUser={initialUser} />
         </header>
         <main>{children}</main>
       </body>
     </html>
   );
+}
+
+async function getInitialUser() {
+  try {
+    const cookieStore = await cookies();
+    return currentUserFromSessionToken(cookieStore.get(AIGO_SESSION_COOKIE)?.value);
+  } catch (error) {
+    console.warn("Failed to load initial account state", error);
+    return null;
+  }
 }

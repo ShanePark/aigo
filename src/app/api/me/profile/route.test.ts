@@ -61,10 +61,10 @@ describe("profile API route", () => {
   });
 
   it("updates only the current user's profile with parsed input", async () => {
-    const input = { children: [{ birthYearMonth: "2024-09", gender: "girl" }] };
+    const input = { children: [{ birthYearMonth: "2024-09", gender: "girl", name: "첫째" }] };
     mocks.requireCurrentUser.mockResolvedValue({ id: "user-1" });
     mocks.schemaParse.mockReturnValue(input);
-    mocks.updateMyProfile.mockResolvedValue({ children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }] });
+    mocks.updateMyProfile.mockResolvedValue({ children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", name: "첫째", sortOrder: 0 }] });
 
     const response = await PATCH(request("PATCH", input));
 
@@ -72,7 +72,7 @@ describe("profile API route", () => {
     expect(mocks.schemaParse).toHaveBeenCalledWith(input);
     expect(mocks.updateMyProfile).toHaveBeenCalledWith("user-1", input);
     await expect(response.json()).resolves.toMatchObject({
-      children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl" }]
+      children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", name: "첫째" }]
     });
   });
 });
