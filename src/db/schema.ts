@@ -88,6 +88,7 @@ export const userChildren = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     birthYearMonth: text("birth_year_month").notNull(),
     gender: text("gender").notNull().default("boy"),
+    name: text("name"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()

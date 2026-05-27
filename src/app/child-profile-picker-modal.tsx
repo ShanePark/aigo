@@ -28,9 +28,11 @@ type AgeBandPickerProps = CommonPickerProps & {
 
 type BirthYearMonthPickerProps = CommonPickerProps & {
   birthYearMonth: string;
+  childName?: string;
   maxBirthYearMonth: string;
   mode: "birthYearMonth";
   onBirthYearMonthChange: (birthYearMonth: string) => void;
+  onChildNameChange?: (name: string) => void;
 };
 
 type ChildProfilePickerModalProps = AgeBandPickerProps | BirthYearMonthPickerProps;
@@ -98,16 +100,30 @@ export function ChildProfilePickerModal(props: ChildProfilePickerModalProps) {
             })}
           </div>
         ) : (
-          <label className="child-profile-month-field">
-            <span className="child-profile-picker-label">생년월</span>
-            <input
-              max={props.maxBirthYearMonth}
-              onChange={(event) => props.onBirthYearMonthChange(event.currentTarget.value)}
-              required
-              type="month"
-              value={props.birthYearMonth}
-            />
-          </label>
+          <div className="child-profile-birth-fields">
+            {props.onChildNameChange ? (
+              <label className="child-profile-text-field">
+                <span className="child-profile-picker-label">이름 (선택)</span>
+                <input
+                  maxLength={40}
+                  onChange={(event) => props.onChildNameChange?.(event.currentTarget.value)}
+                  placeholder="예: 첫째, 민준"
+                  type="text"
+                  value={props.childName ?? ""}
+                />
+              </label>
+            ) : null}
+            <label className="child-profile-month-field">
+              <span className="child-profile-picker-label">생년월</span>
+              <input
+                max={props.maxBirthYearMonth}
+                onChange={(event) => props.onBirthYearMonthChange(event.currentTarget.value)}
+                required
+                type="month"
+                value={props.birthYearMonth}
+              />
+            </label>
+          </div>
         )}
 
         <AppModalActions>

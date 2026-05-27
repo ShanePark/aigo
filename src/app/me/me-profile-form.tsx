@@ -24,6 +24,7 @@ type ChildDraft = {
   birthYearMonth: string;
   clientId: string;
   gender: ChildGender;
+  name: string;
 };
 
 type SaveStatus = {
@@ -40,7 +41,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const [savingTarget, setSavingTarget] = useState<string | null>(null);
   const [deleteConfirmChildId, setDeleteConfirmChildId] = useState<string | null>(null);
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
-  const [draftChild, setDraftChild] = useState<Pick<ChildDraft, "birthYearMonth" | "gender"> | null>(null);
+  const [draftChild, setDraftChild] = useState<Pick<ChildDraft, "birthYearMonth" | "gender" | "name"> | null>(null);
   const [editingChildDraft, setEditingChildDraft] = useState<ChildDraft | null>(null);
   const maxBirthYearMonth = useMemo(() => currentYearMonth(), []);
   const savedChildSignatures = useMemo(() => new Map(savedChildren.map((child) => [child.clientId, childSignature(child)])), [savedChildren]);
@@ -49,7 +50,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
   const homeSaveState = homeSaveUiState(homeLocation, savedHomeLocation, { isSaving, saving: savingTarget === "home" });
 
   function openAddChildModal() {
-    setDraftChild({ birthYearMonth: maxBirthYearMonth, gender: children.at(-1)?.gender ?? "boy" });
+    setDraftChild({ birthYearMonth: maxBirthYearMonth, gender: children.at(-1)?.gender ?? "boy", name: "" });
     setIsAddChildModalOpen(true);
     setDeleteConfirmChildId(null);
     clearSavedStatus();
@@ -151,7 +152,9 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
     try {
       const response = await fetch("/api/me/profile", {
         body: JSON.stringify({
-          children: childrenToSave.filter((child) => child.birthYearMonth.length > 0).map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender })),
+          children: childrenToSave
+            .filter((child) => child.birthYearMonth.length > 0)
+            .map((child) => ({ birthYearMonth: child.birthYearMonth, gender: child.gender, name: child.name.trim() || null })),
           homeLocation: nextHomeLocation
         }),
         headers: { "content-type": "application/json" },
@@ -202,6 +205,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
 
         <ChildProfilePickerModal
           birthYearMonth={draftChild?.birthYearMonth ?? maxBirthYearMonth}
+          childName={draftChild?.name ?? ""}
           confirmDisabled={!draftChild?.birthYearMonth}
           confirmLabel="아이 추가"
           description="아이의 생년월과 성별을 등록하면 검색 조건에 맞는 나이대를 자동으로 계산해요."
@@ -209,16 +213,18 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           gender={draftChild?.gender ?? "boy"}
           maxBirthYearMonth={maxBirthYearMonth}
           mode="birthYearMonth"
-          onBirthYearMonthChange={(birthYearMonth) => setDraftChild((current) => ({ birthYearMonth, gender: current?.gender ?? "boy" }))}
+          onBirthYearMonthChange={(birthYearMonth) => setDraftChild((current) => ({ birthYearMonth, gender: current?.gender ?? "boy", name: current?.name ?? "" }))}
           onCancel={cancelAddChild}
+          onChildNameChange={(name) => setDraftChild((current) => ({ birthYearMonth: current?.birthYearMonth ?? maxBirthYearMonth, gender: current?.gender ?? "boy", name }))}
           onConfirm={addDraftChild}
-          onGenderChange={(gender) => setDraftChild((current) => ({ birthYearMonth: current?.birthYearMonth ?? maxBirthYearMonth, gender }))}
+          onGenderChange={(gender) => setDraftChild((current) => ({ birthYearMonth: current?.birthYearMonth ?? maxBirthYearMonth, gender, name: current?.name ?? "" }))}
           open={isAddChildModalOpen}
           title="아이 정보 추가"
         />
 
         <ChildProfilePickerModal
           birthYearMonth={editingChildDraft?.birthYearMonth ?? maxBirthYearMonth}
+          childName={editingChildDraft?.name ?? ""}
           confirmDisabled={!editingChildDraft?.birthYearMonth || childSignature(editingChildDraft) === savedChildSignatures.get(editingChildDraft.clientId)}
           confirmLabel="수정 저장"
           description="아이의 생년월과 성별을 수정하면 저장 후 검색 기본값에도 반영됩니다."
@@ -228,6 +234,7 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
           mode="birthYearMonth"
           onBirthYearMonthChange={(birthYearMonth) => setEditingChildDraft((current) => (current ? { ...current, birthYearMonth } : current))}
           onCancel={cancelEditChild}
+          onChildNameChange={(name) => setEditingChildDraft((current) => (current ? { ...current, name } : current))}
           onConfirm={saveEditedChild}
           onGenderChange={(gender) => setEditingChildDraft((current) => (current ? { ...current, gender } : current))}
           open={editingChildDraft !== null}
@@ -251,8 +258,8 @@ export function MeProfileForm({ initialProfile }: MeProfileFormProps) {
                     </span>
                     <div className="me-child-copy">
                       <span className="me-child-kicker">{child.gender === "girl" ? "여아" : "남아"}</span>
-                      <strong>{childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
-                      <span>{child.birthYearMonth}</span>
+                      <strong>{child.name || childAgeLabelFromBirthYearMonth(child.birthYearMonth)}</strong>
+                      <span>{child.name ? `${childAgeLabelFromBirthYearMonth(child.birthYearMonth)} · ${child.birthYearMonth}` : child.birthYearMonth}</span>
                     </div>
                     {showChildSaveState ? <span className="me-save-pill is-dirty">{childIsSaving ? "저장 중" : "수정 중"}</span> : null}
                   </div>
@@ -357,7 +364,8 @@ function childrenFromProfile(profile: MyProfile): ChildDraft[] {
   return profile.children.map((child) => ({
     birthYearMonth: child.birthYearMonth,
     clientId: child.id,
-    gender: child.gender
+    gender: child.gender,
+    name: child.name ?? ""
   }));
 }
 
@@ -388,5 +396,5 @@ function createClientId() {
 }
 
 function childSignature(child: ChildDraft) {
-  return `${child.birthYearMonth}|${child.gender}`;
+  return `${child.birthYearMonth}|${child.gender}|${child.name.trim()}`;
 }

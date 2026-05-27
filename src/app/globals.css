@@ -1352,12 +1352,15 @@ h3 {
   grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr);
 }
 
-.child-profile-month-field {
+.child-profile-birth-fields,
+.child-profile-month-field,
+.child-profile-text-field {
   display: grid;
   gap: 8px;
 }
 
-.child-profile-month-field input {
+.child-profile-month-field input,
+.child-profile-text-field input {
   background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1368,7 +1371,8 @@ h3 {
   width: 100%;
 }
 
-.child-profile-month-field input:focus {
+.child-profile-month-field input:focus,
+.child-profile-text-field input:focus {
   border-color: var(--focus-border);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }

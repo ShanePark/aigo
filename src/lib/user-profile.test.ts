@@ -21,8 +21,11 @@ describe("user profile schemas", () => {
     expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09" }] })).toEqual({
       children: [{ birthYearMonth: "2024-09", gender: "boy" }]
     });
-    expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "girl" }] })).toEqual({
-      children: [{ birthYearMonth: "2024-09", gender: "girl" }]
+    expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "girl", name: "  첫째  " }] })).toEqual({
+      children: [{ birthYearMonth: "2024-09", gender: "girl", name: "첫째" }]
+    });
+    expect(updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "girl", name: "   " }] })).toEqual({
+      children: [{ birthYearMonth: "2024-09", gender: "girl", name: null }]
     });
     expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-09", gender: "unknown" }] })).toThrow();
     expect(() => updateMyProfileSchema.parse({ children: [{ birthYearMonth: "2024-13" }] })).toThrow("YYYY-MM");
@@ -49,12 +52,12 @@ describe("user profile schemas", () => {
 describe("user profile queries", () => {
   it("returns saved profile data", async () => {
     const { executor } = fakeExecutor([
-      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: "0" }],
+      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", name: "첫째", sortOrder: "0" }],
       [{ label: "home", lat: "36.33", lng: "127.43", addressText: null }]
     ]);
 
     await expect(getMyProfile(userId, executor)).resolves.toEqual({
-      children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
+      children: [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", name: "첫째", sortOrder: 0 }],
       homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: null }
     });
   });
@@ -63,14 +66,14 @@ describe("user profile queries", () => {
     const { calls, executor } = fakeExecutor([
       [],
       [],
-      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", sortOrder: 0 }],
+      [{ id: "child-1", birthYearMonth: "2024-09", gender: "girl", name: "첫째", sortOrder: 0 }],
       [{ label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }]
     ]);
 
     await updateMyProfile(
       userId,
       {
-        children: [{ birthYearMonth: "2024-09", gender: "girl" }],
+        children: [{ birthYearMonth: "2024-09", gender: "girl", name: "첫째" }],
         homeLocation: { label: "home", lat: 36.33, lng: 127.43, addressText: "대전" }
       },
       executor
