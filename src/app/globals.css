@@ -3265,9 +3265,9 @@ h3 {
 }
 
 .login-option-icon {
-  background: color-mix(in srgb, #ffffff 90%, transparent);
-  height: 30px;
-  width: 30px;
+  background: transparent;
+  height: 24px;
+  width: 24px;
 }
 
 .login-provider-icon {
