@@ -24,12 +24,6 @@ export default async function MePage() {
 
   return (
     <div className="page me-page">
-      <header className="me-hero">
-        <div className="me-hero-copy">
-          <p className="category">내 정보</p>
-        </div>
-      </header>
-
       <MeProfileForm initialProfile={profile} />
       <SocialAccountLinks accounts={socialAccounts} />
     </div>
