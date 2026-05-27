@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const appName = "AiGo";
 const slackToken = process.env.SLACK_TOKEN?.trim() ?? "";
@@ -8,6 +8,8 @@ const port = process.env.PORT || "3000";
 
 let shutdownStarted = false;
 let notifiedReady = false;
+
+runMigrations();
 
 const child = spawn("node", ["node_modules/next/dist/bin/next", "start"], {
   env: { ...process.env, PORT: port },
@@ -35,6 +37,23 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 await waitUntilReady();
 notifiedReady = true;
 await notifySlack(`Application is ready (branch: ${branch}, commit: ${commit})`, ":child:");
+
+function runMigrations() {
+  console.info("Applying database migrations...");
+  const result = spawnSync("pnpm", ["db:migrate"], {
+    env: process.env,
+    stdio: "inherit"
+  });
+
+  if (result.status === 0) {
+    return;
+  }
+
+  if (result.error) {
+    console.error(`Database migration failed: ${result.error.message}`);
+  }
+  process.exit(result.status ?? 1);
+}
 
 async function shutdown(signal) {
   if (shutdownStarted) {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 
 import {
+  appUrl,
   createKakaoAuthorizationUrl,
   decodeKakaoState,
   expiredKakaoStateCookieOptions,
@@ -63,6 +64,15 @@ describe("kakao auth helpers", () => {
     const { url } = createKakaoAuthorizationUrl(request, "/");
 
     expect(url.searchParams.get("redirect_uri")).toBe("https://aigo.example/api/auth/kakao/callback");
+  });
+
+  it("uses the configured app origin for local app redirects", () => {
+    process.env.AIGO_APP_ORIGIN = "https://aigo.example";
+
+    const request = new NextRequest("https://localhost:3000/api/auth/kakao/callback");
+
+    expect(appUrl("/login?error=Kakao+login+failed", request).toString()).toBe("https://aigo.example/login?error=Kakao+login+failed");
+    expect(appUrl("/saved-places", request).toString()).toBe("https://aigo.example/saved-places");
   });
 
   it("uses secure state cookies in production", () => {

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { DEFAULT_DEV_API_KEY, env } from "@/env";
 import { ApiError } from "@/lib/errors";
-import { requireApiKey } from "@/lib/auth";
+import { requireApiKey, requireHealthApiKey, resetHealthApiKeyAttemptStateForTests } from "@/lib/auth";
 
 const originalApiKey = env.apiKey;
 const originalNodeEnv = process.env.NODE_ENV;
@@ -22,6 +22,7 @@ function setNodeEnv(value: string | undefined) {
 describe("requireApiKey", () => {
   afterEach(() => {
     env.apiKey = originalApiKey;
+    resetHealthApiKeyAttemptStateForTests();
     setNodeEnv(originalNodeEnv);
     if (originalRequireStrongApiKey === undefined) {
       delete process.env.AIGO_REQUIRE_STRONG_API_KEY;
@@ -67,5 +68,51 @@ describe("requireApiKey", () => {
     env.apiKey = "local-secret";
 
     expect(() => requireApiKey(requestWithAuthorization("Bearer local-secret"))).not.toThrow();
+  });
+});
+
+describe("requireHealthApiKey", () => {
+  afterEach(() => {
+    env.apiKey = originalApiKey;
+    resetHealthApiKeyAttemptStateForTests();
+    setNodeEnv(originalNodeEnv);
+    if (originalRequireStrongApiKey === undefined) {
+      delete process.env.AIGO_REQUIRE_STRONG_API_KEY;
+    } else {
+      process.env.AIGO_REQUIRE_STRONG_API_KEY = originalRequireStrongApiKey;
+    }
+  });
+
+  it("accepts the configured API key", () => {
+    setNodeEnv("production");
+    env.apiKey = "health-secret";
+
+    expect(() => requireHealthApiKey(requestWithAuthorization("Bearer health-secret"))).not.toThrow();
+  });
+
+  it("blocks a client briefly after repeated invalid health API key attempts", () => {
+    setNodeEnv("production");
+    env.apiKey = "health-secret";
+    const request = {
+      headers: new Headers({
+        authorization: "Bearer wrong",
+        "x-forwarded-for": "203.0.113.10"
+      })
+    } as NextRequest;
+
+    for (let index = 0; index < 5; index += 1) {
+      expect(() => requireHealthApiKey(request, 1_000)).toThrow(
+        expect.objectContaining<Partial<ApiError>>({
+          status: 401
+        })
+      );
+    }
+
+    expect(() => requireHealthApiKey(request, 1_001)).toThrow(
+      expect.objectContaining<Partial<ApiError>>({
+        status: 429,
+        message: "Too many invalid API key attempts"
+      })
+    );
   });
 });

@@ -150,6 +150,10 @@ function kakaoRedirectUri(request: NextRequest) {
   return new URL("/api/auth/kakao/callback", appOrigin(request)).toString();
 }
 
+export function appUrl(path: string, request: NextRequest) {
+  return new URL(path, appOrigin(request));
+}
+
 function appOrigin(request: NextRequest) {
   const configuredOrigin = process.env.AIGO_APP_ORIGIN?.trim();
   if (configuredOrigin) {
