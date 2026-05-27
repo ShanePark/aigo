@@ -142,7 +142,7 @@ function encodeState(value: { nextPath: string; nonce: string }) {
 }
 
 function kakaoRedirectUri(request: NextRequest) {
-  return process.env.KAKAO_REDIRECT_URI ?? new URL("/api/auth/kakao/callback", request.url).toString();
+  return new URL("/api/auth/kakao/callback", request.url).toString();
 }
 
 function kakaoLoginProfile(user: KakaoUserResponse): KakaoLoginProfile {
