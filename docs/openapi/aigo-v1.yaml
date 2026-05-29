@@ -1173,6 +1173,12 @@ components:
           type: string
           pattern: "^[A-Z]{2}$"
           description: Optional country scope for overseas place search.
+        regionSido:
+          type: string
+          description: Optional Korean province/metropolitan-city scope for domestic place search. Common aliases such as `서울`, `경기`, and `부산` are normalized by the API.
+        regionSigungu:
+          type: string
+          description: Optional Korean city/district scope for domestic place search. Use with `regionSido` when a narrower exact administrative scope is needed.
         city:
           type: string
           maxLength: 200

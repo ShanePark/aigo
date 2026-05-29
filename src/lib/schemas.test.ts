@@ -318,6 +318,8 @@ describe("place schemas", () => {
   it("defaults search pagination and keeps facility preferences soft", () => {
     const result = searchPlacesSchema.parse({
       origin: { lat: 36.35, lng: 127.38 },
+      regionSido: "서울",
+      regionSigungu: "송파구",
       countryCode: "ph",
       city: "Lapu-Lapu",
       playgroundOnly: true,
@@ -333,6 +335,8 @@ describe("place schemas", () => {
     expect(result.radiusKm).toBe(80);
     expect(result.playgroundOnly).toBe(true);
     expect(result.kidsCafeOnly).toBe(true);
+    expect(result.regionSido).toBe("서울특별시");
+    expect(result.regionSigungu).toBe("송파구");
     expect(result.countryCode).toBe("PH");
     expect(result.city).toBe("Lapu-Lapu");
     expect(result.preferences?.strollerFriendly).toBe(true);

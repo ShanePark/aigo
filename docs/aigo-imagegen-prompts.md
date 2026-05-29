@@ -35,3 +35,42 @@ Generated set:
 - `girl-12-24-avatar.webp`: Korean toddler girl, 12-24 months, warm blush backdrop, bunny plush doll.
 - `girl-24-48-avatar.webp`: Korean toddler girl, 24-48 months, pastel coral backdrop, small pink fashion doll.
 - `girl-48-84-avatar.webp`: Korean preschool girl, 48-84 months, muted coral-pink backdrop, princess crown and star wand.
+
+## Region Browsing Images
+
+Use the built-in `$imagegen` workflow once per region, then convert the final project-bound asset to WebP under `public/images/regions/`. Region names are rendered by the app as HTML text, so generated images must not contain text.
+
+Base prompt:
+
+```text
+Use case: stylized-concept
+Asset type: AiGo region browsing map thumbnail, final asset will be converted to WebP
+Primary request: present a clear, 45-degree top-down isometric miniature 3D cartoon scene of <region subject>, featuring its most iconic landmarks and architectural elements
+Scene/backdrop: clean, minimalistic composition with a soft solid-colored background and good weather integrated into the city or regional environment
+Style/medium: polished miniature 3D cartoon scene with soft refined textures, realistic PBR materials, and family-friendly warmth
+Composition/framing: square 1:1 image, centered miniature scene with generous padding, readable at small map-pin sizes
+Lighting/mood: gentle lifelike lighting and shadows, sunny pleasant weather, calm and inviting
+Materials/textures: soft matte architecture, small trees, water or mountain elements where relevant, crisp silhouettes
+Constraints: no text, no letters, no numbers, no logo, no watermark; avoid clutter; keep the region visually distinct from the others
+Avoid: title text, signboards with legible writing, dark atmosphere, heavy blur, generic skyline with no local landmarks
+```
+
+Generated set:
+
+- `seoul.webp`: Seoul, Korea, with N Seoul Tower, Gyeongbokgung palace roofs, Han River bridges, and modern high-rises.
+- `incheon.webp`: Incheon, Korea, with Songdo skyline, Incheon Bridge, coastal port elements, and airport travel cues.
+- `gyeonggi.webp`: Gyeonggi-do, Korea, with Suwon Hwaseong fortress, family parks, modern satellite cities, and green hills.
+- `gangwon.webp`: Gangwon, Korea, with Seoraksan mountain ridges, ski resort roofs, pine forests, and East Sea coastline.
+- `chungbuk.webp`: Chungcheongbuk-do, Korea, with lake scenery, forested inland hills, Cheongju urban landmarks, and family-friendly public buildings.
+- `sejong.webp`: Sejong, Korea, with government complex architecture, Geum River paths, planned city blocks, and clean public plazas.
+- `daejeon.webp`: Daejeon, Korea, with Expo science park landmarks, research district buildings, green parks, and city boulevards.
+- `chungnam.webp`: Chungcheongnam-do, Korea, with Baekje cultural roofs, coastal mudflat scenery, gentle hills, and family travel roads.
+- `jeonbuk.webp`: Jeonbuk, Korea, with Jeonju hanok village roofs, open farmland, gentle mountains, and cultural museum buildings.
+- `gwangju.webp`: Gwangju, Korea, with Mudeungsan mountain backdrop, cultural art center buildings, city streets, and warm public plazas.
+- `jeonnam.webp`: Jeollanam-do, Korea, with island coastline, Suncheon bay reeds, coastal bridges, gardens, and small harbor towns.
+- `daegu.webp`: Daegu, Korea, with Palgongsan mountain hints, modern city avenues, cultural landmarks, and warm sunny urban parks.
+- `gyeongbuk.webp`: Gyeongsangbuk-do, Korea, with Gyeongju heritage roofs, Andong traditional village, rolling mountains, and river scenery.
+- `busan.webp`: Busan, Korea, with Gwangan Bridge, Haeundae beach, colorful hillside village buildings, and coastal high-rises.
+- `ulsan.webp`: Ulsan, Korea, with Taehwagang river garden, whale and coastal motifs, modern city architecture, and green park paths.
+- `gyeongnam.webp`: Gyeongsangnam-do, Korea, with coastal islands, Jinhae cherry blossom streets, family parks, and harbor bridges.
+- `jeju.webp`: Jeju Island, Korea, with Hallasan mountain, volcanic stone walls, ocean cliffs, tangerine trees, and family resort buildings.

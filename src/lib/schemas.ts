@@ -403,6 +403,8 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   query: z.string().trim().min(1).optional(),
   matchMode: z.enum(["keyword", "exactName"]).optional(),
+  regionSido: regionSidoSchema,
+  regionSigungu: nonEmptyString.optional(),
   countryCode: countryCodeSchema,
   city: z.string().trim().min(1).max(200).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),

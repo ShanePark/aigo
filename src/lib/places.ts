@@ -2267,6 +2267,14 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     where.push(playgroundEvidenceClause());
   }
 
+  if (input.regionSido) {
+    where.push(`region_sido = ${add(input.regionSido)}`);
+  }
+
+  if (input.regionSigungu) {
+    where.push(`region_sigungu = ${add(input.regionSigungu)}`);
+  }
+
   if (input.countryCode) {
     where.push(`(country_code = ${add(input.countryCode)} or external_refs->>'countryCode' = ${add(input.countryCode)})`);
   }

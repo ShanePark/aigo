@@ -475,6 +475,18 @@ describe("place search helpers", () => {
     expect(query.params).toEqual(["PH", "PH", "lapu-lapu", "lapu-lapu", "lapu-lapu"]);
   });
 
+  it("filters domestic search candidates by region scope", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      regionSido: "서울특별시",
+      regionSigungu: "송파구"
+    });
+
+    expect(query.sql).toContain("region_sido");
+    expect(query.sql).toContain("region_sigungu");
+    expect(query.params).toEqual(["서울특별시", "송파구"]);
+  });
+
   it("expands exact-name retail branch aliases for mall and outlet names", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,

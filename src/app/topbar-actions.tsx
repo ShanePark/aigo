@@ -1,7 +1,8 @@
 "use client";
 
-import { Bookmark, ClipboardList, History, Map, Menu, UserRound, X } from "lucide-react";
+import { Bookmark, ClipboardList, History, Map, MapPinned, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -67,7 +68,7 @@ export function TopbarActions({
               <Link
                 aria-current={isCurrent ? "page" : undefined}
                 className={`${styles.link} ${isCurrent ? styles.currentLink : ""}`}
-                href={item.href}
+                href={item.href as Route}
                 key={item.href}
                 onClick={() => setIsOpen(false)}
                 role="menuitem"
@@ -92,6 +93,7 @@ export function TopbarActions({
 
 const menuItems = [
   { href: "/", icon: Map, label: "장소 찾기" },
+  { href: "/regions", icon: MapPinned, label: "지역별 보기" },
   { href: "/me", icon: UserRound, label: "내 정보" },
   { href: "/visits", icon: ClipboardList, label: "방문 로그" },
   { href: "/saved-places", icon: Bookmark, label: "저장한 장소" },
