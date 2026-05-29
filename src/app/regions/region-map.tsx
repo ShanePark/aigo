@@ -14,8 +14,8 @@ type RegionMapProps = {
 type LeafletModule = typeof import("leaflet");
 
 const KOREA_BOUNDS = [
-  [33.0, 124.6],
-  [38.7, 131.2]
+  [33.05, 125.55],
+  [38.55, 129.85]
 ] satisfies LatLngBoundsExpression;
 
 export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
@@ -50,7 +50,7 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
         marker.addTo(markers);
       });
 
-      map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [18, 18] });
+      map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [8, 8] });
       map.invalidateSize();
     }
 
@@ -87,7 +87,7 @@ function getOrCreateRegionMap(L: LeafletModule, element: HTMLDivElement, mapRef:
     maxZoom: 7,
     minZoom: 5
   }).addTo(map);
-  map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [18, 18] });
+  map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [8, 8] });
   mapRef.current = map;
   return map;
 }
@@ -104,7 +104,7 @@ function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean
   return L.divIcon({
     className: `region-leaflet-marker ${active ? "is-active" : ""}`,
     html: `<span class="region-leaflet-marker-image"><img src="${region.imageSrc}" alt="" aria-hidden="true" draggable="false" /></span><span class="region-leaflet-marker-label">${region.label}</span>`,
-    iconAnchor: [38, 38],
-    iconSize: [76, 92]
+    iconAnchor: [42, 42],
+    iconSize: [84, 100]
   });
 }

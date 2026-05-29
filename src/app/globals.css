@@ -1721,13 +1721,13 @@ h3 {
   border-radius: 999px;
   box-shadow: 0 10px 24px rgba(24, 33, 29, 0.2);
   display: block;
-  height: 64px;
+  height: 70px;
   overflow: hidden;
   position: relative;
   transition:
     border-color var(--motion-fast),
     box-shadow var(--motion-fast);
-  width: 64px;
+  width: 70px;
 }
 
 .region-leaflet-marker-image img {
@@ -8259,8 +8259,8 @@ dd {
 
   .region-leaflet-marker-image {
     border-width: 2px;
-    height: 44px;
-    width: 44px;
+    height: 50px;
+    width: 50px;
   }
 
   .region-leaflet-marker-label {
