@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import type { ReactNode } from "react";
 import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
 
@@ -110,7 +113,7 @@ type ExploreResultsProps = {
   initialResult: SearchResult;
 };
 
-type SearchResult = {
+export type SearchResult = {
   error?: string;
   items: SearchItem[];
   meta: SearchResultMeta;
@@ -430,13 +433,64 @@ export function ExploreResults({
   );
 }
 
+export function ResultsListPanel({
+  className,
+  emptyState,
+  header,
+  pathname = "/",
+  params,
+  result,
+  returnHref
+}: {
+  className?: string;
+  emptyState: ReactNode;
+  header: ReactNode;
+  pathname?: string;
+  params: Record<string, string | string[]>;
+  result: SearchResult;
+  returnHref: string;
+}) {
+  const router = useRouter();
+  const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const handlePage = useCallback(
+    (page: number) => {
+      const limit = result.meta.limit;
+      const query = queryWithout(params, ["page", "offset"]);
+      query.page = String(page);
+      query.offset = String(Math.min((page - 1) * limit, 1000));
+      router.push(searchHref(pathname, query) as Route);
+      resetResultsScrollPosition(resultsScrollRef.current);
+    },
+    [params, pathname, result.meta.limit, router]
+  );
+
+  return (
+    <div className={`results-panel ${className ?? ""}`}>
+      <section className="result-header">{header}</section>
+      <div className="results-scroll" data-results-scroll ref={resultsScrollRef}>
+        <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
+          <div className="results">
+            {result.items.map((place, index) => (
+              <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={returnHref} key={place.placeId} />
+            ))}
+            {result.items.length === 0 ? emptyState : null}
+          </div>
+        </PlaceSaveControlsProvider>
+      </div>
+      <ResultFooter meta={result.meta} onPage={handlePage} params={params} pathname={pathname} />
+    </div>
+  );
+}
+
 function ResultFooter({
   meta,
   onPage,
+  pathname = "/",
   params
 }: {
   meta: SearchResultMeta;
   onPage: (page: number) => void;
+  pathname?: string;
   params: Record<string, string | string[]>;
 }) {
   return (
@@ -445,7 +499,7 @@ function ResultFooter({
         {compactResultCountLabel(meta)}
       </span>
       <Pagination meta={meta} onPage={onPage} />
-      <LimitControls activeLimit={resultLimitParam(params)} params={params} />
+      <LimitControls activeLimit={resultLimitParam(params)} params={params} pathname={pathname} />
     </section>
   );
 }
@@ -623,11 +677,19 @@ function SortControls({
   );
 }
 
-function LimitControls({ activeLimit, params }: { activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number]; params: Record<string, string | string[]> }) {
+function LimitControls({
+  activeLimit,
+  params,
+  pathname = "/"
+}: {
+  activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number];
+  params: Record<string, string | string[]>;
+  pathname?: string;
+}) {
   return (
     <nav className="limit-control" aria-label="한 페이지 표시 개수">
       {RESULT_LIMIT_OPTIONS.map((limit) => (
-        <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit)} key={limit}>
+        <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit, pathname)} key={limit}>
           {limit}개
         </Link>
       ))}
@@ -1041,13 +1103,17 @@ function sortHref(params: Record<string, string | string[]>, sort: HomeSearchSor
   return { pathname: "/", query };
 }
 
-function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number]): UrlObject {
+function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number], pathname = "/"): UrlObject {
   const query = queryWithout(params, ["page", "offset", "limit", "visitContext"]);
   query.limit = String(limit);
-  return { pathname: "/", query };
+  return { pathname, query };
 }
 
 function currentSearchHref(params: Record<string, string | string[]>) {
+  return searchHref("/", params);
+}
+
+function searchHref(pathname: string, params: Record<string, string | string[]>) {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
@@ -1060,7 +1126,7 @@ function currentSearchHref(params: Record<string, string | string[]>) {
   }
 
   const search = query.toString();
-  return search ? `/?${search}` : "/";
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 function replaceCurrentSearchParams(params: SearchParamsRecord) {

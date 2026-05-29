@@ -1,7 +1,7 @@
 import { Building2, MapPinned, SearchX, Target } from "lucide-react";
 
-import { ResultCard } from "@/app/explore-results";
-import { PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
+import { RESULT_LIMIT_OPTIONS } from "@/app/home-search-state";
+import { ResultsListPanel } from "@/app/explore-results";
 import { KOREA_REGIONS, REGION_MAJOR_CATEGORIES, regionBySlug, type RegionCatalogItem } from "@/app/regions/region-catalog";
 import { RegionMap } from "@/app/regions/region-map";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
@@ -16,14 +16,15 @@ type RegionsPageProps = {
 
 type RegionSearchResult = Awaited<ReturnType<typeof searchPlaces>>;
 
-const REGION_RESULT_LIMIT = 24;
+const DEFAULT_REGION_RESULT_LIMIT = RESULT_LIMIT_OPTIONS[0];
 
 export default async function RegionsPage({ searchParams }: RegionsPageProps) {
   const params = await searchParams;
   const selectedRegion = regionBySlug(textParam(params.region));
-  const input = regionSearchInput(selectedRegion);
+  const input = regionSearchInput(selectedRegion, params);
   const result = await safeRegionSearch(input);
-  const returnHref = `/regions?region=${selectedRegion.slug}`;
+  const regionParams = regionSearchParams(selectedRegion, input);
+  const returnHref = regionReturnHref(regionParams);
 
   return (
     <div className="page regions-page">
@@ -51,30 +52,36 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
       <section className="regions-layout">
         <section className="region-map-panel" aria-label="지역 선택 지도">
           <RegionMap regions={KOREA_REGIONS} selectedSlug={selectedRegion.slug} />
+          <RegionSpotlight region={selectedRegion} />
         </section>
 
-        <section className="region-results-panel" aria-label={`${selectedRegion.label} 대표 장소`}>
-          <RegionSpotlight region={selectedRegion} />
-          <div className="region-results-head">
+        {result.error ? (
+          <section className="region-results-panel region-results-error-panel" aria-label={`${selectedRegion.label} 대표 장소 오류`}>
             <div>
               <p className="region-results-kicker">{selectedRegion.regionSido}</p>
               <h2>{selectedRegion.label} 대표 장소</h2>
             </div>
-            <span className="region-result-count">{result.meta.total}곳</span>
-          </div>
-
-          {result.error ? <RegionError message={result.error} /> : null}
-          {!result.error && result.items.length === 0 ? <RegionEmptyState region={selectedRegion} /> : null}
-          {!result.error && result.items.length > 0 ? (
-            <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
-              <div className="results region-results-list">
-                {result.items.map((place, index) => (
-                  <ResultCard index={index + 1} key={place.placeId} place={place} returnHref={returnHref} />
-                ))}
+            <RegionError message={result.error} />
+          </section>
+        ) : (
+          <ResultsListPanel
+            className="region-results-panel"
+            emptyState={<RegionEmptyState region={selectedRegion} />}
+            header={
+              <div className="region-results-head">
+                <div>
+                  <p className="region-results-kicker">{selectedRegion.regionSido}</p>
+                  <h2>{selectedRegion.label} 대표 장소</h2>
+                </div>
+                <span className="region-result-count">{result.meta.total}곳</span>
               </div>
-            </PlaceSaveControlsProvider>
-          ) : null}
-        </section>
+            }
+            params={regionParams}
+            pathname="/regions"
+            result={result}
+            returnHref={returnHref}
+          />
+        )}
       </section>
     </div>
   );
@@ -128,12 +135,12 @@ function RegionError({ message }: { message: string }) {
   );
 }
 
-function regionSearchInput(region: RegionCatalogItem): SearchPlacesInput {
+function regionSearchInput(region: RegionCatalogItem, params: Record<string, string | string[] | undefined>): SearchPlacesInput {
   return {
     diversity: { maxPerCategory: 4 },
     filterByRadius: false,
-    limit: REGION_RESULT_LIMIT,
-    offset: 0,
+    limit: resultLimitParam(params.limit),
+    offset: resultOffsetParam(params.offset),
     origin: {
       lat: region.center.lat,
       lng: region.center.lng,
@@ -146,6 +153,19 @@ function regionSearchInput(region: RegionCatalogItem): SearchPlacesInput {
     sort: "recommended",
     visitContext: "weekendHalfDay"
   };
+}
+
+function regionSearchParams(region: RegionCatalogItem, input: SearchPlacesInput): Record<string, string> {
+  return {
+    limit: String(input.limit),
+    offset: String(input.offset),
+    region: region.slug
+  };
+}
+
+function regionReturnHref(params: Record<string, string>) {
+  const query = new URLSearchParams(params);
+  return `/regions?${query.toString()}`;
 }
 
 async function safeRegionSearch(input: SearchPlacesInput): Promise<RegionSearchResult & { error?: string }> {
@@ -187,4 +207,15 @@ async function safeRegionSearch(input: SearchPlacesInput): Promise<RegionSearchR
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function resultLimitParam(value: string | string[] | undefined) {
+  const requested = Number(textParam(value) || DEFAULT_REGION_RESULT_LIMIT);
+  return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? DEFAULT_REGION_RESULT_LIMIT;
+}
+
+function resultOffsetParam(value: string | string[] | undefined) {
+  const requested = Number(textParam(value) || 0);
+  if (!Number.isFinite(requested) || requested < 0) return 0;
+  return Math.min(Math.floor(requested), 1000);
 }

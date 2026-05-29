@@ -4,7 +4,6 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 import { useRouter } from "next/navigation";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap } from "leaflet";
 
-import { installSingleStepWheelZoom, LEAFLET_SCROLL_WHEEL_OPTIONS } from "@/app/leaflet-map-options";
 import type { RegionCatalogItem } from "@/app/regions/region-catalog";
 
 type RegionMapProps = {
@@ -51,12 +50,7 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
         marker.addTo(markers);
       });
 
-      const selected = regions.find((region) => region.slug === selectedSlug);
-      if (selected) {
-        map.setView([selected.center.lat, selected.center.lng], selected.slug === "jeju" ? 8 : 7, { animate: false });
-      } else {
-        map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [18, 18] });
-      }
+      map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [18, 18] });
       map.invalidateSize();
     }
 
@@ -78,18 +72,21 @@ function getOrCreateRegionMap(L: LeafletModule, element: HTMLDivElement, mapRef:
 
   const map = L.map(element, {
     attributionControl: true,
+    boxZoom: false,
+    doubleClickZoom: false,
+    dragging: false,
+    keyboard: false,
     maxBounds: KOREA_BOUNDS,
-    maxBoundsViscosity: 0.65,
-    zoomControl: true,
-    ...LEAFLET_SCROLL_WHEEL_OPTIONS
+    scrollWheelZoom: false,
+    touchZoom: false,
+    zoomControl: false
   });
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 12,
+    maxZoom: 7,
     minZoom: 5
   }).addTo(map);
-  installSingleStepWheelZoom(L, map, element);
   map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [18, 18] });
   mapRef.current = map;
   return map;
@@ -107,7 +104,7 @@ function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean
   return L.divIcon({
     className: `region-leaflet-marker ${active ? "is-active" : ""}`,
     html: `<span class="region-leaflet-marker-image"><img src="${region.imageSrc}" alt="" aria-hidden="true" draggable="false" /></span><span class="region-leaflet-marker-label">${region.label}</span>`,
-    iconAnchor: [28, 28],
-    iconSize: [56, 66]
+    iconAnchor: [38, 38],
+    iconSize: [76, 92]
   });
 }

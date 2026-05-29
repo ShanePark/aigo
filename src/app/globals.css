@@ -1658,6 +1658,7 @@ h3 {
 }
 
 .regions-layout {
+  --explore-height: clamp(700px, calc(100vh - 172px), 860px);
   align-items: start;
   display: grid;
   gap: var(--space-6);
@@ -1674,7 +1675,12 @@ h3 {
 }
 
 .region-map-panel {
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: var(--explore-height);
+  max-height: var(--explore-height);
+  overflow: visible;
   padding: 10px;
   position: sticky;
   top: 78px;
@@ -1683,8 +1689,8 @@ h3 {
 .region-leaflet-map {
   background: var(--map-bg);
   border-radius: 8px;
-  height: min(72vh, 720px);
-  min-height: 520px;
+  flex: 1 1 0;
+  min-height: 430px;
   overflow: hidden;
   width: 100%;
 }
@@ -1696,6 +1702,7 @@ h3 {
 .region-leaflet-marker {
   display: grid;
   justify-items: center;
+  overflow: visible;
   pointer-events: auto;
   transition:
     filter var(--motion-fast),
@@ -1740,7 +1747,7 @@ h3 {
   font-weight: 900;
   line-height: 1;
   margin-top: -7px;
-  max-width: 76px;
+  max-width: 86px;
   overflow: hidden;
   padding: 6px 8px;
   position: relative;
@@ -1770,9 +1777,9 @@ h3 {
 }
 
 .region-results-panel {
-  display: grid;
-  gap: var(--space-5);
-  padding: 14px;
+  display: flex;
+  gap: 0;
+  padding: 0;
 }
 
 .region-results-head {
@@ -1807,7 +1814,8 @@ h3 {
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: 180px minmax(0, 1fr);
+  flex: 0 0 auto;
+  grid-template-columns: 220px minmax(0, 1fr);
   overflow: hidden;
   padding: 10px;
 }
@@ -1841,19 +1849,29 @@ h3 {
 }
 
 .region-spotlight-copy h2 {
-  font-size: 26px;
+  font-size: 30px;
   line-height: 1.1;
   margin: 0;
 }
 
 .region-spotlight-copy span {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.55;
 }
 
-.region-results-list {
+.region-results-panel.results-panel {
+  height: var(--explore-height);
+  max-height: var(--explore-height);
+}
+
+.region-results-panel .result-header {
+  padding: 12px 14px 10px;
+}
+
+.region-results-panel .results {
   gap: var(--space-4);
+  grid-template-columns: 1fr;
 }
 
 .region-empty-state {
@@ -7447,16 +7465,25 @@ dd {
   }
 
   .regions-layout {
+    --explore-height: auto;
     grid-template-columns: 1fr;
   }
 
   .region-map-panel {
+    height: auto;
+    max-height: none;
     position: static;
   }
 
   .region-leaflet-map {
-    height: min(58vh, 520px);
-    min-height: 460px;
+    flex: none;
+    height: 460px;
+    min-height: 0;
+  }
+
+  .region-results-panel.results-panel {
+    height: auto;
+    max-height: none;
   }
 }
 
@@ -8227,24 +8254,24 @@ dd {
 
   .region-leaflet-map {
     height: 390px;
-    min-height: 390px;
+    min-height: 0;
   }
 
   .region-leaflet-marker-image {
     border-width: 2px;
-    height: 48px;
-    width: 48px;
+    height: 44px;
+    width: 44px;
   }
 
   .region-leaflet-marker-label {
-    font-size: 10.5px;
-    max-width: 60px;
+    font-size: 10px;
+    max-width: 68px;
     padding: 5px 6px;
   }
 
   .region-spotlight {
     gap: 10px;
-    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-columns: 124px minmax(0, 1fr);
     padding: 8px;
   }
 
@@ -8254,7 +8281,7 @@ dd {
   }
 
   .region-spotlight-copy h2 {
-    font-size: 21px;
+    font-size: 23px;
   }
 
   .region-spotlight-copy span {
@@ -8266,6 +8293,11 @@ dd {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .region-results-panel.results-panel {
+    height: clamp(370px, 46dvh, 410px);
+    max-height: clamp(370px, 46dvh, 410px);
   }
 
   .result-actions {
