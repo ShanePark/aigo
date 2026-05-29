@@ -1188,6 +1188,9 @@ components:
           maxItems: 30
           items:
             type: string
+        representativeVisit:
+          type: boolean
+          description: When true, rank broad regional browsing results toward major family destinations such as zoos, museums, science centers, aquariums, arboretums, and large public attractions while de-emphasizing ordinary shopping fallback places.
         playgroundOnly:
           type: boolean
           description: >-

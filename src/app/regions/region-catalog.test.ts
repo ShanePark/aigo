@@ -11,6 +11,7 @@ describe("region catalog", () => {
       expect(region.label).toBeTruthy();
       expect(region.regionSido).toBeTruthy();
       expect(region.imageSrc).toBe(`/images/regions/${region.slug}.webp`);
+      expect(region.intro).toBeTruthy();
       expect(region.mapPosition.x).toBeGreaterThanOrEqual(0);
       expect(region.mapPosition.x).toBeLessThanOrEqual(100);
       expect(region.mapPosition.y).toBeGreaterThanOrEqual(0);
@@ -26,6 +27,7 @@ describe("region catalog", () => {
       "science_museum",
       "art_museum",
       "experience_center",
+      "park",
       "shopping_mall",
       "accommodation",
       "library"

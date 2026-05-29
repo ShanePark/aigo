@@ -5,6 +5,7 @@ export const REGION_MAJOR_CATEGORIES = [
   "science_museum",
   "art_museum",
   "experience_center",
+  "park",
   "shopping_mall",
   "accommodation",
   "library"
@@ -18,6 +19,7 @@ export type RegionCatalogItem = {
   imageAlt: string;
   imagePromptSubject: string;
   imageSrc: string;
+  intro: string;
   label: string;
   mapPosition: {
     x: number;
@@ -36,7 +38,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 44, y: 25 },
     imageSrc: "/images/regions/seoul.webp",
     imageAlt: "서울을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Seoul, Korea, with N Seoul Tower, Gyeongbokgung palace roofs, Han River bridges, and modern high-rises"
+    imagePromptSubject: "Seoul, Korea, with N Seoul Tower, Gyeongbokgung palace roofs, Han River bridges, and modern high-rises",
+    intro: "궁궐, 대형 박물관, 실내 복합몰, 한강 주변까지 선택지가 촘촘한 도시형 가족 나들이 지역입니다."
   },
   {
     slug: "incheon",
@@ -46,7 +49,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 30, y: 28 },
     imageSrc: "/images/regions/incheon.webp",
     imageAlt: "인천을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Incheon, Korea, with Songdo skyline, Incheon Bridge, coastal port elements, and airport travel cues"
+    imagePromptSubject: "Incheon, Korea, with Songdo skyline, Incheon Bridge, coastal port elements, and airport travel cues",
+    intro: "송도와 영종, 도심형 복합시설과 바다를 함께 엮어 반나절부터 당일 나들이까지 보기 좋은 지역입니다."
   },
   {
     slug: "gyeonggi",
@@ -56,7 +60,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 53, y: 31 },
     imageSrc: "/images/regions/gyeonggi.webp",
     imageAlt: "경기를 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Gyeonggi-do, Korea, with Suwon Hwaseong fortress, family parks, modern satellite cities, and green hills"
+    imagePromptSubject: "Gyeonggi-do, Korea, with Suwon Hwaseong fortress, family parks, modern satellite cities, and green hills",
+    intro: "수도권 곳곳의 박물관, 동물원, 대형 공원, 쇼핑몰을 생활권에 맞춰 고르기 좋은 넓은 선택지입니다."
   },
   {
     slug: "gangwon",
@@ -66,7 +71,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 68, y: 23 },
     imageSrc: "/images/regions/gangwon.webp",
     imageAlt: "강원을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Gangwon, Korea, with Seoraksan mountain ridges, ski resort roofs, pine forests, and East Sea coastline"
+    imagePromptSubject: "Gangwon, Korea, with Seoraksan mountain ridges, ski resort roofs, pine forests, and East Sea coastline",
+    intro: "산과 바다, 리조트형 숙박, 공공 체험시설을 함께 비교하기 좋은 자연 중심 당일·여행 지역입니다."
   },
   {
     slug: "chungbuk",
@@ -76,7 +82,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 56, y: 44 },
     imageSrc: "/images/regions/chungbuk.webp",
     imageAlt: "충북을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Chungcheongbuk-do, Korea, with lake scenery, forested inland hills, Cheongju urban landmarks, and family-friendly public buildings"
+    imagePromptSubject: "Chungcheongbuk-do, Korea, with lake scenery, forested inland hills, Cheongju urban landmarks, and family-friendly public buildings",
+    intro: "내륙 호수와 수목원, 과학·공공시설을 엮어 조용한 반나절 나들이를 찾기 좋은 지역입니다."
   },
   {
     slug: "sejong",
@@ -86,7 +93,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 45, y: 48 },
     imageSrc: "/images/regions/sejong.webp",
     imageAlt: "세종을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Sejong, Korea, with government complex architecture, Geum River paths, planned city blocks, and clean public plazas"
+    imagePromptSubject: "Sejong, Korea, with government complex architecture, Geum River paths, planned city blocks, and clean public plazas",
+    intro: "국립어린이박물관과 공원, 도서관처럼 아이와 반복 방문하기 좋은 공공 목적지가 강한 지역입니다."
   },
   {
     slug: "daejeon",
@@ -96,7 +104,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 52, y: 52 },
     imageSrc: "/images/regions/daejeon.webp",
     imageAlt: "대전을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Daejeon, Korea, with Expo science park landmarks, research district buildings, green parks, and city boulevards"
+    imagePromptSubject: "Daejeon, Korea, with Expo science park landmarks, research district buildings, green parks, and city boulevards",
+    intro: "오월드, 한밭수목원, 과학관처럼 아이가 오래 머물기 좋은 대형 방문처를 중심으로 보기 좋은 지역입니다."
   },
   {
     slug: "chungnam",
@@ -106,7 +115,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 33, y: 49 },
     imageSrc: "/images/regions/chungnam.webp",
     imageAlt: "충남을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Chungcheongnam-do, Korea, with Baekje cultural roofs, coastal mudflat scenery, gentle hills, and family travel roads"
+    imagePromptSubject: "Chungcheongnam-do, Korea, with Baekje cultural roofs, coastal mudflat scenery, gentle hills, and family travel roads",
+    intro: "역사 체험, 바닷가, 공공 전시시설을 당일 코스로 묶기 좋은 서해권 가족 나들이 지역입니다."
   },
   {
     slug: "jeonbuk",
@@ -116,7 +126,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 43, y: 64 },
     imageSrc: "/images/regions/jeonbuk.webp",
     imageAlt: "전북을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Jeonbuk, Korea, with Jeonju hanok village roofs, open farmland, gentle mountains, and cultural museum buildings"
+    imagePromptSubject: "Jeonbuk, Korea, with Jeonju hanok village roofs, open farmland, gentle mountains, and cultural museum buildings",
+    intro: "한옥·문화시설과 자연형 목적지를 함께 둘러보기 좋은 느긋한 가족 여행 지역입니다."
   },
   {
     slug: "gwangju",
@@ -126,7 +137,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 35, y: 76 },
     imageSrc: "/images/regions/gwangju.webp",
     imageAlt: "광주를 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Gwangju, Korea, with Mudeungsan mountain backdrop, cultural art center buildings, city streets, and warm public plazas"
+    imagePromptSubject: "Gwangju, Korea, with Mudeungsan mountain backdrop, cultural art center buildings, city streets, and warm public plazas",
+    intro: "문화시설과 산책형 공공 공간을 도시 안에서 가볍게 엮기 좋은 남도권 중심 지역입니다."
   },
   {
     slug: "jeonnam",
@@ -136,7 +148,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 42, y: 82 },
     imageSrc: "/images/regions/jeonnam.webp",
     imageAlt: "전남을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Jeollanam-do, Korea, with island coastline, Suncheon bay reeds, coastal bridges, gardens, and small harbor towns"
+    imagePromptSubject: "Jeollanam-do, Korea, with island coastline, Suncheon bay reeds, coastal bridges, gardens, and small harbor towns",
+    intro: "정원, 갯벌, 섬과 해안 코스를 아이 동반 여행 동선으로 살펴보기 좋은 자연형 지역입니다."
   },
   {
     slug: "daegu",
@@ -146,7 +159,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 69, y: 61 },
     imageSrc: "/images/regions/daegu.webp",
     imageAlt: "대구를 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Daegu, Korea, with Palgongsan mountain hints, modern city avenues, cultural landmarks, and warm sunny urban parks"
+    imagePromptSubject: "Daegu, Korea, with Palgongsan mountain hints, modern city avenues, cultural landmarks, and warm sunny urban parks",
+    intro: "도심 문화시설과 넓은 공원, 실내 fallback을 함께 비교하기 좋은 영남권 대도시 지역입니다."
   },
   {
     slug: "gyeongbuk",
@@ -156,7 +170,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 75, y: 48 },
     imageSrc: "/images/regions/gyeongbuk.webp",
     imageAlt: "경북을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Gyeongsangbuk-do, Korea, with Gyeongju heritage roofs, Andong traditional village, rolling mountains, and river scenery"
+    imagePromptSubject: "Gyeongsangbuk-do, Korea, with Gyeongju heritage roofs, Andong traditional village, rolling mountains, and river scenery",
+    intro: "역사 유적, 박물관, 자연형 목적지를 아이 눈높이에 맞춰 고르기 좋은 넓은 여행 지역입니다."
   },
   {
     slug: "busan",
@@ -166,7 +181,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 79, y: 76 },
     imageSrc: "/images/regions/busan.webp",
     imageAlt: "부산을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Busan, Korea, with Gwangan Bridge, Haeundae beach, colorful hillside village buildings, and coastal high-rises"
+    imagePromptSubject: "Busan, Korea, with Gwangan Bridge, Haeundae beach, colorful hillside village buildings, and coastal high-rises",
+    intro: "바다, 아쿠아리움, 대형 복합시설과 숙박을 한 화면에서 비교하기 좋은 해안 대도시 지역입니다."
   },
   {
     slug: "ulsan",
@@ -176,7 +192,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 83, y: 68 },
     imageSrc: "/images/regions/ulsan.webp",
     imageAlt: "울산을 상징하는 미니어처 도시 이미지",
-    imagePromptSubject: "Ulsan, Korea, with Taehwagang river garden, whale and coastal motifs, modern city architecture, and green park paths"
+    imagePromptSubject: "Ulsan, Korea, with Taehwagang river garden, whale and coastal motifs, modern city architecture, and green park paths",
+    intro: "강변 정원, 해양·생태 체험, 공공시설을 중심으로 차분한 가족 나들이를 찾기 좋은 지역입니다."
   },
   {
     slug: "gyeongnam",
@@ -186,7 +203,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 66, y: 75 },
     imageSrc: "/images/regions/gyeongnam.webp",
     imageAlt: "경남을 상징하는 미니어처 지역 이미지",
-    imagePromptSubject: "Gyeongsangnam-do, Korea, with coastal islands, Jinhae cherry blossom streets, family parks, and harbor bridges"
+    imagePromptSubject: "Gyeongsangnam-do, Korea, with coastal islands, Jinhae cherry blossom streets, family parks, and harbor bridges",
+    intro: "해안 도시, 수목원, 공공 체험시설을 주말 당일 코스로 묶어보기 좋은 남해권 지역입니다."
   },
   {
     slug: "jeju",
@@ -196,7 +214,8 @@ export const KOREA_REGIONS = [
     mapPosition: { x: 50, y: 94 },
     imageSrc: "/images/regions/jeju.webp",
     imageAlt: "제주를 상징하는 미니어처 섬 이미지",
-    imagePromptSubject: "Jeju Island, Korea, with Hallasan mountain, volcanic stone walls, ocean cliffs, tangerine trees, and family resort buildings"
+    imagePromptSubject: "Jeju Island, Korea, with Hallasan mountain, volcanic stone walls, ocean cliffs, tangerine trees, and family resort buildings",
+    intro: "박물관, 아쿠아리움, 테마시설, 키즈 숙소를 여행 일정 안에서 함께 비교하기 좋은 섬 지역입니다."
   }
 ] as const satisfies readonly RegionCatalogItem[];
 

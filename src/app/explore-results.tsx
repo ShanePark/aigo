@@ -150,7 +150,7 @@ type SearchMeta = {
   visitContext: SearchPlacesInput["visitContext"] | null;
 };
 
-type SearchItem = {
+export type SearchItem = {
   distanceKm: number | null;
   facilities: {
     babyChair: string;
@@ -541,7 +541,7 @@ function SearchEmptyState({
   );
 }
 
-function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
+export function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
   const category = placeCategoryLabel(place.primaryCategory);

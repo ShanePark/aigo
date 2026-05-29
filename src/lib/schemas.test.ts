@@ -320,6 +320,7 @@ describe("place schemas", () => {
       origin: { lat: 36.35, lng: 127.38 },
       regionSido: "서울",
       regionSigungu: "송파구",
+      representativeVisit: true,
       countryCode: "ph",
       city: "Lapu-Lapu",
       playgroundOnly: true,
@@ -337,6 +338,7 @@ describe("place schemas", () => {
     expect(result.kidsCafeOnly).toBe(true);
     expect(result.regionSido).toBe("서울특별시");
     expect(result.regionSigungu).toBe("송파구");
+    expect(result.representativeVisit).toBe(true);
     expect(result.countryCode).toBe("PH");
     expect(result.city).toBe("Lapu-Lapu");
     expect(result.preferences?.strollerFriendly).toBe(true);

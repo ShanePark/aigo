@@ -484,7 +484,17 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("region_sido");
     expect(query.sql).toContain("region_sigungu");
-    expect(query.params).toEqual(["서울특별시", "송파구"]);
+    expect(query.params).toEqual([["서울특별시", "서울"], "송파구"]);
+  });
+
+  it("matches legacy short sido values when domestic search uses canonical region names", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      regionSido: "대전광역시"
+    });
+
+    expect(query.sql).toContain("region_sido = any");
+    expect(query.params).toEqual([["대전광역시", "대전"]]);
   });
 
   it("expands exact-name retail branch aliases for mall and outlet names", () => {

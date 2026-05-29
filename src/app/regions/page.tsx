@@ -1,11 +1,9 @@
-import { ArrowRight, Building2, MapPinned, SearchX, Star } from "lucide-react";
-import Link from "next/link";
-import type { CSSProperties } from "react";
-import type { UrlObject } from "url";
+import { Building2, MapPinned, SearchX, Target } from "lucide-react";
 
-import { PlaceImage } from "@/app/place-image";
-import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
+import { ResultCard } from "@/app/explore-results";
+import { PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
 import { KOREA_REGIONS, REGION_MAJOR_CATEGORIES, regionBySlug, type RegionCatalogItem } from "@/app/regions/region-catalog";
+import { RegionMap } from "@/app/regions/region-map";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
@@ -17,7 +15,6 @@ type RegionsPageProps = {
 };
 
 type RegionSearchResult = Awaited<ReturnType<typeof searchPlaces>>;
-type RegionSearchItem = RegionSearchResult["items"][number];
 
 const REGION_RESULT_LIMIT = 24;
 
@@ -45,42 +42,37 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
             {result.meta.total}곳
           </span>
           <span>
-            <Star size={15} aria-hidden="true" />
-            평가순
+            <Target size={15} aria-hidden="true" />
+            대표순
           </span>
         </div>
       </header>
 
       <section className="regions-layout">
         <section className="region-map-panel" aria-label="지역 선택 지도">
-          <div className="region-map-board" aria-label="대한민국 지역 선택">
-            <div className="region-map-shape" aria-hidden="true" />
-            {KOREA_REGIONS.map((region) => (
-              <RegionMapLink active={region.slug === selectedRegion.slug} key={region.slug} region={region} />
-            ))}
-          </div>
+          <RegionMap regions={KOREA_REGIONS} selectedSlug={selectedRegion.slug} />
         </section>
 
         <section className="region-results-panel" aria-label={`${selectedRegion.label} 대표 장소`}>
+          <RegionSpotlight region={selectedRegion} />
           <div className="region-results-head">
             <div>
               <p className="region-results-kicker">{selectedRegion.regionSido}</p>
               <h2>{selectedRegion.label} 대표 장소</h2>
             </div>
-            <Link className="region-search-link" href={allSearchHref(selectedRegion)}>
-              전체 검색
-              <ArrowRight size={15} aria-hidden="true" />
-            </Link>
+            <span className="region-result-count">{result.meta.total}곳</span>
           </div>
 
           {result.error ? <RegionError message={result.error} /> : null}
           {!result.error && result.items.length === 0 ? <RegionEmptyState region={selectedRegion} /> : null}
           {!result.error && result.items.length > 0 ? (
-            <div className="region-result-grid">
-              {result.items.map((place) => (
-                <RegionPlaceCard key={place.placeId} place={place} returnHref={returnHref} />
-              ))}
-            </div>
+            <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
+              <div className="results region-results-list">
+                {result.items.map((place, index) => (
+                  <ResultCard index={index + 1} key={place.placeId} place={place} returnHref={returnHref} />
+                ))}
+              </div>
+            </PlaceSaveControlsProvider>
           ) : null}
         </section>
       </section>
@@ -88,53 +80,19 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
   );
 }
 
-function RegionMapLink({ active, region }: { active: boolean; region: RegionCatalogItem }) {
+function RegionSpotlight({ region }: { region: RegionCatalogItem }) {
   return (
-    <Link
-      aria-current={active ? "true" : undefined}
-      aria-label={`${region.label} 대표 장소 보기`}
-      className={`region-map-pin ${active ? "is-active" : ""}`}
-      href={{ pathname: "/regions", query: { region: region.slug } }}
-      style={
-        {
-          "--region-x": `${region.mapPosition.x}%`,
-          "--region-y": `${region.mapPosition.y}%`
-        } as CSSProperties
-      }
-    >
-      <span className="region-map-pin-image">
+    <section className="region-spotlight" aria-label={`${region.label} 지역 소개`}>
+      <div className="region-spotlight-image">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={region.imageSrc} alt="" loading={active ? "eager" : "lazy"} />
-      </span>
-      <span className="region-map-pin-label">{region.label}</span>
-    </Link>
-  );
-}
-
-function RegionPlaceCard({ place, returnHref }: { place: RegionSearchItem; returnHref: string }) {
-  const evaluationScore = place.placeQualityScore?.score ?? null;
-  const keywords = regionPlaceKeywords(place);
-
-  return (
-    <article className="region-place-card">
-      <Link className="region-place-card-main" href={placeDetailHref(place.placeId, returnHref)}>
-        <div className="region-place-image-frame">
-          <PlaceImage category={place.primaryCategory} src={place.primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-          <PlaceCategoryBadge category={place.primaryCategory} className="category-pill region-place-category" />
-        </div>
-        <div className="region-place-body">
-          <div className="region-place-topline">
-            <span className="region-score-pill" title={evaluationScore === null ? "평가 데이터가 충분하지 않습니다." : `평가 ${evaluationScore.toFixed(1)}`}>
-              <Star size={13} aria-hidden="true" />
-              {evaluationScore === null ? "-" : Math.round(evaluationScore)}
-            </span>
-            <span>{place.distanceKm === null ? "거리 미계산" : `${place.distanceKm.toFixed(1)}km`}</span>
-          </div>
-          <h3>{place.name}</h3>
-          <p>{placeCategoryLabel(place.primaryCategory)} · {keywords.length > 0 ? keywords.join(", ") : "가족 방문처로 비교해볼 만한 곳"}</p>
-        </div>
-      </Link>
-    </article>
+        <img src={region.imageSrc} alt={region.imageAlt} />
+      </div>
+      <div className="region-spotlight-copy">
+        <p>{region.regionSido}</p>
+        <h2>{region.label}</h2>
+        <span>{region.intro}</span>
+      </div>
+    </section>
   );
 }
 
@@ -149,9 +107,7 @@ function RegionEmptyState({ region }: { region: RegionCatalogItem }) {
         <h3>{region.label} 대표 장소 데이터가 아직 부족합니다</h3>
       </div>
       <div className="empty-state-actions">
-        <Link className="empty-state-action is-primary" href={allSearchHref(region)}>
-          전체 검색으로 보기
-        </Link>
+        <span className="empty-state-action is-primary">{region.regionSido}</span>
       </div>
     </section>
   );
@@ -185,8 +141,10 @@ function regionSearchInput(region: RegionCatalogItem): SearchPlacesInput {
     },
     primaryCategories: [...REGION_MAJOR_CATEGORIES],
     radiusKm: 80,
+    representativeVisit: true,
     regionSido: region.regionSido,
-    sort: "rating"
+    sort: "recommended",
+    visitContext: "weekendHalfDay"
   };
 }
 
@@ -225,36 +183,6 @@ async function safeRegionSearch(input: SearchPlacesInput): Promise<RegionSearchR
       }
     };
   }
-}
-
-function regionPlaceKeywords(place: RegionSearchItem) {
-  const keywords = [
-    place.facilities.indoorType === "indoor" ? "실내" : place.facilities.indoorType === "mixed" ? "실내외" : "",
-    place.facilities.parkingAvailable === "yes" ? "주차" : "",
-    place.facilities.strollerFriendly === "yes" ? "유모차" : "",
-    place.facilities.nursingRoom === "yes" ? "수유실" : "",
-    ...place.tags.filter((tag) => /[가-힣]/.test(tag)).map((tag) => tag.replace(/[_-]+/g, " "))
-  ];
-
-  return Array.from(new Set(keywords.filter(Boolean))).slice(0, 3);
-}
-
-function placeDetailHref(placeId: string, returnHref: string): UrlObject {
-  return {
-    pathname: `/places/${placeId}`,
-    query: { returnTo: returnHref }
-  };
-}
-
-function allSearchHref(region: RegionCatalogItem): UrlObject {
-  return {
-    pathname: "/",
-    query: {
-      categoryGroups: ["visit", "shopping", "stay"],
-      query: region.label,
-      sort: "rating"
-    }
-  };
 }
 
 function textParam(value: string | string[] | undefined) {

@@ -408,6 +408,7 @@ const searchPlacesBaseSchema = z.object({
   countryCode: countryCodeSchema,
   city: z.string().trim().min(1).max(200).optional(),
   primaryCategories: z.array(nonEmptyString).max(30).optional(),
+  representativeVisit: z.boolean().optional(),
   playgroundOnly: z.boolean().optional(),
   kidsCafeOnly: z.boolean().optional(),
   tags: z.array(nonEmptyString).max(30).optional(),

@@ -1640,9 +1640,7 @@ h3 {
 }
 
 .regions-hero-metrics span,
-.region-search-link,
-.region-score-pill,
-.region-place-topline span {
+.region-result-count {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
@@ -1677,65 +1675,40 @@ h3 {
 
 .region-map-panel {
   overflow: hidden;
-  padding: 14px;
+  padding: 10px;
   position: sticky;
   top: 78px;
 }
 
-.region-map-board {
-  aspect-ratio: 0.86;
-  background:
-    radial-gradient(circle at 36% 28%, color-mix(in srgb, var(--blue-soft) 70%, transparent), transparent 22%),
-    radial-gradient(circle at 68% 62%, color-mix(in srgb, var(--mint-soft) 74%, transparent), transparent 24%),
-    linear-gradient(145deg, color-mix(in srgb, var(--panel-elevated) 88%, var(--blue-soft)), color-mix(in srgb, var(--panel-elevated) 90%, var(--mint-soft)));
-  border: 1px solid var(--line);
+.region-leaflet-map {
+  background: var(--map-bg);
   border-radius: 8px;
+  height: min(72vh, 720px);
   min-height: 520px;
   overflow: hidden;
-  position: relative;
+  width: 100%;
 }
 
-.region-map-shape {
-  background:
-    radial-gradient(ellipse at 50% 18%, color-mix(in srgb, var(--mint) 22%, transparent) 0 24%, transparent 25%),
-    radial-gradient(ellipse at 47% 40%, color-mix(in srgb, var(--mint) 18%, transparent) 0 33%, transparent 34%),
-    radial-gradient(ellipse at 55% 67%, color-mix(in srgb, var(--mint) 16%, transparent) 0 29%, transparent 30%),
-    radial-gradient(ellipse at 50% 94%, color-mix(in srgb, var(--blue) 16%, transparent) 0 9%, transparent 10%);
-  filter: blur(0.2px);
-  inset: 20px 20px 18px;
-  opacity: 0.9;
-  position: absolute;
+.region-leaflet-map .leaflet-tile {
+  filter: var(--map-tile-filter);
 }
 
-.region-map-pin {
-  color: var(--text);
+.region-leaflet-marker {
   display: grid;
   justify-items: center;
-  left: var(--region-x);
-  min-width: 72px;
-  position: absolute;
-  text-decoration: none;
-  top: var(--region-y);
-  transform: translate(-50%, -50%);
+  pointer-events: auto;
   transition:
     filter var(--motion-fast),
-    transform var(--motion-fast),
-    z-index var(--motion-fast);
-  z-index: 2;
+    transform var(--motion-fast);
 }
 
-.region-map-pin:hover,
-.region-map-pin:focus-visible,
-.region-map-pin.is-active {
-  transform: translate(-50%, -50%) translateY(-4px) scale(1.08);
-  z-index: 5;
+.region-leaflet-marker:hover,
+.region-leaflet-marker:focus-within,
+.region-leaflet-marker.is-active {
+  transform: translateY(-4px) scale(1.08);
 }
 
-.region-map-pin:focus-visible {
-  outline: 0;
-}
-
-.region-map-pin-image {
+.region-leaflet-marker-image {
   background: var(--panel);
   border: 3px solid var(--panel);
   border-radius: 999px;
@@ -1750,14 +1723,14 @@ h3 {
   width: 64px;
 }
 
-.region-map-pin-image img {
+.region-leaflet-marker-image img {
   display: block;
   height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
-.region-map-pin-label {
+.region-leaflet-marker-label {
   background: color-mix(in srgb, var(--panel-elevated) 94%, transparent);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1775,22 +1748,22 @@ h3 {
   white-space: nowrap;
 }
 
-.region-map-pin:hover .region-map-pin-image,
-.region-map-pin:focus-visible .region-map-pin-image {
+.region-leaflet-marker:hover .region-leaflet-marker-image,
+.region-leaflet-marker:focus-within .region-leaflet-marker-image {
   border-color: var(--yellow);
   box-shadow:
     0 0 0 4px rgba(233, 179, 64, 0.22),
     0 16px 32px rgba(24, 33, 29, 0.24);
 }
 
-.region-map-pin.is-active .region-map-pin-image {
+.region-leaflet-marker.is-active .region-leaflet-marker-image {
   border-color: var(--mint);
   box-shadow:
     0 0 0 5px color-mix(in srgb, var(--mint) 18%, transparent),
     0 18px 36px rgba(24, 33, 29, 0.26);
 }
 
-.region-map-pin.is-active .region-map-pin-label {
+.region-leaflet-marker.is-active .region-leaflet-marker-label {
   background: var(--mint);
   border-color: var(--mint);
   color: white;
@@ -1820,100 +1793,67 @@ h3 {
   margin: 0 0 4px;
 }
 
-.region-search-link {
-  background: var(--mint);
-  border: 1px solid var(--mint);
-  color: white;
-  text-decoration: none;
+.region-result-count {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  color: var(--muted);
   white-space: nowrap;
 }
 
-.region-search-link:hover,
-.region-search-link:focus-visible {
-  background: #0f6a49;
-  border-color: #0f6a49;
-  color: white;
-  transform: translateY(-1px);
-}
-
-.region-result-grid {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-}
-
-.region-place-card {
+.region-spotlight {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
-  min-width: 0;
-  overflow: hidden;
-}
-
-.region-place-card-main {
-  color: inherit;
   display: grid;
-  min-height: 100%;
-  text-decoration: none;
-}
-
-.region-place-card:hover,
-.region-place-card:focus-within {
-  border-color: var(--hover-border);
-  box-shadow: 0 18px 42px rgba(24, 33, 29, 0.12);
-  transform: translateY(-2px);
-}
-
-.region-place-image-frame {
-  aspect-ratio: 16 / 10;
+  gap: var(--space-4);
+  grid-template-columns: 180px minmax(0, 1fr);
   overflow: hidden;
-  position: relative;
-}
-
-.region-place-category {
-  left: 8px;
-  max-width: calc(100% - 16px);
-  position: absolute;
-  top: 8px;
-}
-
-.region-place-body {
-  display: grid;
-  gap: 7px;
   padding: 10px;
 }
 
-.region-place-topline {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.region-spotlight-image {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.region-score-pill {
-  background: var(--yellow-soft);
-  border: 1px solid color-mix(in srgb, var(--yellow) 54%, var(--line));
-  color: #6b4a0f;
+.region-spotlight-image img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
-.region-place-topline span:not(.region-score-pill) {
-  background: var(--panel-soft);
-  border: 1px solid var(--line);
+.region-spotlight-copy {
+  align-content: center;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 4px 6px;
+}
+
+.region-spotlight-copy p {
   color: var(--muted);
-}
-
-.region-place-body h3 {
-  font-size: 16px;
-  line-height: 1.25;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
   margin: 0;
 }
 
-.region-place-body p {
-  color: var(--muted);
-  font-size: var(--text-sm);
-  line-height: 1.45;
+.region-spotlight-copy h2 {
+  font-size: 26px;
+  line-height: 1.1;
   margin: 0;
+}
+
+.region-spotlight-copy span {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.region-results-list {
+  gap: var(--space-4);
 }
 
 .region-empty-state {
@@ -7514,8 +7454,8 @@ dd {
     position: static;
   }
 
-  .region-map-board {
-    aspect-ratio: 1.06;
+  .region-leaflet-map {
+    height: min(58vh, 520px);
     min-height: 460px;
   }
 }
@@ -8285,57 +8225,47 @@ dd {
     padding: 8px;
   }
 
-  .region-map-board {
+  .region-leaflet-map {
+    height: 390px;
     min-height: 390px;
   }
 
-  .region-map-pin {
-    min-width: 52px;
-  }
-
-  .region-map-pin-image {
+  .region-leaflet-marker-image {
     border-width: 2px;
     height: 48px;
     width: 48px;
   }
 
-  .region-map-pin-label {
+  .region-leaflet-marker-label {
     font-size: 10.5px;
     max-width: 60px;
     padding: 5px 6px;
+  }
+
+  .region-spotlight {
+    gap: 10px;
+    grid-template-columns: 96px minmax(0, 1fr);
+    padding: 8px;
+  }
+
+  .region-spotlight-copy {
+    gap: 5px;
+    padding: 0;
+  }
+
+  .region-spotlight-copy h2 {
+    font-size: 21px;
+  }
+
+  .region-spotlight-copy span {
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .region-results-head {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .region-result-grid {
-    gap: 8px;
-    grid-template-columns: 1fr;
-  }
-
-  .region-place-card-main {
-    grid-template-columns: 94px minmax(0, 1fr);
-  }
-
-  .region-place-image-frame {
-    aspect-ratio: auto;
-    min-height: 100%;
-  }
-
-  .region-place-body {
-    gap: 5px;
-    padding: 8px;
-  }
-
-  .region-place-body h3 {
-    font-size: 14px;
-  }
-
-  .region-place-body p {
-    font-size: 12px;
   }
 
   .result-actions {
