@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import type { AppUser } from "@/lib/app-auth";
 
+import { ConfirmDialog } from "./confirm-dialog";
 import styles from "./account-controls.module.css";
 
 type AccountUser = Pick<AppUser, "id">;
@@ -22,6 +23,7 @@ export function AccountControls({ initialUser }: { initialUser: AccountUser | nu
   const [user, setUser] = useState<MeResponse["user"]>(initialUser);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -62,10 +64,23 @@ export function AccountControls({ initialUser }: { initialUser: AccountUser | nu
       ) : null}
       {user ? (
         <>
-          <button className={`${styles.button} ${styles.danger}`} disabled={busy} onClick={logout} type="button">
+          <button className={`${styles.button} ${styles.danger}`} disabled={busy} onClick={() => setConfirmOpen(true)} type="button">
             <LogOut size={15} aria-hidden="true" />
             <span>로그아웃</span>
           </button>
+          <ConfirmDialog
+            body="현재 계정에서 로그아웃할까요?"
+            cancelLabel="취소"
+            confirmLabel="로그아웃"
+            disabled={busy}
+            onCancel={() => setConfirmOpen(false)}
+            onConfirm={() => {
+              void logout();
+            }}
+            open={confirmOpen}
+            title="로그아웃 확인"
+            tone="danger"
+          />
         </>
       ) : (
         <Link className={`${styles.button} ${styles.primary}`} href="/login">
@@ -88,6 +103,7 @@ export function AccountControls({ initialUser }: { initialUser: AccountUser | nu
         setError(await errorMessage(response, "로그아웃 실패"));
         return;
       }
+      setConfirmOpen(false);
       setUser(null);
       window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: { user: null } }));
       router.refresh();
