@@ -6570,7 +6570,7 @@ h3 {
 }
 
 .visits-hero {
-  align-items: flex-end;
+  align-items: center;
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -6580,7 +6580,6 @@ h3 {
 .saved-places-hero {
   align-items: center;
   margin-bottom: 22px;
-  padding-top: 4px;
 }
 
 .visits-demo-badge {
@@ -6600,6 +6599,33 @@ h3 {
   gap: 10px;
   justify-items: end;
   min-width: min(100%, 360px);
+}
+
+.visits-hero-title {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.visits-hero-title h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.12;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.visits-hero-icon {
+  align-items: center;
+  background: var(--mint-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--mint);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
 }
 
 .visits-summary {
