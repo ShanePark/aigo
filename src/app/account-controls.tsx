@@ -62,7 +62,7 @@ export function AccountControls({ initialUser }: { initialUser: AccountUser | nu
       ) : null}
       {user ? (
         <>
-          <button className={styles.button} disabled={busy} onClick={logout} type="button">
+          <button className={`${styles.button} ${styles.danger}`} disabled={busy} onClick={logout} type="button">
             <LogOut size={15} aria-hidden="true" />
             <span>로그아웃</span>
           </button>

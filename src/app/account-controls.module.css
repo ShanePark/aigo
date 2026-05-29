@@ -1,9 +1,10 @@
 .controls {
   align-items: center;
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   min-width: 0;
+  width: 100%;
 }
 
 .error {
@@ -18,21 +19,24 @@
 
 .button {
   align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  box-shadow: var(--shadow-soft);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-panel);
+  box-shadow: none;
   color: var(--text);
   display: inline-flex;
   font-size: var(--text-sm);
   font-weight: var(--weight-label);
-  gap: var(--space-2);
-  min-height: var(--control-sm);
-  padding: 0 12px;
+  gap: var(--space-3);
+  justify-content: flex-start;
+  min-height: 42px;
+  padding: 0 10px;
+  width: 100%;
 }
 
 .button:hover {
-  border-color: var(--hover-border);
+  background: var(--mint-soft);
+  color: var(--mint);
   transform: translateY(-1px);
 }
 
@@ -47,4 +51,14 @@
   background: var(--mint);
   border-color: transparent;
   color: var(--accent-text);
+}
+
+.danger {
+  color: var(--coral);
+}
+
+.danger:hover,
+.danger:focus-visible {
+  background: var(--coral-soft);
+  color: var(--coral);
 }
