@@ -14,8 +14,8 @@ type RegionMapProps = {
 type LeafletModule = typeof import("leaflet");
 
 const KOREA_BOUNDS = [
-  [33.05, 125.55],
-  [38.55, 129.85]
+  [33.1, 125.95],
+  [38.45, 129.55]
 ] satisfies LatLngBoundsExpression;
 
 export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
@@ -50,7 +50,7 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
         marker.addTo(markers);
       });
 
-      map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [8, 8] });
+      fitKoreaMap(map, mapElementRef.current);
       map.invalidateSize();
     }
 
@@ -79,17 +79,26 @@ function getOrCreateRegionMap(L: LeafletModule, element: HTMLDivElement, mapRef:
     maxBounds: KOREA_BOUNDS,
     scrollWheelZoom: false,
     touchZoom: false,
-    zoomControl: false
+    zoomControl: false,
+    zoomDelta: 0.25,
+    zoomSnap: 0.25
   });
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 7,
+    maxZoom: 7.5,
     minZoom: 5
   }).addTo(map);
-  map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [8, 8] });
+  fitKoreaMap(map, element);
   mapRef.current = map;
   return map;
+}
+
+function fitKoreaMap(map: LeafletMap, element: HTMLDivElement) {
+  map.fitBounds(KOREA_BOUNDS, { animate: false, padding: [0, 0] });
+  if (element.clientWidth >= 430) {
+    map.setZoom(map.getZoom() + 0.25, { animate: false });
+  }
 }
 
 function getOrCreateRegionMarkers(L: LeafletModule, map: LeafletMap, markersRef: MutableRefObject<LayerGroup | null>) {
