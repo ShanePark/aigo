@@ -18,6 +18,26 @@ const KOREA_BOUNDS = [
   [38.45, 129.55]
 ] satisfies LatLngBoundsExpression;
 
+const REGION_MARKER_COORDINATES: Partial<Record<string, { lat: number; lng: number }>> = {
+  busan: { lat: 34.8, lng: 129.06 },
+  chungbuk: { lat: 36.73, lng: 128.02 },
+  chungnam: { lat: 36.15, lng: 126.42 },
+  daegu: { lat: 35.75, lng: 128.62 },
+  daejeon: { lat: 36.02, lng: 127.64 },
+  gangwon: { lat: 37.86, lng: 128.55 },
+  gwangju: { lat: 34.96, lng: 126.28 },
+  gyeongbuk: { lat: 36.42, lng: 129.1 },
+  gyeonggi: { lat: 37.58, lng: 127.78 },
+  gyeongnam: { lat: 35.1, lng: 127.82 },
+  incheon: { lat: 37.2, lng: 126.22 },
+  jeju: { lat: 33.36, lng: 126.52 },
+  jeonbuk: { lat: 35.38, lng: 127.02 },
+  jeonnam: { lat: 34.34, lng: 126.9 },
+  sejong: { lat: 36.68, lng: 127.18 },
+  seoul: { lat: 37.72, lng: 126.9 },
+  ulsan: { lat: 35.58, lng: 129.5 }
+};
+
 export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
   const router = useRouter();
   const mapElementRef = useRef<HTMLDivElement | null>(null);
@@ -36,7 +56,8 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
       markers.clearLayers();
 
       regions.forEach((region) => {
-        const marker = L.marker([region.center.lat, region.center.lng], {
+        const markerPosition = markerCoordinate(region);
+        const marker = L.marker([markerPosition.lat, markerPosition.lng], {
           icon: regionIcon(L, region, region.slug === selectedSlug),
           keyboard: true,
           title: `${region.label} 대표 장소 보기`
@@ -65,6 +86,10 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
   }, [regions, router, selectedSlug]);
 
   return <div className="region-leaflet-map leaflet-map" ref={mapElementRef} />;
+}
+
+function markerCoordinate(region: RegionCatalogItem) {
+  return REGION_MARKER_COORDINATES[region.slug] ?? region.center;
 }
 
 function getOrCreateRegionMap(L: LeafletModule, element: HTMLDivElement, mapRef: MutableRefObject<LeafletMap | null>) {
