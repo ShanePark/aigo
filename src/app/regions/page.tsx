@@ -76,6 +76,7 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
                 <span className="region-result-count">{result.meta.total}곳</span>
               </div>
             }
+            metricKeys={["evaluation"]}
             params={regionParams}
             pathname="/regions"
             result={result}

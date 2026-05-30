@@ -120,6 +120,7 @@ export type SearchResult = {
 };
 
 type PendingSearchKind = "filters" | "location" | "viewport";
+type ResultCardMetricKey = "distance" | "relevance" | "evaluation";
 
 type SearchResultMeta = {
   count: number;
@@ -437,6 +438,7 @@ export function ResultsListPanel({
   className,
   emptyState,
   header,
+  metricKeys,
   pathname = "/",
   params,
   result,
@@ -445,6 +447,7 @@ export function ResultsListPanel({
   className?: string;
   emptyState: ReactNode;
   header: ReactNode;
+  metricKeys?: ResultCardMetricKey[];
   pathname?: string;
   params: Record<string, string | string[]>;
   result: SearchResult;
@@ -471,7 +474,7 @@ export function ResultsListPanel({
         <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
           <div className="results">
             {result.items.map((place, index) => (
-              <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={returnHref} key={place.placeId} />
+              <ResultCard index={result.meta.offset + index + 1} metricKeys={metricKeys} place={place} returnHref={returnHref} key={place.placeId} />
             ))}
             {result.items.length === 0 ? emptyState : null}
           </div>
@@ -595,12 +598,22 @@ function SearchEmptyState({
   );
 }
 
-export function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
+export function ResultCard({
+  index,
+  metricKeys,
+  place,
+  returnHref
+}: {
+  index: number;
+  metricKeys?: ResultCardMetricKey[];
+  place: SearchItem;
+  returnHref: string;
+}) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
   const category = placeCategoryLabel(place.primaryCategory);
   const summary = resultCardSummary(place, category, keywords);
-  const metrics = resultCardMetrics(place);
+  const metrics = resultCardMetrics(place, metricKeys);
 
   return (
     <article
@@ -624,15 +637,17 @@ export function ResultCard({ index, place, returnHref }: { index: number; place:
         <div className="result-card-body">
           <div className="result-card-topline">
             <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
-            <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-              {metrics.map((metric) => (
-                <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
-                  {metric.icon ? metric.icon : null}
-                  {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
-                  <strong>{metric.value}</strong>
-                </span>
-              ))}
-            </div>
+            {metrics.length > 0 ? (
+              <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
+                {metrics.map((metric) => (
+                  <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
+                    {metric.icon ? metric.icon : null}
+                    {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
+                    <strong>{metric.value}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           <h3>{place.name}</h3>
           <p className="result-card-summary">{summary}</p>
@@ -941,12 +956,13 @@ function resultCardSummary(place: SearchItem, category: string, keywords: string
   return keywordText ? `${category} 후보 · ${keywordText} 중심으로 비교해볼 만한 곳` : `${category} 후보 · 가족 외출 기준으로 비교해볼 만한 곳`;
 }
 
-function resultCardMetrics(place: SearchItem) {
+function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]) {
   const qualityScore = place.placeQualityScore?.score ?? null;
   const userRating = place.userRatingSummary?.averageRating ?? null;
   const evaluationValue = qualityScore !== null ? String(Math.round(qualityScore)) : userRating !== null ? userRating.toFixed(1) : "-";
   const evaluationTitle = qualityScore !== null ? placeQualityScoreTitle(qualityScore) : "방문 평가 데이터가 충분하지 않습니다.";
 
+  const requestedKeys = metricKeys ? new Set(metricKeys) : null;
   return [
     {
       icon: <MapPin size={13} aria-hidden="true" />,
@@ -972,7 +988,7 @@ function resultCardMetrics(place: SearchItem) {
       tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,
       value: evaluationValue
     }
-  ];
+  ].filter((metric) => !requestedKeys || requestedKeys.has(metric.key as ResultCardMetricKey));
 }
 
 function distanceTone(distanceKm: number | null) {
