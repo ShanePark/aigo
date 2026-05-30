@@ -28,10 +28,7 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
   return (
     <div className="page regions-page">
       <header className="regions-hero">
-        <div>
-          <p className="eyebrow">지역별 보기</p>
-          <h1>지역을 누르면 대표 가족 방문처가 보여요</h1>
-        </div>
+        <h1>지역별 보기</h1>
       </header>
 
       <section className="regions-layout">
@@ -42,10 +39,6 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
 
         {result.error ? (
           <section className="region-results-panel region-results-error-panel" aria-label={`${selectedRegion.label} 대표 장소 오류`}>
-            <div>
-              <p className="region-results-kicker">{selectedRegion.regionSido}</p>
-              <h2>{selectedRegion.label} 대표 장소</h2>
-            </div>
             <RegionError message={result.error} />
           </section>
         ) : (
@@ -54,10 +47,7 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
             emptyState={<RegionEmptyState region={selectedRegion} />}
             header={
               <div className="region-results-head">
-                <div>
-                  <p className="region-results-kicker">{selectedRegion.regionSido}</p>
-                  <h2>{selectedRegion.label} 대표 장소</h2>
-                </div>
+                <span className="sr-only">{selectedRegion.label} 지역 장소</span>
               </div>
             }
             metricKeys={["evaluation"]}
@@ -81,7 +71,6 @@ function RegionSpotlight({ region }: { region: RegionCatalogItem }) {
         <img src={region.imageSrc} alt={region.imageAlt} />
       </div>
       <div className="region-spotlight-copy">
-        <p>{region.regionSido}</p>
         <h2>{region.label}</h2>
         <span>{region.intro}</span>
       </div>
