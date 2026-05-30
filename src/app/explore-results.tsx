@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import type { ReactNode } from "react";
 import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
 
@@ -110,13 +113,14 @@ type ExploreResultsProps = {
   initialResult: SearchResult;
 };
 
-type SearchResult = {
+export type SearchResult = {
   error?: string;
   items: SearchItem[];
   meta: SearchResultMeta;
 };
 
 type PendingSearchKind = "filters" | "location" | "viewport";
+type ResultCardMetricKey = "distance" | "relevance" | "evaluation";
 
 type SearchResultMeta = {
   count: number;
@@ -150,7 +154,7 @@ type SearchMeta = {
   visitContext: SearchPlacesInput["visitContext"] | null;
 };
 
-type SearchItem = {
+export type SearchItem = {
   distanceKm: number | null;
   facilities: {
     babyChair: string;
@@ -430,13 +434,68 @@ export function ExploreResults({
   );
 }
 
+export function ResultsListPanel({
+  className,
+  emptyState,
+  header,
+  metricKeys,
+  pathname = "/",
+  params,
+  result,
+  returnHref,
+  showFooter = true
+}: {
+  className?: string;
+  emptyState: ReactNode;
+  header: ReactNode;
+  metricKeys?: ResultCardMetricKey[];
+  pathname?: string;
+  params: Record<string, string | string[]>;
+  result: SearchResult;
+  returnHref: string;
+  showFooter?: boolean;
+}) {
+  const router = useRouter();
+  const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const handlePage = useCallback(
+    (page: number) => {
+      const limit = result.meta.limit;
+      const query = queryWithout(params, ["page", "offset"]);
+      query.page = String(page);
+      query.offset = String(Math.min((page - 1) * limit, 1000));
+      router.push(searchHref(pathname, query) as Route);
+      resetResultsScrollPosition(resultsScrollRef.current);
+    },
+    [params, pathname, result.meta.limit, router]
+  );
+
+  return (
+    <div className={`results-panel ${className ?? ""}`}>
+      <section className="result-header">{header}</section>
+      <div className="results-scroll" data-results-scroll ref={resultsScrollRef}>
+        <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
+          <div className="results">
+            {result.items.map((place, index) => (
+              <ResultCard index={result.meta.offset + index + 1} metricKeys={metricKeys} place={place} returnHref={returnHref} key={place.placeId} />
+            ))}
+            {result.items.length === 0 ? emptyState : null}
+          </div>
+        </PlaceSaveControlsProvider>
+      </div>
+      {showFooter ? <ResultFooter meta={result.meta} onPage={handlePage} params={params} pathname={pathname} /> : null}
+    </div>
+  );
+}
+
 function ResultFooter({
   meta,
   onPage,
+  pathname = "/",
   params
 }: {
   meta: SearchResultMeta;
   onPage: (page: number) => void;
+  pathname?: string;
   params: Record<string, string | string[]>;
 }) {
   return (
@@ -445,7 +504,7 @@ function ResultFooter({
         {compactResultCountLabel(meta)}
       </span>
       <Pagination meta={meta} onPage={onPage} />
-      <LimitControls activeLimit={resultLimitParam(params)} params={params} />
+      <LimitControls activeLimit={resultLimitParam(params)} params={params} pathname={pathname} />
     </section>
   );
 }
@@ -541,12 +600,22 @@ function SearchEmptyState({
   );
 }
 
-function ResultCard({ index, place, returnHref }: { index: number; place: SearchItem; returnHref: string }) {
+export function ResultCard({
+  index,
+  metricKeys,
+  place,
+  returnHref
+}: {
+  index: number;
+  metricKeys?: ResultCardMetricKey[];
+  place: SearchItem;
+  returnHref: string;
+}) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
   const category = placeCategoryLabel(place.primaryCategory);
   const summary = resultCardSummary(place, category, keywords);
-  const metrics = resultCardMetrics(place);
+  const metrics = resultCardMetrics(place, metricKeys);
 
   return (
     <article
@@ -570,15 +639,17 @@ function ResultCard({ index, place, returnHref }: { index: number; place: Search
         <div className="result-card-body">
           <div className="result-card-topline">
             <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
-            <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-              {metrics.map((metric) => (
-                <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
-                  {metric.icon ? metric.icon : null}
-                  {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
-                  <strong>{metric.value}</strong>
-                </span>
-              ))}
-            </div>
+            {metrics.length > 0 ? (
+              <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
+                {metrics.map((metric) => (
+                  <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
+                    {metric.icon ? metric.icon : null}
+                    {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
+                    <strong>{metric.value}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           <h3>{place.name}</h3>
           <p className="result-card-summary">{summary}</p>
@@ -623,11 +694,19 @@ function SortControls({
   );
 }
 
-function LimitControls({ activeLimit, params }: { activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number]; params: Record<string, string | string[]> }) {
+function LimitControls({
+  activeLimit,
+  params,
+  pathname = "/"
+}: {
+  activeLimit: (typeof RESULT_LIMIT_OPTIONS)[number];
+  params: Record<string, string | string[]>;
+  pathname?: string;
+}) {
   return (
     <nav className="limit-control" aria-label="한 페이지 표시 개수">
       {RESULT_LIMIT_OPTIONS.map((limit) => (
-        <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit)} key={limit}>
+        <Link className={`limit-option ${activeLimit === limit ? "is-active" : ""}`} href={limitHref(params, limit, pathname)} key={limit}>
           {limit}개
         </Link>
       ))}
@@ -879,12 +958,13 @@ function resultCardSummary(place: SearchItem, category: string, keywords: string
   return keywordText ? `${category} 후보 · ${keywordText} 중심으로 비교해볼 만한 곳` : `${category} 후보 · 가족 외출 기준으로 비교해볼 만한 곳`;
 }
 
-function resultCardMetrics(place: SearchItem) {
+function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]) {
   const qualityScore = place.placeQualityScore?.score ?? null;
   const userRating = place.userRatingSummary?.averageRating ?? null;
   const evaluationValue = qualityScore !== null ? String(Math.round(qualityScore)) : userRating !== null ? userRating.toFixed(1) : "-";
   const evaluationTitle = qualityScore !== null ? placeQualityScoreTitle(qualityScore) : "방문 평가 데이터가 충분하지 않습니다.";
 
+  const requestedKeys = metricKeys ? new Set(metricKeys) : null;
   return [
     {
       icon: <MapPin size={13} aria-hidden="true" />,
@@ -910,7 +990,7 @@ function resultCardMetrics(place: SearchItem) {
       tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,
       value: evaluationValue
     }
-  ];
+  ].filter((metric) => !requestedKeys || requestedKeys.has(metric.key as ResultCardMetricKey));
 }
 
 function distanceTone(distanceKm: number | null) {
@@ -1041,13 +1121,17 @@ function sortHref(params: Record<string, string | string[]>, sort: HomeSearchSor
   return { pathname: "/", query };
 }
 
-function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number]): UrlObject {
+function limitHref(params: Record<string, string | string[]>, limit: (typeof RESULT_LIMIT_OPTIONS)[number], pathname = "/"): UrlObject {
   const query = queryWithout(params, ["page", "offset", "limit", "visitContext"]);
   query.limit = String(limit);
-  return { pathname: "/", query };
+  return { pathname, query };
 }
 
 function currentSearchHref(params: Record<string, string | string[]>) {
+  return searchHref("/", params);
+}
+
+function searchHref(pathname: string, params: Record<string, string | string[]>) {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
@@ -1060,7 +1144,7 @@ function currentSearchHref(params: Record<string, string | string[]>) {
   }
 
   const search = query.toString();
-  return search ? `/?${search}` : "/";
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 function replaceCurrentSearchParams(params: SearchParamsRecord) {

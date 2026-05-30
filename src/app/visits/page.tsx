@@ -1,4 +1,4 @@
-import { CalendarDays, Camera, Eye, EyeOff, History, Home, MapPin, MessageSquareText, RotateCcw, Star } from "lucide-react";
+import { CalendarDays, Camera, ClipboardList, Eye, EyeOff, History, MapPin, MessageSquareText, RotateCcw, Star } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { Route } from "next";
@@ -31,10 +31,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
             <h1>로그인 후 방문 기록을 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
-            <Link className="empty-state-action" href="/">
-              <Home size={15} aria-hidden="true" />
-              AiGo 홈
-            </Link>
             <Link className="empty-state-action is-primary" href="/login?next=/visits">
               <History size={15} aria-hidden="true" />
               로그인
@@ -59,6 +55,12 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
   return (
     <div className="page visits-page">
       <header className="visits-hero">
+        <div className="visits-hero-title">
+          <span className="visits-hero-icon">
+            <ClipboardList size={18} aria-hidden="true" />
+          </span>
+          <h1>방문로그</h1>
+        </div>
         <div className="visits-hero-side">
           {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
           <div className="visits-summary" aria-label="방문 로그 요약">
@@ -79,7 +81,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
               사진 {summary.photoCount}
             </span>
           </div>
-          <VisitPageActions />
         </div>
       </header>
 
@@ -90,16 +91,6 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
           </span>
           <div className="empty-state-copy">
             <h2>장소 상세에서 첫 평가를 남겨보세요</h2>
-          </div>
-          <div className="empty-state-actions">
-            <Link className="empty-state-action" href="/">
-              <Home size={15} aria-hidden="true" />
-              AiGo 홈
-            </Link>
-            <Link className="empty-state-action is-primary" href="/">
-              <MapPin size={15} aria-hidden="true" />
-              장소 찾기
-            </Link>
           </div>
         </section>
       ) : (
@@ -160,21 +151,6 @@ function VisitLogCard({ item }: { item: MyVisitLogItem }) {
         </span>
       </div>
     </Link>
-  );
-}
-
-function VisitPageActions() {
-  return (
-    <nav className="visits-actions" aria-label="방문 로그 이동">
-      <Link className="visits-action" href="/">
-        <Home size={15} aria-hidden="true" />
-        AiGo 홈
-      </Link>
-      <Link className="visits-action is-primary" href="/">
-        <MapPin size={15} aria-hidden="true" />
-        장소 찾기
-      </Link>
-    </nav>
   );
 }
 

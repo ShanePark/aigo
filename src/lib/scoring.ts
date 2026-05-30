@@ -181,6 +181,7 @@ function scorePlaceInternal(
     }
 
     applyNarrowIntentCategorySignal(place, input, reasonCodes, (delta) => addScore("match", delta));
+    applyRepresentativeVisitSignal(place, input, reasonCodes, (delta) => addScore("match", delta));
 
     const requestedTags = new Set(input.tags ?? []);
     const matchedTags = place.tags.filter((tag) => requestedTags.has(tag));
@@ -341,6 +342,46 @@ function applyPlaceQualitySignal(
     if (searchEvidenceScore >= 7.5) reasonCodes.add("SEARCH_EVIDENCE_STRONG");
     else if (searchEvidenceScore <= 4) reasonCodes.add("SEARCH_EVIDENCE_WEAK");
   }
+}
+
+function applyRepresentativeVisitSignal(
+  place: Pick<ScoreablePlace, "primaryCategory" | "tags" | "scoring">,
+  input: SearchPlacesInput,
+  reasonCodes: Set<string>,
+  addScore: (delta: number) => void
+) {
+  if (!input.representativeVisit) return;
+
+  const tags = new Set(place.tags);
+  const category = place.primaryCategory;
+  let delta = 0;
+
+  if (["zoo", "aquarium", "science_museum", "museum", "art_museum", "experience_center"].includes(category)) {
+    delta += 16;
+    reasonCodes.add("REPRESENTATIVE_DESTINATION_BOOST");
+  } else if (category === "park") {
+    delta += tags.has("수목원") || tags.has("arboretum") || tags.has("botanical_garden") ? 15 : 8;
+    reasonCodes.add("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+  } else if (category === "accommodation") {
+    delta += 5;
+    reasonCodes.add("REPRESENTATIVE_STAY_DESTINATION_BOOST");
+  } else if (category === "library") {
+    delta += 4;
+    reasonCodes.add("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+  } else if (category === "shopping_mall") {
+    delta -= 12;
+    reasonCodes.add("REPRESENTATIVE_SHOPPING_DEEMPHASIZED");
+  }
+
+  const facilityScale = facilityScaleSignal(place.scoring?.scoreSignals);
+  if (facilityScale === "large") {
+    delta += 5;
+    reasonCodes.add("REPRESENTATIVE_LARGE_SCALE_BOOST");
+  } else if (facilityScale === "medium") {
+    delta += 2;
+  }
+
+  addScore(delta);
 }
 
 function applyPublicValueSignal(place: ScoreablePlace, reasonCodes: Set<string>, addScore: (delta: number) => void) {

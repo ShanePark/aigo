@@ -17,17 +17,30 @@ export function PlaceViewRecorder({ placeId }: { placeId: string }) {
       // sessionStorage is best-effort; recording should not block detail viewing.
     }
 
-    void fetch(`/api/places/${placeId}/views`, {
-      credentials: "same-origin",
-      method: "POST"
-    }).catch(() => {
-      try {
-        window.sessionStorage.removeItem(storageKey);
-      } catch {
-        // Ignore storage failures.
-      }
-    });
+    void postPlaceView(placeId)
+      .then((recorded) => {
+        if (!recorded) removeViewMarker(storageKey);
+      })
+      .catch(() => {
+        removeViewMarker(storageKey);
+      });
   }, [placeId]);
 
   return null;
+}
+
+export async function postPlaceView(placeId: string, fetcher: typeof fetch = fetch) {
+  const response = await fetcher(`/api/places/${placeId}/views`, {
+    credentials: "same-origin",
+    method: "POST"
+  });
+  return response.ok;
+}
+
+function removeViewMarker(storageKey: string) {
+  try {
+    window.sessionStorage.removeItem(storageKey);
+  } catch {
+    // Ignore storage failures.
+  }
 }

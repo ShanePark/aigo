@@ -1,4 +1,4 @@
-import { Clock, History, Home, MapPin, MousePointerClick, RotateCcw } from "lucide-react";
+import { Clock, History, MapPin, MousePointerClick } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { Route } from "next";
@@ -26,10 +26,6 @@ export default async function RecentPlacesPage() {
             <h1>로그인 후 최근 확인한 장소를 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
-            <Link className="empty-state-action" href="/">
-              <Home size={15} aria-hidden="true" />
-              AiGo 홈
-            </Link>
             <Link className="empty-state-action is-primary" href="/login?next=/recent-places">
               <History size={15} aria-hidden="true" />
               로그인
@@ -45,6 +41,12 @@ export default async function RecentPlacesPage() {
   return (
     <div className="page visits-page">
       <header className="visits-hero">
+        <div className="visits-hero-title">
+          <span className="visits-hero-icon">
+            <History size={18} aria-hidden="true" />
+          </span>
+          <h1>최근 본 장소</h1>
+        </div>
         <div className="visits-hero-side">
           <div className="visits-summary" aria-label="최근 본 장소 요약">
             <span>
@@ -56,7 +58,6 @@ export default async function RecentPlacesPage() {
               최신순
             </span>
           </div>
-          <RecentPlacesActions />
         </div>
       </header>
 
@@ -67,12 +68,6 @@ export default async function RecentPlacesPage() {
           </span>
           <div className="empty-state-copy">
             <h2>장소 상세를 열면 여기에 쌓여요</h2>
-          </div>
-          <div className="empty-state-actions">
-            <Link className="empty-state-action is-primary" href="/">
-              <MapPin size={15} aria-hidden="true" />
-              장소 찾기
-            </Link>
           </div>
         </section>
       ) : (
@@ -111,21 +106,6 @@ function RecentPlaceCard({ item }: { item: RecentPlaceItem }) {
         </span>
       </div>
     </Link>
-  );
-}
-
-function RecentPlacesActions() {
-  return (
-    <nav className="visits-actions" aria-label="최근 본 장소 이동">
-      <Link className="visits-action" href="/">
-        <Home size={15} aria-hidden="true" />
-        AiGo 홈
-      </Link>
-      <Link className="visits-action is-primary" href="/">
-        <RotateCcw size={15} aria-hidden="true" />
-        다시 찾기
-      </Link>
-    </nav>
   );
 }
 

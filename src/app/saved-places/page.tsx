@@ -1,4 +1,4 @@
-import { Bookmark, Heart, Home, MapPin, type LucideIcon } from "lucide-react";
+import { Bookmark, Heart, MapPin, type LucideIcon } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { Route } from "next";
@@ -45,10 +45,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
             <h1>로그인 후 저장한 장소를 볼 수 있어요</h1>
           </div>
           <div className="empty-state-actions">
-            <Link className="empty-state-action" href="/">
-              <Home size={15} aria-hidden="true" />
-              AiGo 홈
-            </Link>
             <Link className="empty-state-action is-primary" href="/login?next=/saved-places">
               <Bookmark size={15} aria-hidden="true" />
               로그인
@@ -64,6 +60,12 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
   return (
     <div className="page visits-page">
       <header className="visits-hero saved-places-hero">
+        <div className="visits-hero-title">
+          <span className="visits-hero-icon">
+            <Bookmark size={18} aria-hidden="true" />
+          </span>
+          <h1>저장한 장소</h1>
+        </div>
         <div className="visits-hero-side">
           <SavedPlaceFilters activeFilter={filter} summary={summary} />
         </div>
@@ -76,12 +78,6 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
           </span>
           <div className="empty-state-copy">
             <h2>{emptyTitle(filter)}</h2>
-          </div>
-          <div className="empty-state-actions">
-            <Link className="empty-state-action is-primary" href="/">
-              <MapPin size={15} aria-hidden="true" />
-              장소 찾기
-            </Link>
           </div>
         </section>
       ) : (

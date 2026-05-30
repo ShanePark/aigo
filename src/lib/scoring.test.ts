@@ -797,6 +797,48 @@ describe("scorePlace", () => {
     expect(publicValue.reasonCodes).toEqual(expect.arrayContaining(["PUBLIC_FREE_ADMISSION", "FACILITY_SCALE_LARGE"]));
   });
 
+  it("boosts regional representative destinations ahead of shopping fallback", () => {
+    const input = {
+      ...baseInput,
+      representativeVisit: true,
+      primaryCategories: ["zoo", "park", "shopping_mall"]
+    } satisfies SearchPlacesInput;
+    const shared = {
+      tags: [],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 144,
+      indoorType: "mixed",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "partial",
+      diaperChangingTable: "partial",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "partial",
+      foodAllowed: "partial",
+      distanceKm: 18,
+      scoring: {
+        placeScore: 8,
+        placeScoreRationale: "지역 대표 가족 방문처.",
+        externalRatingScore: null,
+        externalReviewCount: null,
+        searchEvidenceScore: 8,
+        scoreSignals: { facilityScale: "large" },
+        scoreUpdatedAt: "2026-05-25T00:00:00+09:00"
+      }
+    };
+    const zoo = scorePlace({ ...shared, primaryCategory: "zoo" }, input);
+    const arboretum = scorePlace({ ...shared, primaryCategory: "park", tags: ["수목원"] }, input);
+    const shopping = scorePlace({ ...shared, primaryCategory: "shopping_mall" }, input);
+
+    expect(zoo.reasonCodes).toContain("REPRESENTATIVE_DESTINATION_BOOST");
+    expect(arboretum.reasonCodes).toContain("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+    expect(shopping.reasonCodes).toContain("REPRESENTATIVE_SHOPPING_DEEMPHASIZED");
+    expect(zoo.score).toBeGreaterThan(shopping.score);
+    expect(arboretum.score).toBeGreaterThan(shopping.score);
+  });
+
   it("recognizes low-cost public pricing without over-ranking it as free", () => {
     const result = scorePlace(
       {
