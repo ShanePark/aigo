@@ -1,6 +1,5 @@
 import { Building2, MapPinned, SearchX, Target } from "lucide-react";
 
-import { RESULT_LIMIT_OPTIONS } from "@/app/home-search-state";
 import { ResultsListPanel } from "@/app/explore-results";
 import { KOREA_REGIONS, REGION_MAJOR_CATEGORIES, regionBySlug, type RegionCatalogItem } from "@/app/regions/region-catalog";
 import { RegionMap } from "@/app/regions/region-map";
@@ -16,14 +15,14 @@ type RegionsPageProps = {
 
 type RegionSearchResult = Awaited<ReturnType<typeof searchPlaces>>;
 
-const DEFAULT_REGION_RESULT_LIMIT = RESULT_LIMIT_OPTIONS[0];
+const REGION_RESULT_LIMIT = 100;
 
 export default async function RegionsPage({ searchParams }: RegionsPageProps) {
   const params = await searchParams;
   const selectedRegion = regionBySlug(textParam(params.region));
-  const input = regionSearchInput(selectedRegion, params);
+  const input = regionSearchInput(selectedRegion);
   const result = await safeRegionSearch(input);
-  const regionParams = regionSearchParams(selectedRegion, input);
+  const regionParams = regionSearchParams(selectedRegion);
   const returnHref = regionReturnHref(regionParams);
 
   return (
@@ -81,6 +80,7 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
             pathname="/regions"
             result={result}
             returnHref={returnHref}
+            showFooter={false}
           />
         )}
       </section>
@@ -136,12 +136,12 @@ function RegionError({ message }: { message: string }) {
   );
 }
 
-function regionSearchInput(region: RegionCatalogItem, params: Record<string, string | string[] | undefined>): SearchPlacesInput {
+function regionSearchInput(region: RegionCatalogItem): SearchPlacesInput {
   return {
     diversity: { maxPerCategory: 4 },
     filterByRadius: false,
-    limit: resultLimitParam(params.limit),
-    offset: resultOffsetParam(params.offset),
+    limit: REGION_RESULT_LIMIT,
+    offset: 0,
     origin: {
       lat: region.center.lat,
       lng: region.center.lng,
@@ -156,10 +156,8 @@ function regionSearchInput(region: RegionCatalogItem, params: Record<string, str
   };
 }
 
-function regionSearchParams(region: RegionCatalogItem, input: SearchPlacesInput): Record<string, string> {
+function regionSearchParams(region: RegionCatalogItem): Record<string, string> {
   return {
-    limit: String(input.limit),
-    offset: String(input.offset),
     region: region.slug
   };
 }
@@ -208,15 +206,4 @@ async function safeRegionSearch(input: SearchPlacesInput): Promise<RegionSearchR
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function resultLimitParam(value: string | string[] | undefined) {
-  const requested = Number(textParam(value) || DEFAULT_REGION_RESULT_LIMIT);
-  return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? DEFAULT_REGION_RESULT_LIMIT;
-}
-
-function resultOffsetParam(value: string | string[] | undefined) {
-  const requested = Number(textParam(value) || 0);
-  if (!Number.isFinite(requested) || requested < 0) return 0;
-  return Math.min(Math.floor(requested), 1000);
 }

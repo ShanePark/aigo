@@ -442,7 +442,8 @@ export function ResultsListPanel({
   pathname = "/",
   params,
   result,
-  returnHref
+  returnHref,
+  showFooter = true
 }: {
   className?: string;
   emptyState: ReactNode;
@@ -452,6 +453,7 @@ export function ResultsListPanel({
   params: Record<string, string | string[]>;
   result: SearchResult;
   returnHref: string;
+  showFooter?: boolean;
 }) {
   const router = useRouter();
   const resultsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -480,7 +482,7 @@ export function ResultsListPanel({
           </div>
         </PlaceSaveControlsProvider>
       </div>
-      <ResultFooter meta={result.meta} onPage={handlePage} params={params} pathname={pathname} />
+      {showFooter ? <ResultFooter meta={result.meta} onPage={handlePage} params={params} pathname={pathname} /> : null}
     </div>
   );
 }
