@@ -135,9 +135,10 @@ function getOrCreateRegionMarkers(L: LeafletModule, map: LeafletMap, markersRef:
 }
 
 function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean) {
+  const imageSrc = region.iconSrc ?? region.imageSrc;
   return L.divIcon({
     className: `region-leaflet-marker ${active ? "is-active" : ""}`,
-    html: `<span class="region-leaflet-marker-image"><img src="${region.imageSrc}" alt="" aria-hidden="true" draggable="false" /></span><span class="region-leaflet-marker-label">${region.label}</span>`,
+    html: `<span class="region-leaflet-marker-image"><img src="${imageSrc}" alt="" aria-hidden="true" draggable="false" /></span><span class="region-leaflet-marker-label">${region.label}</span>`,
     iconAnchor: [42, 42],
     iconSize: [84, 100]
   });

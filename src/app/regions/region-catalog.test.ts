@@ -11,6 +11,7 @@ describe("region catalog", () => {
       expect(region.label).toBeTruthy();
       expect(region.regionSido).toBeTruthy();
       expect(region.imageSrc).toBe(`/images/regions/${region.slug}.webp`);
+      if ("iconSrc" in region) expect(region.iconSrc).toBe(`/images/region-icons/${region.slug}.webp`);
       expect(region.intro).toBeTruthy();
       expect(region.mapPosition.x).toBeGreaterThanOrEqual(0);
       expect(region.mapPosition.x).toBeLessThanOrEqual(100);

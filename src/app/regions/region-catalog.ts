@@ -17,6 +17,7 @@ export type RegionCatalogItem = {
     lng: number;
   };
   imageAlt: string;
+  iconSrc?: string;
   imagePromptSubject: string;
   imageSrc: string;
   intro: string;
@@ -213,6 +214,7 @@ export const KOREA_REGIONS = [
     center: { lat: 33.4996, lng: 126.5312 },
     mapPosition: { x: 50, y: 94 },
     imageSrc: "/images/regions/jeju.webp",
+    iconSrc: "/images/region-icons/jeju.webp",
     imageAlt: "제주를 상징하는 미니어처 섬 이미지",
     imagePromptSubject: "Jeju Island, Korea, with Hallasan mountain, volcanic stone walls, ocean cliffs, tangerine trees, and family resort buildings",
     intro: "바다와 오름, 숲길이 가까워 하루 기분을 가볍게 바꾸는 섬이에요."
