@@ -161,7 +161,7 @@ export const places = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(
-        sql`'{"schemaVersion":1,"sourceBacked":{"familyFitGates":[],"activityTypes":[],"visitUseCases":[],"ageBands":[],"logisticsTags":[],"riskTags":[]},"inferred":{"familyFitGates":[],"activityTypes":[],"visitUseCases":[],"ageBands":[],"logisticsTags":[],"riskTags":[]},"migration":{"legacyTags":[],"broadMappedTags":[],"unmappedTags":[]}}'::jsonb`
+        sql`'{"schemaVersion":1,"sourceBacked":{"familyFitGates":[],"activityTypes":[],"visitUseCases":[],"ageBands":[],"accessTags":[],"logisticsTags":[],"riskTags":[]},"inferred":{"familyFitGates":[],"activityTypes":[],"visitUseCases":[],"ageBands":[],"accessTags":[],"logisticsTags":[],"riskTags":[]},"migration":{"legacyTags":[],"broadMappedTags":[],"unmappedTags":[]}}'::jsonb`
       ),
     pricing: jsonb("pricing")
       .$type<Record<string, unknown>>()

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Baby, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves } from "lucide-react";
+import { Baby, Building2, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -41,6 +41,7 @@ type FilterKey =
   | "kidsToilet"
   | "nursing"
   | "parking"
+  | "publicFacility"
   | "sandPlay"
   | "toiletNearby"
   | "waterPlay";
@@ -77,6 +78,12 @@ const FILTER_GROUPS: Array<{
       { key: "babyChair", label: "아기의자", icon: Utensils },
       { key: "parking", label: "주차", icon: Car },
       { key: "toiletNearby", label: "화장실", icon: Toilet }
+    ]
+  },
+  {
+    title: "운영",
+    filters: [
+      { key: "publicFacility", label: "공공시설", icon: Building2 }
     ]
   }
 ];

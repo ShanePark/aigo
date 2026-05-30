@@ -45,6 +45,9 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     ...(params.sandPlay === "on" ? (["sand_play"] as const) : []),
     ...(params.waterPlay === "on" ? (["water_play"] as const) : [])
   ];
+  const taxonomyAccessTags = [
+    ...(params.publicFacility === "on" ? (["public_facility"] as const) : [])
+  ];
 
   return {
     origin: { lat, lng, label: nearby ? "현재 위치" : home ? "집 위치" : viewportBounds ? "지도 중심" : DEFAULT_ORIGIN.label },
@@ -66,10 +69,11 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       kidsToilet: params.kidsToilet === "on" ? true : undefined,
       babyChair: params.babyChair === "on" ? true : undefined
     },
-    taxonomy: taxonomyActivityTypes.length > 0
+    taxonomy: taxonomyActivityTypes.length > 0 || taxonomyAccessTags.length > 0
       ? {
-          mode: "soft",
-          activityTypes: taxonomyActivityTypes
+          mode: taxonomyAccessTags.length > 0 ? "required" : "soft",
+          activityTypes: taxonomyActivityTypes,
+          accessTags: taxonomyAccessTags
         }
       : undefined,
     sort: sortParam(params),

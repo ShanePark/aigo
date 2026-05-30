@@ -29,6 +29,7 @@ const taxonomyFacetSetSchema = z.object({
   activityTypes: z.array(z.enum(taxonomyFacetFamilies.activityTypes)).default([]),
   visitUseCases: z.array(z.enum(taxonomyFacetFamilies.visitUseCases)).default([]),
   ageBands: z.array(z.enum(taxonomyFacetFamilies.ageBands)).default([]),
+  accessTags: z.array(z.enum(taxonomyFacetFamilies.accessTags)).default([]),
   logisticsTags: z.array(z.enum(taxonomyFacetFamilies.logisticsTags)).default([]),
   riskTags: z.array(z.enum(taxonomyFacetFamilies.riskTags)).default([])
 });
@@ -38,6 +39,7 @@ const searchTaxonomySchema = z.object({
   activityTypes: z.array(z.enum(taxonomyFacetFamilies.activityTypes)).max(20).optional(),
   visitUseCases: z.array(z.enum(taxonomyFacetFamilies.visitUseCases)).max(20).optional(),
   ageBands: z.array(z.enum(taxonomyFacetFamilies.ageBands)).max(20).optional(),
+  accessTags: z.array(z.enum(taxonomyFacetFamilies.accessTags)).max(20).optional(),
   logisticsTags: z.array(z.enum(taxonomyFacetFamilies.logisticsTags)).max(20).optional(),
   riskTags: z.array(z.enum(taxonomyFacetFamilies.riskTags)).max(20).optional()
 });
@@ -46,6 +48,7 @@ const emptyTaxonomyFacetSetValue = () => ({
   activityTypes: [],
   visitUseCases: [],
   ageBands: [],
+  accessTags: [],
   logisticsTags: [],
   riskTags: []
 });

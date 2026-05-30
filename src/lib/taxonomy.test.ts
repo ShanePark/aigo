@@ -57,6 +57,7 @@ describe("taxonomy catalog", () => {
         activityTypes: [],
         visitUseCases: [],
         ageBands: [],
+        accessTags: [],
         logisticsTags: [],
         riskTags: []
       },
@@ -65,6 +66,7 @@ describe("taxonomy catalog", () => {
         activityTypes: [],
         visitUseCases: [],
         ageBands: [],
+        accessTags: [],
         logisticsTags: [],
         riskTags: []
       },
@@ -92,9 +94,10 @@ describe("taxonomy catalog", () => {
   });
 
   it("infers Korean parent query facets for future search wiring", () => {
-    const facets = inferTaxonomySearchFacets("쌍둥이 유모차로 비오는날 모래놀이터 가는 길");
+    const facets = inferTaxonomySearchFacets("쌍둥이 유모차로 비오는날 모래놀이터 가는 길 공공시설");
 
     expect(facets.activityTypes).toContain("sand_play");
+    expect(facets.accessTags).toContain("public_facility");
     expect(facets.familyFitGates).toEqual(expect.arrayContaining(["baby_logistics", "route_break"]));
     expect(facets.visitUseCases).toEqual(expect.arrayContaining(["rainy_day", "day_trip"]));
     expect(facets.logisticsTags).toEqual(expect.arrayContaining(["double_stroller", "nursing_room", "diaper_table"]));
