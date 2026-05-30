@@ -20,7 +20,7 @@ The data model intentionally treats parent logistics as first-class signals:
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
 - Public child-friendly facilities, indoor and outdoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, art museums, science museums, aquariums, zoos, parks, family restaurants, shopping malls, rest areas, kid-primary accommodations, and short nature trips
 - Source-backed place records, image provenance, wiki-style version history, and user visit feedback
-- Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, logistics, and risk semantics
+- Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, public-facility access, logistics, and risk semantics
 
 Unknown is an acceptable value when evidence is weak. AiGo should not invent amenities just to make a place look complete.
 
@@ -156,7 +156,7 @@ Age or amenity mismatches usually reduce score or add cautionary reason codes; t
 
 The `scoreBreakdown` response separates components such as `placeQuality`, `externalEvidence`, `distance`, `context`, `match`, `age`, `preferences`, `openingHours`, `visitFit`, and `confidence`. Evidence caps keep under-sourced records, generic family spaces for immediate kid-activity searches, uncertain opening hours, and lodging with weak infant-logistics evidence from over-ranking.
 
-Taxonomy search facets use `soft` mode by default, so unknown records remain eligible with reason-code context. Use `taxonomy.mode: "required"` only when every requested facet must appear in either `sourceBacked` or `inferred` taxonomy.
+Taxonomy search facets use `soft` mode by default, so unknown records remain eligible with reason-code context. Use `taxonomy.mode: "required"` only when every requested facet must appear in either `sourceBacked` or `inferred` taxonomy. Public/nonprofit facility filtering uses `taxonomy.accessTags: ["public_facility"]`.
 
 ## Tech Stack
 

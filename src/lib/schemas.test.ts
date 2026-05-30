@@ -136,6 +136,7 @@ describe("place schemas", () => {
       schemaVersion: 1,
       sourceBacked: {
         familyFitGates: ["child_primary"],
+        accessTags: ["public_facility"],
         logisticsTags: ["parking"]
       },
       inferred: {
@@ -165,6 +166,7 @@ describe("place schemas", () => {
     });
 
     expect(result.sourceBacked.familyFitGates).toEqual(["child_primary"]);
+    expect(result.sourceBacked.accessTags).toEqual(["public_facility"]);
     expect(result.inferred.activityTypes).toEqual(["sand_play"]);
     expect(create.taxonomy?.sourceBacked.familyFitGates).toEqual(["child_primary"]);
     expect(invalid.success).toBe(false);
@@ -366,6 +368,7 @@ describe("place schemas", () => {
     const result = searchPlacesSchema.parse({
       taxonomy: {
         activityTypes: ["sand_play"],
+        accessTags: ["public_facility"],
         logisticsTags: ["stroller"]
       }
     });
@@ -383,6 +386,7 @@ describe("place schemas", () => {
 
     expect(result.taxonomy?.mode).toBe("soft");
     expect(result.taxonomy?.activityTypes).toEqual(["sand_play"]);
+    expect(result.taxonomy?.accessTags).toEqual(["public_facility"]);
     expect(required.taxonomy?.mode).toBe("required");
     expect(invalid.success).toBe(false);
   });

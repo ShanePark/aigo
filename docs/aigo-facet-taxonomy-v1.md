@@ -20,6 +20,7 @@ AiGo keeps `primaryCategory` as a closed top-level category and uses `taxonomy` 
     "activityTypes": [],
     "visitUseCases": [],
     "ageBands": [],
+    "accessTags": [],
     "logisticsTags": [],
     "riskTags": []
   },
@@ -28,6 +29,7 @@ AiGo keeps `primaryCategory` as a closed top-level category and uses `taxonomy` 
     "activityTypes": [],
     "visitUseCases": [],
     "ageBands": [],
+    "accessTags": [],
     "logisticsTags": [],
     "riskTags": [],
     "confidence": "high|medium|low",
@@ -82,6 +84,7 @@ Facet families:
 - `activityTypes`: `indoor_play`, `outdoor_playground`, `water_play`, `sand_play`, `nature_walk`, `reading_books`, `toy_borrowing`, `shopping_browse`, `meal_play`, `science_exhibit`, `culture_exhibit`, `hands_on_experience`, `animals_aquarium`, `lodging_play`
 - `visitUseCases`: `after_daycare`, `nearby_now`, `rainy_day`, `weekend_half_day`, `day_trip`, `hot_day`, `cold_day`
 - `ageBands`: `infant`, `toddler`, `preschool`, `school_age`
+- `accessTags`: `public_facility`
 - `logisticsTags`: `parking`, `low_parking_friction`, `stroller`, `double_stroller`, `elevator`, `nursing_room`, `diaper_table`, `kids_toilet`, `baby_chair`, `food_support`, `reservation`, `session_based`
 - `riskTags`: `water_edge`, `road_nearby`, `steep_path`, `crowding`, `fire_grill`, `current_operation_uncertain`, `seasonal_operation`, `infant_amenity_gap`
 
@@ -120,6 +123,7 @@ Natural Korean queries are normalized into soft taxonomy facets unless explicit 
 - `비오는날`, `우천`, `장마` -> `visitUseCases: ["rainy_day"]`
 - `가는 길`, `도중`, `경로` -> `familyFitGates: ["route_break"]`, `visitUseCases: ["day_trip"]`
 - `놀이방 식당`, `밥 먹고 놀기` -> `activityTypes: ["meal_play"]`
+- `공공시설`, `국립`, `시립`, `구립`, `공립`, `비영리` -> `accessTags: ["public_facility"]`
 
 ## Agent Rules
 

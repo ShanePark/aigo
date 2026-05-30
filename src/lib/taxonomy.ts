@@ -58,6 +58,7 @@ export const taxonomyFacetFamilies = {
   ],
   visitUseCases: ["after_daycare", "nearby_now", "rainy_day", "weekend_half_day", "day_trip", "hot_day", "cold_day"],
   ageBands: ["infant", "toddler", "preschool", "school_age"],
+  accessTags: ["public_facility"],
   logisticsTags: [
     "parking",
     "low_parking_friction",
@@ -201,6 +202,7 @@ export function emptyTaxonomyFacetSet(): TaxonomyFacetSet {
     activityTypes: [],
     visitUseCases: [],
     ageBands: [],
+    accessTags: [],
     logisticsTags: [],
     riskTags: []
   };
@@ -306,6 +308,7 @@ export function inferTaxonomySearchFacets(query: string) {
     facets.visitUseCases.push("day_trip");
   }
   if (/놀이방식당|밥먹고놀기/.test(compact)) facets.activityTypes.push("meal_play");
+  if (/공공시설|공공|국립|시립|구립|군립|도립|공립|비영리/.test(compact)) facets.accessTags.push("public_facility");
 
   return compactFacetSet(facets);
 }

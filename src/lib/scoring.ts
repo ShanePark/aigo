@@ -557,6 +557,7 @@ function taxonomyFacetDelta(family: TaxonomyFacetFamily, requestedValues: readon
       return Math.min(48, requestedValues.reduce((sum, value) => sum + activityTypeDelta(value, place), 0));
     case "visitUseCases":
     case "familyFitGates":
+    case "accessTags":
       return Math.min(4, matchCount * 2);
     case "logisticsTags":
       return Math.min(5, matchCount * 1.5);
@@ -598,6 +599,7 @@ function taxonomyReasonCode(family: TaxonomyFacetFamily) {
     case "familyFitGates":
     case "visitUseCases":
     case "ageBands":
+    case "accessTags":
     default:
       return "TAXONOMY_USE_CASE_MATCH";
   }

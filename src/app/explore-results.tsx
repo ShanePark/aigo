@@ -87,6 +87,7 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "offset",
   "page",
   "parking",
+  "publicFacility",
   "sandPlay",
   "toiletNearby",
   "waterPlay",

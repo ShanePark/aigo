@@ -89,6 +89,7 @@ function emptyFacetCountMap() {
     activityTypes: {},
     visitUseCases: {},
     ageBands: {},
+    accessTags: {},
     logisticsTags: {},
     riskTags: {}
   };

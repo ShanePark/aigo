@@ -94,6 +94,7 @@ paths:
                             activityTypes: []
                             visitUseCases: []
                             ageBands: []
+                            accessTags: []
                             logisticsTags: []
                             riskTags: []
                           inferred:
@@ -101,6 +102,7 @@ paths:
                             activityTypes: []
                             visitUseCases: []
                             ageBands: []
+                            accessTags: []
                             logisticsTags: []
                             riskTags: []
                           migration:
@@ -576,6 +578,11 @@ components:
           items:
             type: string
             enum: [infant, toddler, preschool, school_age]
+        accessTags:
+          type: array
+          items:
+            type: string
+            enum: [public_facility]
         logisticsTags:
           type: array
           items:
@@ -662,6 +669,12 @@ components:
           items:
             type: string
             enum: [infant, toddler, preschool, school_age]
+        accessTags:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            enum: [public_facility]
         logisticsTags:
           type: array
           maxItems: 20
