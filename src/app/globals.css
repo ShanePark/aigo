@@ -1691,7 +1691,7 @@ h3 {
 
 .region-leaflet-marker.is-compact {
   align-items: center;
-  display: flex;
+  display: grid;
   justify-content: center;
 }
 
@@ -1718,13 +1718,13 @@ h3 {
 
 .region-leaflet-marker.is-compact .region-leaflet-marker-image {
   border-width: 2px;
-  height: 30px;
-  width: 30px;
+  height: 40px;
+  width: 40px;
 }
 
 .region-leaflet-marker.is-compact.has-cutout .region-leaflet-marker-image img {
-  filter: drop-shadow(0 6px 8px rgba(24, 33, 29, 0.24));
-  transform: scale(1.04);
+  filter: drop-shadow(0 7px 9px rgba(24, 33, 29, 0.24));
+  transform: scale(1.08);
 }
 
 .region-leaflet-marker-image img {
@@ -8261,7 +8261,7 @@ dd {
   }
 
   .region-leaflet-map .leaflet-tile-pane {
-    opacity: 0;
+    opacity: 0.55;
   }
 
   .region-leaflet-marker-image {
@@ -8271,9 +8271,12 @@ dd {
   }
 
   .region-leaflet-marker-label {
-    font-size: 10px;
-    max-width: 68px;
-    padding: 5px 6px;
+    box-shadow: 0 4px 10px rgba(24, 33, 29, 0.12);
+    font-size: 9.5px;
+    margin-top: -7px;
+    max-width: 42px;
+    padding: 3px 5px;
+    transform: none;
   }
 
   .region-spotlight {

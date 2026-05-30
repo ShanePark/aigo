@@ -154,10 +154,10 @@ function getOrCreateRegionMarkers(L: LeafletModule, map: LeafletMap, markersRef:
 function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean, compact: boolean) {
   const imageSrc = region.iconSrc ?? region.imageSrc;
   const cutoutClassName = region.iconSrc ? " has-cutout" : "";
-  const label = compact ? "" : `<span class="region-leaflet-marker-label">${region.label}</span>`;
+  const label = `<span class="region-leaflet-marker-label">${region.label}</span>`;
   const markerClassName = compact ? " is-compact" : "";
-  const iconSize: [number, number] = compact ? [32, 32] : [84, 100];
-  const iconAnchor: [number, number] = compact ? [16, 16] : [42, 42];
+  const iconSize: [number, number] = compact ? [46, 60] : [84, 100];
+  const iconAnchor: [number, number] = compact ? [23, 30] : [42, 42];
 
   return L.divIcon({
     className: `region-leaflet-marker${cutoutClassName}${markerClassName} ${active ? "is-active" : ""}`,
