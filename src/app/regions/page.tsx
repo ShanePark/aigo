@@ -1,4 +1,4 @@
-import { Building2, MapPinned, SearchX, Target } from "lucide-react";
+import { SearchX } from "lucide-react";
 
 import { ResultsListPanel } from "@/app/explore-results";
 import { KOREA_REGIONS, REGION_MAJOR_CATEGORIES, regionBySlug, type RegionCatalogItem } from "@/app/regions/region-catalog";
@@ -32,20 +32,6 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
           <p className="eyebrow">지역별 보기</p>
           <h1>지역을 누르면 대표 가족 방문처가 보여요</h1>
         </div>
-        <div className="regions-hero-metrics" aria-label={`${selectedRegion.label} 대표 장소 요약`}>
-          <span>
-            <MapPinned size={15} aria-hidden="true" />
-            {selectedRegion.label}
-          </span>
-          <span>
-            <Building2 size={15} aria-hidden="true" />
-            {result.meta.total}곳
-          </span>
-          <span>
-            <Target size={15} aria-hidden="true" />
-            대표순
-          </span>
-        </div>
       </header>
 
       <section className="regions-layout">
@@ -72,7 +58,6 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
                   <p className="region-results-kicker">{selectedRegion.regionSido}</p>
                   <h2>{selectedRegion.label} 대표 장소</h2>
                 </div>
-                <span className="region-result-count">{result.meta.total}곳</span>
               </div>
             }
             metricKeys={["evaluation"]}

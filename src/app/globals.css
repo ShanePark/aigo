@@ -7453,10 +7453,6 @@ dd {
     flex-direction: column;
   }
 
-  .regions-hero-metrics {
-    justify-content: flex-start;
-  }
-
   .regions-layout {
     --explore-height: auto;
     grid-template-columns: 1fr;
@@ -8229,15 +8225,6 @@ dd {
 
   .regions-hero h1 {
     font-size: 23px;
-  }
-
-  .regions-hero-metrics {
-    gap: 5px;
-  }
-
-  .regions-hero-metrics span {
-    min-height: 28px;
-    padding-inline: 8px;
   }
 
   .region-map-panel,
