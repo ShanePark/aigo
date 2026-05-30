@@ -14,7 +14,7 @@ type RegionMapProps = {
 type LeafletModule = typeof import("leaflet");
 
 const KOREA_BOUNDS = [
-  [33.1, 125.95],
+  [32.65, 125.95],
   [38.45, 129.55]
 ] satisfies LatLngBoundsExpression;
 
@@ -30,7 +30,7 @@ const REGION_MARKER_COORDINATES: Partial<Record<string, { lat: number; lng: numb
   gyeonggi: { lat: 37.58, lng: 127.78 },
   gyeongnam: { lat: 35.1, lng: 127.82 },
   incheon: { lat: 37.2, lng: 126.22 },
-  jeju: { lat: 33.36, lng: 126.52 },
+  jeju: { lat: 33.55, lng: 126.52 },
   jeonbuk: { lat: 35.38, lng: 127.02 },
   jeonnam: { lat: 34.34, lng: 126.9 },
   sejong: { lat: 36.68, lng: 127.18 },

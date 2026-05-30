@@ -1746,12 +1746,13 @@ h3 {
   font-size: 12px;
   font-weight: 900;
   line-height: 1;
-  margin-top: -7px;
+  margin-top: -10px;
   max-width: 86px;
   overflow: hidden;
   padding: 6px 8px;
   position: relative;
   text-overflow: ellipsis;
+  transform: translateY(-6px);
   white-space: nowrap;
 }
 
