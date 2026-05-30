@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useRouter } from "next/navigation";
 import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap } from "leaflet";
 
@@ -38,8 +38,11 @@ const REGION_MARKER_COORDINATES: Partial<Record<string, { lat: number; lng: numb
   ulsan: { lat: 35.58, lng: 129.5 }
 };
 
+const COMPACT_MARKER_QUERY = "(max-width: 760px)";
+
 export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
   const router = useRouter();
+  const compactMarkers = useCompactRegionMarkers();
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
@@ -58,7 +61,7 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
       regions.forEach((region) => {
         const markerPosition = markerCoordinate(region);
         const marker = L.marker([markerPosition.lat, markerPosition.lng], {
-          icon: regionIcon(L, region, region.slug === selectedSlug),
+          icon: regionIcon(L, region, region.slug === selectedSlug, compactMarkers),
           keyboard: true,
           title: `${region.label} 대표 장소 보기`
         });
@@ -83,9 +86,23 @@ export function RegionMap({ regions, selectedSlug }: RegionMapProps) {
       mapRef.current = null;
       markersRef.current = null;
     };
-  }, [regions, router, selectedSlug]);
+  }, [compactMarkers, regions, router, selectedSlug]);
 
   return <div className="region-leaflet-map leaflet-map" ref={mapElementRef} />;
+}
+
+function useCompactRegionMarkers() {
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(COMPACT_MARKER_QUERY);
+    const updateCompact = () => setCompact(mediaQuery.matches);
+    updateCompact();
+    mediaQuery.addEventListener("change", updateCompact);
+    return () => mediaQuery.removeEventListener("change", updateCompact);
+  }, []);
+
+  return compact;
 }
 
 function markerCoordinate(region: RegionCatalogItem) {
@@ -134,13 +151,18 @@ function getOrCreateRegionMarkers(L: LeafletModule, map: LeafletMap, markersRef:
   return markers;
 }
 
-function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean) {
+function regionIcon(L: LeafletModule, region: RegionCatalogItem, active: boolean, compact: boolean) {
   const imageSrc = region.iconSrc ?? region.imageSrc;
   const cutoutClassName = region.iconSrc ? " has-cutout" : "";
+  const label = compact ? "" : `<span class="region-leaflet-marker-label">${region.label}</span>`;
+  const markerClassName = compact ? " is-compact" : "";
+  const iconSize: [number, number] = compact ? [32, 32] : [84, 100];
+  const iconAnchor: [number, number] = compact ? [16, 16] : [42, 42];
+
   return L.divIcon({
-    className: `region-leaflet-marker${cutoutClassName} ${active ? "is-active" : ""}`,
-    html: `<span class="region-leaflet-marker-image"><img src="${imageSrc}" alt="" aria-hidden="true" draggable="false" /></span><span class="region-leaflet-marker-label">${region.label}</span>`,
-    iconAnchor: [42, 42],
-    iconSize: [84, 100]
+    className: `region-leaflet-marker${cutoutClassName}${markerClassName} ${active ? "is-active" : ""}`,
+    html: `<span class="region-leaflet-marker-image"><img src="${imageSrc}" alt="" aria-hidden="true" draggable="false" /></span>${label}`,
+    iconAnchor,
+    iconSize
   });
 }

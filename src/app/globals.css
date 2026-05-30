@@ -1689,6 +1689,18 @@ h3 {
   transform: translateY(-4px) scale(1.08);
 }
 
+.region-leaflet-marker.is-compact {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.region-leaflet-marker.is-compact:hover,
+.region-leaflet-marker.is-compact:focus-within,
+.region-leaflet-marker.is-compact.is-active {
+  transform: scale(1.06);
+}
+
 .region-leaflet-marker-image {
   background: var(--panel);
   border: 3px solid var(--panel);
@@ -1702,6 +1714,17 @@ h3 {
     border-color var(--motion-fast),
     box-shadow var(--motion-fast);
   width: 70px;
+}
+
+.region-leaflet-marker.is-compact .region-leaflet-marker-image {
+  border-width: 2px;
+  height: 30px;
+  width: 30px;
+}
+
+.region-leaflet-marker.is-compact.has-cutout .region-leaflet-marker-image img {
+  filter: drop-shadow(0 6px 8px rgba(24, 33, 29, 0.24));
+  transform: scale(1.04);
 }
 
 .region-leaflet-marker-image img {
@@ -1859,7 +1882,7 @@ h3 {
 }
 
 .region-results-panel .result-header {
-  padding: 12px 14px 10px;
+  display: none;
 }
 
 .region-results-panel .results {
@@ -8235,6 +8258,10 @@ dd {
   .region-leaflet-map {
     height: 390px;
     min-height: 0;
+  }
+
+  .region-leaflet-map .leaflet-tile-pane {
+    opacity: 0;
   }
 
   .region-leaflet-marker-image {
