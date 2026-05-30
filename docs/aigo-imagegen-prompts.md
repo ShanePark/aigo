@@ -74,3 +74,45 @@ Generated set:
 - `ulsan.webp`: Ulsan, Korea, with Taehwagang river garden, whale and coastal motifs, modern city architecture, and green park paths.
 - `gyeongnam.webp`: Gyeongsangnam-do, Korea, with coastal islands, Jinhae cherry blossom streets, family parks, and harbor bridges.
 - `jeju.webp`: Jeju Island, Korea, with Hallasan mountain, volcanic stone walls, ocean cliffs, tangerine trees, and family resort buildings.
+
+## Region Map Marker Icons
+
+Use the built-in `$imagegen` workflow once per region, then remove the chroma-key background and export a 512px WebP with alpha under `public/images/region-icons/`. These are used as small map markers, so prefer one friendly mascot-like landmark or object over a full scene.
+
+Base prompt:
+
+```text
+Use case: background-extraction
+Asset type: transparent map marker icon for a kids/family travel app
+Primary request: create a cute <region> regional icon featuring <one representative mascot/object>
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal
+Subject: one adorable rounded <representative mascot/object>, warm smiling face, one small local accent, child-friendly proportions
+Style/medium: polished miniature 3D cartoon icon, soft toy-like proportions, consistent cute 3D regional mascot set, app icon quality, crisp silhouette
+Composition/framing: centered single subject, front-facing 3/4 view, large simple silhouette, no base plate, no circular badge, no scenery
+Lighting/mood: soft cheerful daylight on the subject only, no cast shadow and no contact shadow
+Color palette: locally appropriate colors, avoid using #00ff00 anywhere in the subject
+Materials/textures: refined PBR clay/plastic/stone/wood texture as appropriate, smooth rounded edges
+Text: no text
+Constraints: background must be one uniform #00ff00 with no gradients, shadows, texture, floor, reflection, watermark, letters, or logo; keep crisp separated edges
+Avoid: photorealism, busy scenes, tiny details, dark mood, scenery, badge frame, white/cream background, text
+```
+
+Generated set:
+
+- `seoul.webp`: friendly Namsan Seoul Tower mascot.
+- `incheon.webp`: friendly airport control tower with small airplane accent.
+- `gyeonggi.webp`: friendly Suwon Hwaseong fortress gate mascot.
+- `gangwon.webp`: friendly snowy mountain and pine tree mascot.
+- `chungbuk.webp`: friendly inland lake-and-mountain droplet mascot.
+- `sejong.webp`: friendly book and golden crown mascot.
+- `daejeon.webp`: friendly science rocket mascot.
+- `chungnam.webp`: friendly Baekje stone pagoda mascot.
+- `jeonbuk.webp`: friendly hanok house mascot.
+- `gwangju.webp`: friendly art palette mascot.
+- `jeonnam.webp`: friendly island lighthouse mascot.
+- `daegu.webp`: friendly apple mascot with sun accent.
+- `gyeongbuk.webp`: friendly Cheomseongdae-inspired stone observatory mascot.
+- `busan.webp`: friendly ocean wave with bridge arch accent.
+- `ulsan.webp`: friendly lighthouse and sunrise mascot.
+- `gyeongnam.webp`: friendly turtle ship-inspired boat mascot.
+- `jeju.webp`: friendly Dol Hareubang mascot with tangerine accent.
