@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  Accessibility,
+  ArrowUpDown,
   Baby,
   BookOpen,
   Building2,
@@ -12,6 +14,7 @@ import {
   Home,
   Paintbrush,
   Plus,
+  Sandwich,
   SlidersHorizontal,
   Toilet,
   Trash2,
@@ -53,6 +56,8 @@ type SearchFiltersProps = {
 type FilterKey =
   | "babyChair"
   | "diaperChangingTable"
+  | "elevator"
+  | "foodAllowed"
   | "handsOnExperience"
   | "indoor"
   | "kidsToilet"
@@ -61,6 +66,7 @@ type FilterKey =
   | "publicFacility"
   | "readingBooks"
   | "sandPlay"
+  | "stroller"
   | "toiletNearby"
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
@@ -89,6 +95,8 @@ const FILTER_GROUPS: Array<{
     filters: [
       { key: "nursing", label: "수유실", icon: Baby },
       { key: "diaperChangingTable", label: "기저귀갈이대", icon: Baby },
+      { key: "stroller", label: "유모차", icon: Accessibility },
+      { key: "elevator", label: "엘리베이터", icon: ArrowUpDown },
       { key: "kidsToilet", label: "유아화장실", icon: Toilet }
     ]
   },
@@ -96,6 +104,7 @@ const FILTER_GROUPS: Array<{
     title: "식사/편의",
     filters: [
       { key: "babyChair", label: "아기의자", icon: Utensils },
+      { key: "foodAllowed", label: "간식 가능", icon: Sandwich },
       { key: "parking", label: "주차", icon: Car },
       { key: "toiletNearby", label: "화장실", icon: Toilet }
     ]

@@ -66,10 +66,13 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
       parkingAvailable: params.parking === "on" ? true : undefined,
       toiletNearby: params.toiletNearby === "on" ? true : undefined,
+      strollerFriendly: params.stroller === "on" ? true : undefined,
+      elevator: params.elevator === "on" ? true : undefined,
       nursingRoom: params.nursing === "on" ? true : undefined,
       diaperChangingTable: params.diaperChangingTable === "on" ? true : undefined,
       kidsToilet: params.kidsToilet === "on" ? true : undefined,
-      babyChair: params.babyChair === "on" ? true : undefined
+      babyChair: params.babyChair === "on" ? true : undefined,
+      foodAllowed: params.foodAllowed === "on" ? true : undefined
     },
     taxonomy: taxonomyActivityTypes.length > 0 || taxonomyAccessTags.length > 0
       ? {

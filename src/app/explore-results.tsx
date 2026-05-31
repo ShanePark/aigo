@@ -78,6 +78,8 @@ const RESULT_CARD_PLAY_FEATURE_LABELS: Record<string, string> = {
 };
 const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "babyChair",
+  "elevator",
+  "foodAllowed",
   "handsOnExperience",
   "indoor",
   "maxLat",
@@ -91,6 +93,7 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "publicFacility",
   "readingBooks",
   "sandPlay",
+  "stroller",
   "toiletNearby",
   "waterPlay",
   "diaperChangingTable",
