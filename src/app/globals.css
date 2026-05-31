@@ -788,9 +788,9 @@ h3 {
 }
 
 .advanced-filter-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .advanced-filter-option {
@@ -801,11 +801,12 @@ h3 {
   border-radius: var(--radius-control);
   cursor: pointer;
   display: grid;
-  gap: 7px;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px;
+  grid-template-columns: 1fr;
+  justify-items: center;
   max-width: 148px;
   min-height: 64px;
-  min-width: 108px;
+  min-width: 0;
   padding: 9px 10px;
   position: relative;
   transition:
@@ -840,20 +841,23 @@ h3 {
 .advanced-filter-option-copy {
   align-self: center;
   display: grid;
+  justify-items: center;
   min-width: 0;
+  text-align: center;
 }
 
 .advanced-filter-option-copy strong,
 .advanced-filter-option-copy small {
   line-height: 1.2;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .advanced-filter-option-copy strong {
   color: var(--text);
   font-size: var(--text-sm);
   font-weight: var(--weight-strong);
+  white-space: nowrap;
 }
 
 .advanced-filter-option-copy small {
@@ -4433,6 +4437,11 @@ h3 {
 .app-modal-wide {
   max-width: 720px;
   width: min(100%, 720px);
+}
+
+.app-modal-wide:has(.advanced-filter-modal-content) {
+  max-width: 860px;
+  width: min(100%, 860px);
 }
 
 .app-modal-media {
