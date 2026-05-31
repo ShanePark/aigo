@@ -40,7 +40,7 @@ function completeDetail(overrides: Record<string, unknown> = {}) {
       hotDayScore: 9,
       coldDayScore: 8
     },
-    openingHours: { text: "10:00-22:00" },
+    openingHours: { weekly: { monday: [{ opens: "10:00", closes: "22:00" }] } },
     pricing: { type: "free" },
     scoring: {
       placeScore: 8,
@@ -93,6 +93,24 @@ describe("update-ready patch extractor", () => {
     expect(missing.map((field) => field.writableField)).toEqual(
       expect.arrayContaining(["parentNotes", "safetyNotes", "strollerFriendly", "averageStayMinutes", "taxonomy", "externalRefs.subfacilitySweep"])
     );
+  });
+
+  it("keeps description-only opening hours in the structured update queue", () => {
+    expect(
+      missingUpdateFields(
+        completeDetail({
+          openingHours: { description: "공개 listing에서 운영시간 안내를 확인함" }
+        })
+      ).map((field) => field.writableField)
+    ).toContain("openingHours");
+
+    expect(
+      missingUpdateFields(
+        completeDetail({
+          openingHours: { openNow: true }
+        })
+      ).map((field) => field.writableField)
+    ).not.toContain("openingHours");
   });
 
   it("flags image gaps for missing, primary-less, or unapproved image sets", () => {
