@@ -14,6 +14,7 @@ import {
 } from "@/lib/schemas";
 import {
   duplicateConfidence,
+  duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
@@ -1577,6 +1578,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         aliasMatch: row.alias_match,
         addressMatch: row.address_match,
         regionMatch: row.region_match,
+        branchSiblingReviewOnly: duplicateBranchSiblingReviewOnly(input.name, row.name),
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),

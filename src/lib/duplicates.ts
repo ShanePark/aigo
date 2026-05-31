@@ -6,6 +6,7 @@ export type DuplicateCandidateSignals = {
   addressRegionConflict?: boolean;
   regionMatch?: boolean;
   genericBranchName?: boolean;
+  branchSiblingReviewOnly?: boolean;
   publicSubfacilityReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
@@ -56,6 +57,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("GENERIC_BRANCH_NAME");
   }
 
+  if (signals.branchSiblingReviewOnly) {
+    reasonCodes.push("BRANCH_SIBLING_REVIEW_ONLY");
+  }
+
   if (signals.publicSubfacilityReviewOnly) {
     reasonCodes.push("PUBLIC_SUBFACILITY_REVIEW_ONLY");
   }
@@ -104,10 +109,12 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.kakaoPlaceIdMatch) return "high";
   if (duplicateOutsideRadiusReviewOnly(signals)) return "low";
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.branchSiblingReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly && !signals.aliasMatch) return "medium";
-  if (signals.sameBuildingReviewOnly && !signals.aliasMatch) return "medium";
+  if (signals.sameBuildingReviewOnly) return "medium";
+  if (signals.branchSiblingReviewOnly) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
   if (signals.aliasMatch && (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 1000) return "high";
   if ((signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 150 && (signals.nameSimilarity ?? 0) >= 0.85) return "high";
@@ -119,6 +126,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
 
 export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): DuplicateCandidateSuggestedAction {
   const confidence = duplicateConfidence(signals);
+  if (identityReviewOnly(signals)) return "manual_duplicate_review";
   if (shouldHoldDuplicateReview(signals, confidence)) return "hold_duplicate_review";
   if (confidence === "high" && hasStrongIdentityEvidence(signals)) return "update_existing";
   return "manual_duplicate_review";
@@ -140,6 +148,14 @@ export function duplicateGenericBranchName(inputName: string, candidateName: str
   const input = compactDuplicateText(inputName);
   const candidate = compactDuplicateText(candidateName);
   return genericBranchNameTerms.some((term) => input.includes(term) && candidate.includes(term));
+}
+
+export function duplicateBranchSiblingReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  return branchSiblingReviewTerms.some((term) => input.includes(term) && candidate.includes(term));
 }
 
 export function duplicateSameBuildingReviewOnly(inputName: string, candidateName: string) {
@@ -219,6 +235,7 @@ function hasStrictLocationMatch(signals: DuplicateCandidateSignals) {
 }
 
 function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidence: string) {
+  if (identityReviewOnly(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -233,6 +250,10 @@ function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
       signals.sameSigunguMatch ||
       (signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85)
   );
+}
+
+function identityReviewOnly(signals: DuplicateCandidateSignals) {
+  return Boolean((signals.sameBuildingReviewOnly || signals.branchSiblingReviewOnly) && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch);
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {
@@ -275,6 +296,23 @@ const genericBranchNameTerms = [
   "짬뽕",
   "설렁탕"
 ];
+
+const branchSiblingReviewTerms = [
+  "롯데몰",
+  "롯데백화점",
+  "롯데프리미엄아울렛",
+  "현대백화점",
+  "현대프리미엄아울렛",
+  "신세계백화점",
+  "스타필드",
+  "스타필드시티",
+  "타임빌라스",
+  "토이저러스",
+  "레고스토어",
+  "이마트",
+  "홈플러스",
+  "트레이더스"
+].map(compactDuplicateText);
 
 const publicInstitutionGenericTerms = [
   "교육문화원",

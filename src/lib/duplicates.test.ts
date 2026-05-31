@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   duplicateConfidence,
+  duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
@@ -158,7 +159,43 @@ describe("duplicate helpers", () => {
     expect(duplicateSameBuildingReviewOnly("챔피언 스타필드 시티 명지", "스타필드 시티 명지")).toBe(true);
     expect(duplicateSameBuildingReviewOnly("스타필드 시티 명지점", "스타필드 시티 명지")).toBe(false);
     expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction({ ...signals, aliasMatch: true })).toBe("manual_duplicate_review");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
+  });
+
+  it("keeps chain branch siblings as manual review instead of blocking or updating", () => {
+    const signals = {
+      aliasMatch: true,
+      branchSiblingReviewOnly: true,
+      addressRegionConflict: true,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.82
+    };
+
+    expect(duplicateBranchSiblingReviewOnly("스타필드 시티 부천", "스타필드 안성")).toBe(true);
+    expect(duplicateBranchSiblingReviewOnly("스타필드 시티 부천", "스타필드 시티 부천")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "BRANCH_SIBLING_REVIEW_ONLY", "REGION_MATCH", "ADDRESS_REGION_CONFLICT", "NAME_SIMILAR"])
+    );
+  });
+
+  it("lets external references override branch sibling review cautions", () => {
+    const signals = {
+      aliasMatch: true,
+      branchSiblingReviewOnly: true,
+      externalRefsMatch: true,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 8000,
+      nameSimilarity: 0.82
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("keeps different public childcare subfacilities at review confidence", () => {
