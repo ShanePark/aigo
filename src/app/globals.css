@@ -2640,11 +2640,11 @@ h3 {
   align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  justify-content: space-between;
+  gap: 5px;
+  justify-content: flex-start;
   min-height: 28px;
   min-width: 0;
-  padding-right: 76px;
+  padding-right: 70px;
 }
 
 .place-save-controls {
@@ -2826,10 +2826,10 @@ h3 {
   display: inline-flex;
   font-size: var(--text-xs);
   font-weight: var(--weight-strong);
-  gap: 5px;
+  gap: 4px;
   max-width: min(100%, 18ch);
   overflow: hidden;
-  padding: 6px 9px;
+  padding: 6px 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2903,9 +2903,9 @@ h3 {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  justify-content: flex-end;
-  margin-left: auto;
+  gap: 5px;
+  justify-content: flex-start;
+  margin-left: 0;
   min-width: 0;
 }
 
@@ -2918,9 +2918,9 @@ h3 {
   display: inline-flex;
   font-size: var(--text-xs);
   font-weight: var(--weight-label);
-  gap: 5px;
+  gap: 4px;
   min-height: 28px;
-  padding: 0 9px;
+  padding: 0 8px;
   white-space: nowrap;
 }
 
@@ -2963,6 +2963,31 @@ h3 {
 .result-metric-pill.score-low strong,
 .result-metric-pill.distance-far strong {
   color: var(--coral);
+}
+
+@media (max-width: 1120px) {
+  .result-card-topline > .category-pill {
+    font-size: 0;
+    gap: 0;
+    justify-content: center;
+    max-width: 34px;
+    min-height: 28px;
+    min-width: 34px;
+    padding-inline: 6px;
+    width: 34px;
+  }
+
+  .result-metric-pill.metric-relevance .result-metric-label,
+  .result-metric-pill.metric-evaluation .result-metric-label {
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .result-score-row {
