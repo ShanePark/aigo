@@ -138,6 +138,7 @@ const strongNameTerms = [
 const sourcePublicPattern =
   /(public_agency|go\.kr|국립|시립|구립|도립|군립|공립|시청|구청|군청|도청|교육청|육아종합지원센터|가족센터|건강가정지원센터|장난감도서관|공동육아나눔터)/i;
 const ambiguousNamePattern = /(문화센터|체험관|테마파크|수목원|도서관|과학관|박물관|센터)/;
+const commercialPublicFacilityExclusionPattern = /(넥스페리움|키자니아|상록리조트|아쿠아피아|챔피언|블랙벨트|플레이타임|바운스|트니트니)/;
 
 if (isMain()) {
   const args = parseArgs(process.argv.slice(2));
@@ -363,6 +364,20 @@ export function classifyPublicFacility(place: PlaceDetail, options: Pick<Args, "
     return { action: "skip", confidence: "low", evidence, reasonCodes: ["CATEGORY_NOT_PUBLIC_FACILITY_SCOPE"] };
   }
 
+  if (isCommercialPublicFacilityExclusion(place)) {
+    const commercialEvidence = [...evidence, "commercial/private operator signal in name or tags"];
+    const commercialReasons = [...reasonCodes, "COMMERCIAL_OPERATOR_EXCLUSION"];
+    if (hasPublicFacility(place.taxonomy) && options.pruneStale) {
+      return {
+        action: "remove",
+        confidence: "high",
+        evidence: commercialEvidence,
+        reasonCodes: commercialReasons
+      };
+    }
+    return { action: "hold", confidence: "low", evidence: commercialEvidence, reasonCodes: commercialReasons };
+  }
+
   if (hasPublicFacility(place.taxonomy)) {
     return {
       action: "skip_existing",
@@ -384,7 +399,7 @@ export function classifyPublicFacility(place: PlaceDetail, options: Pick<Args, "
     if (place.primaryCategory === "indoor_playground" && ambiguousNamePattern.test(place.name)) {
       return { action: "hold", confidence: "low", evidence, reasonCodes: [...reasonCodes, "AMBIGUOUS_NAME_NEEDS_SOURCE_REVIEW"] };
     }
-    return { action: "patch", confidence: "medium", evidence, reasonCodes };
+    return { action: "hold", confidence: "low", evidence, reasonCodes: [...reasonCodes, "PUBLIC_SOURCE_NEEDS_OPERATOR_REVIEW"] };
   }
 
   if (ambiguousNamePattern.test(place.name)) {
@@ -510,6 +525,11 @@ function withoutPublicFacility(taxonomy: PlaceTaxonomyInput | null | undefined):
 
 function hasPublicFacility(taxonomy: PlaceTaxonomyInput | null | undefined) {
   return Boolean(taxonomy?.sourceBacked?.accessTags?.includes(PUBLIC_FACILITY_TAG) || taxonomy?.inferred?.accessTags?.includes(PUBLIC_FACILITY_TAG));
+}
+
+function isCommercialPublicFacilityExclusion(place: PlaceDetail) {
+  const text = [place.name, ...(place.tags ?? [])].join(" ");
+  return commercialPublicFacilityExclusionPattern.test(text);
 }
 
 async function listAllActivePlaceSummaries(args: Args) {
