@@ -10,7 +10,8 @@ import {
   duplicateReasonCodes,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
-  duplicateSuggestedAction
+  duplicateSuggestedAction,
+  duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
@@ -310,6 +311,54 @@ describe("duplicate helpers", () => {
         "NAME_SIMILAR"
       ])
     );
+  });
+
+  it("keeps generic activity matches outside the source region as noisy manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      weakThematicSimilarityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 42000,
+      radiusMeters: 800,
+      nameSimilarity: 0.58
+    };
+
+    expect(duplicateWeakThematicSimilarityReviewOnly("고양 물놀이터", "부천 물놀이터")).toBe(true);
+    expect(duplicateWeakThematicSimilarityReviewOnly("서구 어린이자료실", "동래구 어린이자료실")).toBe(true);
+    expect(duplicateWeakThematicSimilarityReviewOnly("고양 물놀이터", "고양 물놀이터")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "WEAK_THEMATIC_SIMILARITY_REVIEW_ONLY",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("lets same-address generic activity matches stay actionable", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      weakThematicSimilarityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      radiusMeters: 800,
+      nameSimilarity: 0.62
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("does not bucket exact or same-district public institution matches as same-sido generic noise", () => {
