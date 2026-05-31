@@ -706,12 +706,17 @@ h3 {
   color: var(--mint);
 }
 
+.advanced-filter-modal-content {
+  display: grid;
+  gap: 10px;
+}
+
 .advanced-filter-layout {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 10px;
   grid-auto-flow: dense;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .advanced-filter-groups {
@@ -740,23 +745,28 @@ h3 {
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(1) {
-  grid-column: span 2;
+  grid-column: span 1;
   order: 1;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(2) {
-  grid-column: span 2;
+  grid-column: span 1;
   order: 2;
 }
 
 .advanced-filter-layout > .advanced-filter-group:nth-of-type(3) {
-  grid-column: span 2;
+  grid-column: span 1;
   order: 3;
 }
 
-.child-profile-panel {
-  grid-column: span 3;
+.advanced-filter-layout > .advanced-filter-group:nth-of-type(4) {
+  grid-column: span 1;
   order: 4;
+}
+
+.child-profile-panel {
+  grid-column: 1 / -1;
+  order: 5;
 }
 
 .advanced-filter-group-head {
@@ -7752,6 +7762,7 @@ dd {
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(1),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(2),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(3),
+  .advanced-filter-layout > .advanced-filter-group:nth-of-type(4),
   .advanced-filter-layout > .child-profile-panel {
     grid-column: auto;
     order: initial;
