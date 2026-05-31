@@ -279,6 +279,7 @@ curl -sS "$AIGO_API_BASE_URL/v1/places/search" \
     "preferences": {
       "indoorTypes": ["indoor", "mixed"],
       "parkingAvailable": true,
+      "toiletNearby": true,
       "strollerFriendly": true,
       "elevator": true,
       "nursingRoom": true,

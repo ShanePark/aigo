@@ -183,7 +183,7 @@ describe("home search input", () => {
     expect(buildSearchInput({ handsOnExperience: "on", readingBooks: "on", sandPlay: "on", waterPlay: "on", preferenceMode: "required" })).toMatchObject({
       taxonomy: {
         mode: "soft",
-        activityTypes: ["sand_play", "water_play"]
+        activityTypes: ["hands_on_experience", "reading_books", "sand_play", "water_play"]
       }
     });
   });

@@ -1248,6 +1248,9 @@ components:
                 $ref: "#/components/schemas/IndoorType"
             parkingAvailable:
               type: boolean
+            toiletNearby:
+              type: boolean
+              description: Prefer places with nearby toilet evidence, using `playFeatures.toiletNearby` and kids-toilet evidence as soft ranking signals.
             strollerFriendly:
               type: boolean
             elevator:

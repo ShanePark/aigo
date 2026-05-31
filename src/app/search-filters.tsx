@@ -2,7 +2,23 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Baby, Building2, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves } from "lucide-react";
+import {
+  Baby,
+  BookOpen,
+  Building2,
+  Car,
+  Check,
+  ChevronDown,
+  Home,
+  Paintbrush,
+  Plus,
+  SlidersHorizontal,
+  Toilet,
+  Trash2,
+  TreePine,
+  Utensils,
+  Waves
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -37,11 +53,13 @@ type SearchFiltersProps = {
 type FilterKey =
   | "babyChair"
   | "diaperChangingTable"
+  | "handsOnExperience"
   | "indoor"
   | "kidsToilet"
   | "nursing"
   | "parking"
   | "publicFacility"
+  | "readingBooks"
   | "sandPlay"
   | "toiletNearby"
   | "waterPlay";
@@ -61,7 +79,9 @@ const FILTER_GROUPS: Array<{
     filters: [
       { key: "indoor", label: "실내", icon: Home },
       { key: "sandPlay", label: "모래놀이", icon: TreePine },
-      { key: "waterPlay", label: "물놀이", icon: Waves }
+      { key: "waterPlay", label: "물놀이", icon: Waves },
+      { key: "handsOnExperience", label: "체험/만들기", icon: Paintbrush },
+      { key: "readingBooks", label: "책놀이", icon: BookOpen }
     ]
   },
   {

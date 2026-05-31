@@ -42,6 +42,8 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     : parseChildAgeMonths(textParam(params.ages));
 
   const taxonomyActivityTypes = [
+    ...(params.handsOnExperience === "on" ? (["hands_on_experience"] as const) : []),
+    ...(params.readingBooks === "on" ? (["reading_books"] as const) : []),
     ...(params.sandPlay === "on" ? (["sand_play"] as const) : []),
     ...(params.waterPlay === "on" ? (["water_play"] as const) : [])
   ];
