@@ -78,9 +78,6 @@ const RESULT_CARD_PLAY_FEATURE_LABELS: Record<string, string> = {
 };
 const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "babyChair",
-  "elevator",
-  "foodAllowed",
-  "handsOnExperience",
   "indoor",
   "maxLat",
   "maxLng",
@@ -91,7 +88,6 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "page",
   "parking",
   "publicFacility",
-  "readingBooks",
   "sandPlay",
   "stroller",
   "toiletNearby",
@@ -866,8 +862,6 @@ function searchInterpretationChips(meta: SearchMeta | null | undefined) {
 
 function taxonomyLabels(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
   const activityLabels: Record<string, string> = {
-    hands_on_experience: "체험/만들기",
-    reading_books: "책놀이",
     sand_play: "모래놀이",
     water_play: "물놀이"
   };
