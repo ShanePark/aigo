@@ -121,6 +121,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isFilterGuideOpen, setIsFilterGuideOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
@@ -269,14 +270,22 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
       <AppModal onClose={() => setIsFilterModalOpen(false)} open={isFilterModalOpen} size="wide" title="세부 조건">
         <div className="advanced-filter-modal-content">
-          <div className="advanced-filter-guide" aria-label="조건 적용 방식 안내">
-            <Info size={16} aria-hidden="true" />
-            <div>
-              <strong>조건마다 적용 방식이 달라요</strong>
-              <span>
+          <div className={`advanced-filter-guide ${isFilterGuideOpen ? "is-open" : ""}`}>
+            <button
+              aria-controls="advanced-filter-guide-copy"
+              aria-expanded={isFilterGuideOpen}
+              className="advanced-filter-guide-button"
+              onClick={() => setIsFilterGuideOpen((current) => !current)}
+              type="button"
+            >
+              <Info size={16} aria-hidden="true" />
+              <span>필수/선호</span>
+            </button>
+            {isFilterGuideOpen ? (
+              <p className="advanced-filter-guide-copy" id="advanced-filter-guide-copy">
                 <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
-              </span>
-            </div>
+              </p>
+            ) : null}
           </div>
           <div className="advanced-filter-layout" aria-label="선호 조건">
             {FILTER_GROUPS.map((group) => (
