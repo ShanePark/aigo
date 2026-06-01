@@ -87,6 +87,7 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "offset",
   "page",
   "parking",
+  "accommodationType",
   "publicFacility",
   "sandPlay",
   "stroller",
@@ -635,12 +636,12 @@ export function ResultCard({
             <span className="rank-badge" aria-label={`${index}번째 결과`}>
               {index}
             </span>
-            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill result-image-category" />
+            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill result-image-category" name={place.name} tags={place.tags} />
           </span>
         </div>
         <div className="result-card-body">
           <div className="result-card-topline">
-            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" />
+            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" name={place.name} tags={place.tags} />
             {metrics.length > 0 ? (
               <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
                 {metrics.map((metric) => (

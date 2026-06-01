@@ -22,6 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import { ACCOMMODATION_TYPES, accommodationTypeById, type AccommodationTypeId } from "@/app/accommodation-types";
 import { AppModal } from "@/app/app-modal";
 import type { ChildParamSource } from "@/app/account-child-defaults";
 import { ChildProfilePickerModal, childProfileIconSrc } from "@/app/child-profile-picker-modal";
@@ -63,6 +64,11 @@ type FilterKey =
   | "toiletNearby"
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
+type SearchFilterOverrides = {
+  accommodationType?: AccommodationTypeId | "";
+  filters?: FilterOverrides;
+  profiles?: ChildProfile[];
+};
 type FilterDefinition = {
   icon: LucideIcon;
   key: FilterKey;
@@ -119,18 +125,23 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const [isPending, startTransition] = useTransition();
   const initialKey = useMemo(() => JSON.stringify({ childParamSource, initialParams }), [childParamSource, initialParams]);
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
+  const [selectedAccommodationType, setSelectedAccommodationType] = useState(() => accommodationTypeFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
 
-  const activeFilterChips = FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label);
+  const selectedAccommodation = accommodationTypeById(selectedAccommodationType);
+  const activeFilterChips = [
+    ...(selectedAccommodation ? [selectedAccommodation.label] : []),
+    ...FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label)
+  ];
   const activeChipCount = activeFilterChips.length + childProfiles.length;
   const profileAges = childProfilesToAgeMonths(childProfiles);
   const isAtProfileLimit = childProfiles.length >= MAX_CHILD_PROFILE_COUNT;
 
-  function applyCurrentForm(overrides: { filters?: FilterOverrides; profiles?: ChildProfile[] } = {}) {
+  function applyCurrentForm(overrides: SearchFilterOverrides = {}) {
     const form = rootRef.current?.closest("form");
     if (!form) return;
 
@@ -139,6 +150,14 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     if (overrides.filters) {
       for (const [key, checked] of Object.entries(overrides.filters)) {
         params.set(key, checked ? "on" : "off");
+      }
+    }
+
+    if (overrides.accommodationType !== undefined) {
+      if (overrides.accommodationType) {
+        params.set("accommodationType", overrides.accommodationType);
+      } else {
+        params.delete("accommodationType");
       }
     }
 
@@ -165,6 +184,12 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   function updateFilter(key: FilterKey, checked: boolean) {
     setSelectedFilters((current) => ({ ...current, [key]: checked }));
     window.setTimeout(() => applyCurrentForm({ filters: { [key]: checked } }), 0);
+  }
+
+  function updateAccommodationType(value: AccommodationTypeId | "") {
+    const nextValue = selectedAccommodationType === value ? "" : value;
+    setSelectedAccommodationType(nextValue);
+    window.setTimeout(() => applyCurrentForm({ accommodationType: nextValue }), 0);
   }
 
   function commitProfiles(nextProfiles: readonly ChildProfile[]) {
@@ -201,6 +226,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     const profilesFromParams = parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages));
     const hasInitialChildParams = childParamSource !== "none" || hasChildParams(initialParams);
     setSelectedFilters(filtersFromParams(initialParams));
+    setSelectedAccommodationType(accommodationTypeFromParams(initialParams));
     setChildProfiles(profilesFromParams);
 
     if (childParamSource === "account") {
@@ -261,9 +287,34 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     );
   }
 
+  function renderAccommodationOption(type: (typeof ACCOMMODATION_TYPES)[number]) {
+    const isSelected = selectedAccommodationType === type.id;
+
+    return (
+      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={type.id}>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(event) => updateAccommodationType(event.currentTarget.checked ? type.id : "")}
+        />
+        <span className="advanced-filter-option-icon">
+          <Image src={`/icons/place-categories/${type.iconCategory}.webp`} alt="" aria-hidden="true" width={25} height={25} />
+        </span>
+        <span className="advanced-filter-option-copy">
+          <strong>{type.label}</strong>
+          <small className="advanced-filter-option-application is-required">필수</small>
+        </span>
+        <span className="advanced-filter-option-state" aria-hidden="true">
+          <Check size={13} />
+        </span>
+      </label>
+    );
+  }
+
   return (
     <div className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
       <SearchPreferenceHiddenInputs params={initialParams} selectedFilters={selectedFilters} />
+      {selectedAccommodationType ? <input name="accommodationType" type="hidden" value={selectedAccommodationType} /> : null}
       <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
       <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
       <button className="advanced-summary-button" type="button" onClick={() => setIsFilterModalOpen(true)} aria-haspopup="dialog">
@@ -302,7 +353,14 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
             </p>
           </div>
-          <div className="advanced-filter-layout" aria-label="선호 조건">
+          <div className="advanced-filter-layout" aria-label="세부 조건">
+            <section className="advanced-filter-group" aria-label="숙박 유형">
+              <div className="advanced-filter-group-head">
+                <strong>숙박 유형</strong>
+                <small>하나만 선택</small>
+              </div>
+              <div className="advanced-filter-options">{ACCOMMODATION_TYPES.map(renderAccommodationOption)}</div>
+            </section>
             {FILTER_GROUPS.map((group, groupIndex) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
                 <div className="advanced-filter-group-head">
@@ -405,6 +463,10 @@ function ChildProfileCard({ profile, onRemove }: { profile: ChildProfile; onRemo
 
 function filtersFromParams(params: Record<string, string | string[]>): Record<FilterKey, boolean> {
   return Object.fromEntries(FILTERS.map((filter) => [filter.key, textParam(params[filter.key]) === "on"])) as Record<FilterKey, boolean>;
+}
+
+function accommodationTypeFromParams(params: Record<string, string | string[]>): AccommodationTypeId | "" {
+  return accommodationTypeById(textParam(params.accommodationType))?.id ?? "";
 }
 
 function hasChildParams(params: Record<string, string | string[]>) {

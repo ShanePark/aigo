@@ -16,7 +16,9 @@ import {
   Utensils
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Image from "next/image";
 
+import { accommodationTypeForPlace } from "@/app/accommodation-types";
 import { placeCategoryLabel } from "@/app/place-category";
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 
@@ -50,21 +52,25 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 type PlaceCategoryBadgeProps = {
   category: string;
   className?: string;
+  name?: string | null;
+  tags?: readonly string[] | null;
 };
 
 export function placeCategoryIcon(value: string): LucideIcon {
   return CATEGORY_ICONS[value] ?? MapPin;
 }
 
-export function PlaceCategoryBadge({ category, className }: PlaceCategoryBadgeProps) {
-  const Icon = placeCategoryIcon(category);
-  const imageSrc = placeCategoryIconImage(category);
+export function PlaceCategoryBadge({ category, className, name, tags }: PlaceCategoryBadgeProps) {
+  const accommodationType = accommodationTypeForPlace(category, { name, tags });
+  const displayCategory = accommodationType?.iconCategory ?? category;
+  const Icon = placeCategoryIcon(displayCategory);
+  const imageSrc = placeCategoryIconImage(displayCategory);
   const classes = ["category-badge", className].filter(Boolean).join(" ");
 
   return (
-    <span className={classes} title={category}>
-      {imageSrc ? <img src={imageSrc} alt="" aria-hidden="true" draggable="false" /> : <Icon size={14} aria-hidden="true" />}
-      {placeCategoryLabel(category)}
+    <span className={classes} title={accommodationType?.id ?? category}>
+      {imageSrc ? <Image src={imageSrc} alt="" aria-hidden="true" draggable="false" width={18} height={18} /> : <Icon size={14} aria-hidden="true" />}
+      {accommodationType?.label ?? placeCategoryLabel(category)}
     </span>
   );
 }

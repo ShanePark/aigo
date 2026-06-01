@@ -865,6 +865,13 @@ h3 {
   width: 30px;
 }
 
+.advanced-filter-option-icon img {
+  display: block;
+  height: 25px;
+  object-fit: contain;
+  width: 25px;
+}
+
 .advanced-filter-option-copy {
   align-self: center;
   display: grid;

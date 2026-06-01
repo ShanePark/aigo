@@ -108,7 +108,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             <div className="detail-title-row">
               <BackToSearchLink href={backHref} />
               <h1>{place.name}</h1>
-              <PlaceCategoryBadge category={place.primaryCategory} className="detail-category-badge" />
+              <PlaceCategoryBadge category={place.primaryCategory} className="detail-category-badge" name={place.name} tags={place.tags} />
             </div>
             <div className="detail-head-meta" aria-label="장소 핵심 정보">
               {addressLabel ? (

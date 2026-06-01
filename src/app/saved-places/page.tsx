@@ -116,7 +116,7 @@ function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
       <PlaceImage category={item.primaryCategory} src={item.imageUrl} alt={`${item.placeName} 대표 이미지`} variant="result" />
       <div className="recent-place-card-body">
         <div className="visit-log-card-topline">
-          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" />
+          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" name={item.placeName} />
           {item.wantToGo ? (
             <span className="trust-badge positive">
               <Bookmark size={13} aria-hidden="true" />
