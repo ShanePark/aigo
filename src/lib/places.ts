@@ -20,6 +20,7 @@ import {
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
+  duplicateRelationshipHint,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
@@ -1601,6 +1602,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         confidence: duplicateConfidence(duplicateSignals),
         reasonCodes: duplicateReasonCodes(duplicateSignals),
         suggestedAction: duplicateSuggestedAction(duplicateSignals),
+        relationshipHint: duplicateRelationshipHint(duplicateSignals),
         outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity

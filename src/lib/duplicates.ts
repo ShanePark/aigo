@@ -20,6 +20,7 @@ export type DuplicateCandidateSignals = {
 };
 
 export type DuplicateCandidateSuggestedAction = "update_existing" | "manual_duplicate_review" | "hold_duplicate_review";
+export type DuplicateCandidateRelationshipHint = "same_building" | "parent_child" | null;
 
 export type DuplicateLocationInput = {
   address?: string | null;
@@ -138,6 +139,13 @@ export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): Du
   return "manual_duplicate_review";
 }
 
+export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): DuplicateCandidateRelationshipHint {
+  if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return null;
+  if (signals.sameBuildingReviewOnly) return "same_building";
+  if (signals.publicSubfacilityReviewOnly && (signals.addressMatch || signals.sameSigunguMatch)) return "parent_child";
+  return null;
+}
+
 export function duplicateOutsideRadiusReviewOnly(signals: DuplicateCandidateSignals) {
   return Boolean(
     signals.radiusMeters !== null &&
@@ -250,6 +258,7 @@ function hasStrictLocationMatch(signals: DuplicateCandidateSignals) {
 
 function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidence: string) {
   if (identityReviewOnly(signals)) return false;
+  if (genericPublicFacilityNoiseReviewOnly(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -272,6 +281,14 @@ function identityReviewOnly(signals: DuplicateCandidateSignals) {
       !signals.externalRefsMatch &&
       !signals.kakaoPlaceIdMatch &&
       !hasStrongIdentityEvidence(signals)
+  );
+}
+
+function genericPublicFacilityNoiseReviewOnly(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    signals.sameSidoGenericReviewOnly &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.addressRegionConflict || signals.publicSubfacilityReviewOnly || duplicateOutsideRadiusReviewOnly(signals))
   );
 }
 

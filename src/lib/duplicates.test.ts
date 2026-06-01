@@ -8,6 +8,7 @@ import {
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
+  duplicateRelationshipHint,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
@@ -161,6 +162,7 @@ describe("duplicate helpers", () => {
     expect(duplicateSameBuildingReviewOnly("스타필드 시티 명지점", "스타필드 시티 명지")).toBe(false);
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateSuggestedAction({ ...signals, aliasMatch: true })).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("same_building");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
   });
 
@@ -219,6 +221,7 @@ describe("duplicate helpers", () => {
     ).toBe(true);
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ADDRESS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
     );
@@ -302,6 +305,7 @@ describe("duplicate helpers", () => {
       })
     ).toBe(true);
     expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "REGION_MATCH",
@@ -311,6 +315,26 @@ describe("duplicate helpers", () => {
         "NAME_SIMILAR"
       ])
     );
+  });
+
+  it("keeps cross-district public subfacility noise as manual review instead of a hard hold", () => {
+    const signals = {
+      aliasMatch: false,
+      regionMatch: true,
+      addressRegionConflict: true,
+      publicSubfacilityReviewOnly: true,
+      sameSidoGenericReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 24000,
+      radiusMeters: 800,
+      nameSimilarity: 0.6
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBeNull();
   });
 
   it("keeps generic activity matches outside the source region as noisy manual review", () => {

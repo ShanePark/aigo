@@ -2563,6 +2563,11 @@ components:
                 type: string
                 enum: [update_existing, manual_duplicate_review, hold_duplicate_review]
                 description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district. `manual_duplicate_review` is also used for branch-sibling or same-building/tenant cautions where name or address similarity is useful context but not identity proof.
+              relationshipHint:
+                type: string
+                nullable: true
+                enum: [same_building, parent_child]
+                description: Optional relationship candidate when the match looks useful as same-building or parent-child context but lacks strong identity evidence. Use this to create `relatedPlaces` evidence instead of treating the candidate as the same place.
               outsideRadiusReviewOnly:
                 type: boolean
                 description: True when the candidate matched by weak name/alias/region evidence outside the requested radius without strict identity evidence such as same address, external refs, or provider id.
