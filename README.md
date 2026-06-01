@@ -75,13 +75,15 @@ All `/v1` agent API routes require bearer auth:
 Authorization: Bearer $AIGO_API_KEY
 ```
 
-For live place-data work, agents should target the deployed API:
+For place-data registration and enrichment, agents must target the deployed API:
 
 ```bash
 export AIGO_API_BASE_URL="${AIGO_API_BASE_URL:-https://aigo.o-r.kr}"
 ```
 
-Use `http://localhost:3000` only for local development or route implementation testing. The local default key `change-me` must not be used against the deployed API.
+For local agent runs, read `AIGO_API_KEY` from the ignored repository `.env` file before making production API calls. Do not print the key in command output or copy it into tracked files.
+
+Do not register, update, enrich, or verify real place data against `http://localhost:3000`. Use localhost only for disposable local development or route implementation testing when explicitly requested. The local default key `change-me` must not be used against the deployed API or for real place-data work.
 
 Before registration or enrichment batches, check the agent API health with the same bearer key:
 
@@ -119,7 +121,7 @@ AiGo stores places in PostgreSQL/PostGIS with Drizzle schema definitions in [`sr
 - `place_visits` - user-owned visit records with server-owned visit dates, inferred revisit status, 1-5 ratings, short review text, and visibility
 - `place_visit_photos` - metadata for visit photos stored under the local upload directory
 
-Real place data should be created and updated through the AiGo API, not direct database writes. The seed script intentionally inserts no real places.
+Real place data should be created and updated through the deployed AiGo API, not direct database writes and not localhost. The seed script intentionally inserts no real places.
 
 ## Search And Scoring
 
@@ -210,7 +212,7 @@ KAKAO_CLIENT_SECRET=your-local-kakao-test-app-client-secret
 AIGO_UPLOAD_DIR=./data/uploads
 ```
 
-`AIGO_API_KEY=change-me` is accepted only as a local development convenience. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
+`AIGO_API_KEY=change-me` is accepted only as a local development convenience. For production place-data work, put the real `AIGO_API_KEY` in the ignored local `.env` file and target `https://aigo.o-r.kr`. Set `AIGO_API_KEY` to a real secret before exposing the API beyond local development. In `NODE_ENV=production`, or when `AIGO_REQUIRE_STRONG_API_KEY=true`, the API rejects the default development key and `pnpm agent:preflight` reports the unsafe configuration.
 
 Visit-photo uploads default to `data/uploads`, which is ignored by git and mounted into the app service by the root Docker Compose file.
 
