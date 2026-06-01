@@ -712,36 +712,32 @@ h3 {
 }
 
 .advanced-filter-guide {
-  align-items: start;
-  display: grid;
-  gap: 7px;
-  justify-items: start;
-}
-
-.advanced-filter-guide-button {
   align-items: center;
   background: color-mix(in srgb, var(--info-bg) 78%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--mint) 18%, var(--line));
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-panel);
+  color: var(--body-copy);
+  display: flex;
+  gap: 8px;
+  padding: 9px 11px;
+}
+
+.advanced-filter-guide > svg {
   color: var(--mint);
-  display: inline-flex;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-title);
-  gap: 5px;
-  min-height: 30px;
-  padding: 0 10px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.advanced-filter-guide-mobile {
+  display: none;
 }
 
 .advanced-filter-guide-copy {
-  background: color-mix(in srgb, var(--info-bg) 78%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--mint) 18%, var(--line));
-  border-radius: var(--radius-panel);
   color: var(--muted);
   font-size: var(--text-xs);
   font-weight: var(--weight-label);
   line-height: 1.45;
   margin: 0;
-  padding: 9px 11px;
 }
 
 .advanced-filter-guide-copy b {
@@ -7848,13 +7844,40 @@ dd {
     gap: 6px;
   }
 
-  .app-modal-body:has(.advanced-filter-modal-content) {
-    padding: 10px 18px 8px;
+  .advanced-filter-guide-desktop {
+    display: none;
   }
 
-  .advanced-filter-guide-button {
-    min-height: 28px;
-    padding-inline: 9px;
+  .advanced-filter-first-row {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+
+  .advanced-filter-first-row .advanced-filter-options {
+    grid-template-columns: 1fr;
+  }
+
+  .advanced-filter-guide-mobile {
+    align-self: stretch;
+    display: flex;
+    gap: 5px;
+    padding: 7px 8px;
+  }
+
+  .advanced-filter-guide-mobile > svg {
+    height: 14px;
+    margin-top: 0;
+    width: 14px;
+  }
+
+  .advanced-filter-guide-mobile .advanced-filter-guide-copy {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .app-modal-body:has(.advanced-filter-modal-content) {
+    padding: 10px 18px 8px;
   }
 
   .advanced-filter-layout {

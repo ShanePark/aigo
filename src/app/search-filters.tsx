@@ -121,7 +121,6 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [isFilterGuideOpen, setIsFilterGuideOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
@@ -235,6 +234,33 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     });
   }, [childParamSource, initialKey, initialParams, router, startTransition]);
 
+  function renderFilterOption(filter: FilterDefinition) {
+    const Icon = filter.icon;
+    const isSelected = selectedFilters[filter.key];
+
+    return (
+      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
+        />
+        <span className="advanced-filter-option-icon">
+          <Icon size={18} aria-hidden="true" />
+        </span>
+        <span className="advanced-filter-option-copy">
+          <strong>{filter.label}</strong>
+          <small className={`advanced-filter-option-application is-${filter.matchMode}`}>
+            {filter.matchMode === "required" ? "필수" : "선호"}
+          </small>
+        </span>
+        <span className="advanced-filter-option-state" aria-hidden="true">
+          <Check size={13} />
+        </span>
+      </label>
+    );
+  }
+
   return (
     <div className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
       <SearchPreferenceHiddenInputs params={initialParams} selectedFilters={selectedFilters} />
@@ -270,59 +296,31 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
       <AppModal onClose={() => setIsFilterModalOpen(false)} open={isFilterModalOpen} size="wide" title="세부 조건">
         <div className="advanced-filter-modal-content">
+          <div className="advanced-filter-guide advanced-filter-guide-desktop" aria-label="조건 적용 방식 안내">
+            <Info size={16} aria-hidden="true" />
+            <p className="advanced-filter-guide-copy">
+              <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
+            </p>
+          </div>
           <div className="advanced-filter-layout" aria-label="선호 조건">
             {FILTER_GROUPS.map((group, groupIndex) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
                 <div className="advanced-filter-group-head">
                   <strong>{group.title}</strong>
-                  {groupIndex === 0 ? (
-                    <div className={`advanced-filter-guide ${isFilterGuideOpen ? "is-open" : ""}`}>
-                      <button
-                        aria-controls="advanced-filter-guide-copy"
-                        aria-expanded={isFilterGuideOpen}
-                        className="advanced-filter-guide-button"
-                        onClick={() => setIsFilterGuideOpen((current) => !current)}
-                        type="button"
-                      >
-                        <Info size={16} aria-hidden="true" />
-                        <span>필수/선호</span>
-                      </button>
+                </div>
+                {groupIndex === 0 ? (
+                  <div className="advanced-filter-first-row">
+                    <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
+                    <div className="advanced-filter-guide advanced-filter-guide-mobile" aria-label="조건 적용 방식 안내">
+                      <Info size={15} aria-hidden="true" />
+                      <p className="advanced-filter-guide-copy">
+                        <b>필수</b>는 맞는 장소만 찾고, <b>선호</b>는 더 위에 보여줘요.
+                      </p>
                     </div>
-                  ) : null}
-                </div>
-                {groupIndex === 0 && isFilterGuideOpen ? (
-                  <p className="advanced-filter-guide-copy" id="advanced-filter-guide-copy">
-                    <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
-                  </p>
-                ) : null}
-                <div className="advanced-filter-options">
-                  {group.filters.map((filter) => {
-                    const Icon = filter.icon;
-                    const isSelected = selectedFilters[filter.key];
-
-                    return (
-                      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
-                        />
-                        <span className="advanced-filter-option-icon">
-                          <Icon size={18} aria-hidden="true" />
-                        </span>
-                        <span className="advanced-filter-option-copy">
-                          <strong>{filter.label}</strong>
-                          <small className={`advanced-filter-option-application is-${filter.matchMode}`}>
-                            {filter.matchMode === "required" ? "필수" : "선호"}
-                          </small>
-                        </span>
-                        <span className="advanced-filter-option-state" aria-hidden="true">
-                          <Check size={13} />
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                  </div>
+                ) : (
+                  <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
+                )}
               </section>
             ))}
           </div>
