@@ -47,6 +47,37 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("rejects nested facility and visit blocks that the places API would ignore", () => {
+    const result = validateResearchPayload({
+      ...validPayload(),
+      facilities: {
+        indoorType: "outdoor",
+        parkingAvailable: "yes",
+        nursingRoom: "unknown"
+      },
+      visit: {
+        averageStayMinutes: 90,
+        parentEffortLevel: 2
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_unsupported_nested_api_block",
+          path: "facilities",
+          severity: "error"
+        }),
+        expect.objectContaining({
+          code: "workflow_unsupported_nested_api_block",
+          path: "visit",
+          severity: "error"
+        })
+      ])
+    );
+  });
+
   it("rejects non-registration workflow status and confidence", () => {
     const result = validateResearchPayload({
       ...validPayload(),

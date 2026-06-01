@@ -107,6 +107,33 @@ const publicTextFields: Array<[string, (payload: CreatePlaceInput) => unknown]> 
   ["placeScoreRationale", (payload) => payload.placeScoreRationale],
   ["playFeatures.notes", (payload) => (isRecord(payload.playFeatures) ? payload.playFeatures.notes : undefined)]
 ];
+const unsupportedNestedApiBlocks = [
+  {
+    path: "facilities",
+    canonicalFields: [
+      "indoorType",
+      "strollerFriendly",
+      "parkingAvailable",
+      "nursingRoom",
+      "diaperChangingTable",
+      "kidsToilet",
+      "babyChair",
+      "foodAllowed"
+    ]
+  },
+  {
+    path: "visit",
+    canonicalFields: [
+      "reservationRequired",
+      "walkInAvailable",
+      "sessionBased",
+      "sameDayAvailabilityKnown",
+      "averageStayMinutes",
+      "parentEffortLevel",
+      "childEngagementLevel"
+    ]
+  }
+];
 
 if (isMain()) {
   void main();
@@ -190,6 +217,7 @@ export function validateResearchPayload(payload: unknown, context: { source?: st
     return lintResult(context, name, issues);
   }
 
+  collectRawPayloadShapeIssues(payload, issues);
   collectWorkflowIssues(parsed.data, issues);
   return lintResult(context, parsed.data.name, issues);
 }
@@ -265,6 +293,21 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
   collectParentReviewEvidenceIssues(payload, issues);
   collectPrivateKidsCafeSourceRoleIssues(payload, issues);
   collectRichPublicDestinationSweepIssues(payload, issues);
+}
+
+function collectRawPayloadShapeIssues(payload: unknown, issues: ResearchPayloadLintIssue[]) {
+  if (!isRecord(payload)) return;
+
+  for (const block of unsupportedNestedApiBlocks) {
+    if (!isRecord(payload[block.path])) continue;
+    issues.push(
+      error(
+        block.path,
+        "workflow_unsupported_nested_api_block",
+        `${block.path} is not accepted by /v1/places create/update; move its values to canonical top-level fields such as ${block.canonicalFields.join(", ")} before validation or mutation`
+      )
+    );
+  }
 }
 
 function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
