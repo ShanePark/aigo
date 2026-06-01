@@ -7849,33 +7849,31 @@ dd {
 
   .advanced-filter-layout {
     display: grid;
-    column-gap: 10px;
-    grid-template-columns: minmax(110px, 0.72fr) minmax(0, 1.28fr);
-    row-gap: 0;
+    gap: 0;
+    grid-template-columns: 1fr;
   }
 
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(1),
+  .advanced-filter-layout > .advanced-filter-group:nth-of-type(2),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(3),
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(4),
   .advanced-filter-layout > .child-profile-panel {
+    grid-column: 1 / -1;
     order: initial;
   }
 
   .advanced-filter-layout > .advanced-filter-group:nth-of-type(2) {
-    border-left: 1px solid var(--line);
-    padding-left: 10px;
-  }
-
-  .advanced-filter-layout > .advanced-filter-group:nth-of-type(n + 3),
-  .advanced-filter-layout > .child-profile-panel {
-    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 9px;
   }
 
   .advanced-filter-group,
   .child-profile-panel {
     border-radius: 0;
-    gap: 8px;
-    padding: 11px 0;
+    gap: 7px;
+    padding: 9px 0;
     width: 100%;
   }
 
@@ -7886,7 +7884,7 @@ dd {
   .advanced-filter-options {
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: start;
   }
 
@@ -7896,14 +7894,14 @@ dd {
     gap: 7px;
     justify-items: start;
     max-width: none;
-    min-height: 40px;
+    min-height: 38px;
     min-width: 0;
-    padding: 5px 9px 5px 6px;
+    padding: 5px 8px 5px 6px;
   }
 
   .advanced-filter-option-icon {
-    height: 28px;
-    width: 28px;
+    height: 27px;
+    width: 27px;
   }
 
   .advanced-filter-option-copy {
@@ -7943,8 +7941,8 @@ dd {
   }
 
   .app-modal-body .advanced-filter-option-icon {
-    height: 30px;
-    width: 30px;
+    height: 27px;
+    width: 27px;
   }
 
   .child-profile-panel-head {
