@@ -65,6 +65,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 ## Workflow
 
 1. Scope the research slice.
+   - At the start of any broad or recurring place-data collection run, read and update `agent-research/aigo-collection-context.md` if it exists. This ignored context file is the rolling source for current coverage, completed production sync waves, active regional priorities, held blocker buckets, and the next ordered sprint queue. If it does not exist, create it before continuing a recurring density program.
    - For broad expansion, collect family-useful places nationwide across Korea. Use runtime user context and prior coverage only as personalization references, not hard-coded geographic or household limits.
    - Split nationwide work into region blocks so coverage grows evenly: Seoul/Incheon/Gyeonggi, Gangwon, Chungcheong, Jeolla/Gwangju, Gyeongsang/Busan/Daegu/Ulsan, and Jeju. Within each block, prioritize major cities, tourism corridors, and family-travel routes before smaller long-tail areas.
    - Favor family-fit leads: indoor fallback, kids cafes, public child-friendly facilities, stroller logistics, nursing/diaper support, parking, snacks/meals, short outdoor sensory play, and practical day trips.
@@ -171,6 +172,16 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Search responses use top-level `items` and `meta`; do not read a `results` array from current `/v1/places/search` responses. `meta.total` is the runtime-scored and diversity-filtered candidate count before `offset`/`limit`, not a fixed SQL prefilter cap. For research scripts, import `searchPlacesReadOnly`, `exactNameSearchReadOnly`, or `readSearchItems` from `scripts/lib/aigo-search.ts` so cached legacy shapes can be handled without silently treating current responses as empty.
    - Before a mutation batch that depends on search/duplicate prechecks, call `warmSearchRouteReadOnly` from `scripts/lib/aigo-search.ts` once. The read-only HTTP helpers in that module retry transient Next.js HTML 404s and 5xx responses with short backoff for search, detail, versions, image-health, and duplicate routes, so route warm-up or dev-server chunk races do not fail the whole batch.
    - Retail fallback branches may have chain aliases such as `롯데몰 김포공항`, `백화점 김포공항점`, `쇼핑몰 은평점`, `스타필드시티 부천`, `롯데프리미엄아울렛 의왕점`, and `타임빌라스`. Exact-name search folds spacing, common retail brand variants, branch suffix `점`, and stored `externalRefs.aliases`, so use exact-name search and duplicate checks before staging them as missing; `QUERY_RETAIL_ALIAS_MATCH`, `QUERY_NAME_EXACT`, or duplicate `ALIAS_MATCH` can indicate the same branch or facility under another label. When a query includes a conflicting branch or region such as `타임빌라스 수원`, do not treat a different branch alias such as 의왕 as the same place without address or region evidence.
+
+8. Update the rolling collection context.
+   - After every density sprint, update `agent-research/aigo-collection-context.md` with the active region/slice, candidate attempt count, production create/update counts, held blockers by category, coverage signal changes, and the next ordered sprint queue.
+   - Keep this file concise and current; do not paste full source notes or raw payloads into it. Detailed evidence stays in the per-slice `agent-research/` handoffs.
+
+9. Keep `agent-research/` from accumulating stale raw outputs.
+   - Before deleting or archiving old handoffs, preserve useful unresolved candidate signals in `agent-research/aigo-collection-context.md` or a compact candidate index. Do not delete the only copy of a still-useful candidate, source URL, blocker, or production id.
+   - API result JSON, duplicate/search/detail/verification dumps, validation text logs, temporary mutation scripts, and other generated outputs should be summarized into the rolling context or a cleanup manifest, then removed when they are no longer needed for an active blocker.
+   - Prefer one current handoff per active sprint plus the rolling context. Avoid creating many near-duplicate result files; append concise outcomes to the active handoff or context instead.
+   - At the end of a recurring heartbeat, record what raw files were retained or removed and why, especially when research-only handoffs remain because they still need coordinate, image, source, or duplicate resolution.
 
 Read-only exact-name search helper example for research scripts:
 
