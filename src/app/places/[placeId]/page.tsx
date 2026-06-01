@@ -18,6 +18,7 @@ import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-bad
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
+import { safePlaceReturnHref } from "@/app/places/place-return-to";
 import { PlaceScoreDialog } from "@/app/places/place-score-dialog";
 import { PlaceSaveControls } from "@/app/places/place-save-controls";
 import { PlaceVisitPanel } from "@/app/places/place-visit-panel";
@@ -36,19 +37,6 @@ type PlaceDetailProps = {
   }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function searchBackHref(value: string | string[] | undefined): Route {
-  const candidate = textParam(value);
-  if (!candidate || candidate.startsWith("//") || !candidate.startsWith("/")) return "/";
-
-  try {
-    const url = new URL(candidate, "https://aigo.local");
-    if (url.origin !== "https://aigo.local" || url.pathname !== "/") return "/";
-    return `${url.pathname}${url.search}${url.hash}` as Route;
-  } catch {
-    return "/";
-  }
-}
 
 function relatedPlaceHref(placeId: string, backHref: Route): Route {
   return `/places/${placeId}?returnTo=${encodeURIComponent(backHref)}` as Route;
@@ -70,7 +58,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
   const routeSupportNotes = routeSupportNotesText(place.routeSupport);
   const heroImage = place.primaryImage;
   const galleryImages = place.images;
-  const backHref = searchBackHref(query.returnTo);
+  const backHref = safePlaceReturnHref(query.returnTo) as Route;
   const primaryInfoLink = infoLinks[0];
   const familySignalChips = detailFamilySignalChips(place);
   const visitSignalChips = detailVisitSignalChips(place);
