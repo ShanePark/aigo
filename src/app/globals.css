@@ -804,6 +804,7 @@ h3 {
   align-items: baseline;
   display: flex;
   gap: 8px;
+  justify-content: space-between;
 }
 
 .advanced-filter-group-head strong {
@@ -7844,11 +7845,7 @@ dd {
   }
 
   .advanced-filter-modal-content {
-    gap: 8px;
-  }
-
-  .advanced-filter-guide {
-    margin-bottom: -2px;
+    gap: 6px;
   }
 
   .advanced-filter-guide-button {
@@ -7892,20 +7889,21 @@ dd {
 
   .advanced-filter-options {
     display: grid;
-    gap: 6px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: start;
   }
 
   .advanced-filter-option {
     align-items: center;
-    border-radius: var(--radius-control);
-    gap: 7px;
-    justify-items: start;
+    border-radius: 8px;
+    display: grid;
+    gap: 3px;
+    justify-items: center;
     max-width: none;
-    min-height: 38px;
+    min-height: 58px;
     min-width: 0;
-    padding: 5px 8px 5px 6px;
+    padding: 5px 4px;
   }
 
   .advanced-filter-option-icon {
@@ -7914,22 +7912,23 @@ dd {
   }
 
   .advanced-filter-option-copy {
-    justify-items: start;
-    text-align: left;
+    justify-items: center;
+    text-align: center;
   }
 
   .advanced-filter-option-copy strong {
-    font-size: 12px;
-    line-height: 1;
+    font-size: 10.5px;
+    line-height: 1.08;
   }
 
   .advanced-filter-option-copy small {
-    font-size: 9.5px;
+    font-size: 9px;
+    padding: 2px 5px;
   }
 
   .app-modal-body .advanced-filter-option-copy strong {
-    font-size: 12px;
-    white-space: nowrap;
+    font-size: 10.5px;
+    white-space: normal;
   }
 
   .advanced-filter-option-state {
@@ -7941,8 +7940,8 @@ dd {
   }
 
   .app-modal-body .advanced-filter-option {
-    gap: 7px;
-    padding-inline: 5px;
+    gap: 3px;
+    padding-inline: 4px;
   }
 
   .app-modal-body .advanced-filter-option-state {

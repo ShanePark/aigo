@@ -270,29 +270,31 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
       <AppModal onClose={() => setIsFilterModalOpen(false)} open={isFilterModalOpen} size="wide" title="세부 조건">
         <div className="advanced-filter-modal-content">
-          <div className={`advanced-filter-guide ${isFilterGuideOpen ? "is-open" : ""}`}>
-            <button
-              aria-controls="advanced-filter-guide-copy"
-              aria-expanded={isFilterGuideOpen}
-              className="advanced-filter-guide-button"
-              onClick={() => setIsFilterGuideOpen((current) => !current)}
-              type="button"
-            >
-              <Info size={16} aria-hidden="true" />
-              <span>필수/선호</span>
-            </button>
-            {isFilterGuideOpen ? (
-              <p className="advanced-filter-guide-copy" id="advanced-filter-guide-copy">
-                <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
-              </p>
-            ) : null}
-          </div>
           <div className="advanced-filter-layout" aria-label="선호 조건">
-            {FILTER_GROUPS.map((group) => (
+            {FILTER_GROUPS.map((group, groupIndex) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
                 <div className="advanced-filter-group-head">
                   <strong>{group.title}</strong>
+                  {groupIndex === 0 ? (
+                    <div className={`advanced-filter-guide ${isFilterGuideOpen ? "is-open" : ""}`}>
+                      <button
+                        aria-controls="advanced-filter-guide-copy"
+                        aria-expanded={isFilterGuideOpen}
+                        className="advanced-filter-guide-button"
+                        onClick={() => setIsFilterGuideOpen((current) => !current)}
+                        type="button"
+                      >
+                        <Info size={16} aria-hidden="true" />
+                        <span>필수/선호</span>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
+                {groupIndex === 0 && isFilterGuideOpen ? (
+                  <p className="advanced-filter-guide-copy" id="advanced-filter-guide-copy">
+                    <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
+                  </p>
+                ) : null}
                 <div className="advanced-filter-options">
                   {group.filters.map((filter) => {
                     const Icon = filter.icon;
