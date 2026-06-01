@@ -14,14 +14,17 @@ import {
 } from "@/lib/schemas";
 import {
   duplicateConfidence,
+  duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
+  duplicateRelationshipHint,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
-  duplicateSuggestedAction
+  duplicateSuggestedAction,
+  duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
 import { listPlaceVisitSummaries } from "@/lib/place-visits";
@@ -1577,6 +1580,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         aliasMatch: row.alias_match,
         addressMatch: row.address_match,
         regionMatch: row.region_match,
+        branchSiblingReviewOnly: duplicateBranchSiblingReviewOnly(input.name, row.name),
+        weakThematicSimilarityReviewOnly: duplicateWeakThematicSimilarityReviewOnly(input.name, row.name),
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
@@ -1597,6 +1602,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         confidence: duplicateConfidence(duplicateSignals),
         reasonCodes: duplicateReasonCodes(duplicateSignals),
         suggestedAction: duplicateSuggestedAction(duplicateSignals),
+        relationshipHint: duplicateRelationshipHint(duplicateSignals),
         outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity

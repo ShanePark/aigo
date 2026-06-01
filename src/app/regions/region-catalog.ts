@@ -5,6 +5,7 @@ export const REGION_MAJOR_CATEGORIES = [
   "science_museum",
   "art_museum",
   "experience_center",
+  "indoor_playground",
   "park",
   "shopping_mall",
   "accommodation",

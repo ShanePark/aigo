@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   duplicateConfidence,
+  duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
+  duplicateRelationshipHint,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
-  duplicateSuggestedAction
+  duplicateSuggestedAction,
+  duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 
 describe("duplicate helpers", () => {
@@ -158,7 +161,44 @@ describe("duplicate helpers", () => {
     expect(duplicateSameBuildingReviewOnly("챔피언 스타필드 시티 명지", "스타필드 시티 명지")).toBe(true);
     expect(duplicateSameBuildingReviewOnly("스타필드 시티 명지점", "스타필드 시티 명지")).toBe(false);
     expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction({ ...signals, aliasMatch: true })).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("same_building");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
+  });
+
+  it("keeps chain branch siblings as manual review instead of blocking or updating", () => {
+    const signals = {
+      aliasMatch: true,
+      branchSiblingReviewOnly: true,
+      addressRegionConflict: true,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.82
+    };
+
+    expect(duplicateBranchSiblingReviewOnly("스타필드 시티 부천", "스타필드 안성")).toBe(true);
+    expect(duplicateBranchSiblingReviewOnly("스타필드 시티 부천", "스타필드 시티 부천")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "BRANCH_SIBLING_REVIEW_ONLY", "REGION_MATCH", "ADDRESS_REGION_CONFLICT", "NAME_SIMILAR"])
+    );
+  });
+
+  it("lets external references override branch sibling review cautions", () => {
+    const signals = {
+      aliasMatch: true,
+      branchSiblingReviewOnly: true,
+      externalRefsMatch: true,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 8000,
+      nameSimilarity: 0.82
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("keeps different public childcare subfacilities at review confidence", () => {
@@ -181,6 +221,7 @@ describe("duplicate helpers", () => {
     ).toBe(true);
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ADDRESS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
     );
@@ -264,6 +305,7 @@ describe("duplicate helpers", () => {
       })
     ).toBe(true);
     expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "REGION_MATCH",
@@ -273,6 +315,74 @@ describe("duplicate helpers", () => {
         "NAME_SIMILAR"
       ])
     );
+  });
+
+  it("keeps cross-district public subfacility noise as manual review instead of a hard hold", () => {
+    const signals = {
+      aliasMatch: false,
+      regionMatch: true,
+      addressRegionConflict: true,
+      publicSubfacilityReviewOnly: true,
+      sameSidoGenericReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 24000,
+      radiusMeters: 800,
+      nameSimilarity: 0.6
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBeNull();
+  });
+
+  it("keeps generic activity matches outside the source region as noisy manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      weakThematicSimilarityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 42000,
+      radiusMeters: 800,
+      nameSimilarity: 0.58
+    };
+
+    expect(duplicateWeakThematicSimilarityReviewOnly("고양 물놀이터", "부천 물놀이터")).toBe(true);
+    expect(duplicateWeakThematicSimilarityReviewOnly("서구 어린이자료실", "동래구 어린이자료실")).toBe(true);
+    expect(duplicateWeakThematicSimilarityReviewOnly("고양 물놀이터", "고양 물놀이터")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "WEAK_THEMATIC_SIMILARITY_REVIEW_ONLY",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("lets same-address generic activity matches stay actionable", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      weakThematicSimilarityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      radiusMeters: 800,
+      nameSimilarity: 0.62
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("does not bucket exact or same-district public institution matches as same-sido generic noise", () => {

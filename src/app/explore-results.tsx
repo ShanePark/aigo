@@ -89,6 +89,7 @@ const RELAXED_SEARCH_PARAM_KEYS = new Set([
   "parking",
   "publicFacility",
   "sandPlay",
+  "stroller",
   "toiletNearby",
   "waterPlay",
   "diaperChangingTable",
@@ -861,7 +862,6 @@ function searchInterpretationChips(meta: SearchMeta | null | undefined) {
 
 function taxonomyLabels(taxonomy: SearchPlacesInput["taxonomy"] | null | undefined) {
   const activityLabels: Record<string, string> = {
-    reading_books: "책놀이",
     sand_play: "모래놀이",
     water_play: "물놀이"
   };

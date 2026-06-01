@@ -28,6 +28,7 @@ describe("region catalog", () => {
       "science_museum",
       "art_museum",
       "experience_center",
+      "indoor_playground",
       "park",
       "shopping_mall",
       "accommodation",

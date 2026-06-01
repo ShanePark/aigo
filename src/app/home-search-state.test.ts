@@ -113,6 +113,7 @@ describe("home search input", () => {
         kidsToilet: "on",
         nursing: "on",
         parking: "on",
+        stroller: "on",
         toiletNearby: "on",
         preferenceMode: "required"
       })
@@ -123,31 +124,15 @@ describe("home search input", () => {
         kidsToilet: true,
         nursingRoom: true,
         parkingAvailable: true,
+        strollerFriendly: true,
         toiletNearby: true
       }
     });
-    expect(
-      buildSearchInput({
-        elevator: "on",
-        foodAllowed: "on",
-        stroller: "on"
-      }).preferences
-    ).not.toHaveProperty("elevator");
-    expect(
-      buildSearchInput({
-        elevator: "on",
-        foodAllowed: "on",
-        stroller: "on"
-      }).preferences
-    ).not.toHaveProperty("foodAllowed");
-    expect(
-      buildSearchInput({
-        elevator: "on",
-        foodAllowed: "on",
-        stroller: "on"
-      }).preferences
-    ).not.toHaveProperty("strollerFriendly");
     expect(buildSearchInput({ parking: "on", preferenceMode: "required" })).not.toHaveProperty("preferenceMode");
+    expect(buildSearchInput({ elevator: "on", foodAllowed: "on" }).preferences).not.toMatchObject({
+      elevator: true,
+      foodAllowed: true
+    });
   });
 
   it("treats explicit off preference params as URL overrides without applying filters", () => {

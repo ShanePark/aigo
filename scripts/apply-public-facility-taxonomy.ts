@@ -12,6 +12,7 @@ type Args = {
   limit?: number;
   maxPatches?: number;
   offset: number;
+  pruneStale: boolean;
 };
 
 type ImageHealthResponse = {
@@ -64,7 +65,7 @@ type VersionList = {
 };
 
 type Classification = {
-  action: "patch" | "skip_existing" | "hold" | "skip";
+  action: "patch" | "remove" | "skip_existing" | "hold" | "skip";
   confidence: "high" | "medium" | "low";
   evidence: string[];
   reasonCodes: string[];
@@ -101,7 +102,6 @@ const publicCategoryAllowList = new Set([
   "art_museum",
   "experience_center",
   "sports_venue",
-  "playground",
   "park",
   "indoor_playground"
 ]);
@@ -138,6 +138,7 @@ const strongNameTerms = [
 const sourcePublicPattern =
   /(public_agency|go\.kr|국립|시립|구립|도립|군립|공립|시청|구청|군청|도청|교육청|육아종합지원센터|가족센터|건강가정지원센터|장난감도서관|공동육아나눔터)/i;
 const ambiguousNamePattern = /(문화센터|체험관|테마파크|수목원|도서관|과학관|박물관|센터)/;
+const commercialPublicFacilityExclusionPattern = /(넥스페리움|키자니아|상록리조트|아쿠아피아|챔피언|블랙벨트|플레이타임|바운스|트니트니)/;
 
 if (isMain()) {
   const args = parseArgs(process.argv.slice(2));
@@ -152,7 +153,8 @@ export function parseArgs(argv: string[]): Args {
     apply: false,
     concurrency: 8,
     json: true,
-    offset: 0
+    offset: 0,
+    pruneStale: false
   };
 
   for (const arg of argv) {
@@ -166,6 +168,10 @@ export function parseArgs(argv: string[]): Args {
     }
     if (arg === "--markdown") {
       args.json = false;
+      continue;
+    }
+    if (arg === "--prune-stale") {
+      args.pruneStale = true;
       continue;
     }
     if (arg.startsWith("--base-url=")) {
@@ -205,17 +211,19 @@ export async function run(args: Args, now = new Date().toISOString()) {
 
   const summaries = await listAllActivePlaceSummaries(args);
   const planned: PlannedPatch[] = [];
+  const removalPlanned: PlannedPatch[] = [];
   const existing: PlannedPatch[] = [];
   const held: PlannedPatch[] = [];
   const skipped: PlannedPatch[] = [];
   const applied: AppliedPatch[] = [];
+  const removed: AppliedPatch[] = [];
   const failed: FailedPatch[] = [];
 
   await mapConcurrent(summaries, args.concurrency, async (summary) => {
     const id = placeId(summary);
     if (!id) return;
     const detail = await apiRequest<PlaceDetail>(args, `/v1/places/${encodeURIComponent(id)}`, { method: "GET" });
-    const classification = classifyPublicFacility(detail);
+    const classification = classifyPublicFacility(detail, args);
     const item = {
       id: detail.id,
       name: detail.name,
@@ -226,17 +234,20 @@ export async function run(args: Args, now = new Date().toISOString()) {
     };
 
     if (classification.action === "patch") planned.push(item);
+    if (classification.action === "remove") removalPlanned.push(item);
     if (classification.action === "skip_existing") existing.push(item);
     if (classification.action === "hold") held.push(item);
     if (classification.action === "skip") skipped.push(item);
   });
 
   planned.sort(comparePatchItems);
+  removalPlanned.sort(comparePatchItems);
   existing.sort(comparePatchItems);
   held.sort(comparePatchItems);
   skipped.sort(comparePatchItems);
 
   const patchQueue = args.maxPatches === undefined ? planned : planned.slice(0, args.maxPatches);
+  const removalQueue = args.maxPatches === undefined ? removalPlanned : removalPlanned.slice(0, Math.max(0, args.maxPatches - patchQueue.length));
   if (args.apply) {
     await mapConcurrent(patchQueue, Math.min(args.concurrency, 8), async (plan) => {
       try {
@@ -256,7 +267,26 @@ export async function run(args: Args, now = new Date().toISOString()) {
         failed.push({ ...plan, error: error instanceof Error ? error.message : String(error) });
       }
     });
+    await mapConcurrent(removalQueue, Math.min(args.concurrency, 8), async (plan) => {
+      try {
+        const detail = await apiRequest<PlaceDetail>(args, `/v1/places/${encodeURIComponent(plan.id)}`, { method: "GET" });
+        if (!hasPublicFacility(detail.taxonomy)) {
+          removed.push({ ...plan, versionCount: await fetchVersionCount(args, plan.id), verified: true });
+          return;
+        }
+        await apiRequest<PlaceDetail>(args, `/v1/places/${encodeURIComponent(plan.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify(buildRemovalPayload(detail, plan, now))
+        });
+        const verified = await apiRequest<PlaceDetail>(args, `/v1/places/${encodeURIComponent(plan.id)}`, { method: "GET" });
+        const versionCount = await fetchVersionCount(args, plan.id);
+        removed.push({ ...plan, versionCount, verified: !hasPublicFacility(verified.taxonomy) });
+      } catch (error) {
+        failed.push({ ...plan, error: error instanceof Error ? error.message : String(error) });
+      }
+    });
     applied.sort(comparePatchItems);
+    removed.sort(comparePatchItems);
     failed.sort(comparePatchItems);
   }
 
@@ -266,42 +296,39 @@ export async function run(args: Args, now = new Date().toISOString()) {
     apiBaseUrl: args.apiBaseUrl,
     summary: {
       scannedActivePlaces: summaries.length,
-      totalCandidates: planned.length + existing.length + held.length,
+      totalCandidates: planned.length + removalPlanned.length + existing.length + held.length,
       alreadyTagged: existing.length,
       patchNeeded: planned.length,
+      removalNeeded: removalPlanned.length,
       ambiguousHold: held.length,
       skipped: skipped.length,
       applied: applied.length,
+      removed: removed.length,
       failed: failed.length
     },
     scanned: summaries.length,
     planned: planned.length,
+    removalPlanned: removalPlanned.length,
     existing: existing.length,
     held: held.length,
     skipped: skipped.length,
     applyLimit: args.maxPatches ?? null,
     concurrency: args.concurrency,
+    pruneStale: args.pruneStale,
     applied: applied.length,
+    removed: removed.length,
     failed: failed.length,
     plannedSamples: planned.slice(0, 30),
+    removalSamples: removalPlanned.slice(0, 30),
     existingSamples: existing.slice(0, 15),
     heldSamples: held.slice(0, 30),
     appliedSamples: applied.slice(0, 20),
+    removedSamples: removed.slice(0, 20),
     failedSamples: failed.slice(0, 20)
   };
 }
 
-export function classifyPublicFacility(place: PlaceDetail): Classification {
-  const taxonomy = place.taxonomy;
-  if (hasPublicFacility(taxonomy)) {
-    return {
-      action: "skip_existing",
-      confidence: "high",
-      evidence: ["taxonomy already includes public_facility"],
-      reasonCodes: ["ALREADY_CLASSIFIED"]
-    };
-  }
-
+export function classifyPublicFacility(place: PlaceDetail, options: Pick<Args, "pruneStale"> = { pruneStale: false }): Classification {
   const tags = place.tags ?? [];
   const evidence: string[] = [];
   const reasonCodes: string[] = [];
@@ -323,10 +350,41 @@ export function classifyPublicFacility(place: PlaceDetail): Classification {
   }
 
   if (!publicCategoryAllowList.has(place.primaryCategory)) {
+    if (hasPublicFacility(place.taxonomy) && options.pruneStale) {
+      return {
+        action: "remove",
+        confidence: "high",
+        evidence: [...evidence, `primaryCategory: ${place.primaryCategory}`],
+        reasonCodes: [...reasonCodes, "STALE_PUBLIC_FACILITY_OUT_OF_SCOPE_CATEGORY"]
+      };
+    }
     if (reasonCodes.length > 0 && alwaysHoldCategories.has(place.primaryCategory)) {
       return { action: "hold", confidence: "low", evidence, reasonCodes: [...reasonCodes, "CATEGORY_HOLD"] };
     }
     return { action: "skip", confidence: "low", evidence, reasonCodes: ["CATEGORY_NOT_PUBLIC_FACILITY_SCOPE"] };
+  }
+
+  if (isCommercialPublicFacilityExclusion(place)) {
+    const commercialEvidence = [...evidence, "commercial/private operator signal in name or tags"];
+    const commercialReasons = [...reasonCodes, "COMMERCIAL_OPERATOR_EXCLUSION"];
+    if (hasPublicFacility(place.taxonomy) && options.pruneStale) {
+      return {
+        action: "remove",
+        confidence: "high",
+        evidence: commercialEvidence,
+        reasonCodes: commercialReasons
+      };
+    }
+    return { action: "hold", confidence: "low", evidence: commercialEvidence, reasonCodes: commercialReasons };
+  }
+
+  if (hasPublicFacility(place.taxonomy)) {
+    return {
+      action: "skip_existing",
+      confidence: "high",
+      evidence: ["taxonomy already includes public_facility"],
+      reasonCodes: ["ALREADY_CLASSIFIED"]
+    };
   }
 
   if (reasonCodes.includes("PUBLIC_SOURCE") && (reasonCodes.includes("PUBLIC_NAME_TERM") || reasonCodes.includes("PUBLIC_TAG"))) {
@@ -341,7 +399,7 @@ export function classifyPublicFacility(place: PlaceDetail): Classification {
     if (place.primaryCategory === "indoor_playground" && ambiguousNamePattern.test(place.name)) {
       return { action: "hold", confidence: "low", evidence, reasonCodes: [...reasonCodes, "AMBIGUOUS_NAME_NEEDS_SOURCE_REVIEW"] };
     }
-    return { action: "patch", confidence: "medium", evidence, reasonCodes };
+    return { action: "hold", confidence: "low", evidence, reasonCodes: [...reasonCodes, "PUBLIC_SOURCE_NEEDS_OPERATOR_REVIEW"] };
   }
 
   if (ambiguousNamePattern.test(place.name)) {
@@ -369,6 +427,19 @@ function buildPatchPayload(place: PlaceDetail, plan: PlannedPatch, now: string):
   };
 }
 
+function buildRemovalPayload(place: PlaceDetail, plan: PlannedPatch, now: string): UpdatePlaceInput {
+  const taxonomy = withoutPublicFacility(place.taxonomy);
+  return {
+    taxonomy,
+    sources: [buildRemovalAuditSource(plan, now)],
+    sourceMode: "append",
+    imageMode: "append",
+    relatedPlaceMode: "append",
+    actor: "agent",
+    changeSummary: "일반 동네 놀이터는 공공시설 필터 범위에서 제외하기 위해 taxonomy.accessTags에서 public_facility를 제거합니다."
+  };
+}
+
 function buildAuditSource(plan: PlannedPatch, now: string): SourceInput {
   return {
     sourceType: "agent_observation",
@@ -376,6 +447,19 @@ function buildAuditSource(plan: PlannedPatch, now: string): SourceInput {
     externalId: `public-facility-taxonomy:${plan.id}:${now.slice(0, 10)}`,
     summary:
       `공공/비영리 운영 시설 전수조사에서 ${plan.name}을 public_facility로 분류했습니다. ` +
+      `Confidence: ${plan.confidence}. Reason codes: ${plan.reasonCodes.join(", ")}. Evidence: ${plan.evidence.join(" / ")}`,
+    checkedAt: now
+  };
+}
+
+function buildRemovalAuditSource(plan: PlannedPatch, now: string): SourceInput {
+  return {
+    sourceType: "agent_observation",
+    title: "AiGo public facility taxonomy cleanup",
+    externalId: `public-facility-taxonomy-cleanup:${plan.id}:${now.slice(0, 10)}`,
+    summary:
+      `공공시설 필터 기준 조정으로 ${plan.name}의 public_facility 분류를 제거했습니다. ` +
+      `일반 동네 놀이터(primaryCategory: playground)는 공공시설 필터 범위에서 제외합니다. ` +
       `Confidence: ${plan.confidence}. Reason codes: ${plan.reasonCodes.join(", ")}. Evidence: ${plan.evidence.join(" / ")}`,
     checkedAt: now
   };
@@ -410,8 +494,42 @@ function withPublicFacility(taxonomy: PlaceTaxonomyInput | null | undefined): Pl
   };
 }
 
+function withoutPublicFacility(taxonomy: PlaceTaxonomyInput | null | undefined): PlaceTaxonomyInput {
+  const sourceBacked: TaxonomyFacetSetInput = taxonomy?.sourceBacked ?? {};
+  const inferred: TaxonomyInferredInput = taxonomy?.inferred ?? {};
+  return {
+    schemaVersion: 1,
+    sourceBacked: {
+      familyFitGates: sourceBacked.familyFitGates ?? [],
+      activityTypes: sourceBacked.activityTypes ?? [],
+      visitUseCases: sourceBacked.visitUseCases ?? [],
+      ageBands: sourceBacked.ageBands ?? [],
+      accessTags: removePublicFacility(sourceBacked.accessTags),
+      logisticsTags: sourceBacked.logisticsTags ?? [],
+      riskTags: sourceBacked.riskTags ?? []
+    },
+    inferred: {
+      familyFitGates: inferred.familyFitGates ?? [],
+      activityTypes: inferred.activityTypes ?? [],
+      visitUseCases: inferred.visitUseCases ?? [],
+      ageBands: inferred.ageBands ?? [],
+      accessTags: removePublicFacility(inferred.accessTags),
+      logisticsTags: inferred.logisticsTags ?? [],
+      riskTags: inferred.riskTags ?? [],
+      confidence: inferred.confidence,
+      basis: inferred.basis
+    },
+    migration: taxonomy?.migration ?? { legacyTags: [], broadMappedTags: [], unmappedTags: [] }
+  };
+}
+
 function hasPublicFacility(taxonomy: PlaceTaxonomyInput | null | undefined) {
   return Boolean(taxonomy?.sourceBacked?.accessTags?.includes(PUBLIC_FACILITY_TAG) || taxonomy?.inferred?.accessTags?.includes(PUBLIC_FACILITY_TAG));
+}
+
+function isCommercialPublicFacilityExclusion(place: PlaceDetail) {
+  const text = [place.name, ...(place.tags ?? [])].join(" ");
+  return commercialPublicFacilityExclusionPattern.test(text);
 }
 
 async function listAllActivePlaceSummaries(args: Args) {
@@ -477,14 +595,23 @@ export function formatMarkdown(report: Awaited<ReturnType<typeof run>>) {
   lines.push(`Scanned active places: ${report.scanned}`);
   lines.push(`Already classified: ${report.existing}`);
   lines.push(`Planned patches: ${report.planned}`);
+  lines.push(`Planned removals: ${report.removalPlanned}`);
   lines.push(`Held for source review: ${report.held}`);
   lines.push(`Skipped: ${report.skipped}`);
   lines.push(`Applied: ${report.applied}`);
+  lines.push(`Removed: ${report.removed}`);
   lines.push(`Failed: ${report.failed}`);
   lines.push("");
   lines.push("## Planned Samples");
   for (const item of report.plannedSamples) {
     lines.push(`- ${item.name} (${item.primaryCategory}, ${item.confidence}) [${item.reasonCodes.join(", ")}]`);
+  }
+  if (report.removalSamples.length > 0) {
+    lines.push("");
+    lines.push("## Removal Samples");
+    for (const item of report.removalSamples) {
+      lines.push(`- ${item.name} (${item.primaryCategory}, ${item.confidence}) [${item.reasonCodes.join(", ")}]`);
+    }
   }
   if (report.heldSamples.length > 0) {
     lines.push("");
@@ -548,6 +675,10 @@ function positiveIntegerArg(arg: string, prefix: string) {
 
 function unique<T>(values: T[]) {
   return Array.from(new Set(values));
+}
+
+function removePublicFacility(values: string[] | undefined) {
+  return (values ?? []).filter((value) => value !== PUBLIC_FACILITY_TAG) as NonNullable<TaxonomyFacetSetInput["accessTags"]>;
 }
 
 function normalizeBaseUrl(value: string) {

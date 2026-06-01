@@ -2,7 +2,23 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Baby, Building2, Car, Check, ChevronDown, Home, Plus, SlidersHorizontal, Toilet, Trash2, TreePine, Utensils, Waves } from "lucide-react";
+import {
+  Accessibility,
+  Baby,
+  Building2,
+  Car,
+  Check,
+  ChevronDown,
+  Home,
+  Info,
+  Plus,
+  SlidersHorizontal,
+  Toilet,
+  Trash2,
+  TreePine,
+  Utensils,
+  Waves
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -43,6 +59,7 @@ type FilterKey =
   | "parking"
   | "publicFacility"
   | "sandPlay"
+  | "stroller"
   | "toiletNearby"
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
@@ -50,6 +67,7 @@ type FilterDefinition = {
   icon: LucideIcon;
   key: FilterKey;
   label: string;
+  matchMode: "required" | "soft";
 };
 
 const FILTER_GROUPS: Array<{
@@ -57,33 +75,34 @@ const FILTER_GROUPS: Array<{
   title: string;
 }> = [
   {
+    title: "운영/성격",
+    filters: [
+      { key: "publicFacility", label: "공공시설", icon: Building2, matchMode: "required" }
+    ]
+  },
+  {
     title: "놀이/환경",
     filters: [
-      { key: "indoor", label: "실내", icon: Home },
-      { key: "sandPlay", label: "모래놀이", icon: TreePine },
-      { key: "waterPlay", label: "물놀이", icon: Waves }
+      { key: "indoor", label: "실내", icon: Home, matchMode: "soft" },
+      { key: "sandPlay", label: "모래놀이", icon: TreePine, matchMode: "soft" },
+      { key: "waterPlay", label: "물놀이", icon: Waves, matchMode: "soft" }
     ]
   },
   {
     title: "아기 돌봄",
     filters: [
-      { key: "nursing", label: "수유실", icon: Baby },
-      { key: "diaperChangingTable", label: "기저귀갈이대", icon: Baby },
-      { key: "kidsToilet", label: "유아화장실", icon: Toilet }
+      { key: "nursing", label: "수유실", icon: Baby, matchMode: "soft" },
+      { key: "diaperChangingTable", label: "기저귀갈이대", icon: Baby, matchMode: "soft" },
+      { key: "stroller", label: "유모차", icon: Accessibility, matchMode: "soft" },
+      { key: "kidsToilet", label: "유아화장실", icon: Toilet, matchMode: "soft" }
     ]
   },
   {
     title: "식사/편의",
     filters: [
-      { key: "babyChair", label: "아기의자", icon: Utensils },
-      { key: "parking", label: "주차", icon: Car },
-      { key: "toiletNearby", label: "화장실", icon: Toilet }
-    ]
-  },
-  {
-    title: "운영",
-    filters: [
-      { key: "publicFacility", label: "공공시설", icon: Building2 }
+      { key: "babyChair", label: "아기의자", icon: Utensils, matchMode: "soft" },
+      { key: "parking", label: "주차", icon: Car, matchMode: "soft" },
+      { key: "toiletNearby", label: "화장실", icon: Toilet, matchMode: "soft" }
     ]
   }
 ];
@@ -215,6 +234,33 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     });
   }, [childParamSource, initialKey, initialParams, router, startTransition]);
 
+  function renderFilterOption(filter: FilterDefinition) {
+    const Icon = filter.icon;
+    const isSelected = selectedFilters[filter.key];
+
+    return (
+      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
+        />
+        <span className="advanced-filter-option-icon">
+          <Icon size={18} aria-hidden="true" />
+        </span>
+        <span className="advanced-filter-option-copy">
+          <strong>{filter.label}</strong>
+          <small className={`advanced-filter-option-application is-${filter.matchMode}`}>
+            {filter.matchMode === "required" ? "필수" : "선호"}
+          </small>
+        </span>
+        <span className="advanced-filter-option-state" aria-hidden="true">
+          <Check size={13} />
+        </span>
+      </label>
+    );
+  }
+
   return (
     <div className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
       <SearchPreferenceHiddenInputs params={initialParams} selectedFilters={selectedFilters} />
@@ -250,37 +296,31 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
       <AppModal onClose={() => setIsFilterModalOpen(false)} open={isFilterModalOpen} size="wide" title="세부 조건">
         <div className="advanced-filter-modal-content">
+          <div className="advanced-filter-guide advanced-filter-guide-desktop" aria-label="조건 적용 방식 안내">
+            <Info size={16} aria-hidden="true" />
+            <p className="advanced-filter-guide-copy">
+              <b>필수</b>는 조건에 맞는 장소만 찾고, <b>선호</b>는 맞는 장소를 더 위에 보여줘요.
+            </p>
+          </div>
           <div className="advanced-filter-layout" aria-label="선호 조건">
-            {FILTER_GROUPS.map((group) => (
+            {FILTER_GROUPS.map((group, groupIndex) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
                 <div className="advanced-filter-group-head">
                   <strong>{group.title}</strong>
                 </div>
-                <div className="advanced-filter-options">
-                  {group.filters.map((filter) => {
-                    const Icon = filter.icon;
-                    const isSelected = selectedFilters[filter.key];
-
-                    return (
-                      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={filter.key}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(event) => updateFilter(filter.key, event.currentTarget.checked)}
-                        />
-                        <span className="advanced-filter-option-icon">
-                          <Icon size={18} aria-hidden="true" />
-                        </span>
-                        <span className="advanced-filter-option-copy">
-                          <strong>{filter.label}</strong>
-                        </span>
-                        <span className="advanced-filter-option-state" aria-hidden="true">
-                          <Check size={13} />
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                {groupIndex === 0 ? (
+                  <div className="advanced-filter-first-row">
+                    <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
+                    <div className="advanced-filter-guide advanced-filter-guide-mobile" aria-label="조건 적용 방식 안내">
+                      <Info size={15} aria-hidden="true" />
+                      <p className="advanced-filter-guide-copy">
+                        <b>필수</b>는 맞는 장소만 찾고, <b>선호</b>는 더 위에 보여줘요.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
+                )}
               </section>
             ))}
           </div>

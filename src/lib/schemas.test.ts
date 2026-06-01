@@ -329,6 +329,7 @@ describe("place schemas", () => {
       kidsCafeOnly: true,
       preferences: {
         strollerFriendly: true,
+        toiletNearby: true,
         babyChair: true,
         foodAllowed: true
       }
@@ -344,6 +345,7 @@ describe("place schemas", () => {
     expect(result.countryCode).toBe("PH");
     expect(result.city).toBe("Lapu-Lapu");
     expect(result.preferences?.strollerFriendly).toBe(true);
+    expect(result.preferences?.toiletNearby).toBe(true);
     expect(result.preferences?.babyChair).toBe(true);
     expect(result.preferences?.foodAllowed).toBe(true);
   });

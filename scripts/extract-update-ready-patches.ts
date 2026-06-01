@@ -101,7 +101,7 @@ const trackedFields: MissingField[] = [
   { path: "visit.rainyDayScore", writableField: "rainyDayScore", group: "visit_planning", reason: "Rainy-day fit score is missing." },
   { path: "visit.hotDayScore", writableField: "hotDayScore", group: "visit_planning", reason: "Hot-day fit score is missing." },
   { path: "visit.coldDayScore", writableField: "coldDayScore", group: "visit_planning", reason: "Cold-day fit score is missing." },
-  { path: "openingHours", writableField: "openingHours", group: "operations", reason: "Structured opening-hours evidence is missing." },
+  { path: "openingHours", writableField: "openingHours", group: "operations", reason: "Structured opening-hours evidence is missing; text or description-only notes do not clear the opening-hours gap." },
   { path: "pricing", writableField: "pricing", group: "operations", reason: "Pricing/free-entry evidence is missing." },
   { path: "scoring.placeScore", writableField: "placeScore", group: "scoring", reason: "Stored place quality score is missing." },
   { path: "scoring.placeScoreRationale", writableField: "placeScoreRationale", group: "scoring", reason: "Place score rationale is missing." },
@@ -404,7 +404,18 @@ function fieldIsMissing(detail: PlaceDetail, field: MissingField) {
   const value = readPath(detail, field.path);
   if (field.path === "taxonomy") return !objectHasMeaningfulValue(recordField(value, "sourceBacked"));
   if (field.path === "playFeatures") return !objectHasMeaningfulValue(value);
+  if (field.path === "openingHours") return !hasStructuredOpeningHoursData(value);
   return isMissingValue(value);
+}
+
+function hasStructuredOpeningHoursData(value: unknown) {
+  if (!isRecord(value)) return false;
+  if (typeof value.openNow === "boolean" || typeof value.isOpen === "boolean") return true;
+  if ([value.status, value.openStatus, value.businessStatus].some((status) => typeof status === "string" && status.trim().length > 0)) return true;
+  if (Array.isArray(value.periods) && value.periods.length > 0) return true;
+  if (Array.isArray(value.openingHoursSpecification) && value.openingHoursSpecification.length > 0) return true;
+  if (isRecord(value.weekly) && Object.keys(value.weekly).length > 0) return true;
+  return false;
 }
 
 function isMissingValue(value: unknown): boolean {

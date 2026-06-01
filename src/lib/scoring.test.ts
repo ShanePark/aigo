@@ -801,7 +801,7 @@ describe("scorePlace", () => {
     const input = {
       ...baseInput,
       representativeVisit: true,
-      primaryCategories: ["zoo", "park", "shopping_mall"]
+      primaryCategories: ["zoo", "park", "indoor_playground", "shopping_mall"]
     } satisfies SearchPlacesInput;
     const shared = {
       tags: [],
@@ -830,13 +830,26 @@ describe("scorePlace", () => {
     };
     const zoo = scorePlace({ ...shared, primaryCategory: "zoo" }, input);
     const arboretum = scorePlace({ ...shared, primaryCategory: "park", tags: ["수목원"] }, input);
+    const publicIndoorPlayground = scorePlace({ ...shared, primaryCategory: "indoor_playground", tags: ["children_theme_park"] }, input);
+    const privateIndoorPlayground = scorePlace({
+      ...shared,
+      primaryCategory: "indoor_playground",
+      scoring: {
+        ...shared.scoring,
+        scoreSignals: {}
+      }
+    }, input);
     const shopping = scorePlace({ ...shared, primaryCategory: "shopping_mall" }, input);
 
     expect(zoo.reasonCodes).toContain("REPRESENTATIVE_DESTINATION_BOOST");
     expect(arboretum.reasonCodes).toContain("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+    expect(publicIndoorPlayground.reasonCodes).toContain("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+    expect(privateIndoorPlayground.reasonCodes).not.toContain("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
     expect(shopping.reasonCodes).toContain("REPRESENTATIVE_SHOPPING_DEEMPHASIZED");
     expect(zoo.score).toBeGreaterThan(shopping.score);
     expect(arboretum.score).toBeGreaterThan(shopping.score);
+    expect(publicIndoorPlayground.score).toBeGreaterThan(shopping.score);
+    expect(publicIndoorPlayground.score).toBeGreaterThan(privateIndoorPlayground.score);
   });
 
   it("recognizes low-cost public pricing without over-ranking it as free", () => {

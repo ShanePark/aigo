@@ -359,6 +359,11 @@ function applyRepresentativeVisitSignal(
   if (["zoo", "aquarium", "science_museum", "museum", "art_museum", "experience_center"].includes(category)) {
     delta += 16;
     reasonCodes.add("REPRESENTATIVE_DESTINATION_BOOST");
+  } else if (category === "indoor_playground") {
+    if (isRepresentativeIndoorPlayground(tags, place.scoring?.scoreSignals)) {
+      delta += 13;
+      reasonCodes.add("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
+    }
   } else if (category === "park") {
     delta += tags.has("수목원") || tags.has("arboretum") || tags.has("botanical_garden") ? 15 : 8;
     reasonCodes.add("REPRESENTATIVE_PUBLIC_DESTINATION_BOOST");
@@ -382,6 +387,18 @@ function applyRepresentativeVisitSignal(
   }
 
   addScore(delta);
+}
+
+function isRepresentativeIndoorPlayground(tags: Set<string>, scoreSignals: Record<string, unknown> | undefined) {
+  const facilityScale = facilityScaleSignal(scoreSignals);
+  return (
+    facilityScale === "large" ||
+    tags.has("public_facility") ||
+    tags.has("public_child_facility") ||
+    tags.has("children_theme_park") ||
+    tags.has("어린이테마파크") ||
+    tags.has("공공시설")
+  );
 }
 
 function applyPublicValueSignal(place: ScoreablePlace, reasonCodes: Set<string>, addScore: (delta: number) => void) {
