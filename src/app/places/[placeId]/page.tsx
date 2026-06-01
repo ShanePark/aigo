@@ -628,10 +628,6 @@ function normalizeSourceValue(value: string | null | undefined) {
   return value?.trim().replace(/\/$/, "").toLowerCase() ?? "";
 }
 
-function textParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 function indoorLabel(value: string) {
   const labels: Record<string, string> = {
     indoor: "실내",
