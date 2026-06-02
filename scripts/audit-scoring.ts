@@ -135,7 +135,7 @@ const scenarios: Scenario[] = [
     input: {
       origin: defaultOrigin,
       radiusKm: 250,
-      query: "키즈숙소",
+      query: "숙박",
       childAgeMonths: sampleChildAgeMonths,
       preferences: {
         parkingAvailable: true,

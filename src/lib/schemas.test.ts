@@ -22,7 +22,7 @@ describe("place schemas", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts kid-primary accommodations", () => {
+  it("accepts accommodation places", () => {
     const result = createPlaceSchema.parse({
       name: "테스트 숙소",
       primaryCategory: "accommodation",

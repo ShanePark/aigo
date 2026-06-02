@@ -3441,7 +3441,6 @@ const categoryKeywordMap: Record<string, string[]> = {
   수목원: ["park"],
   휴게소: ["rest_area"],
   숙소: ["accommodation"],
-  키즈숙소: ["accommodation"],
   호텔: ["accommodation"],
   리조트: ["accommodation"],
   펜션: ["accommodation"],

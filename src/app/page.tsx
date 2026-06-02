@@ -39,7 +39,7 @@ import { getMyProfile } from "@/lib/user-profile";
 
 const CATEGORY_GROUPS = {
   all: { label: "전체", hint: "모두", icon: Blocks, categories: CATEGORY_GROUP_CATEGORY_FILTERS.all },
-  stay: { label: "숙박", hint: "키즈 숙소", icon: BedDouble, iconCategory: "accommodation", categories: CATEGORY_GROUP_CATEGORY_FILTERS.stay },
+  stay: { label: "숙박", hint: "리조트/풀빌라", icon: BedDouble, iconCategory: "accommodation", categories: CATEGORY_GROUP_CATEGORY_FILTERS.stay },
   visit: {
     label: "방문",
     hint: "과학관/문화",

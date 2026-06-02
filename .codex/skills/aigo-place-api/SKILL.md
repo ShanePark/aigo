@@ -372,7 +372,7 @@ For resort parent/child `relatedPlaces`, include relation evidence such as `pare
 
 ## Accommodation Type Classification
 
-Accommodation remains a closed top-level `primaryCategory: "accommodation"`. The user-facing lodging subtype is stored in `tags`, and every active kid-primary accommodation should carry exactly one dominant subtype tag set when the evidence supports it:
+Accommodation remains a closed top-level `primaryCategory: "accommodation"`. The user-facing lodging subtype is stored in `tags`, and every active accommodation should carry exactly one dominant subtype tag set when the evidence supports it. Do not use broad `키즈 숙소` or `키즈숙소` as a category, subtype, or durable classification tag:
 
 - Resort: use `resort` for resort-scale lodging, condo/resort brands, large campus lodging, bundled leisure facilities, water parks, ski/ocean resorts, kids clubs, or official/operator naming that clearly says 리조트. Useful aliases include `lodging_resort`, `family_resort`, `kids_resort`, `리조트`, and `키즈리조트`.
 - Pool villa: use `pool_villa` for private-pool villas, spa/pool villa brands, detached villas whose core family value is an in-room or private pool, or official/operator naming that clearly says 풀빌라. Useful aliases include `poolvilla`, `private_pool_villa`, `풀빌라`, and `키즈풀빌라`.
@@ -437,7 +437,7 @@ Playground search semantics:
 - Search applies a stronger caution when a user asks for specific playground equipment or support such as `모래놀이터`, `물놀이터`, `미끄럼틀`, `그네`, or nearby `화장실` and the matching park lacks that exact `playFeatures` evidence. Fill the structured field when sources support it instead of relying only on broad playground tags.
 - Search cards surface positive or partial core `playFeatures` such as `slide`, `swing`, and `seesaw` before generic tags, while detail pages show the fuller equipment list. Keep unsupported equipment `unknown` so it does not appear as confirmed card evidence.
 
-Use `accommodation` for kid-primary lodging such as hotels, resorts, pensions, pool villas, or family suites where children's rooms, play rooms, water play, kids programs, or child-centered facilities are a core reason to visit. Do not register ordinary kid-friendly lodging unless the user explicitly asks or the child-primary evidence is strong.
+Use `accommodation` for lodging such as hotels, resorts, pensions, pool villas, or family suites where children's rooms, play rooms, water play, kids programs, or child-centered facilities are a core reason to visit. Do not register ordinary kid-friendly lodging unless the user explicitly asks or the child-centered evidence is strong.
 
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `toy_store`, `kids`, `어린이`, `장난감가게`, `완구점`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
 

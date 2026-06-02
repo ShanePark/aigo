@@ -16,7 +16,7 @@ export const PLACE_CATEGORY_LABELS: Record<string, string> = {
   sports_venue: "스포츠 시설",
   shopping_mall: "쇼핑몰",
   rest_area: "휴게소",
-  accommodation: "키즈 숙소",
+  accommodation: "숙박",
   zoo: "동물원"
 };
 

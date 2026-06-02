@@ -186,7 +186,7 @@ Spot-check search results after data migration for:
 - A shopping mall with baby logistics.
 - A kids cafe inside a parent mall.
 - A rest area route-break candidate.
-- A kid-primary accommodation record.
+- An accommodation record with one canonical subtype tag.
 
 ## Remaining Follow-Up Policy
 
