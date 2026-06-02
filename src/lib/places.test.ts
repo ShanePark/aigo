@@ -16,6 +16,7 @@ import {
   buildSearchSourceSummary,
   buildStructuredDataGaps,
   categoryClauseForKeywordTerm,
+  compactDuplicatePlaceCandidateForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
   isBroadNatureIntentQuery,
@@ -1591,6 +1592,68 @@ describe("place search helpers", () => {
     expect(compact).not.toHaveProperty("images");
     expect(compact).not.toHaveProperty("playFeatures");
     expect(compact).not.toHaveProperty("scoring");
+  });
+
+  it("builds compact duplicate candidates without full place detail payloads", () => {
+    const compact = compactDuplicatePlaceCandidateForTest({
+      place: {
+        id: "place-1",
+        name: "남해 캐슬529키즈풀빌라",
+        primaryCategory: "accommodation",
+        address: "경상남도 남해군",
+        roadAddress: null,
+        region: {
+          sido: "경상남도",
+          sigungu: "남해군",
+          dong: null,
+          countryCode: "KR",
+          countryName: "Korea",
+          city: null,
+          locality: null,
+          localCurrency: "KRW"
+        },
+        regionSido: "경상남도",
+        regionSigungu: "남해군",
+        countryCode: "KR",
+        countryName: "Korea",
+        city: null,
+        locality: null,
+        lat: 34.8,
+        lng: 127.9,
+        status: "active",
+        dataConfidence: "agent_collected",
+        updatedAt: "2026-06-02T00:00:00.000+09:00",
+        images: [{ url: "https://example.com/image.jpg" }],
+        sources: [{ url: "https://example.com" }],
+        versions: [{ versionNumber: 1 }]
+      },
+      confidence: "low",
+      reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
+      suggestedAction: "hold_duplicate_review",
+      relationshipHint: null,
+      outsideRadiusReviewOnly: true,
+      distanceMeters: 3800,
+      nameSimilarity: 0.58
+    } as unknown as Parameters<typeof compactDuplicatePlaceCandidateForTest>[0]);
+
+    expect(compact).toMatchObject({
+      place: {
+        id: "place-1",
+        name: "남해 캐슬529키즈풀빌라",
+        primaryCategory: "accommodation",
+        address: "경상남도 남해군",
+        regionSido: "경상남도",
+        regionSigungu: "남해군"
+      },
+      confidence: "low",
+      reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
+      suggestedAction: "hold_duplicate_review",
+      outsideRadiusReviewOnly: true,
+      distanceMeters: 3800
+    });
+    expect(compact.place).not.toHaveProperty("images");
+    expect(compact.place).not.toHaveProperty("sources");
+    expect(compact.place).not.toHaveProperty("versions");
   });
 
   it("groups ranked search items into a practical course plan", () => {

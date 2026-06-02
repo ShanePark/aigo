@@ -494,6 +494,7 @@ export const duplicatePlaceSchema = z
     radiusMeters: z.number().positive().max(5000).default(500),
     kakaoPlaceId: z.string().trim().optional(),
     externalRefs: z.record(z.string(), z.unknown()).optional(),
+    projection: z.enum(["full", "compact"]).default("full"),
     limit: z.number().int().min(1).max(20).default(10)
   })
   .refine((input) => (input.lat === undefined && input.lng === undefined) || (input.lat !== undefined && input.lng !== undefined), {

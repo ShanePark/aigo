@@ -135,9 +135,22 @@ describe("place schemas", () => {
 
     expect(addressOnly.regionSido).toBe("인천광역시");
     expect(addressOnly.limit).toBe(10);
+    expect(addressOnly.projection).toBe("full");
     expect(addressOnly.radiusMeters).toBe(500);
     expect(missingLocation.success).toBe(false);
     expect(partialCoordinates.success).toBe(false);
+  });
+
+  it("accepts compact duplicate projection for agent review payloads", () => {
+    const result = duplicatePlaceSchema.parse({
+      name: "남해 캐슬529키즈풀빌라",
+      regionSido: "경남",
+      regionSigungu: "남해군",
+      projection: "compact"
+    });
+
+    expect(result.regionSido).toBe("경상남도");
+    expect(result.projection).toBe("compact");
   });
 
   it("accepts overseas duplicate scope and alias hints", () => {

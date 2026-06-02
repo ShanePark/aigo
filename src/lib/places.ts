@@ -13,6 +13,8 @@ import {
   placeImageHealthQuerySchema
 } from "@/lib/schemas";
 import {
+  type DuplicateCandidateRelationshipHint,
+  type DuplicateCandidateSuggestedAction,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
@@ -773,6 +775,16 @@ function routeBreakPlaceMatchesDestination(place: ReturnType<typeof mapPlace>, d
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
 type FullSearchItem = FullSearchResponse["items"][number];
+type DuplicateCandidateItem = {
+  place: Awaited<ReturnType<typeof getPlaceDetail>>;
+  confidence: "high" | "medium" | "low";
+  reasonCodes: string[];
+  suggestedAction: DuplicateCandidateSuggestedAction;
+  relationshipHint: DuplicateCandidateRelationshipHint;
+  outsideRadiusReviewOnly: boolean;
+  distanceMeters: number | null;
+  nameSimilarity: number | null;
+};
 type SearchFacilities = ReturnType<typeof mapPlace>["facilities"];
 type SearchCoursePlanItem = {
   id: string;
@@ -926,6 +938,41 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
     sourceSummary: item.sourceSummary,
     userRatingSummary: item.userRatingSummary
   };
+}
+
+function compactDuplicatePlaceCandidate(item: DuplicateCandidateItem) {
+  return {
+    place: {
+      id: item.place.id,
+      name: item.place.name,
+      primaryCategory: item.place.primaryCategory,
+      address: item.place.address,
+      roadAddress: item.place.roadAddress,
+      region: item.place.region,
+      regionSido: item.place.regionSido,
+      regionSigungu: item.place.regionSigungu,
+      countryCode: item.place.countryCode,
+      countryName: item.place.countryName,
+      city: item.place.city,
+      locality: item.place.locality,
+      lat: item.place.lat,
+      lng: item.place.lng,
+      status: item.place.status,
+      dataConfidence: item.place.dataConfidence,
+      updatedAt: item.place.updatedAt
+    },
+    confidence: item.confidence,
+    reasonCodes: item.reasonCodes,
+    suggestedAction: item.suggestedAction,
+    relationshipHint: item.relationshipHint,
+    outsideRadiusReviewOnly: item.outsideRadiusReviewOnly,
+    distanceMeters: item.distanceMeters,
+    nameSimilarity: item.nameSimilarity
+  };
+}
+
+export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateItem) {
+  return compactDuplicatePlaceCandidate(item);
 }
 
 function searchDiversityRegionKey(
@@ -1567,7 +1614,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
     limit ${input.limit}
   `;
 
-  const items = await Promise.all(
+  const items: DuplicateCandidateItem[] = await Promise.all(
     rows.map(async (row) => {
       const locationSignals = duplicateLocationSignals(input, {
         address: row.address,
@@ -1614,7 +1661,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   );
 
   return {
-    items
+    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items
   };
 }
 
