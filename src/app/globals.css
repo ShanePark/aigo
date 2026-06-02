@@ -5121,8 +5121,12 @@ h3 {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(5, 30px);
-  inset: 0;
+  height: 34px;
+  left: 0;
+  overflow: visible;
   position: absolute;
+  top: 0;
+  width: max-content;
 }
 
 .place-visit-star-row svg {
@@ -5131,9 +5135,11 @@ h3 {
 
 .place-visit-star-fill {
   color: var(--yellow);
-  clip-path: inset(0 calc(100% - var(--rating-fill)) 0 0);
+  max-width: 100%;
+  overflow: hidden;
   pointer-events: none;
-  transition: clip-path var(--motion-fast);
+  transition: width var(--motion-fast);
+  width: var(--rating-fill);
 }
 
 .place-visit-star-fill svg {
