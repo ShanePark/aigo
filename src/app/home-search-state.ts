@@ -59,7 +59,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     viewportBounds,
     query: query || undefined,
     primaryCategories: accommodationType
-      ? Array.from(new Set([...(groupCategories ?? (category ? [category] : [])), "accommodation"]))
+      ? ["accommodation"]
       : groupCategories
         ? [...groupCategories]
         : category

@@ -18,7 +18,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 
-import { accommodationTypeForPlace } from "@/app/accommodation-types";
+import { accommodationHierarchyForPlace, accommodationTypePathLabel } from "@/app/accommodation-types";
 import { placeCategoryLabel } from "@/app/place-category";
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 
@@ -61,14 +61,16 @@ export function placeCategoryIcon(value: string): LucideIcon {
 }
 
 export function PlaceCategoryBadge({ category, className, name, tags }: PlaceCategoryBadgeProps) {
-  const accommodationType = accommodationTypeForPlace(category, { name, tags });
+  const accommodationHierarchy = accommodationHierarchyForPlace(category, { name, tags });
+  const accommodationType = accommodationHierarchy?.subtype ?? null;
   const displayCategory = accommodationType?.iconCategory ?? category;
   const Icon = placeCategoryIcon(displayCategory);
   const imageSrc = placeCategoryIconImage(displayCategory);
   const classes = ["category-badge", className].filter(Boolean).join(" ");
+  const title = accommodationHierarchy ? accommodationTypePathLabel(accommodationType) : category;
 
   return (
-    <span className={classes} title={accommodationType?.id ?? category}>
+    <span className={classes} title={title}>
       {imageSrc ? <Image src={imageSrc} alt="" aria-hidden="true" draggable="false" width={18} height={18} /> : <Icon size={14} aria-hidden="true" />}
       {accommodationType?.label ?? placeCategoryLabel(category)}
     </span>

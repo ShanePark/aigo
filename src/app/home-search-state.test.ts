@@ -105,9 +105,9 @@ describe("home search input", () => {
     });
   });
 
-  it("turns a lodging subtype into a required accommodation tag filter", () => {
+  it("keeps a lodging subtype nested under the accommodation category", () => {
     expect(buildSearchInput({ accommodationType: "poolVilla", categoryGroups: "shopping" })).toMatchObject({
-      primaryCategories: ["shopping_mall", "accommodation"],
+      primaryCategories: ["accommodation"],
       tags: expect.arrayContaining(["pool_villa", "풀빌라", "키즈풀빌라"])
     });
   });

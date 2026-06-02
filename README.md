@@ -19,7 +19,7 @@ The data model intentionally treats parent logistics as first-class signals:
 - Stroller practicality, elevator access, parking, nursing rooms, diaper changing tables, kids toilets, baby chairs, and food/snack handling
 - Parent effort, child engagement, weather fit, average stay time, safety notes, and parent notes
 - Public child-friendly facilities, indoor and outdoor playgrounds, kids cafes, toy stores, libraries, toy libraries, museums, art museums, science museums, aquariums, zoos, parks, family restaurants, shopping malls, rest areas, family accommodations, and short nature trips
-- Accommodation subtypes are represented as tags on `primaryCategory: "accommodation"` records: `resort`, `pool_villa`, `kids_hotel`, and `pension`
+- Accommodation is modeled as a two-depth category: depth 1 is `primaryCategory: "accommodation"` (`숙박`), and depth 2 is the user-facing subtype tag set `resort`, `pool_villa`, `kids_hotel`, or `pension`
 - Source-backed place records, image provenance, wiki-style version history, and user visit feedback
 - Closed top-level categories plus controlled taxonomy facets for family-fit, activity type, use case, age band, public-facility access, logistics, and risk semantics
 

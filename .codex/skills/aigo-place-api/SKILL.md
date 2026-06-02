@@ -372,7 +372,7 @@ For resort parent/child `relatedPlaces`, include relation evidence such as `pare
 
 ## Accommodation Type Classification
 
-Accommodation remains a closed top-level `primaryCategory: "accommodation"`. The user-facing lodging subtype is stored in `tags`, and every active accommodation should carry exactly one dominant subtype tag set when the evidence supports it. Do not use broad `키즈 숙소` or `키즈숙소` as a category, subtype, or durable classification tag:
+Accommodation uses a two-depth category model. Depth 1 remains the closed top-level `primaryCategory: "accommodation"` (`숙박`). Depth 2 is the user-facing lodging subtype stored in `tags`, and every active accommodation should carry exactly one dominant subtype tag set when the evidence supports it. UI badges may show the depth-2 label, but search and API updates should preserve the depth-1/depth-2 relationship. Do not use broad `키즈 숙소` or `키즈숙소` as a category, subtype, or durable classification tag:
 
 - Resort: use `resort` for resort-scale lodging, condo/resort brands, large campus lodging, bundled leisure facilities, water parks, ski/ocean resorts, kids clubs, or official/operator naming that clearly says 리조트. Useful aliases include `lodging_resort`, `family_resort`, `kids_resort`, `리조트`, and `키즈리조트`.
 - Pool villa: use `pool_villa` for private-pool villas, spa/pool villa brands, detached villas whose core family value is an in-room or private pool, or official/operator naming that clearly says 풀빌라. Useful aliases include `poolvilla`, `private_pool_villa`, `풀빌라`, and `키즈풀빌라`.

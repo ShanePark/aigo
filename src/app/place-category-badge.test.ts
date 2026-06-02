@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { placeCategoryLabel } from "@/app/place-category";
-import { accommodationTypeForPlace, accommodationTypeForTags } from "@/app/accommodation-types";
+import { ACCOMMODATION_CATEGORY, ACCOMMODATION_TYPES, accommodationTypeForPlace, accommodationTypeForTags, accommodationTypePathLabel } from "@/app/accommodation-types";
 import { primaryCategories } from "@/lib/taxonomy";
 
 describe("place category display helpers", () => {
@@ -33,5 +33,11 @@ describe("place category display helpers", () => {
     expect(accommodationTypeForTags("accommodation", ["kids_hotel"])?.iconCategory).toBe("accommodation_kids_hotel");
     expect(accommodationTypeForPlace("accommodation", { name: "비발디파크 리조트", tags: [] })?.label).toBe("리조트");
     expect(placeCategoryIconImage("accommodation_pool_villa")).toBe("/icons/place-categories/accommodation_pool_villa.webp");
+  });
+
+  it("keeps accommodation types as depth-two children of lodging", () => {
+    expect(ACCOMMODATION_CATEGORY).toMatchObject({ id: "accommodation", label: "숙박", depth: 1 });
+    expect(ACCOMMODATION_TYPES.every((type) => type.parentCategory === "accommodation" && type.depth === 2)).toBe(true);
+    expect(accommodationTypePathLabel(accommodationTypeForTags("accommodation", ["pool_villa"]))).toBe("숙박 > 풀빌라");
   });
 });

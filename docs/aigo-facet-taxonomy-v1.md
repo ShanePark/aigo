@@ -78,14 +78,14 @@ Closed `primaryCategory` values:
 - `accommodation`
 - `zoo`
 
-Accommodation subtype is not a top-level category. Keep kid-primary lodging records as `primaryCategory: "accommodation"` and classify the user-facing subtype with tags:
+Accommodation uses a two-depth category model. Depth 1 stays in the closed top-level category set as `primaryCategory: "accommodation"` (`숙박`). Depth 2 is the user-facing subtype stored with canonical tags:
 
 - `resort`: resort-scale/campus lodging, condo or resort brands, kids clubs, water parks, ski/ocean resorts, or source-backed 리조트 identity.
 - `pool_villa`: private-pool villas or 풀빌라-branded stays where the pool villa identity is core, including records also described as pensions.
 - `kids_hotel`: hotel-operated kids hotels or hotel-style child-primary lodging.
 - `pension`: pension-style kids/family stays that are not primarily resorts, pool villas, or hotels.
 
-Common aliases are defined in `src/app/accommodation-types.ts`; data updates should include the canonical subtype slug plus useful Korean/source-facing aliases when they improve search recall.
+Common aliases and hierarchy metadata are defined in `src/app/accommodation-types.ts`; data updates should include the canonical subtype slug plus useful Korean/source-facing aliases when they improve search recall. UI badges can display the depth-2 label while search still filters through the depth-1 `accommodation` category.
 
 Facet families:
 
