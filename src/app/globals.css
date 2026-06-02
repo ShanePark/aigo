@@ -4713,6 +4713,10 @@ h3 {
   justify-content: flex-end;
 }
 
+.app-modal-button-row > button {
+  flex: 0 1 auto;
+}
+
 .app-modal-cancel,
 .app-modal-submit {
   align-items: center;
@@ -4739,8 +4743,8 @@ h3 {
 }
 
 .app-modal-submit {
-  background: var(--text);
-  border: 1px solid var(--text);
+  background: var(--mint);
+  border: 1px solid var(--mint);
   color: var(--accent-text);
 }
 
@@ -4758,6 +4762,11 @@ h3 {
 }
 
 .app-modal-submit.advanced-filter-apply-button:hover:not(:disabled) {
+  background: var(--button-hover);
+  border-color: var(--button-hover);
+}
+
+.app-modal-submit:hover:not(:disabled) {
   background: var(--button-hover);
   border-color: var(--button-hover);
 }
@@ -8571,7 +8580,7 @@ dd {
 
   .app-confirm-actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .app-modal-actions,
@@ -8582,7 +8591,8 @@ dd {
 
   .app-modal-button-row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
 
   .app-modal-footer {
@@ -8590,7 +8600,9 @@ dd {
   }
 
   .app-modal-cancel,
-  .app-modal-submit {
+  .app-modal-submit,
+  .app-modal-button-row > button {
+    min-width: 0;
     width: 100%;
   }
 
