@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LocateFixed } from "lucide-react";
 
 import { LegalDocumentPage } from "@/app/legal-document-page";
-import { loadCurrentConsentDocument } from "@/lib/consent-document-store";
+import { loadPublicConsentDocument } from "@/lib/consent-document-store";
 
 export const metadata: Metadata = {
   title: "위치기반서비스 이용약관 | AiGo",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LocationTermsPage() {
-  const document = await loadCurrentConsentDocument("location_terms");
+  const document = await loadPublicConsentDocument("location_terms");
 
   if (!document) {
     return null;

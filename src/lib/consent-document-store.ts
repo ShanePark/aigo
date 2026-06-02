@@ -53,6 +53,18 @@ export async function loadCurrentConsentDocument(type: RequiredConsentType, exec
   return row ? rowToConsentDocument(row, seedDocument) : null;
 }
 
+export async function loadPublicConsentDocument(type: RequiredConsentType, executor: SqlExecutor = pg) {
+  const seedDocument = consentDocumentByType(type);
+  if (!seedDocument) return null;
+
+  try {
+    return (await loadCurrentConsentDocument(type, executor)) ?? seedDocument;
+  } catch (error) {
+    if (isDatabaseConnectionError(error)) return seedDocument;
+    throw error;
+  }
+}
+
 export async function ensureConsentDocument(document: ConsentDocument, executor: SqlExecutor = pg) {
   const bodySha256 = sha256(document.bodyText);
 
@@ -156,4 +168,17 @@ function effectiveDateLabel(value: string) {
   const [year, month, day] = value.split("-");
 
   return `${year}년 ${Number(month)}월 ${Number(day)}일`;
+}
+
+function isDatabaseConnectionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const code = "code" in error ? (error as { code?: unknown }).code : undefined;
+  if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT") return true;
+
+  if (error instanceof AggregateError) {
+    return error.errors.some(isDatabaseConnectionError);
+  }
+
+  return false;
 }

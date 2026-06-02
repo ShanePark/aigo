@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 
 import { LegalDocumentPage } from "@/app/legal-document-page";
-import { loadCurrentConsentDocument } from "@/lib/consent-document-store";
+import { loadPublicConsentDocument } from "@/lib/consent-document-store";
 
 export const metadata: Metadata = {
   title: "이용약관 | AiGo",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TermsPage() {
-  const document = await loadCurrentConsentDocument("terms_of_service");
+  const document = await loadPublicConsentDocument("terms_of_service");
 
   if (!document) {
     return null;
