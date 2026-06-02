@@ -24,5 +24,5 @@ export default async function SignupConsentsPage({ searchParams }: SignupConsent
 
   const nextPath = params.next ? safeNextPath(params.next) : pendingSignup.nextPath;
 
-  return <SignupConsentForm email={pendingSignup.profile.email} nextPath={nextPath} />;
+  return <SignupConsentForm nextPath={nextPath} />;
 }

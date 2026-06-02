@@ -7,11 +7,10 @@ import { useState } from "react";
 import { REQUIRED_CONSENTS, type RequiredConsentStateKey } from "@/lib/consent-definitions";
 
 type SignupConsentFormProps = {
-  email: string;
   nextPath: string;
 };
 
-export function SignupConsentForm({ email, nextPath }: SignupConsentFormProps) {
+export function SignupConsentForm({ nextPath }: SignupConsentFormProps) {
   const [checkedConsents, setCheckedConsents] = useState<Record<RequiredConsentStateKey, boolean>>({
     locationTermsVersion: false,
     privacyPolicyVersion: false,
@@ -29,7 +28,7 @@ export function SignupConsentForm({ email, nextPath }: SignupConsentFormProps) {
         <div className="login-options" aria-label="회원가입 약관 동의">
           <div className="login-status is-success">
             <CheckCircle2 size={17} aria-hidden="true" />
-            <span>{email}</span>
+            <span>카카오 인증 완료</span>
           </div>
 
           <form action="/api/auth/kakao/signup" className="login-consent-group" method="post">
@@ -65,7 +64,6 @@ export function SignupConsentForm({ email, nextPath }: SignupConsentFormProps) {
             </button>
           </form>
         </div>
-
       </div>
     </div>
   );
