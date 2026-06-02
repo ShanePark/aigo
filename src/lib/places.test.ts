@@ -459,6 +459,19 @@ describe("place search helpers", () => {
     expect(query.params).toEqual(["괌 pic", "괌pic"]);
   });
 
+  it("matches compact external aliases in generic keyword search", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "여수 하이맘키즈가족펜션골드"
+    });
+
+    expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g') ilike");
+    expect(query.sql).toContain("jsonb_array_elements_text");
+    expect(query.sql).toContain("external_refs->'aliases'");
+    expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') ilike");
+    expect(query.params).toEqual(["%여수%", "%하이맘키즈가족펜션골드%"]);
+  });
+
   it("includes overseas English and local names in exact-name lookup", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,

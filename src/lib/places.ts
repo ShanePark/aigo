@@ -2470,6 +2470,7 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
     const patternParam = add(pattern);
     const columns = [
       `name ilike ${patternParam}`,
+      `regexp_replace(lower(name), '[[:space:]]+', '', 'g') ilike ${patternParam}`,
       `description ilike ${patternParam}`,
       `region_sido ilike ${patternParam}`,
       `region_sigungu ilike ${patternParam}`,
@@ -2478,6 +2479,11 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `city ilike ${patternParam}`,
       `locality ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
+      `exists (
+        select 1
+        from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
+        where regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') ilike ${patternParam}
+      )`,
       `play_features::text ilike ${patternParam}`,
       `route_support::text ilike ${patternParam}`,
       `taxonomy::text ilike ${patternParam}`
