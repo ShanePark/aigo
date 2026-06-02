@@ -2,6 +2,7 @@ import {
   ChevronDown,
   Clock,
   ExternalLink,
+  Eye,
   History,
   MapPin,
   MessageSquareText,
@@ -40,6 +41,10 @@ type PlaceDetailProps = {
 
 function relatedPlaceHref(placeId: string, backHref: Route): Route {
   return `/places/${placeId}?returnTo=${encodeURIComponent(backHref)}` as Route;
+}
+
+function formatCount(count: number) {
+  return new Intl.NumberFormat("ko-KR").format(count);
 }
 
 export default async function PlaceDetailPage({ params, searchParams }: PlaceDetailProps) {
@@ -100,6 +105,11 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
               storedPlaceScore={place.scoring.placeScore}
               updatedAt={place.scoring.scoreUpdatedAt}
             />
+          </div>
+          <div className="detail-view-count" aria-label={`조회수 ${formatCount(place.publicViewCount)}회`} title={`조회수 ${formatCount(place.publicViewCount)}회`}>
+            <Eye size={15} aria-hidden="true" />
+            <span>조회</span>
+            <strong>{formatCount(place.publicViewCount)}</strong>
           </div>
         </div>
 

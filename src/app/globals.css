@@ -3816,6 +3816,41 @@ h3 {
   flex: 0 0 auto;
 }
 
+.detail-view-count {
+  align-items: center;
+  background: var(--surface-card-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(24, 33, 29, 0.08);
+  color: var(--muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 13px;
+}
+
+.detail-view-count svg {
+  color: var(--blue);
+  height: 16px;
+  width: 16px;
+}
+
+.detail-view-count span,
+.detail-view-count strong {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.detail-view-count span {
+  font-weight: 800;
+}
+
+.detail-view-count strong {
+  color: var(--text);
+  font-weight: 950;
+}
+
 .detail-header-actions .place-save-controls {
   background: transparent;
   border: 0;
@@ -8565,6 +8600,11 @@ dd {
     min-height: 48px;
     min-width: 64px;
     padding: 7px 8px;
+  }
+
+  .detail-view-count {
+    min-height: 42px;
+    padding-inline: 10px;
   }
 
   .detail-score-button strong {

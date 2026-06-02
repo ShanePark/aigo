@@ -118,6 +118,7 @@ type PlaceRow = {
   parent_notes: string | null;
   opening_hours: unknown | null;
   version: number;
+  public_view_count: number;
   created_at: Date;
   updated_at: Date;
   last_verified_at: Date | null;
@@ -4011,6 +4012,7 @@ function mapPlace(row: PlaceRow) {
     },
     openingHours: row.opening_hours,
     version: row.version,
+    publicViewCount: Number(row.public_view_count ?? 0),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     lastVerifiedAt: row.last_verified_at ? toIso(row.last_verified_at) : null

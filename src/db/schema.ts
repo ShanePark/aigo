@@ -215,6 +215,7 @@ export const places = pgTable(
     parentNotes: text("parent_notes"),
     openingHours: jsonb("opening_hours").$type<unknown>(),
     version: integer("version").notNull().default(1),
+    publicViewCount: integer("public_view_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true })
@@ -224,7 +225,29 @@ export const places = pgTable(
     taxonomyIdx: index("places_taxonomy_gin_idx").using("gin", table.taxonomy),
     routeSupportIdx: index("places_route_support_gin_idx").using("gin", table.routeSupport),
     regionIdx: index("places_region_idx").on(table.regionSido, table.regionSigungu),
+    publicViewCountIdx: index("places_public_view_count_idx").on(table.publicViewCount),
     kakaoPlaceIdUnique: uniqueIndex("places_kakao_place_id_unique").on(table.kakaoPlaceId)
+  })
+);
+
+export const placeViewDedupes = pgTable(
+  "place_view_dedupes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: uuid("place_id")
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    dedupeKind: text("dedupe_kind").notNull(),
+    dedupeKeyHash: text("dedupe_key_hash").notNull(),
+    lastCountedAt: timestamp("last_counted_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    kindCheck: check("place_view_dedupes_kind_check", sql`${table.dedupeKind} in ('user', 'device', 'ip')`),
+    placeKeyUnique: uniqueIndex("place_view_dedupes_place_key_unique").on(table.placeId, table.dedupeKeyHash),
+    placeExpiresAtIdx: index("place_view_dedupes_place_expires_at_idx").on(table.placeId, table.expiresAt)
   })
 );
 
