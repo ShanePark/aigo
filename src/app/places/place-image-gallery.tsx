@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ExternalLink, Images, Info, Maximize2 } from "lucide-react";
-import { useRef, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight, ExternalLink, ImageIcon, Images, Info, List, Maximize2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AppModal } from "@/app/app-modal";
 import { PlaceImage } from "@/app/place-image";
@@ -27,17 +28,38 @@ type PlaceImageGalleryProps = {
   placeName: string;
 };
 
-export function PlaceImageGallery({ category, images, placeName }: PlaceImageGalleryProps) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [activeImage, setActiveImage] = useState<GalleryImage | null>(null);
+type GalleryMode = "carousel" | "list";
 
-  function scrollTrack(direction: "previous" | "next") {
-    const track = trackRef.current;
-    if (!track) return;
-    const firstCard = track.querySelector<HTMLElement>(".image-gallery-slide");
-    const distance = firstCard ? firstCard.offsetWidth + 14 : track.clientWidth * 0.86;
-    track.scrollBy({ left: direction === "next" ? distance : -distance, behavior: "smooth" });
-  }
+export function PlaceImageGallery({ category, images, placeName }: PlaceImageGalleryProps) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ align: "center", containScroll: false, loop: images.length > 2, skipSnaps: false });
+  const [activeImage, setActiveImage] = useState<GalleryImage | null>(null);
+  const [mode, setMode] = useState<GalleryMode>("carousel");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const syncSelectedIndex = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    syncSelectedIndex();
+    emblaApi.on("select", syncSelectedIndex);
+    emblaApi.on("reInit", syncSelectedIndex);
+    return () => {
+      emblaApi.off("select", syncSelectedIndex);
+      emblaApi.off("reInit", syncSelectedIndex);
+    };
+  }, [emblaApi, syncSelectedIndex]);
+
+  useEffect(() => {
+    if (mode !== "carousel" || !emblaApi) return;
+    emblaApi.reInit();
+    emblaApi.scrollTo(selectedIndex);
+  }, [emblaApi, mode, selectedIndex]);
+
+  const scrollPrevious = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
   return (
     <section className="image-gallery-section" aria-label={`${placeName} 갤러리`}>
@@ -46,60 +68,67 @@ export function PlaceImageGallery({ category, images, placeName }: PlaceImageGal
           <Images size={18} aria-hidden="true" />
           갤러리
         </h2>
-        {images.length > 1 ? (
-          <div className="image-gallery-controls">
-            <button aria-label="이전 이미지" onClick={() => scrollTrack("previous")} type="button">
-              <ChevronLeft size={17} aria-hidden="true" />
+        <div className="image-gallery-actions">
+          <div className="image-gallery-mode" role="tablist" aria-label="갤러리 보기 방식">
+            <button aria-selected={mode === "carousel"} onClick={() => setMode("carousel")} role="tab" type="button">
+              <ImageIcon size={15} aria-hidden="true" />
+              한 장씩
             </button>
-            <button aria-label="다음 이미지" onClick={() => scrollTrack("next")} type="button">
-              <ChevronRight size={17} aria-hidden="true" />
+            <button aria-selected={mode === "list"} onClick={() => setMode("list")} role="tab" type="button">
+              <List size={15} aria-hidden="true" />
+              목록
             </button>
           </div>
-        ) : null}
-      </div>
-
-      <div className="image-gallery-viewport">
-        <div className="image-gallery-track" ref={trackRef}>
-          {images.map((image) => (
-            <article className="image-gallery-slide" key={image.id}>
-              <button className="image-gallery-expand" onClick={() => setActiveImage(image)} type="button">
-                <PlaceImage category={category} src={image.url} alt={image.altText ?? `${placeName} 이미지`} variant="result" />
-                <span>
-                  <Maximize2 size={15} aria-hidden="true" />
-                  크게 보기
-                </span>
+          {images.length > 1 && mode === "carousel" ? (
+            <div className="image-gallery-controls">
+              <button aria-label="이전 이미지" onClick={scrollPrevious} type="button">
+                <ChevronLeft size={17} aria-hidden="true" />
               </button>
-
-              <details className="image-gallery-info">
-                <summary aria-label="이미지 정보 보기">
-                  <Info size={15} aria-hidden="true" />
-                </summary>
-                <div className="image-gallery-info-panel">
-                  <div className="visit-row">
-                    {image.isPrimary ? <span>대표 이미지</span> : null}
-                    <span>{imageTierLabel(image.displayTier, image.sourceType)}</span>
-                    <span>{imageReviewLabel(image.reviewStatus)}</span>
-                  </div>
-                  {image.sourceUrl ? (
-                    <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
-                      {image.sourceTitle ?? image.creditText}
-                      <ExternalLink size={13} aria-hidden="true" />
-                    </a>
-                  ) : null}
-                  {image.description ? <p>{image.description}</p> : null}
-                  {image.visualFeatures.length > 0 ? (
-                    <div className="reason-grid">
-                      {image.visualFeatures.slice(0, 10).map((feature) => (
-                        <span key={feature}>{imageFeatureLabel(feature)}</span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </details>
-            </article>
-          ))}
+              <button aria-label="다음 이미지" onClick={scrollNext} type="button">
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {mode === "carousel" ? (
+        <div className="image-gallery-carousel">
+          <div className="image-gallery-viewport" ref={emblaRef}>
+            <div className="image-gallery-track">
+              {images.map((image, index) => (
+                <GalleryImageCard
+                  category={category}
+                  image={image}
+                  isSelected={index === selectedIndex}
+                  key={image.id}
+                  onExpand={() => setActiveImage(image)}
+                  placeName={placeName}
+                />
+              ))}
+            </div>
+          </div>
+          {images.length > 1 ? (
+            <div className="image-gallery-dots" aria-label="이미지 위치">
+              {images.map((image, index) => (
+                <button
+                  aria-label={`${index + 1}번째 이미지 보기`}
+                  aria-current={index === selectedIndex ? "true" : undefined}
+                  key={image.id}
+                  onClick={() => emblaApi?.scrollTo(index)}
+                  type="button"
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="image-gallery-list">
+          {images.map((image) => (
+            <GalleryImageCard category={category} image={image} isSelected={false} key={image.id} onExpand={() => setActiveImage(image)} placeName={placeName} />
+          ))}
+        </div>
+      )}
 
       <AppModal
         description={activeImage ? imageModalDescription(activeImage) : undefined}
@@ -129,6 +158,59 @@ export function PlaceImageGallery({ category, images, placeName }: PlaceImageGal
         ) : null}
       </AppModal>
     </section>
+  );
+}
+
+function GalleryImageCard({
+  category,
+  image,
+  isSelected,
+  onExpand,
+  placeName
+}: {
+  category: string;
+  image: GalleryImage;
+  isSelected: boolean;
+  onExpand: () => void;
+  placeName: string;
+}) {
+  return (
+    <article className={`image-gallery-slide ${isSelected ? "is-selected" : "is-neighbor"}`}>
+      <button className="image-gallery-expand" onClick={onExpand} type="button">
+        <PlaceImage category={category} src={image.url} alt={image.altText ?? `${placeName} 이미지`} variant="result" />
+        <span>
+          <Maximize2 size={15} aria-hidden="true" />
+          크게 보기
+        </span>
+      </button>
+
+      <details className="image-gallery-info">
+        <summary aria-label="이미지 정보 보기">
+          <Info size={15} aria-hidden="true" />
+        </summary>
+        <div className="image-gallery-info-panel">
+          <div className="visit-row">
+            {image.isPrimary ? <span>대표 이미지</span> : null}
+            <span>{imageTierLabel(image.displayTier, image.sourceType)}</span>
+            <span>{imageReviewLabel(image.reviewStatus)}</span>
+          </div>
+          {image.sourceUrl ? (
+            <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
+              {image.sourceTitle ?? image.creditText}
+              <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          ) : null}
+          {image.description ? <p>{image.description}</p> : null}
+          {image.visualFeatures.length > 0 ? (
+            <div className="reason-grid">
+              {image.visualFeatures.slice(0, 10).map((feature) => (
+                <span key={feature}>{imageFeatureLabel(feature)}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </details>
+    </article>
   );
 }
 
