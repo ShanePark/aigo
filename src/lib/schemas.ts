@@ -309,8 +309,26 @@ const writablePlaceFields = {
   openingHours: z.unknown().optional()
 };
 
-export const createPlaceSchema = z
-  .object({
+const placeWriteAliasPreprocessor = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const input = { ...(value as Record<string, unknown>) };
+  const recommendedAgeMonths = input.recommendedAgeMonths;
+  if (recommendedAgeMonths && typeof recommendedAgeMonths === "object" && !Array.isArray(recommendedAgeMonths)) {
+    const ageRange = recommendedAgeMonths as Record<string, unknown>;
+    input.minRecommendedAgeMonths ??= ageRange.min;
+    input.maxRecommendedAgeMonths ??= ageRange.max;
+  }
+
+  return input;
+};
+
+export const createPlaceSchema = z.preprocess(
+  placeWriteAliasPreprocessor,
+  z
+    .object({
     ...writablePlaceFields,
     name: nonEmptyString,
     primaryCategory: primaryCategorySchema,
@@ -331,10 +349,13 @@ export const createPlaceSchema = z
     {
       message: "minRecommendedAgeMonths must be less than or equal to maxRecommendedAgeMonths"
     }
-  );
+  )
+);
 
-export const updatePlaceSchema = z
-  .object({
+export const updatePlaceSchema = z.preprocess(
+  placeWriteAliasPreprocessor,
+  z
+    .object({
     ...writablePlaceFields,
     sources: z.array(sourceSchema).min(1),
     sourceMode: z.enum(["append", "replace"]).default("append"),
@@ -354,7 +375,8 @@ export const updatePlaceSchema = z
     {
       message: "minRecommendedAgeMonths must be less than or equal to maxRecommendedAgeMonths"
     }
-  );
+  )
+);
 
 const viewportBoundsSchema = z
   .object({

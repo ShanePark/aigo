@@ -96,6 +96,28 @@ describe("place schemas", () => {
     expect(result.sources[0].sourceType).toBe("public_news");
   });
 
+  it("maps nested recommended age payloads to writable age fields", () => {
+    const create = createPlaceSchema.parse({
+      name: "연령대 장소",
+      primaryCategory: "accommodation",
+      regionSido: "제주",
+      lat: 33.45,
+      lng: 126.55,
+      recommendedAgeMonths: { min: 12, max: 120 },
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const update = updatePlaceSchema.parse({
+      recommendedAgeMonths: { min: 24, max: 96 },
+      minRecommendedAgeMonths: 36,
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(create.minRecommendedAgeMonths).toBe(12);
+    expect(create.maxRecommendedAgeMonths).toBe(120);
+    expect(update.minRecommendedAgeMonths).toBe(36);
+    expect(update.maxRecommendedAgeMonths).toBe(96);
+  });
+
   it("accepts duplicate checks with address evidence when coordinates are unknown", () => {
     const addressOnly = duplicatePlaceSchema.parse({
       name: "도담도담 장난감월드 검단점",

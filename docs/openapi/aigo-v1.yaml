@@ -980,12 +980,12 @@ components:
           type: integer
           minimum: 0
           maximum: 240
-          description: Minimum recommended child age in months. When both age bounds are provided, this value must be less than or equal to `maxRecommendedAgeMonths`.
+          description: Minimum recommended child age in months. When both age bounds are provided, this value must be less than or equal to `maxRecommendedAgeMonths`. Create/update requests may also provide `recommendedAgeMonths.min` as a payload alias, which is normalized to this field.
         maxRecommendedAgeMonths:
           type: integer
           minimum: 0
           maximum: 240
-          description: Maximum recommended child age in months. When both age bounds are provided, this value must be greater than or equal to `minRecommendedAgeMonths`.
+          description: Maximum recommended child age in months. When both age bounds are provided, this value must be greater than or equal to `minRecommendedAgeMonths`. Create/update requests may also provide `recommendedAgeMonths.max` as a payload alias, which is normalized to this field.
         indoorType:
           $ref: "#/components/schemas/IndoorType"
         strollerFriendly:

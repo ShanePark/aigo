@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createPlaceSchema } from "@/lib/schemas";
 import {
   applySearchDiversity,
   assertDeleteConfirmationMatches,
@@ -140,6 +141,25 @@ describe("place search helpers", () => {
       city: "Motobu",
       locality: "Okinawa",
       local_currency: "JPY"
+    });
+  });
+
+  it("persists nested recommended age payload aliases to age columns", () => {
+    const payload = createPlaceSchema.parse({
+      name: "연령대 숙소",
+      primaryCategory: "accommodation",
+      lat: 33.45,
+      lng: 126.55,
+      regionSido: "제주",
+      recommendedAgeMonths: { min: 12, max: 120 },
+      sources: [officialSource],
+      actor: "agent"
+    });
+    const createRecord = placeDbRecordForTest(payload);
+
+    expect(createRecord).toMatchObject({
+      min_recommended_age_months: 12,
+      max_recommended_age_months: 120
     });
   });
 
