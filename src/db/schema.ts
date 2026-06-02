@@ -264,7 +264,6 @@ export const visitEvents = pgTable(
     requestPath: text("request_path"),
     httpMethod: text("http_method"),
     ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
     deviceKeyHash: text("device_key_hash"),
     searchInput: jsonb("search_input")
       .$type<Record<string, unknown>>()

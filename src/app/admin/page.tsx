@@ -191,9 +191,33 @@ function VisitEventRow({ event }: { event: VisitEventItem }) {
       <div className="admin-ua-panel">
         <span>UA 분석</span>
         <strong>{uaSummary}</strong>
-        <small>{event.userAgent ? truncate(event.userAgent, 120) : "User-Agent 없음"}</small>
+        <UaAnalysisChips analysis={event.userAgentAnalysis} />
       </div>
     </article>
+  );
+}
+
+function UaAnalysisChips({ analysis }: { analysis: Record<string, unknown> }) {
+  const browser = objectValue(analysis.browser);
+  const os = objectValue(analysis.os);
+  const platform = objectValue(analysis.platform);
+  const engine = objectValue(analysis.engine);
+  const chips = [
+    namedValue("브라우저", browser.name, browser.version),
+    namedValue("OS", os.name, os.version),
+    namedValue("기기", platform.type, platform.vendor, platform.model),
+    namedValue("엔진", engine.name, engine.version),
+    analysis.isBot === true ? "bot" : null
+  ].filter(Boolean);
+
+  return chips.length > 0 ? (
+    <div className="admin-search-input">
+      {chips.map((chip) => (
+        <span key={chip}>{chip}</span>
+      ))}
+    </div>
+  ) : (
+    <small>분석 정보 없음</small>
   );
 }
 
@@ -228,6 +252,15 @@ function numberChip(label: string, value: unknown) {
   return typeof value === "number" ? `${label} ${value}` : null;
 }
 
+function objectValue(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function namedValue(label: string, ...values: unknown[]) {
+  const parts = values.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  return parts.length > 0 ? `${label} ${parts.join(" ")}` : null;
+}
+
 function parseAdminTab(value: string | undefined): AdminTab {
   return value === "users" ? "users" : "visits";
 }
@@ -246,8 +279,4 @@ function formatDateTime(value: string) {
     timeStyle: "short",
     timeZone: "Asia/Seoul"
   }).format(new Date(value));
-}
-
-function truncate(value: string, maxLength: number) {
-  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }

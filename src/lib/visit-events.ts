@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import Bowser from "bowser";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import type postgres from "postgres";
@@ -27,7 +28,6 @@ type VisitEventRow = {
   requestPath: string | null;
   httpMethod: string | null;
   ipAddress: string | null;
-  userAgent: string | null;
   deviceKeyHash: string | null;
   searchInput: Record<string, unknown>;
   searchResultCount: number | string | null;
@@ -72,7 +72,6 @@ export type VisitEventItem = {
   requestPath: string | null;
   httpMethod: string | null;
   ipAddress: string | null;
-  userAgent: string | null;
   deviceKeyHash: string | null;
   searchInput: Record<string, unknown>;
   searchResultCount: number | null;
@@ -102,7 +101,6 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       request_path,
       http_method,
       ip_address,
-      user_agent,
       device_key_hash,
       search_input,
       search_result_count,
@@ -118,7 +116,6 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       ${requestInfo.requestPath},
       ${requestInfo.httpMethod},
       ${requestInfo.ipAddress},
-      ${requestInfo.userAgent},
       ${deviceKeyHash},
       ${JSON.stringify(input.searchInput ?? {})}::jsonb,
       ${input.searchResultCount ?? null},
@@ -154,7 +151,6 @@ export async function listVisitEvents(input: { eventType?: VisitEventType; limit
       e.request_path as "requestPath",
       e.http_method as "httpMethod",
       e.ip_address as "ipAddress",
-      e.user_agent as "userAgent",
       e.device_key_hash as "deviceKeyHash",
       e.search_input as "searchInput",
       e.search_result_count as "searchResultCount",
@@ -191,19 +187,38 @@ export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise
 
 export function analyzeUserAgent(userAgent: string | null | undefined) {
   const ua = userAgent ?? "";
-  const lower = ua.toLowerCase();
-  const isBot = /bot|crawler|spider|slurp|bingpreview|headless|preview|monitor/.test(lower);
-  const deviceType = /ipad|tablet/.test(lower) ? "tablet" : /mobile|iphone|android/.test(lower) ? "mobile" : "desktop";
-  const os = detectOperatingSystem(ua);
-  const browser = detectBrowser(ua);
+  if (!ua) {
+    return {
+      browser: {},
+      engine: {},
+      isBot: false,
+      os: {},
+      platform: {},
+      summary: "unknown"
+    };
+  }
+
+  const parsed = Bowser.parse(ua);
+  const platformType = parsed.platform.type ?? "unknown";
 
   return {
-    browser,
-    deviceType,
-    isBot,
-    os,
-    rawLength: ua.length,
-    summary: [deviceType, os.name, browser.name].filter((part) => part && part !== "unknown").join(" · ") || "unknown"
+    browser: compactObject(parsed.browser),
+    engine: compactObject(parsed.engine),
+    isBot: platformType === "bot",
+    os: compactObject(parsed.os),
+    platform: compactObject(parsed.platform),
+    summary:
+      [
+        platformType,
+        parsed.platform.vendor,
+        parsed.platform.model,
+        parsed.os.name,
+        parsed.os.version,
+        parsed.browser.name,
+        parsed.browser.version
+      ]
+        .filter(Boolean)
+        .join(" · ") || "unknown"
   };
 }
 
@@ -242,7 +257,6 @@ function visitEventFromRow(row: VisitEventRow): VisitEventItem {
     requestPath: row.requestPath,
     httpMethod: row.httpMethod,
     ipAddress: row.ipAddress,
-    userAgent: row.userAgent,
     deviceKeyHash: row.deviceKeyHash,
     searchInput: row.searchInput ?? {},
     searchResultCount: numberOrNull(row.searchResultCount),
@@ -257,22 +271,8 @@ function hashVisitEventDeviceKey(deviceKey: string) {
   return createHash("sha256").update(process.env.AIGO_VIEW_DEDUPE_SALT ?? "aigo-visit-event-device").update(":").update(deviceKey).digest("hex");
 }
 
-function detectOperatingSystem(userAgent: string) {
-  if (/iPhone|iPad|iPod/.test(userAgent)) return { name: "iOS" };
-  if (/Android/.test(userAgent)) return { name: "Android" };
-  if (/Windows NT/.test(userAgent)) return { name: "Windows" };
-  if (/Mac OS X|Macintosh/.test(userAgent)) return { name: "macOS" };
-  if (/Linux/.test(userAgent)) return { name: "Linux" };
-  return { name: "unknown" };
-}
-
-function detectBrowser(userAgent: string) {
-  if (/Edg\//.test(userAgent)) return { name: "Edge" };
-  if (/OPR\//.test(userAgent)) return { name: "Opera" };
-  if (/Chrome\//.test(userAgent) && !/Chromium/.test(userAgent)) return { name: "Chrome" };
-  if (/Safari\//.test(userAgent) && /Version\//.test(userAgent)) return { name: "Safari" };
-  if (/Firefox\//.test(userAgent)) return { name: "Firefox" };
-  return { name: "unknown" };
+function compactObject(input: object | undefined) {
+  return Object.fromEntries(Object.entries(input ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== ""));
 }
 
 function numberValue(value: number | string | null | undefined) {

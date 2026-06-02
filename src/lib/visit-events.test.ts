@@ -46,9 +46,9 @@ describe("visit event recording", () => {
 
     expect(calls[0]).toContain("insert into visit_events");
     expect(calls[0]).toContain("ip_address");
-    expect(calls[0]).toContain("user_agent");
     expect(calls[0]).toContain("search_input");
     expect(calls[0]).toContain("user_agent_analysis");
+    expect(calls[0]).not.toContain("user_agent,");
     expect(calls[0]).not.toContain("ua_processed");
   });
 });
@@ -69,7 +69,6 @@ describe("visit event listing", () => {
           requestPath: "/api/places/test/views",
           httpMethod: "POST",
           ipAddress: "203.0.113.2",
-          userAgent: "UA",
           deviceKeyHash: "hash",
           searchInput: {},
           searchResultCount: null,
@@ -98,9 +97,10 @@ describe("visit event listing", () => {
 describe("user-agent analysis", () => {
   it("parses common browser signals", () => {
     expect(analyzeUserAgent(request().headers.get("user-agent"))).toMatchObject({
-      browser: { name: "Safari" },
-      deviceType: "mobile",
-      os: { name: "iOS" }
+      browser: { name: "Safari", version: "17.0" },
+      isBot: false,
+      os: { name: "iOS", version: "17.0" },
+      platform: { model: "iPhone", type: "mobile", vendor: "Apple" }
     });
   });
 });
