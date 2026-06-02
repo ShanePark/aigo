@@ -6200,6 +6200,73 @@ h3 {
   max-width: 1180px;
 }
 
+.admin-page .app-page-actions {
+  min-width: min(100%, 500px);
+}
+
+.admin-tab-panel {
+  background: color-mix(in srgb, var(--control-bg) 82%, transparent);
+  border: 0;
+  border-radius: 22px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--line) 38%, transparent),
+    0 14px 34px rgba(24, 33, 29, 0.06);
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  padding: 6px;
+}
+
+.admin-tab-group.app-page-filter-group {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  gap: 4px;
+  min-height: 0;
+  padding: 0;
+}
+
+.admin-tab-group .app-page-filter-chip {
+  border: 0;
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.admin-tab-group.is-primary .app-page-filter-chip {
+  font-size: 13px;
+  min-height: 38px;
+  padding: 0 15px;
+}
+
+.admin-tab-group.is-secondary .app-page-filter-chip {
+  font-size: 12px;
+  min-height: 31px;
+  padding: 0 11px;
+}
+
+.admin-tab-group .app-page-filter-chip:hover,
+.admin-tab-group .app-page-filter-chip:focus-visible {
+  background: color-mix(in srgb, var(--mint-soft) 74%, transparent);
+  color: var(--mint);
+}
+
+.admin-tab-group .app-page-filter-chip.is-active {
+  background: color-mix(in srgb, var(--mint-soft) 82%, var(--panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mint) 12%, transparent);
+  color: var(--mint);
+}
+
+.admin-tab-group.is-secondary .app-page-filter-chip.is-active {
+  background: color-mix(in srgb, var(--mint-soft) 70%, transparent);
+  box-shadow: none;
+  color: var(--mint);
+}
+
+.admin-tab-group .app-page-filter-chip.is-active svg {
+  color: currentColor;
+}
+
 .admin-summary-grid {
   display: grid;
   gap: 10px;

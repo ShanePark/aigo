@@ -47,8 +47,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         icon={ShieldCheck}
         title={tab === "users" ? "사용자 관리" : "방문 기록"}
         actions={
-          <>
-            <nav className="app-page-filter-group" aria-label="관리자 메뉴">
+          <div className="admin-tab-panel">
+            <nav className="app-page-filter-group admin-tab-group is-primary" aria-label="관리자 메뉴">
               {adminTabs.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -60,7 +60,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               })}
             </nav>
             {tab === "visits" ? (
-              <div className="app-page-filter-group" aria-label="방문 기록 필터">
+              <div className="app-page-filter-group admin-tab-group is-secondary" aria-label="방문 기록 필터">
                 {filterLinks.map((filter) => {
                   const Icon = filter.icon;
                   return (
@@ -72,7 +72,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 })}
               </div>
             ) : null}
-          </>
+          </div>
         }
       />
 
