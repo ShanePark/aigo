@@ -3,7 +3,6 @@ import {
   Clock,
   ExternalLink,
   History,
-  Images,
   MapPin,
   MessageSquareText,
   ShieldCheck,
@@ -16,6 +15,7 @@ import { notFound } from "next/navigation";
 import { PlaceImage } from "@/app/place-image";
 import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
 import { BackToSearchLink } from "@/app/places/back-to-search-link";
+import { PlaceImageGallery } from "@/app/places/place-image-gallery";
 import { PlaceDetailMap } from "@/app/places/place-detail-map";
 import { PlacePublicMemoPanel } from "@/app/places/place-public-memo-panel";
 import { safePlaceReturnHref } from "@/app/places/place-return-to";
@@ -283,42 +283,7 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
       ) : null}
 
       {galleryImages.length > 0 ? (
-        <section className="image-gallery-section">
-          <h2>
-            <Images size={18} aria-hidden="true" />
-            갤러리
-          </h2>
-          <div className="image-gallery-grid">
-            {galleryImages.map((image) => (
-              <article className="image-gallery-card" key={image.id}>
-                <PlaceImage category={place.primaryCategory} src={image.url} alt={image.altText ?? `${place.name} 이미지`} variant="result" />
-                <div className="image-gallery-copy">
-                  {image.sourceUrl ? (
-                    <a className="image-source-link" href={image.sourceUrl} target="_blank" rel="noreferrer">
-                      {image.sourceTitle ?? image.creditText}
-                    </a>
-                  ) : null}
-                  <details className="image-info-details">
-                    <summary>이미지 정보 보기</summary>
-                    <div className="visit-row">
-                      {image.isPrimary ? <span>대표 이미지</span> : null}
-                      <span>{imageTierLabel(image.displayTier)}</span>
-                      <span>{imageReviewLabel(image.reviewStatus)}</span>
-                    </div>
-                    {image.description ? <p>{image.description}</p> : null}
-                    {image.visualFeatures.length > 0 ? (
-                      <div className="reason-grid">
-                        {image.visualFeatures.slice(0, 10).map((feature) => (
-                          <span key={feature}>{imageFeatureLabel(feature)}</span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </details>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        <PlaceImageGallery category={place.primaryCategory} images={galleryImages} placeName={place.name} />
       ) : null}
 
       {infoLinks.length > 0 ? (
@@ -855,35 +820,6 @@ function imageTierLabel(value: string) {
     public_listing: "목록",
     rights_unclear: "검토",
     unknown: "미확인"
-  };
-  return labels[value] ?? value;
-}
-
-function imageReviewLabel(value: string) {
-  const labels: Record<string, string> = {
-    pending_review: "검수 대기",
-    approved: "검수 완료",
-    needs_review: "재검수",
-    rejected: "제외"
-  };
-  return labels[value] ?? value;
-}
-
-function imageFeatureLabel(value: string) {
-  const labels: Record<string, string> = {
-    slide: "미끄럼틀",
-    swing: "그네",
-    sand_play: "모래놀이",
-    ball_pool: "볼풀",
-    trampoline: "트램펄린",
-    climbing: "클라이밍",
-    water_play: "물놀이",
-    fountain: "분수",
-    stroller_path: "유모차 동선",
-    shade: "그늘",
-    books: "책/그림책",
-    playroom: "놀이방",
-    baby_chair: "아기의자"
   };
   return labels[value] ?? value;
 }
