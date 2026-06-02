@@ -10,7 +10,6 @@ type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export const visitEventsLimitSchema = z.coerce.number().int().min(1).max(200).default(50);
 export const visitEventsTypeSchema = z.enum(["all", "place_detail_view", "place_search"]).default("all");
-export const userAgentAnalysisLimitSchema = z.coerce.number().int().min(1).max(1000).default(250);
 
 export type VisitEventType = z.infer<typeof visitEventsTypeSchema>;
 export type VisitEventKind = Exclude<VisitEventType, "all">;
@@ -100,6 +99,7 @@ export type VisitEventsSummary = {
 export async function recordVisitEvent(input: VisitEventRequestContext, executor: SqlExecutor = pg) {
   const requestInfo = visitEventRequestInfo(input.request);
   const deviceKeyHash = input.deviceKey ? hashVisitEventDeviceKey(input.deviceKey) : null;
+  const userAgentAnalysis = analyzeUserAgent(requestInfo.userAgent);
 
   const rows = await executor<Array<{ id: string }>>`
     insert into visit_events (
@@ -115,7 +115,10 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       search_input,
       search_result_count,
       search_result_total,
-      event_meta
+      event_meta,
+      user_agent_analysis,
+      ua_processed,
+      ua_processed_at
     )
     values (
       ${input.eventType},
@@ -130,12 +133,21 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       ${JSON.stringify(input.searchInput ?? {})}::jsonb,
       ${input.searchResultCount ?? null},
       ${input.searchResultTotal ?? null},
-      ${JSON.stringify(input.meta ?? {})}::jsonb
+      ${JSON.stringify(input.meta ?? {})}::jsonb,
+      ${JSON.stringify(userAgentAnalysis)}::jsonb,
+      true,
+      now()
     )
     returning id::text as id
   `;
 
   return { id: rows[0]?.id ?? null };
+}
+
+export function recordVisitEventLater(input: VisitEventRequestContext) {
+  void recordVisitEvent(input).catch((error) => {
+    console.warn("Failed to record visit event", error);
+  });
 }
 
 export async function listVisitEvents(input: { eventType?: VisitEventType; limit?: number } = {}, executor: SqlExecutor = pg) {
@@ -193,29 +205,6 @@ export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise
     totalCount: numberValue(rows[0]?.totalCount),
     unprocessedUaCount: numberValue(rows[0]?.unprocessedUaCount)
   };
-}
-
-export async function analyzePendingVisitEventUserAgents(limit = 250, executor: SqlExecutor = pg) {
-  const safeLimit = userAgentAnalysisLimitSchema.parse(limit);
-  const rows = await executor<Array<{ id: string; userAgent: string | null }>>`
-    select id::text as id, user_agent as "userAgent"
-    from visit_events
-    where not ua_processed
-    order by created_at asc
-    limit ${safeLimit}
-  `;
-
-  for (const row of rows) {
-    await executor`
-      update visit_events
-      set user_agent_analysis = ${JSON.stringify(analyzeUserAgent(row.userAgent))}::jsonb,
-          ua_processed = true,
-          ua_processed_at = now()
-      where id = ${row.id}
-    `;
-  }
-
-  return { processedCount: rows.length };
 }
 
 export function analyzeUserAgent(userAgent: string | null | undefined) {

@@ -5,7 +5,7 @@ import { apiErrorResponse } from "@/lib/errors";
 import { readJson } from "@/lib/http";
 import { compactSearchPlacesResponse, searchPlaces } from "@/lib/places";
 import { searchPlacesSchema } from "@/lib/schemas";
-import { recordVisitEvent } from "@/lib/visit-events";
+import { recordVisitEventLater } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     requireApiKey(request);
     const input = searchPlacesSchema.parse(await readJson(request));
     const result = await searchPlaces(input);
-    await recordVisitEvent({
+    recordVisitEventLater({
       eventSource: "v1",
       eventType: "place_search",
       request,

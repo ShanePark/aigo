@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   currentUserFromSessionToken: vi.fn(),
-  recordVisitEvent: vi.fn(),
+  recordVisitEventLater: vi.fn(),
   searchPlaces: vi.fn()
 }));
 
@@ -19,7 +19,7 @@ vi.mock("@/lib/places", async (importOriginal) => ({
 
 vi.mock("@/lib/visit-events", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/visit-events")>()),
-  recordVisitEvent: mocks.recordVisitEvent
+  recordVisitEventLater: mocks.recordVisitEventLater
 }));
 
 import { POST as postPlaceSearch } from "@/app/places/search/route";
@@ -42,7 +42,6 @@ describe("place search route analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.currentUserFromSessionToken.mockResolvedValue({ id: userId });
-    mocks.recordVisitEvent.mockResolvedValue({ id: "event-1" });
     mocks.searchPlaces.mockResolvedValue({
       items: [{ placeId: "place-1" }, { placeId: "place-2" }],
       meta: { total: 12 }
@@ -54,14 +53,16 @@ describe("place search route analytics", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.searchPlaces).toHaveBeenCalledWith(expect.objectContaining({ limit: 20, offset: 0 }));
-    expect(mocks.recordVisitEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventType: "place_search",
-        searchResultCount: 2,
-        searchResultTotal: 12,
-        user: { id: userId }
-      })
-    );
+    await vi.waitFor(() => {
+      expect(mocks.recordVisitEventLater).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: "place_search",
+          searchResultCount: 2,
+          searchResultTotal: 12,
+          user: { id: userId }
+        })
+      );
+    });
     await expect(response.json()).resolves.toMatchObject({
       items: [{ placeId: "place-1" }, { placeId: "place-2" }]
     });

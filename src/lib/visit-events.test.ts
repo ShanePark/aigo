@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
-import { analyzePendingVisitEventUserAgents, analyzeUserAgent, listVisitEvents, recordVisitEvent } from "@/lib/visit-events";
+import { analyzeUserAgent, listVisitEvents, recordVisitEvent } from "@/lib/visit-events";
 
 type QueryResponse = Array<Record<string, unknown>>;
 
@@ -48,6 +48,8 @@ describe("visit event recording", () => {
     expect(calls[0]).toContain("ip_address");
     expect(calls[0]).toContain("user_agent");
     expect(calls[0]).toContain("search_input");
+    expect(calls[0]).toContain("user_agent_analysis");
+    expect(calls[0]).toContain("ua_processed");
   });
 });
 
@@ -103,13 +105,5 @@ describe("user-agent analysis", () => {
       deviceType: "mobile",
       os: { name: "iOS" }
     });
-  });
-
-  it("marks pending rows as processed with analysis JSON", async () => {
-    const { calls, executor } = fakeExecutor([[{ id: "event-1", userAgent: "Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36" }], []]);
-
-    await expect(analyzePendingVisitEventUserAgents(10, executor)).resolves.toEqual({ processedCount: 1 });
-    expect(calls[0]).toContain("where not ua_processed");
-    expect(calls[1]).toContain("ua_processed = true");
   });
 });

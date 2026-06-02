@@ -5,7 +5,7 @@ import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth
 import { apiErrorResponse } from "@/lib/errors";
 import { recordPlaceView, recordPublicPlaceView, type PublicPlaceViewKey } from "@/lib/user-place-views";
 import { requireUuidParam } from "@/lib/route-params";
-import { clientIp, recordVisitEvent } from "@/lib/visit-events";
+import { clientIp, recordVisitEventLater } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
     const cookieValue = request.cookies.get(PLACE_VIEWER_COOKIE)?.value ?? randomUUID();
     const publicView = await recordPublicPlaceView(placeId, placeViewDedupeKeys(request, cookieValue, user?.id));
-    await recordVisitEvent({
+    recordVisitEventLater({
       deviceKey: cookieValue,
       eventType: "place_detail_view",
       meta: {

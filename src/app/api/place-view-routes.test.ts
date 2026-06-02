@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   currentUserFromSessionToken: vi.fn(),
   recordPlaceView: vi.fn(),
   recordPublicPlaceView: vi.fn(),
-  recordVisitEvent: vi.fn()
+  recordVisitEventLater: vi.fn()
 }));
 
 vi.mock("@/lib/app-auth", async (importOriginal) => ({
@@ -21,7 +21,7 @@ vi.mock("@/lib/user-place-views", async (importOriginal) => ({
 
 vi.mock("@/lib/visit-events", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/visit-events")>()),
-  recordVisitEvent: mocks.recordVisitEvent
+  recordVisitEventLater: mocks.recordVisitEventLater
 }));
 
 import { POST as postPlaceView } from "@/app/api/places/[placeId]/views/route";
@@ -49,7 +49,6 @@ describe("place view API route", () => {
     mocks.recordPublicPlaceView.mockResolvedValue({
       item: { counted: true, placeId, publicViewCount: 8 }
     });
-    mocks.recordVisitEvent.mockResolvedValue({ id: "event-1" });
   });
 
   it("records anonymous public views with device and ip dedupe keys", async () => {
@@ -62,7 +61,7 @@ describe("place view API route", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.recordPlaceView).not.toHaveBeenCalled();
-    expect(mocks.recordVisitEvent).toHaveBeenCalledWith(
+    expect(mocks.recordVisitEventLater).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: "place_detail_view",
         meta: { counted: true, publicViewCount: 8 },
@@ -100,7 +99,7 @@ describe("place view API route", () => {
       ])
     );
     expect(mocks.recordPlaceView).toHaveBeenCalledWith(placeId, userId);
-    expect(mocks.recordVisitEvent).toHaveBeenCalledWith(
+    expect(mocks.recordVisitEventLater).toHaveBeenCalledWith(
       expect.objectContaining({
         deviceKey: "device-1",
         eventType: "place_detail_view",
