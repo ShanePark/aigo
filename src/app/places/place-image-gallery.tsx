@@ -2,7 +2,8 @@
 
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ExternalLink, ImageIcon, Images, Info, List, Maximize2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import type { MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AppModal } from "@/app/app-modal";
 import { PlaceImage } from "@/app/place-image";
@@ -174,9 +175,35 @@ function GalleryImageCard({
   onExpand: () => void;
   placeName: string;
 }) {
+  const pointerRef = useRef<{ dragged: boolean; x: number; y: number } | null>(null);
+
+  function handleExpandClick(event: MouseEvent<HTMLButtonElement>) {
+    if (pointerRef.current?.dragged) {
+      event.preventDefault();
+      pointerRef.current = null;
+      return;
+    }
+    pointerRef.current = null;
+    onExpand();
+  }
+
   return (
     <article className={`image-gallery-slide ${isSelected ? "is-selected" : "is-neighbor"}`}>
-      <button className="image-gallery-expand" onClick={onExpand} type="button">
+      <button
+        className="image-gallery-expand"
+        onClick={handleExpandClick}
+        onPointerDown={(event) => {
+          pointerRef.current = { dragged: false, x: event.clientX, y: event.clientY };
+        }}
+        onPointerMove={(event) => {
+          const start = pointerRef.current;
+          if (!start) return;
+          if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) {
+            start.dragged = true;
+          }
+        }}
+        type="button"
+      >
         <PlaceImage category={category} src={image.url} alt={image.altText ?? `${placeName} 이미지`} variant="result" />
         <span>
           <Maximize2 size={15} aria-hidden="true" />
