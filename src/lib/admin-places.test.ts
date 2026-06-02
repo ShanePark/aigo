@@ -26,7 +26,35 @@ describe("admin place listing", () => {
           description: "아이와 가기 좋은 실내 놀이 공간",
           parentNotes: "주차가 편합니다.",
           safetyNotes: null,
-          placeScore: "72.4",
+          placeScore: "8.4",
+          placeScoreRationale: "실내 놀이와 편의 근거가 확인된 장소.",
+          externalRatingScore: null,
+          externalReviewCount: null,
+          searchEvidenceScore: null,
+          scoreSignals: {},
+          scoreUpdatedAt: null,
+          dataConfidence: "agent_collected",
+          minRecommendedAgeMonths: null,
+          maxRecommendedAgeMonths: null,
+          indoorType: "indoor",
+          strollerFriendly: "unknown",
+          parkingAvailable: "yes",
+          nursingRoom: "unknown",
+          diaperChangingTable: "unknown",
+          kidsToilet: "unknown",
+          elevator: "unknown",
+          babyChair: "unknown",
+          foodAllowed: "unknown",
+          openingHours: null,
+          averageStayMinutes: null,
+          parentEffortLevel: null,
+          childEngagementLevel: null,
+          rainyDayScore: null,
+          hotDayScore: null,
+          coldDayScore: null,
+          playFeatures: {},
+          taxonomy: null,
+          pricing: {},
           imageAltText: "테스트 키즈카페 실내",
           imageUrl: "https://example.com/place.webp",
           createdAt: new Date("2026-06-02T00:00:00.000Z"),
@@ -44,7 +72,7 @@ describe("admin place listing", () => {
           imageUrl: "https://example.com/place.webp",
           name: "테스트 키즈카페",
           parentNotes: "주차가 편합니다.",
-          placeScore: 72.4,
+          placeScore: 77,
           primaryCategory: "kids_cafe",
           tags: ["실내", "키즈"]
         }
@@ -56,6 +84,7 @@ describe("admin place listing", () => {
     expect(calls[0]).toContain("left join lateral");
     expect(calls[0]).toContain("count(*) over()");
     expect(calls[0]).toContain("p.place_score");
+    expect(calls[0]).toContain("p.place_score_rationale");
     expect(calls[0]).toContain("case when ? = 'updated' then p.updated_at else p.created_at end desc");
   });
 
