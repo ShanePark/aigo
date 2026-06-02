@@ -954,6 +954,7 @@ h3 {
 
 .advanced-filter-option-application {
   background: var(--chip-neutral-bg);
+  border: 1px solid color-mix(in srgb, var(--chip-neutral-text) 18%, var(--panel));
   border-radius: var(--radius-control);
   color: var(--chip-neutral-text);
   display: inline-flex;
@@ -966,6 +967,7 @@ h3 {
 
 .advanced-filter-option-application.is-required {
   background: var(--blue-soft);
+  border-color: color-mix(in srgb, var(--blue) 24%, var(--panel));
   color: var(--blue);
 }
 
@@ -8356,8 +8358,9 @@ dd {
   }
 
   .advanced-filter-option-application {
-    border: 1px solid var(--panel);
-    box-shadow: 0 1px 4px rgba(24, 33, 29, 0.08);
+    box-shadow:
+      0 0 0 1px var(--panel),
+      0 1px 4px rgba(24, 33, 29, 0.08);
     font-size: 8.5px;
     padding: 2px 4px;
     right: -2px;
