@@ -2293,6 +2293,18 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     where.push(`primary_category = any(${add(input.primaryCategories)}::text[])`);
   }
 
+  if (input.tags?.length) {
+    const normalizedTags = input.tags.map((tag) => tag.trim().replace(/[-\s]+/g, "_").toLowerCase());
+    where.push(
+      `(exists (
+          select 1
+          from unnest(tags) as required_tag
+          where regexp_replace(lower(required_tag), '[-[:space:]]+', '_', 'g') = any(${add(normalizedTags)}::text[])
+        )
+        or regexp_replace(lower(name), '[-[:space:]]+', '_', 'g') ilike any(${add(normalizedTags.map((tag) => `%${tag}%`))}::text[]))`
+    );
+  }
+
   if (input.playgroundOnly) {
     where.push(playgroundEvidenceClause());
   }

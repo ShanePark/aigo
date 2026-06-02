@@ -1,4 +1,5 @@
 import { hasMapLocationParams } from "@/app/search-url-state";
+import { accommodationTypeById, accommodationTypeTagAliases } from "@/app/accommodation-types";
 import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
@@ -25,6 +26,7 @@ export type CategoryGroupId = keyof typeof CATEGORY_GROUP_CATEGORY_FILTERS;
 export function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
   const category = textParam(params.category);
   const categoryGroups = categoryGroupParams(params);
+  const accommodationType = accommodationTypeById(textParam(params.accommodationType));
   const groupCategories = categoriesForCategoryGroups(categoryGroups);
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
@@ -56,9 +58,16 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     filterByRadius: shouldFilterByRadius,
     viewportBounds,
     query: query || undefined,
-    primaryCategories: groupCategories ? [...groupCategories] : category ? [category] : undefined,
+    primaryCategories: accommodationType
+      ? Array.from(new Set([...(groupCategories ?? (category ? [category] : [])), "accommodation"]))
+      : groupCategories
+        ? [...groupCategories]
+        : category
+          ? [category]
+          : undefined,
     playgroundOnly: isSingleCategoryGroup(categoryGroups, "playground") ? true : undefined,
     kidsCafeOnly: isSingleCategoryGroup(categoryGroups, "kidsCafe") ? true : undefined,
+    tags: accommodationType ? accommodationTypeTagAliases(accommodationType.id) : undefined,
     childAgeMonths: ages,
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,

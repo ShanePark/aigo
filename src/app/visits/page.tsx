@@ -122,7 +122,7 @@ function VisitLogCard({ item }: { item: MyVisitLogItem }) {
     <Link className="visit-log-card" href={placeHref(item.placeId)} aria-label={`${item.placeName} 상세 보기`}>
       <div className="visit-log-card-body">
         <div className="visit-log-card-topline">
-          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" />
+          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" name={item.placeName} />
           {item.isRevisit ? (
             <span className="trust-badge positive">
               <RotateCcw size={13} aria-hidden="true" />

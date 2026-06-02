@@ -87,7 +87,7 @@ function RecentPlaceCard({ item }: { item: RecentPlaceItem }) {
       <PlaceImage category={item.primaryCategory} src={item.imageUrl} alt={`${item.placeName} 대표 이미지`} variant="result" />
       <div className="recent-place-card-body">
         <div className="visit-log-card-topline">
-          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" />
+          <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" name={item.placeName} />
           <span className="trust-badge neutral">
             <MousePointerClick size={13} aria-hidden="true" />
             {item.viewCount}회 열람

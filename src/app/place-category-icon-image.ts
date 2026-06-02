@@ -1,5 +1,9 @@
 const CATEGORY_ICON_IMAGES: Record<string, string> = {
   accommodation: "/icons/place-categories/accommodation.webp",
+  accommodation_kids_hotel: "/icons/place-categories/accommodation_kids_hotel.webp",
+  accommodation_pension: "/icons/place-categories/accommodation_pension.webp",
+  accommodation_pool_villa: "/icons/place-categories/accommodation_pool_villa.webp",
+  accommodation_resort: "/icons/place-categories/accommodation_resort.webp",
   aquarium: "/icons/place-categories/aquarium.webp",
   art_museum: "/icons/place-categories/art_museum.webp",
   experience_center: "/icons/place-categories/experience_center.webp",

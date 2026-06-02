@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { placeCategoryIconImage } from "@/app/place-category-icon-image";
 import { placeCategoryLabel } from "@/app/place-category";
+import { accommodationTypeForPlace, accommodationTypeForTags } from "@/app/accommodation-types";
 import { primaryCategories } from "@/lib/taxonomy";
 
 describe("place category display helpers", () => {
@@ -25,5 +26,12 @@ describe("place category display helpers", () => {
     }
 
     expect(placeCategoryIconImage("unknown_category")).toBeNull();
+  });
+
+  it("resolves accommodation subtype display from tags", () => {
+    expect(accommodationTypeForTags("accommodation", ["kids", "풀빌라"])?.label).toBe("풀빌라");
+    expect(accommodationTypeForTags("accommodation", ["kids_hotel"])?.iconCategory).toBe("accommodation_kids_hotel");
+    expect(accommodationTypeForPlace("accommodation", { name: "비발디파크 리조트", tags: [] })?.label).toBe("리조트");
+    expect(placeCategoryIconImage("accommodation_pool_villa")).toBe("/icons/place-categories/accommodation_pool_villa.webp");
   });
 });

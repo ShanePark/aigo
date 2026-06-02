@@ -167,6 +167,18 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
+  it("filters by required tag aliases for accommodation subtype searches", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      primaryCategories: ["accommodation"],
+      tags: ["pool_villa", "풀빌라", "키즈풀빌라"]
+    });
+
+    expect(query.sql).toContain("from unnest(tags) as required_tag");
+    expect(query.sql).toContain("regexp_replace(lower(name)");
+    expect(query.params).toEqual([["accommodation"], ["pool_villa", "풀빌라", "키즈풀빌라"], ["%pool_villa%", "%풀빌라%", "%키즈풀빌라%"]]);
+  });
+
   it("filters search candidates by visible map viewport bounds", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,
