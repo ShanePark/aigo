@@ -26,6 +26,7 @@ describe("admin place listing", () => {
           description: "아이와 가기 좋은 실내 놀이 공간",
           parentNotes: "주차가 편합니다.",
           safetyNotes: null,
+          placeScore: "72.4",
           imageAltText: "테스트 키즈카페 실내",
           imageUrl: "https://example.com/place.webp",
           createdAt: new Date("2026-06-02T00:00:00.000Z"),
@@ -43,6 +44,7 @@ describe("admin place listing", () => {
           imageUrl: "https://example.com/place.webp",
           name: "테스트 키즈카페",
           parentNotes: "주차가 편합니다.",
+          placeScore: 72.4,
           primaryCategory: "kids_cafe",
           tags: ["실내", "키즈"]
         }
@@ -53,6 +55,7 @@ describe("admin place listing", () => {
     expect(calls[0]).toContain("from place_images");
     expect(calls[0]).toContain("left join lateral");
     expect(calls[0]).toContain("count(*) over()");
+    expect(calls[0]).toContain("p.place_score");
     expect(calls[0]).toContain("case when ? = 'updated' then p.updated_at else p.created_at end desc");
   });
 

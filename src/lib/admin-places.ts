@@ -28,6 +28,7 @@ type AdminPlaceRow = {
   primaryCategory: string;
   safetyNotes: string | null;
   tags: string[] | null;
+  placeScore: number | string | null;
   imageAltText: string | null;
   imageUrl: string | null;
   createdAt: Date | string;
@@ -59,6 +60,7 @@ export type AdminPlaceItem = {
   primaryCategory: string;
   safetyNotes: string | null;
   tags: string[];
+  placeScore: number | null;
   imageAltText: string | null;
   imageUrl: string | null;
   createdAt: string;
@@ -91,6 +93,7 @@ export async function listAdminPlaces(input: { date?: string | null; limit?: num
       p.description,
       p.parent_notes as "parentNotes",
       p.safety_notes as "safetyNotes",
+      p.place_score as "placeScore",
       i.image_url as "imageUrl",
       i.image_alt_text as "imageAltText",
       p.created_at as "createdAt",
@@ -173,6 +176,7 @@ function adminPlaceFromRow(row: AdminPlaceRow): AdminPlaceItem {
     primaryCategory: row.primaryCategory,
     safetyNotes: row.safetyNotes,
     tags: Array.isArray(row.tags) ? row.tags.filter(Boolean) : [],
+    placeScore: nullableNumberValue(row.placeScore),
     imageAltText: row.imageAltText,
     imageUrl: row.imageUrl,
     createdAt: dateTimeString(row.createdAt),
@@ -188,6 +192,13 @@ function numberValue(value: number | string | null | undefined) {
   if (typeof value === "number") return value;
   if (typeof value === "string") return Number.parseInt(value, 10) || 0;
   return 0;
+}
+
+function nullableNumberValue(value: number | string | null | undefined) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function currentKoreaMonth() {

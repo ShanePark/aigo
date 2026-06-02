@@ -7,7 +7,8 @@ import type { ReactNode } from "react";
 
 import { AppPageHeader } from "@/app/page-shell";
 import { placeCategoryLabel } from "@/app/place-category-badge";
-import { PlaceResultCard } from "@/app/place-result-card";
+import { PlaceResultCard, type PlaceResultCardDate, type PlaceResultCardMetric } from "@/app/place-result-card";
+import { placeQualityScoreTitle } from "@/app/result-score-labels";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
 import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
@@ -128,7 +129,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <section className="admin-log-panel">
             <div className="admin-place-list">
               {places.items.length > 0 ? (
-                places.items.map((item, index) => <AdminPlaceRow index={offset + index + 1} item={item} key={item.id} returnHref={adminPageHref(placeListParams({ date: placeDate, month: placeMonth, sort: placeSort }), page, limit)} />)
+                places.items.map((item, index) => <AdminPlaceRow index={offset + index + 1} item={item} key={item.id} returnHref={adminPageHref(placeListParams({ date: placeDate, month: placeMonth, sort: placeSort }), page, limit)} sort={placeSort} />)
               ) : (
                 <p className="admin-empty">등록된 장소가 없습니다.</p>
               )}
@@ -323,12 +324,12 @@ function AdminPager({
   return (
     <footer className="admin-pager" aria-label="관리자 목록 페이지 이동">
       <div className="admin-pager-meta">
-        {controls}
         <span className="admin-pager-status">
           {formatNumber(start)}-{formatNumber(end)} / {formatNumber(totalItems)}
         </span>
       </div>
       <div className="admin-pager-actions">
+        {controls}
         {hasPrevious ? (
           <Link className="admin-pager-link" href={adminPageHref(baseParams, page - 1, limit)}>
             이전
@@ -374,22 +375,23 @@ function AdminUserRow({ item }: { item: AdminUserItem }) {
   );
 }
 
-function AdminPlaceRow({ index, item, returnHref }: { index: number; item: AdminPlaceItem; returnHref: Route }) {
+function AdminPlaceRow({ index, item, returnHref, sort }: { index: number; item: AdminPlaceItem; returnHref: Route; sort: AdminPlacesSort }) {
   const summary = adminPlaceSummary(item);
   const keywords = adminPlaceKeywords(item);
+  const date = adminPlaceDate(item, sort);
+  const metrics = adminPlaceMetrics(item);
 
   return (
     <PlaceResultCard
       category={item.primaryCategory}
       className="admin-place-card"
-      dates={[
-        { label: "등록", value: formatDateTime(item.createdAt) },
-        { label: "수정", value: formatDateTime(item.updatedAt) }
-      ]}
+      dates={[date]}
       href={`/places/${item.id}?returnTo=${encodeURIComponent(returnHref)}`}
       imageAlt={item.imageAltText ?? `${item.name} 대표 이미지`}
       imageUrl={item.imageUrl}
       keywords={keywords}
+      metrics={metrics}
+      metricAriaLabel={item.placeScore !== null ? placeQualityScoreTitle(item.placeScore) : "장소 평가 점수가 없습니다."}
       name={item.name}
       rank={index}
       showImageCategory
@@ -397,6 +399,23 @@ function AdminPlaceRow({ index, item, returnHref }: { index: number; item: Admin
       tags={item.tags}
     />
   );
+}
+
+function adminPlaceDate(item: AdminPlaceItem, sort: AdminPlacesSort): PlaceResultCardDate {
+  return sort === "updated" ? { label: "수정", value: formatDateTime(item.updatedAt) } : { label: "등록", value: formatDateTime(item.createdAt) };
+}
+
+function adminPlaceMetrics(item: AdminPlaceItem): PlaceResultCardMetric[] {
+  return [
+    {
+      icon: "evaluation",
+      key: "evaluation",
+      label: "평가",
+      title: item.placeScore !== null ? placeQualityScoreTitle(item.placeScore) : "장소 평가 점수가 없습니다.",
+      tone: item.placeScore !== null ? adminScoreTone(item.placeScore) : undefined,
+      value: item.placeScore !== null ? String(Math.round(item.placeScore)) : "-"
+    }
+  ];
 }
 
 function adminPlaceSummary(item: AdminPlaceItem) {
@@ -409,6 +428,13 @@ function adminPlaceKeywords(item: AdminPlaceItem) {
 
 function firstText(values: Array<string | null | undefined>) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? null;
+}
+
+function adminScoreTone(score: number) {
+  if (score >= 65) return "score-high";
+  if (score >= 58) return "score-good";
+  if (score >= 50) return "score-mid";
+  return "score-low";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
