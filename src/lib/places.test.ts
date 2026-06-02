@@ -164,6 +164,30 @@ describe("place search helpers", () => {
     });
   });
 
+  it("persists nested contact payload aliases to contact columns", () => {
+    const payload = createPlaceSchema.parse({
+      name: "연락처 숙소",
+      primaryCategory: "accommodation",
+      lat: 35.49,
+      lng: 128.75,
+      regionSido: "경남",
+      contact: {
+        phone: "0507-1386-8205",
+        officialUrl: "https://example.com/oase",
+        reservationUrl: "https://example.com/oase/reserve"
+      },
+      sources: [officialSource],
+      actor: "agent"
+    });
+    const createRecord = placeDbRecordForTest(payload);
+
+    expect(createRecord).toMatchObject({
+      phone: "0507-1386-8205",
+      official_url: "https://example.com/oase",
+      reservation_url: "https://example.com/oase/reserve"
+    });
+  });
+
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);
   });

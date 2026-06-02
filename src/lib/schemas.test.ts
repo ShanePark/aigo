@@ -118,6 +118,34 @@ describe("place schemas", () => {
     expect(update.maxRecommendedAgeMonths).toBe(96);
   });
 
+  it("maps nested contact payloads to writable contact fields", () => {
+    const create = createPlaceSchema.parse({
+      name: "연락처 장소",
+      primaryCategory: "accommodation",
+      regionSido: "경남",
+      lat: 35.5,
+      lng: 128.2,
+      contact: {
+        phone: " 0507-1386-8205 ",
+        officialUrl: "https://example.com/place",
+        reservationUrl: "https://example.com/reserve"
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const update = updatePlaceSchema.parse({
+      contact: {
+        phone: "0507-1111-2222"
+      },
+      phone: "0507-9999-0000",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(create.phone).toBe("0507-1386-8205");
+    expect(create.officialUrl).toBe("https://example.com/place");
+    expect(create.reservationUrl).toBe("https://example.com/reserve");
+    expect(update.phone).toBe("0507-9999-0000");
+  });
+
   it("accepts duplicate checks with address evidence when coordinates are unknown", () => {
     const addressOnly = duplicatePlaceSchema.parse({
       name: "도담도담 장난감월드 검단점",

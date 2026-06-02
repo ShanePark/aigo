@@ -900,6 +900,23 @@ components:
           format: uri
         kakaoPlaceId:
           type: string
+        contact:
+          type: object
+          description: Backward-compatible write alias for contact fields. Values are persisted to the same top-level `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, and `kakaoPlaceId` columns unless those top-level fields are also provided.
+          properties:
+            phone:
+              type: string
+            officialUrl:
+              type: string
+              format: uri
+            reservationUrl:
+              type: string
+              format: uri
+            kakaoPlaceUrl:
+              type: string
+              format: uri
+            kakaoPlaceId:
+              type: string
         externalRefs:
           type: object
           description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.

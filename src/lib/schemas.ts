@@ -260,6 +260,15 @@ const writablePlaceFields = {
   reservationUrl: urlString.optional(),
   kakaoPlaceUrl: urlString.optional(),
   kakaoPlaceId: z.string().trim().optional(),
+  contact: z
+    .object({
+      phone: z.string().trim().optional(),
+      officialUrl: urlString.optional(),
+      reservationUrl: urlString.optional(),
+      kakaoPlaceUrl: urlString.optional(),
+      kakaoPlaceId: z.string().trim().optional()
+    })
+    .optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   playFeatures: playFeaturesSchema.optional(),
   taxonomy: taxonomySchema.optional(),
@@ -320,6 +329,15 @@ const placeWriteAliasPreprocessor = (value: unknown) => {
     const ageRange = recommendedAgeMonths as Record<string, unknown>;
     input.minRecommendedAgeMonths ??= ageRange.min;
     input.maxRecommendedAgeMonths ??= ageRange.max;
+  }
+  const contact = input.contact;
+  if (contact && typeof contact === "object" && !Array.isArray(contact)) {
+    const contactFields = contact as Record<string, unknown>;
+    input.phone ??= contactFields.phone;
+    input.officialUrl ??= contactFields.officialUrl;
+    input.reservationUrl ??= contactFields.reservationUrl;
+    input.kakaoPlaceUrl ??= contactFields.kakaoPlaceUrl;
+    input.kakaoPlaceId ??= contactFields.kakaoPlaceId;
   }
 
   return input;
