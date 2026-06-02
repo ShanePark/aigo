@@ -65,7 +65,7 @@ type FilterKey =
   | "waterPlay";
 type FilterOverrides = Partial<Record<FilterKey, boolean>>;
 type SearchFilterOverrides = {
-  accommodationType?: AccommodationTypeId | "";
+  accommodationTypes?: readonly AccommodationTypeId[];
   filters?: FilterOverrides;
   profiles?: ChildProfile[];
 };
@@ -120,19 +120,19 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   const [isPending, startTransition] = useTransition();
   const initialKey = useMemo(() => JSON.stringify({ childParamSource, initialParams }), [childParamSource, initialParams]);
   const [selectedFilters, setSelectedFilters] = useState(() => filtersFromParams(initialParams));
-  const [selectedAccommodationType, setSelectedAccommodationType] = useState(() => accommodationTypeFromParams(initialParams));
+  const [selectedAccommodationTypes, setSelectedAccommodationTypes] = useState(() => accommodationTypesFromParams(initialParams));
   const [childProfiles, setChildProfiles] = useState(() => parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages)));
   const [draftFilters, setDraftFilters] = useState(selectedFilters);
-  const [draftAccommodationType, setDraftAccommodationType] = useState<AccommodationTypeId | "">(selectedAccommodationType);
+  const [draftAccommodationTypes, setDraftAccommodationTypes] = useState<AccommodationTypeId[]>(selectedAccommodationTypes);
   const [draftChildProfiles, setDraftChildProfiles] = useState(childProfiles);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [draftGender, setDraftGender] = useState<ChildGender>(DEFAULT_DRAFT_GENDER);
   const [draftAgeBand, setDraftAgeBand] = useState<ChildAgeBandId>(DEFAULT_DRAFT_AGE_BAND);
 
-  const selectedAccommodation = accommodationTypeById(selectedAccommodationType);
+  const selectedAccommodations = selectedAccommodationTypes.map((type) => accommodationTypeById(type)).filter((type) => type !== null);
   const activeFilterChips = [
-    ...(selectedAccommodation ? [selectedAccommodation.label] : []),
+    ...selectedAccommodations.map((type) => type.label),
     ...FILTERS.filter((filter) => selectedFilters[filter.key]).map((filter) => filter.label)
   ];
   const activeChipCount = activeFilterChips.length + childProfiles.length;
@@ -151,11 +151,10 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
       }
     }
 
-    if (overrides.accommodationType !== undefined) {
-      if (overrides.accommodationType) {
-        params.set("accommodationType", overrides.accommodationType);
-      } else {
-        params.delete("accommodationType");
+    if (overrides.accommodationTypes !== undefined) {
+      params.delete("accommodationType");
+      for (const type of overrides.accommodationTypes) {
+        params.append("accommodationType", type);
       }
     }
 
@@ -181,7 +180,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
 
   function openFilterModal() {
     setDraftFilters(selectedFilters);
-    setDraftAccommodationType(selectedAccommodationType);
+    setDraftAccommodationTypes(selectedAccommodationTypes);
     setDraftChildProfiles(childProfiles);
     setIsPickerOpen(false);
     setIsFilterModalOpen(true);
@@ -196,19 +195,22 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     setDraftFilters((current) => ({ ...current, [key]: checked }));
   }
 
-  function updateAccommodationType(value: AccommodationTypeId | "") {
-    setDraftAccommodationType((current) => (current === value ? "" : value));
+  function updateAccommodationType(value: AccommodationTypeId, checked: boolean) {
+    setDraftAccommodationTypes((current) => {
+      if (checked) return current.includes(value) ? current : [...current, value];
+      return current.filter((type) => type !== value);
+    });
   }
 
   function applyDraftFilters() {
     const normalizedProfiles = normalizeChildProfiles(draftChildProfiles);
     storeChildProfiles(normalizedProfiles);
     setSelectedFilters(draftFilters);
-    setSelectedAccommodationType(draftAccommodationType);
+    setSelectedAccommodationTypes(draftAccommodationTypes);
     setChildProfiles(normalizedProfiles);
     setIsPickerOpen(false);
     setIsFilterModalOpen(false);
-    applySearchState({ accommodationType: draftAccommodationType, filters: draftFilters, profiles: normalizedProfiles });
+    applySearchState({ accommodationTypes: draftAccommodationTypes, filters: draftFilters, profiles: normalizedProfiles });
   }
 
   function commitProfiles(nextProfiles: readonly ChildProfile[]) {
@@ -242,13 +244,13 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   useEffect(() => {
     const profilesFromParams = parseChildProfiles(textParam(initialParams.children), textParam(initialParams.ages));
     const nextFilters = filtersFromParams(initialParams);
-    const nextAccommodationType = accommodationTypeFromParams(initialParams);
+    const nextAccommodationTypes = accommodationTypesFromParams(initialParams);
     const hasInitialChildParams = childParamSource !== "none" || hasChildParams(initialParams);
     setSelectedFilters(nextFilters);
-    setSelectedAccommodationType(nextAccommodationType);
+    setSelectedAccommodationTypes(nextAccommodationTypes);
     setChildProfiles(profilesFromParams);
     setDraftFilters(nextFilters);
-    setDraftAccommodationType(nextAccommodationType);
+    setDraftAccommodationTypes(nextAccommodationTypes);
     setDraftChildProfiles(profilesFromParams);
 
     if (childParamSource === "account") {
@@ -311,14 +313,14 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   }
 
   function renderAccommodationOption(type: (typeof ACCOMMODATION_TYPES)[number]) {
-    const isSelected = draftAccommodationType === type.id;
+    const isSelected = draftAccommodationTypes.includes(type.id);
 
     return (
       <label className={`advanced-filter-option accommodation-type-option ${isSelected ? "is-selected" : ""}`} key={type.id}>
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={(event) => updateAccommodationType(event.currentTarget.checked ? type.id : "")}
+          onChange={(event) => updateAccommodationType(type.id, event.currentTarget.checked)}
         />
         <span className="advanced-filter-option-icon">
           <Image src={`/icons/place-categories/${type.iconCategory}.webp`} alt="" aria-hidden="true" width={25} height={25} />
@@ -337,7 +339,9 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
   return (
     <div className={`advanced-search ${activeChipCount > 0 ? "has-active" : ""}`} ref={rootRef}>
       <SearchPreferenceHiddenInputs params={initialParams} selectedFilters={selectedFilters} />
-      {selectedAccommodationType ? <input name="accommodationType" type="hidden" value={selectedAccommodationType} /> : null}
+      {selectedAccommodationTypes.map((type) => (
+        <input name="accommodationType" type="hidden" value={type} key={type} />
+      ))}
       <input name="children" type="hidden" value={serializeChildProfiles(childProfiles)} />
       <input name="ages" type="hidden" value={serializeChildAgeMonths(profileAges)} />
       <button className="advanced-summary-button" type="button" onClick={openFilterModal} aria-haspopup="dialog">
@@ -485,8 +489,13 @@ function filtersFromParams(params: Record<string, string | string[]>): Record<Fi
   return Object.fromEntries(FILTERS.map((filter) => [filter.key, textParam(params[filter.key]) === "on"])) as Record<FilterKey, boolean>;
 }
 
-function accommodationTypeFromParams(params: Record<string, string | string[]>): AccommodationTypeId | "" {
-  return accommodationTypeById(textParam(params.accommodationType))?.id ?? "";
+function accommodationTypesFromParams(params: Record<string, string | string[]>): AccommodationTypeId[] {
+  const types: AccommodationTypeId[] = [];
+  for (const value of paramValues(params.accommodationType).flatMap((item) => item.split(","))) {
+    const type = accommodationTypeById(value.trim());
+    if (type && !types.includes(type.id)) types.push(type.id);
+  }
+  return types;
 }
 
 function hasChildParams(params: Record<string, string | string[]>) {
@@ -511,4 +520,9 @@ function storeChildProfiles(profiles: readonly ChildProfile[]) {
 
 function textParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function paramValues(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value;
+  return value ? [value] : [];
 }

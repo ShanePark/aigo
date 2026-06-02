@@ -1,5 +1,5 @@
 import { hasMapLocationParams } from "@/app/search-url-state";
-import { accommodationTypeById, accommodationTypeTagAliases } from "@/app/accommodation-types";
+import { accommodationTypeById, accommodationTypeTagAliases, type AccommodationTypeId } from "@/app/accommodation-types";
 import { childProfilesToAgeMonths, parseChildAgeMonths, parseChildProfiles } from "@/lib/child-ages";
 import type { SearchPlacesInput } from "@/lib/schemas";
 
@@ -26,7 +26,7 @@ export type CategoryGroupId = keyof typeof CATEGORY_GROUP_CATEGORY_FILTERS;
 export function buildSearchInput(params: Record<string, string | string[] | undefined>): Partial<SearchPlacesInput> {
   const category = textParam(params.category);
   const categoryGroups = categoryGroupParams(params);
-  const accommodationType = accommodationTypeById(textParam(params.accommodationType));
+  const accommodationTypes = accommodationTypesFromParams(params);
   const groupCategories = categoriesForCategoryGroups(categoryGroups);
   const limit = resultLimitParam(params);
   const page = currentPageParam(params);
@@ -58,7 +58,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
     filterByRadius: shouldFilterByRadius,
     viewportBounds,
     query: query || undefined,
-    primaryCategories: accommodationType
+    primaryCategories: accommodationTypes.length > 0
       ? ["accommodation"]
       : groupCategories
         ? [...groupCategories]
@@ -67,7 +67,7 @@ export function buildSearchInput(params: Record<string, string | string[] | unde
           : undefined,
     playgroundOnly: isSingleCategoryGroup(categoryGroups, "playground") ? true : undefined,
     kidsCafeOnly: isSingleCategoryGroup(categoryGroups, "kidsCafe") ? true : undefined,
-    tags: accommodationType ? accommodationTypeTagAliases(accommodationType.id) : undefined,
+    tags: accommodationTypes.length > 0 ? Array.from(new Set(accommodationTypes.flatMap((type) => accommodationTypeTagAliases(type)))) : undefined,
     childAgeMonths: ages,
     preferences: {
       indoorTypes: params.indoor === "on" ? ["indoor", "mixed"] : undefined,
@@ -120,6 +120,15 @@ export function categoryGroupParams(params: Record<string, string | string[] | u
   if (pluralGroups.length > 0) return pluralGroups;
   const legacyGroups = uniqueCategoryGroups(paramValues(params.categoryGroup).flatMap((value) => value.split(",")));
   return legacyGroups.length > 0 ? legacyGroups : ["all"];
+}
+
+function accommodationTypesFromParams(params: Record<string, string | string[] | undefined>): AccommodationTypeId[] {
+  const types: AccommodationTypeId[] = [];
+  for (const value of paramValues(params.accommodationType).flatMap((item) => item.split(","))) {
+    const type = accommodationTypeById(value.trim());
+    if (type && !types.includes(type.id)) types.push(type.id);
+  }
+  return types;
 }
 
 export function textParam(value: string | string[] | undefined) {

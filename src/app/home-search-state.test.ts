@@ -112,6 +112,13 @@ describe("home search input", () => {
     });
   });
 
+  it("applies multiple lodging subtypes as an OR tag filter", () => {
+    expect(buildSearchInput({ accommodationType: ["resort", "poolVilla"], categoryGroups: "shopping" })).toMatchObject({
+      primaryCategories: ["accommodation"],
+      tags: expect.arrayContaining(["resort", "리조트", "pool_villa", "풀빌라"])
+    });
+  });
+
   it("keeps detail filters as ranking preferences from search params", () => {
     expect(
       buildSearchInput({
