@@ -9,6 +9,7 @@ export type DuplicateCandidateSignals = {
   branchSiblingReviewOnly?: boolean;
   lodgingClusterReviewOnly?: boolean;
   weakThematicSimilarityReviewOnly?: boolean;
+  genericAliasReviewOnly?: boolean;
   publicSubfacilityReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
@@ -72,6 +73,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("WEAK_THEMATIC_SIMILARITY_REVIEW_ONLY");
   }
 
+  if (signals.genericAliasReviewOnly) {
+    reasonCodes.push("GENERIC_ALIAS_REVIEW_ONLY");
+  }
+
   if (signals.publicSubfacilityReviewOnly) {
     reasonCodes.push("PUBLIC_SUBFACILITY_REVIEW_ONLY");
   }
@@ -123,6 +128,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.branchSiblingReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.lodgingClusterReviewOnly && !hasStrongIdentityEvidence(signals)) return "medium";
   if (signals.weakThematicSimilarityReviewOnly && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.genericAliasReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly && !signals.aliasMatch) return "medium";
@@ -221,6 +227,22 @@ export function duplicatePublicSubfacilityReviewOnly(inputName: string, candidat
   return !inputTerms.some((term) => candidateTerms.includes(term));
 }
 
+export function duplicateGenericAliasReviewOnly(
+  inputName: string,
+  inputAliases: string[] | undefined,
+  candidateName: string,
+  candidateAliases: string[] | undefined,
+  candidateTags: string[] | undefined
+) {
+  const inputTexts = [inputName, ...(inputAliases ?? [])].map(compactDuplicateName).filter(Boolean);
+  const candidateTexts = [candidateName, ...(candidateAliases ?? []), ...(candidateTags ?? [])].map(compactDuplicateName).filter(Boolean);
+  if (inputTexts.length === 0 || candidateTexts.length === 0) return false;
+
+  return publicGenericAliasReviewTerms.some(
+    (term) => inputTexts.some((text) => text.includes(term)) && candidateTexts.some((text) => text.includes(term))
+  );
+}
+
 export function duplicateSameSidoGenericReviewOnly(
   inputName: string,
   candidateName: string,
@@ -295,7 +317,11 @@ function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
 
 function identityReviewOnly(signals: DuplicateCandidateSignals) {
   return Boolean(
-    (signals.sameBuildingReviewOnly || signals.branchSiblingReviewOnly || signals.lodgingClusterReviewOnly || signals.weakThematicSimilarityReviewOnly) &&
+    (signals.sameBuildingReviewOnly ||
+      signals.branchSiblingReviewOnly ||
+      signals.lodgingClusterReviewOnly ||
+      signals.weakThematicSimilarityReviewOnly ||
+      signals.genericAliasReviewOnly) &&
       !signals.externalRefsMatch &&
       !signals.kakaoPlaceIdMatch &&
       !hasStrongIdentityEvidence(signals)
@@ -382,6 +408,23 @@ const publicInstitutionGenericTerms = [
   "문화원",
   "도서관"
 ].map(compactDuplicateText);
+
+const publicGenericAliasReviewTerms = Array.from(
+  new Set(
+    [
+      ...publicInstitutionGenericTerms,
+      "어린이자료실",
+      "유아자료실",
+      "가족열람실",
+      "장난감나라",
+      "장난감대여실",
+      "공동육아방",
+      "놀이체험실",
+      "어린이체험실",
+      "실내놀이터"
+    ].map(compactDuplicateText)
+  )
+);
 
 const publicChildSubfacilityTerms = [
   "서울형키즈카페",

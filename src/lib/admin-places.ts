@@ -2,6 +2,8 @@ import type postgres from "postgres";
 import { z } from "zod";
 
 import { pg } from "@/db/client";
+import { scorePlaceIntrinsic } from "@/lib/scoring";
+import { emptyPlaceTaxonomy, type PlaceTaxonomy } from "@/lib/taxonomy";
 
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
@@ -21,14 +23,42 @@ export const adminPlacesSortSchema = z.enum(["created", "updated"]).default("cre
 export type AdminPlacesSort = z.infer<typeof adminPlacesSortSchema>;
 
 type AdminPlaceRow = {
+  babyChair: string;
+  childEngagementLevel: number | string | null;
+  coldDayScore: number | string | null;
+  dataConfidence: string;
   description: string | null;
+  diaperChangingTable: string;
+  elevator: string;
+  externalRatingScore: number | string | null;
+  externalReviewCount: number | string | null;
+  foodAllowed: string;
+  hotDayScore: number | string | null;
   id: string;
+  indoorType: string;
+  kidsToilet: string;
+  maxRecommendedAgeMonths: number | string | null;
+  minRecommendedAgeMonths: number | string | null;
   name: string;
+  nursingRoom: string;
+  openingHours: unknown | null;
   parentNotes: string | null;
+  parentEffortLevel: number | string | null;
+  parkingAvailable: string;
   primaryCategory: string;
+  pricing: Record<string, unknown> | null;
+  playFeatures: Record<string, unknown> | null;
+  rainyDayScore: number | string | null;
   safetyNotes: string | null;
+  scoreSignals: Record<string, unknown> | null;
+  scoreUpdatedAt: Date | string | null;
+  searchEvidenceScore: number | string | null;
+  strollerFriendly: string;
   tags: string[] | null;
   placeScore: number | string | null;
+  placeScoreRationale: string | null;
+  taxonomy: PlaceTaxonomy | null;
+  averageStayMinutes: number | string | null;
   imageAltText: string | null;
   imageUrl: string | null;
   createdAt: Date | string;
@@ -94,6 +124,34 @@ export async function listAdminPlaces(input: { date?: string | null; limit?: num
       p.parent_notes as "parentNotes",
       p.safety_notes as "safetyNotes",
       p.place_score as "placeScore",
+      p.place_score_rationale as "placeScoreRationale",
+      p.external_rating_score as "externalRatingScore",
+      p.external_review_count as "externalReviewCount",
+      p.search_evidence_score as "searchEvidenceScore",
+      p.score_signals as "scoreSignals",
+      p.score_updated_at as "scoreUpdatedAt",
+      p.data_confidence as "dataConfidence",
+      p.min_recommended_age_months as "minRecommendedAgeMonths",
+      p.max_recommended_age_months as "maxRecommendedAgeMonths",
+      p.indoor_type as "indoorType",
+      p.stroller_friendly as "strollerFriendly",
+      p.parking_available as "parkingAvailable",
+      p.nursing_room as "nursingRoom",
+      p.diaper_changing_table as "diaperChangingTable",
+      p.kids_toilet as "kidsToilet",
+      p.elevator,
+      p.baby_chair as "babyChair",
+      p.food_allowed as "foodAllowed",
+      p.opening_hours as "openingHours",
+      p.average_stay_minutes as "averageStayMinutes",
+      p.parent_effort_level as "parentEffortLevel",
+      p.child_engagement_level as "childEngagementLevel",
+      p.rainy_day_score as "rainyDayScore",
+      p.hot_day_score as "hotDayScore",
+      p.cold_day_score as "coldDayScore",
+      p.play_features as "playFeatures",
+      p.taxonomy,
+      p.pricing,
       i.image_url as "imageUrl",
       i.image_alt_text as "imageAltText",
       p.created_at as "createdAt",
@@ -168,6 +226,44 @@ export async function getAdminPlacesSummary(executor: SqlExecutor = pg): Promise
 }
 
 function adminPlaceFromRow(row: AdminPlaceRow): AdminPlaceItem {
+  const placeScore = scorePlaceIntrinsic({
+    primaryCategory: row.primaryCategory,
+    tags: Array.isArray(row.tags) ? row.tags.filter(Boolean) : [],
+    dataConfidence: row.dataConfidence,
+    minRecommendedAgeMonths: nullableNumberValue(row.minRecommendedAgeMonths),
+    maxRecommendedAgeMonths: nullableNumberValue(row.maxRecommendedAgeMonths),
+    indoorType: row.indoorType,
+    parkingAvailable: row.parkingAvailable,
+    strollerFriendly: row.strollerFriendly,
+    nursingRoom: row.nursingRoom,
+    diaperChangingTable: row.diaperChangingTable,
+    kidsToilet: row.kidsToilet,
+    elevator: row.elevator,
+    babyChair: row.babyChair,
+    foodAllowed: row.foodAllowed,
+    openingHours: row.openingHours,
+    pricing: row.pricing ?? {},
+    playFeatures: row.playFeatures ?? {},
+    taxonomy: row.taxonomy ?? emptyPlaceTaxonomy(),
+    scoring: {
+      placeScore: nullableNumberValue(row.placeScore),
+      placeScoreRationale: row.placeScoreRationale,
+      externalRatingScore: nullableNumberValue(row.externalRatingScore),
+      externalReviewCount: nullableNumberValue(row.externalReviewCount),
+      searchEvidenceScore: nullableNumberValue(row.searchEvidenceScore),
+      scoreSignals: row.scoreSignals ?? {},
+      scoreUpdatedAt: row.scoreUpdatedAt ? dateTimeString(row.scoreUpdatedAt) : null
+    },
+    visit: {
+      averageStayMinutes: nullableNumberValue(row.averageStayMinutes),
+      parentEffortLevel: nullableNumberValue(row.parentEffortLevel),
+      childEngagementLevel: nullableNumberValue(row.childEngagementLevel),
+      rainyDayScore: nullableNumberValue(row.rainyDayScore),
+      hotDayScore: nullableNumberValue(row.hotDayScore),
+      coldDayScore: nullableNumberValue(row.coldDayScore)
+    }
+  }).score;
+
   return {
     description: row.description,
     id: row.id,
@@ -176,7 +272,7 @@ function adminPlaceFromRow(row: AdminPlaceRow): AdminPlaceItem {
     primaryCategory: row.primaryCategory,
     safetyNotes: row.safetyNotes,
     tags: Array.isArray(row.tags) ? row.tags.filter(Boolean) : [],
-    placeScore: nullableNumberValue(row.placeScore),
+    placeScore,
     imageAltText: row.imageAltText,
     imageUrl: row.imageUrl,
     createdAt: dateTimeString(row.createdAt),

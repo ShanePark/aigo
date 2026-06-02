@@ -2624,13 +2624,13 @@ components:
                 enum: [high, medium, low]
               reasonCodes:
                 type: array
-                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, BRANCH_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
+                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
                 items:
                   type: string
               suggestedAction:
                 type: string
                 enum: [update_existing, manual_duplicate_review, hold_duplicate_review]
-                description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district. `manual_duplicate_review` is also used for branch-sibling or same-building/tenant cautions where name or address similarity is useful context but not identity proof.
+                description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district. `manual_duplicate_review` is also used for branch-sibling, same-building/tenant, or generic public-facility alias cautions where name or address similarity is useful context but not identity proof.
               relationshipHint:
                 type: string
                 nullable: true

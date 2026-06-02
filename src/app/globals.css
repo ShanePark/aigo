@@ -6790,7 +6790,15 @@ h3 {
 
 .admin-place-card .result-card-topline {
   align-items: center;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
   padding-right: 0;
+}
+
+.admin-place-card .result-metric-row {
+  justify-content: flex-start;
+  justify-self: start;
+  margin-left: 0;
 }
 
 .admin-place-card .result-card-body > h3 {
@@ -6809,7 +6817,9 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  grid-column: 3;
   justify-content: flex-end;
+  justify-self: end;
   margin-left: auto;
 }
 
