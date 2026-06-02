@@ -764,6 +764,13 @@ describe("place search helpers", () => {
     expect(shouldUseAnyKeywordMatch("판암 동네놀이터")).toBe(false);
   });
 
+  it("does not force playground-only filtering for specific facility plus indoor-playground aliases", () => {
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전 실내놀이터" })).toMatchObject({
+      playgroundOnly: true
+    });
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대구어린이세상 실내놀이터" }).playgroundOnly).toBeUndefined();
+  });
+
   it("maps common Korean category terms to primary category clauses", () => {
     expect(categoryClauseForKeywordTerm("공원")).toBe("primary_category = 'park'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'indoor_playground'");
@@ -2327,6 +2334,36 @@ describe("place search helpers", () => {
 
     expect(signal.delta).toBeGreaterThanOrEqual(24);
     expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
+  });
+
+  it("keeps full institution-space aliases ahead of generic room keyword matches", () => {
+    const exactAliasMatch = queryMatchSignal(
+      {
+        name: "김천시립도서관 가족열람실",
+        tags: ["어린이자료실"],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: {
+          aliases: ["김천시립도서관 어린이자료실", "김천시립도서관 유아자료실"]
+        }
+      },
+      "김천시립도서관 어린이자료실"
+    );
+    const genericRoomMatch = queryMatchSignal(
+      {
+        name: "마포중앙도서관 어린이자료실",
+        tags: ["어린이자료실"],
+        description: null,
+        address: null,
+        roadAddress: null
+      },
+      "김천시립도서관 어린이자료실"
+    );
+
+    expect(exactAliasMatch.delta).toBeGreaterThanOrEqual(genericRoomMatch.delta + 18);
+    expect(exactAliasMatch.reasonCodes).toContain("QUERY_NAME_EXACT");
+    expect(genericRoomMatch.reasonCodes).not.toContain("QUERY_NAME_EXACT");
   });
 
   it("boosts external aliases with optional hyphen separators like exact place-name matches", () => {

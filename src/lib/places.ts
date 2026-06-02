@@ -2463,7 +2463,6 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
 
   const preferences = { ...(input.preferences ?? {}) };
   const visitContext = input.visitContext ?? inferVisitContextFromQuery(input.query);
-  const playgroundOnly = input.matchMode === "exactName" ? input.playgroundOnly : input.playgroundOnly || hasPlaygroundIntentTerm(input.query) || undefined;
   const inferred = inferPreferencesFromQuery(input.query);
   for (const [key, value] of Object.entries(inferred.preferences)) {
     const preferenceKey = key as keyof NonNullable<SearchPlacesInput["preferences"]>;
@@ -2475,6 +2474,15 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     preferences.indoorTypes = inferred.indoorTypes;
   }
 
+  const normalizedQueryText =
+    input.matchMode === "exactName" || shouldKeepLiteralQuery(input.query)
+      ? input.query
+      : stripLocalPlaygroundIntentTerms(stripPreferenceTerms(stripTravelContextTerms(input.query) ?? ""));
+  const playgroundOnly =
+    input.matchMode === "exactName"
+      ? input.playgroundOnly
+      : input.playgroundOnly || shouldApplyAutomaticPlaygroundOnly(input.query) || undefined;
+
   if (input.matchMode === "exactName" || shouldKeepLiteralQuery(input.query)) {
     return {
       ...input,
@@ -2485,7 +2493,7 @@ export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInpu
     };
   }
 
-  const query = stripLocalPlaygroundIntentTerms(stripPreferenceTerms(stripTravelContextTerms(input.query) ?? ""));
+  const query = normalizedQueryText;
   return {
     ...input,
     visitContext,
@@ -3374,12 +3382,24 @@ function shouldKeepLiteralQuery(query: string) {
   );
 }
 
-function hasPlaygroundIntentTerm(query: string) {
-  return query
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .some((term) => playgroundIntentTerms.has(term));
+function shouldApplyAutomaticPlaygroundOnly(query: string) {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (!terms.some((term) => playgroundIntentTerms.has(term))) return false;
+
+  const nonPlaygroundTerms = terms.filter((term) => !playgroundIntentTerms.has(term));
+  return nonPlaygroundTerms.length === 0 || nonPlaygroundTerms.every(isPlaygroundLocationAnchorOrHelperTerm);
+}
+
+function isPlaygroundLocationAnchorOrHelperTerm(term: string) {
+  const normalized = normalizeSearchText(term);
+  return (
+    isLocationAnchorTerm(term) ||
+    isQueryStopTerm(term) ||
+    isQueryPreferenceTerm(term) ||
+    Boolean(categoryKeywordMap[term]) ||
+    (normalized.length <= 3 && /^[가-힣]+$/.test(normalized)) ||
+    /(?:특별시|광역시|자치시|자치도|도|시|군|구|읍|면|동|리)$/.test(normalized)
+  );
 }
 
 function inferPreferencesFromQuery(query: string) {
@@ -3802,7 +3822,7 @@ export function queryMatchSignal(
 
   const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || separatorlessName === separatorlessQuery || externalAliasExactMatched;
   if (exactNameMatch) {
-    delta += 24;
+    delta += 32;
     reasonCodes.add("QUERY_NAME_EXACT");
   } else if (retailAliasMatched) {
     delta += 20;
@@ -3850,7 +3870,7 @@ export function queryMatchSignal(
   }
 
   return {
-    delta: Math.min(delta, exactNameMatch ? 28 : 18),
+    delta: Math.min(delta, exactNameMatch ? 36 : 18),
     reasonCodes: Array.from(reasonCodes)
   };
 }
