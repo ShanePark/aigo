@@ -34,8 +34,6 @@ type VisitEventRow = {
   searchResultTotal: number | string | null;
   eventMeta: Record<string, unknown>;
   userAgentAnalysis: Record<string, unknown>;
-  uaProcessed: boolean;
-  uaProcessedAt: Date | string | null;
   createdAt: Date | string;
 };
 
@@ -43,8 +41,6 @@ type VisitEventSummaryRow = {
   totalCount: number | string;
   detailViewCount: number | string;
   searchCount: number | string;
-  processedUaCount: number | string;
-  unprocessedUaCount: number | string;
 };
 
 export type VisitEventRequestContext = {
@@ -83,17 +79,13 @@ export type VisitEventItem = {
   searchResultTotal: number | null;
   eventMeta: Record<string, unknown>;
   userAgentAnalysis: Record<string, unknown>;
-  uaProcessed: boolean;
-  uaProcessedAt: string | null;
   createdAt: string;
 };
 
 export type VisitEventsSummary = {
   detailViewCount: number;
-  processedUaCount: number;
   searchCount: number;
   totalCount: number;
-  unprocessedUaCount: number;
 };
 
 export async function recordVisitEvent(input: VisitEventRequestContext, executor: SqlExecutor = pg) {
@@ -116,9 +108,7 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       search_result_count,
       search_result_total,
       event_meta,
-      user_agent_analysis,
-      ua_processed,
-      ua_processed_at
+      user_agent_analysis
     )
     values (
       ${input.eventType},
@@ -134,9 +124,7 @@ export async function recordVisitEvent(input: VisitEventRequestContext, executor
       ${input.searchResultCount ?? null},
       ${input.searchResultTotal ?? null},
       ${JSON.stringify(input.meta ?? {})}::jsonb,
-      ${JSON.stringify(userAgentAnalysis)}::jsonb,
-      true,
-      now()
+      ${JSON.stringify(userAgentAnalysis)}::jsonb
     )
     returning id::text as id
   `;
@@ -173,8 +161,6 @@ export async function listVisitEvents(input: { eventType?: VisitEventType; limit
       e.search_result_total as "searchResultTotal",
       e.event_meta as "eventMeta",
       e.user_agent_analysis as "userAgentAnalysis",
-      e.ua_processed as "uaProcessed",
-      e.ua_processed_at as "uaProcessedAt",
       e.created_at as "createdAt"
     from visit_events e
     left join users u on u.id = e.user_id
@@ -192,18 +178,14 @@ export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise
     select
       count(*)::int as "totalCount",
       count(*) filter (where event_type = 'place_detail_view')::int as "detailViewCount",
-      count(*) filter (where event_type = 'place_search')::int as "searchCount",
-      count(*) filter (where ua_processed)::int as "processedUaCount",
-      count(*) filter (where not ua_processed)::int as "unprocessedUaCount"
+      count(*) filter (where event_type = 'place_search')::int as "searchCount"
     from visit_events
   `;
 
   return {
     detailViewCount: numberValue(rows[0]?.detailViewCount),
-    processedUaCount: numberValue(rows[0]?.processedUaCount),
     searchCount: numberValue(rows[0]?.searchCount),
-    totalCount: numberValue(rows[0]?.totalCount),
-    unprocessedUaCount: numberValue(rows[0]?.unprocessedUaCount)
+    totalCount: numberValue(rows[0]?.totalCount)
   };
 }
 
@@ -267,8 +249,6 @@ function visitEventFromRow(row: VisitEventRow): VisitEventItem {
     searchResultTotal: numberOrNull(row.searchResultTotal),
     eventMeta: row.eventMeta ?? {},
     userAgentAnalysis: row.userAgentAnalysis ?? {},
-    uaProcessed: row.uaProcessed,
-    uaProcessedAt: row.uaProcessedAt ? dateTimeString(row.uaProcessedAt) : null,
     createdAt: dateTimeString(row.createdAt)
   };
 }

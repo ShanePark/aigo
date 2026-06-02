@@ -1,10 +1,11 @@
-import { Activity, Eye, Search, ShieldCheck, Smartphone } from "lucide-react";
+import { Activity, Clock, Eye, Search, ShieldCheck, Users } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
+import { getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ export const runtime = "nodejs";
 type AdminPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+type AdminTab = "visits" | "users";
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const cookieStore = await cookies();
@@ -26,9 +29,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const query = await searchParams;
+  const tab = parseAdminTab(firstQueryValue(query.tab));
   const eventType = visitEventsTypeSchema.parse(firstQueryValue(query.type) ?? "all");
   const limit = visitEventsLimitSchema.parse(firstQueryValue(query.limit) ?? 50);
-  const [summary, events] = await Promise.all([getVisitEventsSummary(), listVisitEvents({ eventType, limit })]);
+  const [visitSummary, events, userSummary, users] = await Promise.all([
+    getVisitEventsSummary(),
+    tab === "visits" ? listVisitEvents({ eventType, limit }) : Promise.resolve({ items: [] }),
+    getAdminUsersSummary(),
+    tab === "users" ? listAdminUsers({ limit }) : Promise.resolve({ items: [] })
+  ]);
 
   return (
     <div className="page admin-page">
@@ -38,36 +47,73 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <ShieldCheck size={15} aria-hidden="true" />
             관리자
           </span>
-          <h1>방문 기록</h1>
+          <h1>{tab === "users" ? "사용자 관리" : "방문 기록"}</h1>
         </div>
-        <div className="admin-filter-row" aria-label="방문 기록 필터">
-          {filterLinks.map((filter) => (
-            <Link className={`admin-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?type=${filter.value}&limit=${limit}`} key={filter.value}>
-              {filter.label}
-            </Link>
-          ))}
+        <div className="admin-head-actions">
+          <nav className="admin-filter-row" aria-label="관리자 메뉴">
+            {adminTabs.map((item) => (
+              <Link className={`admin-filter-chip ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          {tab === "visits" ? (
+            <div className="admin-filter-row" aria-label="방문 기록 필터">
+              {filterLinks.map((filter) => (
+                <Link className={`admin-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
+                  {filter.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <section className="admin-summary-grid" aria-label="방문 기록 요약">
-        <SummaryCard icon={<Activity size={18} aria-hidden="true" />} label="전체" value={summary.totalCount} />
-        <SummaryCard icon={<Eye size={18} aria-hidden="true" />} label="상세조회" value={summary.detailViewCount} />
-        <SummaryCard icon={<Search size={18} aria-hidden="true" />} label="검색" value={summary.searchCount} />
-        <SummaryCard icon={<Smartphone size={18} aria-hidden="true" />} label="UA 미처리" value={summary.unprocessedUaCount} />
-      </section>
+      {tab === "visits" ? (
+        <>
+          <section className="admin-summary-grid" aria-label="방문 기록 요약">
+            <SummaryCard icon={<Activity size={18} aria-hidden="true" />} label="전체" value={visitSummary.totalCount} />
+            <SummaryCard icon={<Eye size={18} aria-hidden="true" />} label="상세조회" value={visitSummary.detailViewCount} />
+            <SummaryCard icon={<Search size={18} aria-hidden="true" />} label="검색" value={visitSummary.searchCount} />
+          </section>
 
-      <section className="admin-log-panel">
-        <div className="admin-section-head">
-          <h2>최근 이벤트</h2>
-          <span>{events.items.length}개 표시</span>
-        </div>
-        <div className="admin-log-list">
-          {events.items.length > 0 ? events.items.map((event) => <VisitEventRow event={event} key={event.id} />) : <p className="admin-empty">기록이 없습니다.</p>}
-        </div>
-      </section>
+          <section className="admin-log-panel">
+            <div className="admin-section-head">
+              <h2>최근 이벤트</h2>
+              <span>{events.items.length}개 표시</span>
+            </div>
+            <div className="admin-log-list">
+              {events.items.length > 0 ? events.items.map((event) => <VisitEventRow event={event} key={event.id} />) : <p className="admin-empty">기록이 없습니다.</p>}
+            </div>
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="admin-summary-grid" aria-label="사용자 요약">
+            <SummaryCard icon={<Users size={18} aria-hidden="true" />} label="가입 사용자" value={userSummary.totalCount} />
+            <SummaryCard icon={<ShieldCheck size={18} aria-hidden="true" />} label="관리자" value={userSummary.adminCount} />
+            <SummaryCard icon={<Clock size={18} aria-hidden="true" />} label="방문 기록 있는 사용자" value={userSummary.visitedUserCount} />
+          </section>
+
+          <section className="admin-log-panel">
+            <div className="admin-section-head">
+              <h2>가입 사용자</h2>
+              <span>{users.items.length}명 표시</span>
+            </div>
+            <div className="admin-user-list">
+              {users.items.length > 0 ? users.items.map((item) => <AdminUserRow item={item} key={item.id} />) : <p className="admin-empty">가입 사용자가 없습니다.</p>}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
+
+const adminTabs = [
+  { label: "방문 기록", value: "visits" },
+  { label: "사용자 관리", value: "users" }
+] as const;
 
 const filterLinks = [
   { label: "전체", value: "all" },
@@ -85,8 +131,42 @@ function SummaryCard({ icon, label, value }: { icon: ReactNode; label: string; v
   );
 }
 
+function AdminUserRow({ item }: { item: AdminUserItem }) {
+  return (
+    <article className="admin-user-row">
+      <div className="admin-user-main">
+        <div className="admin-log-title-row">
+          <span className={`admin-role-badge is-${item.role === "admin" ? "admin" : "user"}`}>{item.role === "admin" ? "관리자" : "사용자"}</span>
+          <strong>{item.displayName}</strong>
+          <small>{item.email}</small>
+        </div>
+        <div className="admin-log-meta">
+          <span>가입 {formatDateTime(item.createdAt)}</span>
+          <span>수정 {formatDateTime(item.updatedAt)}</span>
+          <span>소셜 {item.socialProviders.length > 0 ? item.socialProviders.join(", ") : "없음"}</span>
+        </div>
+      </div>
+      <div className="admin-user-stats">
+        <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
+        <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
+        <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
+        <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
+      </div>
+    </article>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="admin-stat">
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </span>
+  );
+}
+
 function VisitEventRow({ event }: { event: VisitEventItem }) {
-  const uaSummary = typeof event.userAgentAnalysis.summary === "string" ? event.userAgentAnalysis.summary : event.uaProcessed ? "분석됨" : "분석 대기";
+  const uaSummary = typeof event.userAgentAnalysis.summary === "string" ? event.userAgentAnalysis.summary : "unknown";
   const eventTitle =
     event.eventType === "place_detail_view"
       ? (event.place?.name ?? "장소 상세조회")
@@ -109,7 +189,7 @@ function VisitEventRow({ event }: { event: VisitEventItem }) {
         {event.eventType === "place_search" ? <SearchInputSummary input={event.searchInput} /> : null}
       </div>
       <div className="admin-ua-panel">
-        <span className={event.uaProcessed ? "is-processed" : "is-pending"}>{event.uaProcessed ? "UA 처리 완료" : "UA 분석 대기"}</span>
+        <span>UA 분석</span>
         <strong>{uaSummary}</strong>
         <small>{event.userAgent ? truncate(event.userAgent, 120) : "User-Agent 없음"}</small>
       </div>
@@ -146,6 +226,10 @@ function stringChip(label: string, value: unknown) {
 
 function numberChip(label: string, value: unknown) {
   return typeof value === "number" ? `${label} ${value}` : null;
+}
+
+function parseAdminTab(value: string | undefined): AdminTab {
+  return value === "users" ? "users" : "visits";
 }
 
 function firstQueryValue(value: string | string[] | undefined) {

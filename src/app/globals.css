@@ -6088,6 +6088,13 @@ h3 {
   gap: 6px;
 }
 
+.admin-head-actions {
+  align-items: flex-end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
 .admin-filter-row {
   align-items: center;
   display: flex;
@@ -6121,7 +6128,7 @@ h3 {
 .admin-summary-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .admin-summary-card {
@@ -6176,11 +6183,13 @@ h3 {
   font-weight: 800;
 }
 
-.admin-log-list {
+.admin-log-list,
+.admin-user-list {
   display: grid;
 }
 
-.admin-log-row {
+.admin-log-row,
+.admin-user-row {
   align-items: start;
   border-bottom: 1px solid var(--line);
   display: grid;
@@ -6189,11 +6198,17 @@ h3 {
   padding: 14px 16px;
 }
 
-.admin-log-row:last-child {
+.admin-user-row {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+}
+
+.admin-log-row:last-child,
+.admin-user-row:last-child {
   border-bottom: 0;
 }
 
-.admin-log-main {
+.admin-log-main,
+.admin-user-main {
   display: grid;
   gap: 9px;
   min-width: 0;
@@ -6236,6 +6251,26 @@ h3 {
   color: var(--mint);
 }
 
+.admin-role-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  min-height: 26px;
+  padding: 0 9px;
+}
+
+.admin-role-badge.is-admin {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.admin-role-badge.is-user {
+  background: var(--sun-soft);
+  color: var(--sun);
+}
+
 .admin-log-meta,
 .admin-search-input {
   display: flex;
@@ -6270,16 +6305,9 @@ h3 {
 }
 
 .admin-ua-panel > span {
+  color: var(--mint);
   font-size: 12px;
   font-weight: 950;
-}
-
-.admin-ua-panel > span.is-processed {
-  color: var(--mint);
-}
-
-.admin-ua-panel > span.is-pending {
-  color: var(--coral);
 }
 
 .admin-ua-panel strong {
@@ -6291,6 +6319,35 @@ h3 {
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.admin-user-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-stat {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+}
+
+.admin-stat small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.admin-stat strong {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-empty {
@@ -9581,6 +9638,10 @@ dd {
     display: grid;
   }
 
+  .admin-head-actions {
+    justify-items: start;
+  }
+
   .admin-filter-row {
     justify-content: start;
   }
@@ -9589,9 +9650,14 @@ dd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .admin-log-row {
+  .admin-log-row,
+  .admin-user-row {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .admin-user-stats {
+    grid-template-columns: 1fr;
   }
 
   .me-profile-section {

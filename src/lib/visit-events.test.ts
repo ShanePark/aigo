@@ -49,7 +49,7 @@ describe("visit event recording", () => {
     expect(calls[0]).toContain("user_agent");
     expect(calls[0]).toContain("search_input");
     expect(calls[0]).toContain("user_agent_analysis");
-    expect(calls[0]).toContain("ua_processed");
+    expect(calls[0]).not.toContain("ua_processed");
   });
 });
 
@@ -76,8 +76,6 @@ describe("visit event listing", () => {
           searchResultTotal: null,
           eventMeta: { counted: true },
           userAgentAnalysis: { summary: "mobile · iOS · Safari" },
-          uaProcessed: true,
-          uaProcessedAt: new Date("2026-06-02T01:00:00.000Z"),
           createdAt: new Date("2026-06-02T00:00:00.000Z")
         }
       ]
@@ -88,7 +86,6 @@ describe("visit event listing", () => {
         {
           eventType: "place_detail_view",
           place: { name: "아이랑 공원" },
-          uaProcessed: true,
           userAgentAnalysis: { summary: "mobile · iOS · Safari" }
         }
       ]

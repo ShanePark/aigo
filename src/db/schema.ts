@@ -280,8 +280,6 @@ export const visitEvents = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    uaProcessed: boolean("ua_processed").notNull().default(false),
-    uaProcessedAt: timestamp("ua_processed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (table) => ({
@@ -291,7 +289,6 @@ export const visitEvents = pgTable(
     eventTypeCreatedAtIdx: index("visit_events_event_type_created_at_idx").on(table.eventType, table.createdAt),
     userCreatedAtIdx: index("visit_events_user_id_created_at_idx").on(table.userId, table.createdAt),
     placeCreatedAtIdx: index("visit_events_place_id_created_at_idx").on(table.placeId, table.createdAt),
-    uaProcessedIdx: index("visit_events_ua_processed_idx").on(table.uaProcessed, table.createdAt),
     searchResultCountCheck: check("visit_events_search_result_count_check", sql`${table.searchResultCount} is null or ${table.searchResultCount} >= 0`),
     searchResultTotalCheck: check("visit_events_search_result_total_check", sql`${table.searchResultTotal} is null or ${table.searchResultTotal} >= 0`)
   })
