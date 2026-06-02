@@ -72,6 +72,9 @@ export function TopbarActions({
             <AccountControls initialUser={initialUser} />
           </div>
           <p className={styles.menuFooter}>
+            <Link className={styles.menuFooterLink} href={"/privacy" as Route} onClick={() => setIsOpen(false)}>
+              개인정보 처리방침
+            </Link>
             <span>{footerText}</span>
             <span>{appVersion}</span>
           </p>

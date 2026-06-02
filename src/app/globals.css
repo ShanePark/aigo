@@ -546,6 +546,74 @@ summary {
   color: var(--mint);
 }
 
+.legal-page {
+  max-width: 920px;
+}
+
+.legal-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 34px rgba(24, 33, 29, 0.06);
+  display: grid;
+  gap: 12px;
+  padding: var(--space-7);
+}
+
+.legal-section h2 {
+  font-size: var(--text-lg);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.legal-section p,
+.legal-section li {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+}
+
+.legal-section p,
+.legal-section ul {
+  margin: 0;
+}
+
+.legal-section ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+}
+
+.legal-table {
+  border: 1px solid var(--line);
+  display: grid;
+}
+
+.legal-table div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(110px, 0.32fr) 1fr;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.legal-table div + div {
+  border-top: 1px solid var(--line);
+}
+
+.legal-table strong {
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.legal-table span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .sr-only {
   border: 0;
   clip: rect(0, 0, 0, 0);
@@ -8852,6 +8920,14 @@ dd {
   .app-page-pills,
   .app-page-filter-group {
     justify-content: flex-start;
+  }
+
+  .legal-section {
+    padding: var(--space-5);
+  }
+
+  .legal-table div {
+    grid-template-columns: 1fr;
   }
 
   .visits-actions {
