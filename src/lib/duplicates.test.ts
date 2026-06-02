@@ -5,6 +5,7 @@ import {
   duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
+  duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
@@ -195,6 +196,40 @@ describe("duplicate helpers", () => {
       kakaoPlaceIdMatch: false,
       distanceMeters: 8000,
       nameSimilarity: 0.82
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
+  });
+
+  it("keeps nearby kid-primary lodging clusters as manual review without strict identity evidence", () => {
+    const signals = {
+      aliasMatch: true,
+      lodgingClusterReviewOnly: true,
+      regionMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 370,
+      radiusMeters: 500,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateLodgingClusterReviewOnly("여수 유키즈풀빌라", "라비주키즈앤풀빌라")).toBe(true);
+    expect(duplicateLodgingClusterReviewOnly("여수 하이맘키즈가족펜션골드", "여수 하이맘 키즈 가족 펜션 골드")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "LODGING_CLUSTER_REVIEW_ONLY", "REGION_MATCH", "GEO_NEAR", "NAME_SIMILAR"]));
+  });
+
+  it("lets strong identity evidence override lodging cluster review cautions", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      lodgingClusterReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 120,
+      nameSimilarity: 0.72
     };
 
     expect(duplicateConfidence(signals)).toBe("high");
