@@ -4,8 +4,7 @@ import {
   AIGO_SESSION_COOKIE,
   createLoginSessionForAppUser,
   currentUserFromSessionToken,
-  sessionCookieOptions,
-  upsertAppUser
+  sessionCookieOptions
 } from "@/lib/app-auth";
 import { ApiError } from "@/lib/errors";
 import {
@@ -15,6 +14,11 @@ import {
   KAKAO_AUTH_STATE_COOKIE,
   kakaoProfileFromCode
 } from "@/lib/kakao-auth";
+import {
+  createPendingKakaoSignupToken,
+  pendingKakaoSignupCookieOptions,
+  PENDING_KAKAO_SIGNUP_COOKIE
+} from "@/lib/pending-kakao-signup";
 import { findUserBySocialAccount, linkSocialAccount } from "@/lib/social-accounts";
 
 export const dynamic = "force-dynamic";
@@ -53,15 +57,14 @@ export async function GET(request: NextRequest) {
     }
 
     const linkedUser = await findUserBySocialAccount("kakao", kakaoProfile.kakaoId);
-    const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
     if (!linkedUser) {
-      await linkSocialAccount(sessionUser.id, {
-        provider: "kakao",
-        providerEmail: kakaoProfile.email,
-        providerUserId: kakaoProfile.kakaoId
-      });
+      const response = NextResponse.redirect(appUrl(`/signup/consents?next=${encodeURIComponent(state.nextPath)}`, request));
+      response.cookies.set(PENDING_KAKAO_SIGNUP_COOKIE, createPendingKakaoSignupToken({ nextPath: state.nextPath, profile: kakaoProfile }), pendingKakaoSignupCookieOptions());
+      response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
+      return response;
     }
-    const { expiresAt, token } = await createLoginSessionForAppUser(sessionUser);
+
+    const { expiresAt, token } = await createLoginSessionForAppUser(linkedUser);
     const response = NextResponse.redirect(appUrl(state.nextPath, request));
     response.cookies.set(AIGO_SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());

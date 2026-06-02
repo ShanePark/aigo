@@ -13,6 +13,7 @@ type AdminUserRow = {
   email: string;
   displayName: string;
   role: string;
+  consents: AdminUserConsentRow[] | null;
   socialProviders: string[] | null;
   lastSessionUsedAt: Date | string | null;
   lastVisitAt: Date | string | null;
@@ -21,6 +22,22 @@ type AdminUserRow = {
   searchCount: number | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+};
+
+type AdminUserConsentRow = {
+  bodySha256?: string | null;
+  bodyText?: string | null;
+  consentText?: string | null;
+  consentType?: string | null;
+  consentedAt?: Date | string | null;
+  documentEffectiveDate?: string | null;
+  documentId?: string | null;
+  documentTitle?: string | null;
+  documentUrl?: string | null;
+  ipAddress?: string | null;
+  source?: string | null;
+  userAgent?: string | null;
+  version?: string | null;
 };
 
 type AdminUsersSummaryRow = {
@@ -34,6 +51,7 @@ export type AdminUserItem = {
   email: string;
   displayName: string;
   role: string;
+  consents: AdminUserConsentItem[];
   socialProviders: string[];
   lastSessionUsedAt: string | null;
   lastVisitAt: string | null;
@@ -42,6 +60,22 @@ export type AdminUserItem = {
   searchCount: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AdminUserConsentItem = {
+  bodySha256: string | null;
+  bodyText: string;
+  consentText: string;
+  consentType: string;
+  consentedAt: string;
+  documentEffectiveDate: string | null;
+  documentId: string;
+  documentTitle: string;
+  documentUrl: string;
+  ipAddress: string | null;
+  source: string;
+  userAgent: string | null;
+  version: string;
 };
 
 export type AdminUsersSummary = {
@@ -59,6 +93,7 @@ export async function listAdminUsers(input: { limit?: number; offset?: number } 
       u.email,
       u.display_name as "displayName",
       u.role,
+      coalesce(c.consents, '[]'::jsonb) as consents,
       coalesce(s.social_providers, '{}') as "socialProviders",
       a.last_session_used_at as "lastSessionUsedAt",
       e.last_visit_at as "lastVisitAt",
@@ -68,6 +103,31 @@ export async function listAdminUsers(input: { limit?: number; offset?: number } 
       u.created_at as "createdAt",
       u.updated_at as "updatedAt"
     from users u
+    left join (
+      select
+        uc.user_id,
+        jsonb_agg(
+          jsonb_build_object(
+            'bodySha256', cd.body_sha256,
+            'bodyText', cd.body_text,
+            'consentText', uc.consent_text,
+            'consentType', uc.consent_type,
+            'consentedAt', uc.consented_at,
+            'documentEffectiveDate', uc.document_effective_date,
+            'documentId', uc.document_id,
+            'documentTitle', uc.document_title,
+            'documentUrl', uc.document_url,
+            'ipAddress', uc.ip_address,
+            'source', uc.source,
+            'userAgent', uc.user_agent,
+            'version', uc.version
+          )
+          order by uc.consented_at desc, uc.consent_type
+        ) as consents
+      from user_consents uc
+      left join consent_documents cd on cd.id = uc.document_id
+      group by uc.user_id
+    ) c on c.user_id = u.id
     left join (
       select user_id, array_remove(array_agg(distinct provider), null) as social_providers
       from user_social_accounts
@@ -123,6 +183,7 @@ function adminUserFromRow(row: AdminUserRow): AdminUserItem {
   return {
     id: row.id,
     email: row.email,
+    consents: Array.isArray(row.consents) ? row.consents.map(adminUserConsentFromRow).filter((item) => item.documentId) : [],
     displayName: row.displayName,
     role: row.role,
     socialProviders: Array.isArray(row.socialProviders) ? row.socialProviders.filter(Boolean) : [],
@@ -136,8 +197,30 @@ function adminUserFromRow(row: AdminUserRow): AdminUserItem {
   };
 }
 
+function adminUserConsentFromRow(row: AdminUserConsentRow): AdminUserConsentItem {
+  return {
+    bodySha256: textValue(row.bodySha256),
+    bodyText: textValue(row.bodyText) ?? "",
+    consentText: textValue(row.consentText) ?? "",
+    consentType: textValue(row.consentType) ?? "",
+    consentedAt: row.consentedAt ? dateTimeString(row.consentedAt) : "",
+    documentEffectiveDate: textValue(row.documentEffectiveDate),
+    documentId: textValue(row.documentId) ?? "",
+    documentTitle: textValue(row.documentTitle) ?? "",
+    documentUrl: textValue(row.documentUrl) ?? "",
+    ipAddress: textValue(row.ipAddress),
+    source: textValue(row.source) ?? "",
+    userAgent: textValue(row.userAgent),
+    version: textValue(row.version) ?? ""
+  };
+}
+
 function dateTimeString(value: Date | string) {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function numberValue(value: number | string | null | undefined) {

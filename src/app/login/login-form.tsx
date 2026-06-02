@@ -13,7 +13,8 @@ type LoginFormProps = {
 export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
   const user = initialUser;
   const error = initialError;
-  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}`;
+  const canStartKakaoLogin = kakaoLoginEnabled;
+  const kakaoLoginHref = `/api/auth/kakao?mode=login&next=${encodeURIComponent(nextPath)}`;
 
   return (
     <div className="login-panel">
@@ -31,11 +32,11 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
           ) : null}
 
           <a
-            aria-disabled={!kakaoLoginEnabled}
+            aria-disabled={!canStartKakaoLogin}
             className="login-option is-kakao"
-            href={kakaoLoginEnabled ? kakaoLoginHref : undefined}
+            href={canStartKakaoLogin ? kakaoLoginHref : undefined}
             onClick={(event) => {
-              if (!kakaoLoginEnabled) event.preventDefault();
+              if (!canStartKakaoLogin) event.preventDefault();
             }}
           >
             <span className="login-option-icon">

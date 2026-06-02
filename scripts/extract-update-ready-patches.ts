@@ -78,6 +78,8 @@ type PatchExtractionReport = {
 
 type PlaceDetail = Record<string, unknown>;
 
+const PRODUCTION_AIGO_API_BASE_URL = "https://aigo.o-r.kr";
+
 const trackedFields: MissingField[] = [
   { path: "notes.parent", writableField: "parentNotes", group: "notes", reason: "Parent-facing fit notes are missing." },
   { path: "notes.safety", writableField: "safetyNotes", group: "notes", reason: "Safety notes are missing." },
@@ -133,6 +135,7 @@ async function main() {
 export function parseArgs(argv: string[]): PatchExtractorArgs {
   const args: PatchExtractorArgs = {
     candidates: [],
+    apiBaseUrl: PRODUCTION_AIGO_API_BASE_URL,
     json: false,
     limit: 3,
     staleAfterDays: 180,

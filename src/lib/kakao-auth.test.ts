@@ -52,8 +52,22 @@ describe("kakao auth helpers", () => {
   it("decodes state and falls back to home for unsafe next paths", () => {
     const state = Buffer.from(JSON.stringify({ nextPath: "https://example.com", nonce: "nonce" }), "utf8").toString("base64url");
 
-    expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce" });
+    expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce", requiredConsents: null });
     expect(decodeKakaoState("not-json")).toBeNull();
+  });
+
+  it("does not require consent versions for a login state", () => {
+    process.env.KAKAO_REST_API_KEY = "test-key";
+
+    const request = new NextRequest("https://localhost:3000/api/auth/kakao");
+    const { url } = createKakaoAuthorizationUrl(request, "/me", "login");
+    const state = decodeKakaoState(url.searchParams.get("state"));
+
+    expect(state).toMatchObject({
+      mode: "login",
+      nextPath: "/me",
+      requiredConsents: null
+    });
   });
 
   it("uses the configured app origin for Kakao redirect URIs", () => {

@@ -210,9 +210,11 @@ export function duplicateSameBuildingReviewOnly(inputName: string, candidateName
   if (!input || !candidate || input === candidate) return false;
 
   const [shorter, longer] = input.length <= candidate.length ? [input, candidate] : [candidate, input];
-  if (shorter.length < 5) return false;
-  if (!longer.includes(shorter)) return false;
-  return longer.length - shorter.length >= 3;
+  if (shorter.length >= 5 && longer.includes(shorter)) {
+    return longer.length - shorter.length >= 3;
+  }
+
+  return sharedRetailParentBuildingAnchor(input, candidate) !== null;
 }
 
 export function duplicatePublicSubfacilityReviewOnly(inputName: string, candidateName: string) {
@@ -362,6 +364,19 @@ function compactDuplicateName(value: string) {
   return compactDuplicateText(value).replace(/점$/, "");
 }
 
+function sharedRetailParentBuildingAnchor(input: string, candidate: string) {
+  let best: string | null = null;
+  for (let start = 0; start < input.length; start += 1) {
+    for (let end = start + 5; end <= input.length; end += 1) {
+      const part = input.slice(start, end);
+      if (!candidate.includes(part)) continue;
+      if (!retailParentBuildingTerms.some((term) => part.includes(term))) continue;
+      if (!best || part.length > best.length) best = part;
+    }
+  }
+  return best;
+}
+
 const genericBranchNameTerms = [
   "감자탕",
   "닭갈비",
@@ -389,6 +404,21 @@ const branchSiblingReviewTerms = [
   "타임빌라스",
   "토이저러스",
   "레고스토어",
+  "이마트",
+  "홈플러스",
+  "트레이더스"
+].map(compactDuplicateText);
+
+const retailParentBuildingTerms = [
+  "신세계",
+  "롯데몰",
+  "롯데백화점",
+  "롯데프리미엄아울렛",
+  "현대백화점",
+  "현대프리미엄아울렛",
+  "스타필드",
+  "스타필드시티",
+  "타임빌라스",
   "이마트",
   "홈플러스",
   "트레이더스"

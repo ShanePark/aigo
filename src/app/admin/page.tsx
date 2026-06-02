@@ -5,13 +5,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AdminUserList } from "@/app/admin/admin-user-list";
 import { AppPageHeader } from "@/app/page-shell";
 import { placeCategoryLabel } from "@/app/place-category-badge";
 import { PlaceResultCard, type PlaceResultCardDate, type PlaceResultCardMetric } from "@/app/place-result-card";
 import { placeQualityScoreTitle } from "@/app/result-score-labels";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
-import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
+import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsSourceSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
@@ -116,9 +117,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <h2>가입 사용자</h2>
               <span>{users.items.length}명 표시</span>
             </div>
-            <div className="admin-user-list">
-              {users.items.length > 0 ? users.items.map((item) => <AdminUserRow item={item} key={item.id} />) : <p className="admin-empty">가입 사용자가 없습니다.</p>}
-            </div>
+            <AdminUserList users={users.items} />
             <AdminPager baseParams={{ tab: "users" }} itemCount={users.items.length} limit={limit} page={page} totalItems={totalItems} />
           </section>
         </>
@@ -350,31 +349,6 @@ function AdminPager({
   );
 }
 
-function AdminUserRow({ item }: { item: AdminUserItem }) {
-  return (
-    <article className="admin-user-row">
-      <div className="admin-user-main">
-        <div className="admin-log-title-row">
-          <span className={`admin-role-badge is-${item.role === "admin" ? "admin" : "user"}`}>{item.role === "admin" ? "관리자" : "사용자"}</span>
-          <strong>{item.displayName}</strong>
-          <small>{item.email}</small>
-        </div>
-        <div className="admin-log-meta">
-          <span>수정 {formatDateTime(item.updatedAt)}</span>
-          <span>소셜 {item.socialProviders.length > 0 ? item.socialProviders.join(", ") : "없음"}</span>
-        </div>
-      </div>
-      <div className="admin-user-stats">
-        <Stat label="최초 가입일" value={formatDateTime(item.createdAt)} />
-        <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
-        <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
-        <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
-        <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
-      </div>
-    </article>
-  );
-}
-
 function AdminPlaceRow({ index, item, returnHref, sort }: { index: number; item: AdminPlaceItem; returnHref: Route; sort: AdminPlacesSort }) {
   const summary = adminPlaceSummary(item);
   const keywords = adminPlaceKeywords(item);
@@ -435,15 +409,6 @@ function adminScoreTone(score: number) {
   if (score >= 58) return "score-good";
   if (score >= 50) return "score-mid";
   return "score-low";
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="admin-stat">
-      <small>{label}</small>
-      <strong>{value}</strong>
-    </span>
-  );
 }
 
 function VisitEventRow({ event, eventType, limit }: { event: VisitEventItem; eventType: string; limit: number }) {

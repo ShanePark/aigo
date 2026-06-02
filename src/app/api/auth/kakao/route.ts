@@ -10,7 +10,8 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const nextPath = safeNextPath(request.nextUrl.searchParams.get("next") ?? undefined);
-    const mode = request.nextUrl.searchParams.get("mode") === "link" ? "link" : "login";
+    const modeParam = request.nextUrl.searchParams.get("mode");
+    const mode = modeParam === "link" ? modeParam : "login";
     if (mode === "link") {
       const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
       if (!user) {
