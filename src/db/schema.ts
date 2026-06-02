@@ -81,6 +81,28 @@ export const userSocialAccounts = pgTable(
   })
 );
 
+export const consentDocuments = pgTable(
+  "consent_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consentType: text("consent_type").notNull(),
+    version: text("version").notNull(),
+    documentTitle: text("document_title").notNull(),
+    documentUrl: text("document_url").notNull(),
+    documentEffectiveDate: text("document_effective_date"),
+    bodyText: text("body_text").notNull(),
+    bodySha256: text("body_sha256").notNull(),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    typeCheck: check("consent_documents_type_check", sql`${table.consentType} in ('privacy_policy', 'terms_of_service', 'location_terms', 'marketing')`),
+    statusCheck: check("consent_documents_status_check", sql`${table.status} in ('active', 'archived')`),
+    typeVersionUnique: uniqueIndex("consent_documents_type_version_unique").on(table.consentType, table.version),
+    typeVersionIdx: index("consent_documents_type_version_idx").on(table.consentType, table.version)
+  })
+);
+
 export const userConsents = pgTable(
   "user_consents",
   {
@@ -90,9 +112,11 @@ export const userConsents = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     consentType: text("consent_type").notNull(),
     version: text("version").notNull(),
+    documentId: uuid("document_id").references(() => consentDocuments.id, { onDelete: "restrict" }),
     documentTitle: text("document_title").notNull(),
     documentUrl: text("document_url").notNull(),
     documentEffectiveDate: text("document_effective_date"),
+    documentBodySha256: text("document_body_sha256"),
     consentText: text("consent_text").notNull(),
     source: text("source").notNull().default("signup"),
     ipAddress: text("ip_address"),
