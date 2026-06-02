@@ -44,7 +44,11 @@ export function ConfirmDialog({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="app-confirm-backdrop" onMouseDown={disabled ? undefined : onCancel}>
+    <div
+      className="app-confirm-backdrop"
+      onMouseDown={disabled ? undefined : onCancel}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <div
         aria-describedby={bodyId}
         aria-labelledby={titleId}
