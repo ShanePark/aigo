@@ -170,6 +170,10 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
         <PlaceDetailMap category={place.primaryCategory} lat={place.lat} lng={place.lng} name={place.name} />
       </section>
 
+      {galleryImages.length > 0 ? (
+        <PlaceImageGallery category={place.primaryCategory} images={galleryImages} placeName={place.name} />
+      ) : null}
+
       <PlaceVisitPanel placeId={place.id} placeName={place.name} />
       <PlacePublicMemoPanel placeId={place.id} placeName={place.name} />
 
@@ -280,10 +284,6 @@ export default async function PlaceDetailPage({ params, searchParams }: PlaceDet
             ))}
           </div>
         </section>
-      ) : null}
-
-      {galleryImages.length > 0 ? (
-        <PlaceImageGallery category={place.primaryCategory} images={galleryImages} placeName={place.name} />
       ) : null}
 
       {infoLinks.length > 0 ? (
