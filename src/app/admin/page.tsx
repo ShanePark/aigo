@@ -1,17 +1,18 @@
-import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, FileText, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
+import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AdminUserList } from "@/app/admin/admin-user-list";
 import { AppPageHeader } from "@/app/page-shell";
 import { placeCategoryLabel } from "@/app/place-category-badge";
 import { PlaceResultCard, type PlaceResultCardDate, type PlaceResultCardMetric } from "@/app/place-result-card";
 import { placeQualityScoreTitle } from "@/app/result-score-labels";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
-import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserConsentItem, type AdminUserItem } from "@/lib/admin-users";
+import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsSourceSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
@@ -116,9 +117,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <h2>가입 사용자</h2>
               <span>{users.items.length}명 표시</span>
             </div>
-            <div className="admin-user-list">
-              {users.items.length > 0 ? users.items.map((item) => <AdminUserRow item={item} key={item.id} />) : <p className="admin-empty">가입 사용자가 없습니다.</p>}
-            </div>
+            <AdminUserList users={users.items} />
             <AdminPager baseParams={{ tab: "users" }} itemCount={users.items.length} limit={limit} page={page} totalItems={totalItems} />
           </section>
         </>
@@ -350,98 +349,6 @@ function AdminPager({
   );
 }
 
-function AdminUserRow({ item }: { item: AdminUserItem }) {
-  const latestActivity = item.lastSessionUsedAt ?? item.lastVisitAt ?? item.updatedAt;
-  const hasRecentActivity = Boolean(item.lastSessionUsedAt || item.lastVisitAt);
-
-  return (
-    <details className="admin-user-row">
-      <summary className="admin-user-summary">
-        <div className="admin-user-identity">
-          <span className={`admin-role-badge is-${item.role === "admin" ? "admin" : "user"}`}>{item.role === "admin" ? "관리자" : "사용자"}</span>
-          <span className="admin-user-name">{item.displayName}</span>
-          <span className="admin-user-email">{item.email}</span>
-        </div>
-        <div className="admin-user-quick-stats">
-          <span>가입 {formatDateTime(item.createdAt)}</span>
-          <span>{hasRecentActivity ? `최근 ${formatDateTime(latestActivity)}` : "최근 활동 없음"}</span>
-          <span>동의 {formatNumber(item.consents.length)}건</span>
-        </div>
-      </summary>
-      <div className="admin-user-detail">
-        <div className="admin-log-meta">
-          <span>수정 {formatDateTime(item.updatedAt)}</span>
-          <span>소셜 {item.socialProviders.length > 0 ? item.socialProviders.join(", ") : "없음"}</span>
-        </div>
-        <div className="admin-user-stats">
-          <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
-          <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
-          <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
-          <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
-        </div>
-        <AdminUserConsents consents={item.consents} />
-      </div>
-    </details>
-  );
-}
-
-function AdminUserConsents({ consents }: { consents: AdminUserConsentItem[] }) {
-  return (
-    <div className="admin-user-consents">
-      <div className="admin-consent-head">
-        <FileText size={14} aria-hidden="true" />
-        <strong>약관 동의</strong>
-        <span>{formatNumber(consents.length)}건</span>
-      </div>
-      {consents.length > 0 ? (
-        <div className="admin-consent-list">
-          {consents.map((consent) => (
-            <details className="admin-consent-item" key={consent.documentId}>
-              <summary>
-                <span>
-                  <strong>{consent.documentTitle || consentTypeLabel(consent.consentType)}</strong>
-                  <small>{consent.version}</small>
-                </span>
-                <time dateTime={consent.consentedAt}>{formatDateTime(consent.consentedAt)}</time>
-              </summary>
-              <dl className="admin-consent-meta">
-                <div>
-                  <dt>문서 ID</dt>
-                  <dd>{consent.documentId}</dd>
-                </div>
-                <div>
-                  <dt>시행일</dt>
-                  <dd>{consent.documentEffectiveDate ?? "기록 없음"}</dd>
-                </div>
-                <div>
-                  <dt>동의 문구</dt>
-                  <dd>{consent.consentText || "기록 없음"}</dd>
-                </div>
-                <div>
-                  <dt>출처</dt>
-                  <dd>{consent.source || "기록 없음"}</dd>
-                </div>
-                <div>
-                  <dt>IP</dt>
-                  <dd>{consent.ipAddress ?? "기록 없음"}</dd>
-                </div>
-                <div>
-                  <dt>해시</dt>
-                  <dd>{consent.bodySha256 ?? "기록 없음"}</dd>
-                </div>
-              </dl>
-              {consent.userAgent ? <p className="admin-consent-agent">{consent.userAgent}</p> : null}
-              <pre className="admin-consent-body">{consent.bodyText || "문서 본문 기록이 없습니다."}</pre>
-            </details>
-          ))}
-        </div>
-      ) : (
-        <p className="admin-consent-empty">동의 기록 없음</p>
-      )}
-    </div>
-  );
-}
-
 function AdminPlaceRow({ index, item, returnHref, sort }: { index: number; item: AdminPlaceItem; returnHref: Route; sort: AdminPlacesSort }) {
   const summary = adminPlaceSummary(item);
   const keywords = adminPlaceKeywords(item);
@@ -502,15 +409,6 @@ function adminScoreTone(score: number) {
   if (score >= 58) return "score-good";
   if (score >= 50) return "score-mid";
   return "score-low";
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="admin-stat">
-      <small>{label}</small>
-      <strong>{value}</strong>
-    </span>
-  );
 }
 
 function VisitEventRow({ event, eventType, limit }: { event: VisitEventItem; eventType: string; limit: number }) {
@@ -772,13 +670,6 @@ function parseAdminPlaceSort(value: string | undefined) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
-}
-
-function consentTypeLabel(value: string) {
-  if (value === "privacy_policy") return "개인정보 처리방침";
-  if (value === "terms_of_service") return "이용약관";
-  if (value === "location_terms") return "위치기반서비스 이용약관";
-  return value || "약관";
 }
 
 function formatDateTime(value: string) {

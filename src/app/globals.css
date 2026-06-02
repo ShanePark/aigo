@@ -6862,44 +6862,25 @@ h3 {
 }
 
 .admin-user-row {
-  display: block;
-  padding: 0;
-}
-
-.admin-user-row[open] {
-  background: color-mix(in srgb, var(--control-bg) 58%, transparent);
-}
-
-.admin-user-summary {
   align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px) auto;
-  list-style: none;
+  font: inherit;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 74px;
   padding: 14px 16px;
+  text-align: left;
+  width: 100%;
 }
 
-.admin-user-summary::-webkit-details-marker {
-  display: none;
-}
-
-.admin-user-summary::after {
-  color: var(--muted);
-  content: "상세";
-  font-size: 11px;
-  font-weight: 900;
-  justify-self: end;
-  text-transform: uppercase;
-}
-
-.admin-user-row[open] .admin-user-summary::after {
-  content: "닫기";
-}
-
-.admin-user-summary:hover,
-.admin-user-summary:focus-visible {
+.admin-user-row:hover,
+.admin-user-row:focus-visible {
   background: var(--control-bg);
 }
 
@@ -6915,6 +6896,13 @@ h3 {
   color: var(--text);
   font-size: 15px;
   font-weight: 950;
+  line-height: 1.25;
+}
+
+.admin-user-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
 .admin-user-email {
@@ -6926,32 +6914,57 @@ h3 {
   white-space: nowrap;
 }
 
-.admin-user-quick-stats {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: 0;
-}
-
-.admin-user-quick-stats span {
+.admin-user-last-login {
+  align-items: center;
   background: var(--control-bg);
   border: 1px solid var(--line);
   border-radius: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 850;
-  min-width: 0;
-  overflow: hidden;
-  padding: 7px 8px;
-  text-overflow: ellipsis;
+  color: var(--text);
+  display: inline-flex;
+  gap: 8px;
+  justify-self: end;
+  min-height: 44px;
+  padding: 7px 10px;
   white-space: nowrap;
 }
 
-.admin-user-detail {
-  border-top: 1px solid var(--line);
+.admin-user-last-login > svg {
+  color: var(--mint);
+  flex: 0 0 auto;
+}
+
+.admin-user-last-login span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-user-last-login small {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+.admin-user-last-login strong {
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.admin-user-modal-content {
   display: grid;
   gap: 12px;
-  padding: 12px 16px 16px;
+  min-width: 0;
+}
+
+.admin-user-modal-section {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-user-modal-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-place-card {
@@ -10621,16 +10634,12 @@ dd {
   }
 
   .admin-user-row {
-    padding: 0;
-  }
-
-  .admin-user-summary {
     grid-template-columns: 1fr;
     min-height: 0;
     padding: 12px;
   }
 
-  .admin-user-summary::after {
+  .admin-user-last-login {
     justify-self: start;
   }
 
@@ -10638,14 +10647,10 @@ dd {
     white-space: normal;
   }
 
-  .admin-user-quick-stats,
+  .admin-user-modal-grid,
   .admin-user-stats,
   .admin-consent-list {
     grid-template-columns: 1fr;
-  }
-
-  .admin-user-detail {
-    padding: 12px;
   }
 
   .admin-user-stats {
