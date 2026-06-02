@@ -473,6 +473,7 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("lower(name) = ");
     expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g')");
+    expect(query.sql).toContain("regexp_replace(lower(name), '[-");
     expect(query.sql).toContain("external_refs->'aliases'");
     expect(query.sql).not.toContain("description ilike");
     expect(query.sql).not.toContain("exists (select 1 from unnest(tags)");
@@ -490,6 +491,18 @@ describe("place search helpers", () => {
     expect(query.sql).toContain("where lower(external_alias.value) = $1");
     expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = $2");
     expect(query.params).toEqual(["국립세종어린이박물관", "국립세종어린이박물관"]);
+  });
+
+  it("treats hyphens and dashes as optional separators in exact-name aliases", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "스위트 풀빌라 수빌리지펜션",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("regexp_replace(lower(name), '[-");
+    expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[-");
+    expect(query.params).toEqual(["스위트 풀빌라 수빌리지펜션", "스위트풀빌라수빌리지펜션"]);
   });
 
   it("includes Korean search aliases in exact-name lookup", () => {
@@ -2220,6 +2233,25 @@ describe("place search helpers", () => {
         }
       },
       "국립세종어린이박물관"
+    );
+
+    expect(signal.delta).toBeGreaterThanOrEqual(24);
+    expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
+  });
+
+  it("boosts external aliases with optional hyphen separators like exact place-name matches", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "양평 수빌리지펜션",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: {
+          aliases: ["스위트 풀빌라 - 수빌리지펜션"]
+        }
+      },
+      "스위트 풀빌라 수빌리지펜션"
     );
 
     expect(signal.delta).toBeGreaterThanOrEqual(24);

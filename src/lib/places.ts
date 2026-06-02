@@ -2557,7 +2557,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 
 function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const exactParam = add(normalizeSearchText(query));
-  const compactParam = add(compactSearchText(query));
+  const compactText = compactSearchText(query);
+  const compactParam = add(compactText);
+  const separatorlessText = separatorlessSearchText(query);
+  const separatorlessParam = separatorlessText === compactText ? compactParam : add(separatorlessText);
   const retailAliasCompacts = retailAliasCompactTexts(query);
   const retailAliasParam = retailAliasCompacts.length > 1 ? add(retailAliasCompacts) : null;
   const retailAliasClause =
@@ -2565,11 +2568,12 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const externalAliasRetailClause = retailAliasParam
     ? ` or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = any(${retailAliasParam}::text[])`
     : "";
-  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause} or exists (
+  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam} or regexp_replace(lower(name), '[-‐‑‒–—―−[:space:]]+', '', 'g') = ${separatorlessParam}${retailAliasClause} or exists (
     select 1
     from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
     where lower(external_alias.value) = ${exactParam}
-      or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}${externalAliasRetailClause}
+      or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}
+      or regexp_replace(lower(external_alias.value), '[-‐‑‒–—―−[:space:]]+', '', 'g') = ${separatorlessParam}${externalAliasRetailClause}
   ))`;
 }
 
@@ -3735,12 +3739,15 @@ export function queryMatchSignal(
 
   const normalizedName = normalizeSearchText(place.name);
   const compactName = compactSearchText(place.name);
+  const separatorlessName = separatorlessSearchText(place.name);
   const compactQuery = compactSearchText(query);
+  const separatorlessQuery = separatorlessSearchText(query);
   const retailAliasMatched = retailAliasCompactTexts(query).some((alias) => retailAliasCompactTexts(place.name).includes(alias));
   const externalAliasExactMatched = externalRefsAliasTexts(place.externalRefs).some((alias) => {
     const normalizedAlias = normalizeSearchText(alias);
     const compactAlias = compactSearchText(alias);
-    return normalizedAlias === normalizedQuery || compactAlias === compactQuery;
+    const separatorlessAlias = separatorlessSearchText(alias);
+    return normalizedAlias === normalizedQuery || compactAlias === compactQuery || separatorlessAlias === separatorlessQuery;
   });
   const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
@@ -3759,7 +3766,7 @@ export function queryMatchSignal(
     };
   }
 
-  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || externalAliasExactMatched;
+  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || separatorlessName === separatorlessQuery || externalAliasExactMatched;
   if (exactNameMatch) {
     delta += 24;
     reasonCodes.add("QUERY_NAME_EXACT");
@@ -3835,6 +3842,10 @@ function normalizeSearchText(value: string) {
 
 function compactSearchText(value: string) {
   return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+function separatorlessSearchText(value: string) {
+  return normalizeSearchText(value).replace(/[-‐‑‒–—―−\s]+/g, "");
 }
 
 function isNonEmptyString(value: unknown): value is string {
