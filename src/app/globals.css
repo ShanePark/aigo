@@ -2596,6 +2596,7 @@ h3 {
 }
 
 .result-card {
+  --result-save-controls-width: 76px;
   --result-thumb-size: 132px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -8650,6 +8651,7 @@ dd {
   }
 
   .results-panel .result-card {
+    --result-save-controls-width: 62px;
     box-shadow: none;
     min-height: 0;
   }
@@ -8660,7 +8662,7 @@ dd {
 
   .result-card-body {
     gap: 3px;
-    padding: 6px 52px 6px 8px;
+    padding: 6px calc(var(--result-save-controls-width) + 8px) 6px 8px;
   }
 
   .result-card-topline {
@@ -8679,6 +8681,7 @@ dd {
     gap: 3px;
     justify-content: flex-end;
     margin-left: auto;
+    max-width: 100%;
   }
 
   .rank-badge,
