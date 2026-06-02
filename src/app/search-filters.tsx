@@ -291,7 +291,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
     const isSelected = selectedAccommodationType === type.id;
 
     return (
-      <label className={`advanced-filter-option ${isSelected ? "is-selected" : ""}`} key={type.id}>
+      <label className={`advanced-filter-option accommodation-type-option ${isSelected ? "is-selected" : ""}`} key={type.id}>
         <input
           type="checkbox"
           checked={isSelected}
@@ -354,12 +354,12 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
             </p>
           </div>
           <div className="advanced-filter-layout" aria-label="세부 조건">
-            <section className="advanced-filter-group" aria-label="숙박 유형">
+            <section className="advanced-filter-group accommodation-type-filter-group" aria-label="숙박 유형">
               <div className="advanced-filter-group-head">
                 <strong>숙박 유형</strong>
                 <small>하나만 선택</small>
               </div>
-              <div className="advanced-filter-options">{ACCOMMODATION_TYPES.map(renderAccommodationOption)}</div>
+              <div className="advanced-filter-options accommodation-type-options">{ACCOMMODATION_TYPES.map(renderAccommodationOption)}</div>
             </section>
             {FILTER_GROUPS.map((group, groupIndex) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>

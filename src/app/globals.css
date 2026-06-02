@@ -796,6 +796,35 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.advanced-filter-layout > .accommodation-type-filter-group {
+  border-top: 0;
+  grid-column: 1 / -1;
+  padding-top: 0;
+}
+
+.advanced-filter-layout > .advanced-filter-group.accommodation-type-filter-group + .advanced-filter-group {
+  border-left: 0;
+  border-top: 1px solid var(--line);
+  padding-left: 0;
+  padding-top: 12px;
+}
+
+.accommodation-type-option {
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 5px 9px 5px 6px;
+}
+
+.accommodation-type-option .advanced-filter-option-icon {
+  height: 28px;
+  width: 28px;
+}
+
+.accommodation-type-option .advanced-filter-option-copy {
+  align-content: center;
+}
+
 .advanced-filter-group-head {
   align-items: baseline;
   display: flex;
@@ -820,6 +849,11 @@ h3 {
   gap: 8px;
   grid-template-columns: repeat(auto-fill, minmax(132px, 148px));
   justify-content: start;
+}
+
+.advanced-filter-options.accommodation-type-options {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
 }
 
 .advanced-filter-option {
@@ -7909,6 +7943,16 @@ dd {
     padding-top: 9px;
   }
 
+  .advanced-filter-layout > .accommodation-type-filter-group {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .advanced-filter-layout > .advanced-filter-group.accommodation-type-filter-group + .advanced-filter-group {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+
   .advanced-filter-group,
   .child-profile-panel {
     border-radius: 0;
@@ -7928,6 +7972,11 @@ dd {
     justify-content: start;
   }
 
+  .advanced-filter-options.accommodation-type-options {
+    gap: 5px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .advanced-filter-option {
     align-items: center;
     border-radius: 8px;
@@ -7943,6 +7992,22 @@ dd {
   .advanced-filter-option-icon {
     height: 27px;
     width: 27px;
+  }
+
+  .accommodation-type-option {
+    gap: 2px;
+    min-height: 56px;
+    padding: 5px 2px;
+  }
+
+  .accommodation-type-option .advanced-filter-option-icon {
+    height: 25px;
+    width: 25px;
+  }
+
+  .accommodation-type-option .advanced-filter-option-icon img {
+    height: 23px;
+    width: 23px;
   }
 
   .advanced-filter-option-copy {
@@ -7963,6 +8028,17 @@ dd {
   .app-modal-body .advanced-filter-option-copy strong {
     font-size: 10.5px;
     white-space: normal;
+  }
+
+  .app-modal-body .accommodation-type-option .advanced-filter-option-copy strong {
+    font-size: 10px;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  .app-modal-body .accommodation-type-option .advanced-filter-option-copy small {
+    font-size: 8.5px;
+    padding: 2px 4px;
   }
 
   .advanced-filter-option-state {
