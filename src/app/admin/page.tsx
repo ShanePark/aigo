@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AppPageHeader } from "@/app/page-shell";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
@@ -40,34 +41,32 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ]);
 
   return (
-    <div className="page admin-page">
-      <header className="admin-head">
-        <div>
-          <span className="admin-eyebrow">
-            <ShieldCheck size={15} aria-hidden="true" />
-            관리자
-          </span>
-          <h1>{tab === "users" ? "사용자 관리" : "방문 기록"}</h1>
-        </div>
-        <div className="admin-head-actions">
-          <nav className="admin-filter-row" aria-label="관리자 메뉴">
-            {adminTabs.map((item) => (
-              <Link className={`admin-filter-chip ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          {tab === "visits" ? (
-            <div className="admin-filter-row" aria-label="방문 기록 필터">
-              {filterLinks.map((filter) => (
-                <Link className={`admin-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
-                  {filter.label}
+    <div className="page app-page admin-page">
+      <AppPageHeader
+        eyebrow="관리자"
+        icon={ShieldCheck}
+        title={tab === "users" ? "사용자 관리" : "방문 기록"}
+        actions={
+          <>
+            <nav className="app-page-filter-group" aria-label="관리자 메뉴">
+              {adminTabs.map((item) => (
+                <Link className={`app-page-filter-chip ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
+                  {item.label}
                 </Link>
               ))}
-            </div>
-          ) : null}
-        </div>
-      </header>
+            </nav>
+            {tab === "visits" ? (
+              <div className="app-page-filter-group" aria-label="방문 기록 필터">
+                {filterLinks.map((filter) => (
+                  <Link className={`app-page-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
+                    {filter.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </>
+        }
+      />
 
       {tab === "visits" ? (
         <>
