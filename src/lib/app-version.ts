@@ -1,1 +1,1 @@
-export const AIGO_APP_VERSION = "v2026.06.02.02";
+export const AIGO_APP_VERSION = "v2026.06.03.01";
