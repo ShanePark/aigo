@@ -207,6 +207,21 @@ describe("place schemas", () => {
     expect(invalid.success).toBe(false);
   });
 
+  it("accepts active and temporarily closed statuses for agent search", () => {
+    const result = searchPlacesSchema.parse({
+      query: "고성공룡박물관",
+      matchMode: "exactName",
+      includeStatuses: ["active", "temporarily_closed"]
+    });
+    const invalid = searchPlacesSchema.safeParse({
+      query: "고성공룡박물관",
+      includeStatuses: ["closed"]
+    });
+
+    expect(result.includeStatuses).toEqual(["active", "temporarily_closed"]);
+    expect(invalid.success).toBe(false);
+  });
+
   it("fills taxonomy v1 defaults for research payload fragments", () => {
     const result = taxonomySchema.parse({
       sourceBacked: {

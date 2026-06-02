@@ -2298,11 +2298,15 @@ async function updatePlaceRow(executor: SqlExecutor, placeId: string, record: Re
 
 export function buildSearchQuery(input: SearchPlacesInput) {
   const params: SqlParam[] = [];
-  const where = ["status = 'active'"];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
   };
+  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active"];
+  const where =
+    includeStatuses.length === 1 && includeStatuses[0] === "active"
+      ? ["status = 'active'"]
+      : [`status = any(${add(includeStatuses)}::text[])`];
 
   const distanceSql = input.origin
     ? `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000`

@@ -1182,6 +1182,13 @@ components:
           enum: [keyword, exactName]
           default: keyword
           description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, externalRefs.aliases, externalRefs.koreanSearchAliases, and known retail-chain alias place names instead of broad keyword/tag text.
+        includeStatuses:
+          type: array
+          maxItems: 2
+          description: Agent/admin audit option. Defaults to active-only search; include `temporarily_closed` when exact-name or duplicate-precheck workflows must find canonical temporary-closure records before staging creates. Permanently `closed`, `draft`, and `needs_review` records are intentionally not accepted here.
+          items:
+            type: string
+            enum: [active, temporarily_closed]
         countryCode:
           type: string
           pattern: "^[A-Z]{2}$"

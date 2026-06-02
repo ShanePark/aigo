@@ -1,5 +1,5 @@
 import { DEFAULT_DEV_API_KEY } from "@/env";
-import type { searchPlacesSchema } from "@/lib/schemas";
+import type { SearchPlacesInput, searchPlacesSchema } from "@/lib/schemas";
 import type { z } from "zod";
 
 export type AigoSearchRequest = z.input<typeof searchPlacesSchema>;
@@ -26,6 +26,7 @@ export type AigoSearchOptions = {
 };
 
 export type ExactNameSearchOptions = AigoSearchOptions & {
+  includeStatuses?: SearchPlacesInput["includeStatuses"];
   limit?: number;
 };
 
@@ -182,11 +183,12 @@ export async function exactNameSearchReadOnly<TItem = AigoSearchItem>(
   name: string,
   options: ExactNameSearchOptions = {}
 ): Promise<NormalizedAigoSearchResponse<TItem>> {
-  const { limit = 5, ...requestOptions } = options;
+  const { includeStatuses = ["active", "temporarily_closed"], limit = 5, ...requestOptions } = options;
   return searchPlacesReadOnly<TItem>(
     {
       query: name,
       matchMode: "exactName",
+      includeStatuses,
       projection: "compact",
       limit,
       offset: 0

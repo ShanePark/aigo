@@ -188,6 +188,25 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
+  it("keeps active-only search by default and can include temporarily closed records for audits", () => {
+    const defaultQuery = buildSearchQuery({
+      ...baseSearchInput,
+      query: "고성공룡박물관",
+      matchMode: "exactName"
+    });
+    const auditQuery = buildSearchQuery({
+      ...baseSearchInput,
+      query: "고성공룡박물관",
+      matchMode: "exactName",
+      includeStatuses: ["active", "temporarily_closed"]
+    });
+
+    expect(defaultQuery.sql).toContain("status = 'active'");
+    expect(defaultQuery.params).not.toContainEqual(["active"]);
+    expect(auditQuery.sql).toContain("status = any($1::text[])");
+    expect(auditQuery.params[0]).toEqual(["active", "temporarily_closed"]);
+  });
+
   it("filters by required tag aliases for accommodation subtype searches", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,

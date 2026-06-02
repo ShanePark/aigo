@@ -428,6 +428,7 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   query: z.string().trim().min(1).optional(),
   matchMode: z.enum(["keyword", "exactName"]).optional(),
+  includeStatuses: z.array(z.enum(["active", "temporarily_closed"])).min(1).max(2).optional(),
   regionSido: regionSidoSchema,
   regionSigungu: nonEmptyString.optional(),
   countryCode: countryCodeSchema,
