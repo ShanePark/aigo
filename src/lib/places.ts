@@ -1110,7 +1110,8 @@ export function normalizePlaceImageHealthQueryForTest(input: PlaceImageHealthQue
 export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput | PlaceImageHealthHelperInput) {
   const input = normalizePlaceImageHealthQuery(rawInput);
   const params: SqlParam[] = [];
-  const where = ["p.status = 'active'"];
+  const scopedPlaceIds = Boolean(input.placeIds && input.placeIds.length > 0);
+  const where = [imageHealthPlaceStatusPredicate(scopedPlaceIds)];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
@@ -1240,6 +1241,14 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
       primaryCategory: input.primaryCategory ?? null
     }
   };
+}
+
+function imageHealthPlaceStatusPredicate(scopedPlaceIds: boolean) {
+  return scopedPlaceIds ? "p.status in ('active', 'temporarily_closed')" : "p.status = 'active'";
+}
+
+export function imageHealthPlaceStatusPredicateForTest(scopedPlaceIds: boolean) {
+  return imageHealthPlaceStatusPredicate(scopedPlaceIds);
 }
 
 async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg) {
@@ -4233,7 +4242,8 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
     return {
       dataStatus: "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null
     };
   }
 
@@ -4241,15 +4251,18 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
     return {
       dataStatus: "missing",
       hasData: false,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null
     };
   }
 
   const hasStructuredData = hasStructuredOpeningHoursData(openingHours);
+  const temporaryClosure = temporaryClosurePeriod(openingHours);
   return {
     dataStatus: hasStructuredData ? "structured" : "unstructured",
     hasData: true,
-    hasStructuredData
+    hasStructuredData,
+    temporaryClosure
   };
 }
 
@@ -4273,7 +4286,8 @@ export function buildSearchOpeningHoursSummary(
     latestCheckedAt: sourceEvidence.latestCheckedAt,
     freshnessStatus: sourceEvidence.freshnessStatus,
     hasStructuredData: dataSignal.hasStructuredData,
-    structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : []
+    structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : [],
+    temporaryClosure: dataSignal.temporaryClosure
   };
 }
 
@@ -4462,10 +4476,24 @@ function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceE
 function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   if (typeof openingHours.openNow === "boolean" || typeof openingHours.isOpen === "boolean") return true;
   if ([openingHours.status, openingHours.openStatus, openingHours.businessStatus].some((value) => typeof value === "string")) return true;
+  if (temporaryClosurePeriod(openingHours) !== null) return true;
   if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
   if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
   if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
   return false;
+}
+
+function temporaryClosurePeriod(openingHours: Record<string, unknown>) {
+  const closure = openingHours.temporaryClosure;
+  if (!isPlainRecord(closure)) return null;
+  const startsOn = trimmedString(closure.startsOn ?? closure.startDate ?? closure.from);
+  const endsOn = trimmedString(closure.endsOn ?? closure.endDate ?? closure.to);
+  if (!startsOn && !endsOn) return null;
+  return { startsOn, endsOn };
+}
+
+function trimmedString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {

@@ -1123,6 +1123,42 @@ describe("scorePlace", () => {
     expect(closed.scoreBreakdown.openingHours).toBeLessThan(0);
   });
 
+  it("treats active temporary closure periods as closed instead of unknown hours", () => {
+    const shared = {
+      primaryCategory: "museum",
+      tags: ["children_museum"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 24,
+      maxRecommendedAgeMonths: 120,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "partial",
+      diaperChangingTable: "yes",
+      kidsToilet: "yes",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 12,
+      openingHours: {
+        temporaryClosure: {
+          startsOn: "2026-01-01",
+          endsOn: "2026-12-31"
+        }
+      }
+    };
+
+    const result = scorePlace(
+      shared,
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-06-02T04:00:00.000Z") }
+    );
+
+    expect(result.reasonCodes).toContain("CLOSED_NOW");
+    expect(result.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    expect(result.scoreBreakdown.openingHours).toBeLessThan(0);
+  });
+
   it("evaluates weekly opening hours against Asia/Seoul and Korean weekday keys", () => {
     const shared = {
       primaryCategory: "kids_cafe",

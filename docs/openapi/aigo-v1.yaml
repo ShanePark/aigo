@@ -234,7 +234,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates.
+          description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates. Explicitly scoped lookups include `temporarily_closed` records; the unscoped queue remains active-only.
         - name: limit
           in: query
           required: false
@@ -2261,6 +2261,22 @@ components:
           items:
             type: string
             enum: [openingHours, reservationRequired, walkInAvailable, sessionBased, sameDayAvailabilityKnown]
+        temporaryClosure:
+          type:
+            - object
+            - "null"
+          description: Structured temporary-closure period evidence when present; this clears the generic opening-hours structure gap but still indicates the place should not be treated as currently open.
+          properties:
+            startsOn:
+              type:
+                - string
+                - "null"
+              description: Inclusive closure start date when known, usually `YYYY-MM-DD`.
+            endsOn:
+              type:
+                - string
+                - "null"
+              description: Inclusive closure end date when known, usually `YYYY-MM-DD`.
     OpeningHoursEvidenceSummary:
       type: object
       required: [sourceCount, sourceTypes, bestSourceType, bestSourceTier, latestCheckedAt, freshnessStatus]

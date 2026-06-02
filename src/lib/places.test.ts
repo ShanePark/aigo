@@ -19,6 +19,7 @@ import {
   compactDuplicatePlaceCandidateForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
+  imageHealthPlaceStatusPredicateForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -1030,6 +1031,11 @@ describe("place search helpers", () => {
     });
   });
 
+  it("includes temporarily closed places in image health only when explicitly scoped", () => {
+    expect(imageHealthPlaceStatusPredicateForTest(false)).toBe("p.status = 'active'");
+    expect(imageHealthPlaceStatusPredicateForTest(true)).toBe("p.status in ('active', 'temporarily_closed')");
+  });
+
   it("summarizes source freshness and provenance for search results", () => {
     const now = new Date("2026-05-22T07:00:00.000Z");
 
@@ -1155,12 +1161,14 @@ describe("place search helpers", () => {
     expect(buildOpeningHoursDataSignal({ note: "공식 페이지 확인 필요" })).toEqual({
       dataStatus: "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null
     });
     expect(buildOpeningHoursDataSignal("월-토 10:00-17:00")).toEqual({
       dataStatus: "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null
     });
     expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)).toMatchObject({
       dataStatus: "missing",
@@ -1176,6 +1184,44 @@ describe("place search helpers", () => {
       confidenceLevel: "high",
       hasStructuredData: true,
       structuredDataGaps: []
+    });
+  });
+
+  it("treats temporary closure periods as structured operating status evidence", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      }
+    });
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "official_site",
+        title: "공식 임시휴관 안내",
+        summary: "공식 페이지가 임시휴관 기간을 안내한다.",
+        checked_at: "2026-06-02T00:00:00.000Z",
+        created_at: "2026-06-02T00:00:00.000Z"
+      }
+    ]);
+
+    expect(dataSignal).toEqual({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      }
+    });
+    expect(buildSearchOpeningHoursSummary(dataSignal, sourceSummary)).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "high",
+      hasStructuredData: true,
+      structuredDataGaps: [],
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      }
     });
   });
 

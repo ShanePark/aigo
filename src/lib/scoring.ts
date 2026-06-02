@@ -1,5 +1,5 @@
 import type { Place } from "@/db/schema";
-import { seoulWallClockParts } from "@/lib/korea-time";
+import { SEOUL_UTC_OFFSET_MINUTES, seoulWallClockParts } from "@/lib/korea-time";
 import { distanceSignalForPlace } from "@/lib/recommendation-scoring";
 import type { SearchPlacesInput } from "@/lib/schemas";
 import { taxonomyFacetFamilies, type PlaceTaxonomy, type TaxonomyFacetFamily } from "@/lib/taxonomy";
@@ -1006,7 +1006,7 @@ type OpeningPeriod = {
 function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   if (!isRecord(openingHours)) return { state: "unknown" };
 
-  const explicitStatus = explicitOpeningStatus(openingHours);
+  const explicitStatus = explicitOpeningStatus(openingHours, now);
   if (explicitStatus) return explicitStatus;
 
   const periods = collectOpeningPeriods(openingHours);
@@ -1043,7 +1043,10 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   return hasApplicableSchedule ? { state: "closed" } : { state: "unknown" };
 }
 
-function explicitOpeningStatus(openingHours: Record<string, unknown>): OpeningStatus | null {
+function explicitOpeningStatus(openingHours: Record<string, unknown>, now: Date): OpeningStatus | null {
+  const closureStatus = temporaryClosureOpeningStatus(openingHours, now);
+  if (closureStatus) return closureStatus;
+
   if (typeof openingHours.openNow === "boolean") {
     return { state: openingHours.openNow ? "open" : "closed" };
   }
@@ -1057,6 +1060,24 @@ function explicitOpeningStatus(openingHours: Record<string, unknown>): OpeningSt
   if (status.some((value) => ["open", "open_now", "operating"].includes(value))) return { state: "open" };
   if (status.some((value) => ["closed", "closed_now", "temporarily_closed", "permanently_closed"].includes(value))) return { state: "closed" };
   return null;
+}
+
+function temporaryClosureOpeningStatus(openingHours: Record<string, unknown>, now: Date): OpeningStatus | null {
+  const closure = openingHours.temporaryClosure;
+  if (!isRecord(closure)) return null;
+
+  const startsOn = stringValue(closure.startsOn ?? closure.startDate ?? closure.from);
+  const endsOn = stringValue(closure.endsOn ?? closure.endDate ?? closure.to);
+  if (!startsOn && !endsOn) return null;
+
+  const today = seoulDateString(now);
+  if (startsOn && today < startsOn) return null;
+  if (endsOn && today > endsOn) return null;
+  return { state: "closed" };
+}
+
+function seoulDateString(date: Date) {
+  return new Date(date.getTime() + SEOUL_UTC_OFFSET_MINUTES * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function collectOpeningPeriods(openingHours: Record<string, unknown>) {
