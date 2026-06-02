@@ -7,6 +7,7 @@ export type DuplicateCandidateSignals = {
   regionMatch?: boolean;
   genericBranchName?: boolean;
   branchSiblingReviewOnly?: boolean;
+  lodgingClusterReviewOnly?: boolean;
   weakThematicSimilarityReviewOnly?: boolean;
   publicSubfacilityReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
@@ -63,6 +64,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("BRANCH_SIBLING_REVIEW_ONLY");
   }
 
+  if (signals.lodgingClusterReviewOnly) {
+    reasonCodes.push("LODGING_CLUSTER_REVIEW_ONLY");
+  }
+
   if (signals.weakThematicSimilarityReviewOnly) {
     reasonCodes.push("WEAK_THEMATIC_SIMILARITY_REVIEW_ONLY");
   }
@@ -116,6 +121,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (duplicateOutsideRadiusReviewOnly(signals)) return "low";
   if (signals.addressRegionConflict && !hasStrictLocationMatch(signals)) return "low";
   if (signals.branchSiblingReviewOnly && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.lodgingClusterReviewOnly && !hasStrongIdentityEvidence(signals)) return "medium";
   if (signals.weakThematicSimilarityReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
@@ -170,6 +176,18 @@ export function duplicateBranchSiblingReviewOnly(inputName: string, candidateNam
   if (!input || !candidate || input === candidate) return false;
 
   return branchSiblingReviewTerms.some((term) => input.includes(term) && candidate.includes(term));
+}
+
+export function duplicateLodgingClusterReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  const [shorter, longer] = input.length <= candidate.length ? [input, candidate] : [candidate, input];
+  if (longer.includes(shorter)) return false;
+
+  const sharedTerms = lodgingClusterReviewTerms.filter((term) => input.includes(term) && candidate.includes(term));
+  return sharedTerms.length >= 2 || sharedTerms.some((term) => term === "키즈풀빌라" || term === "키즈펜션" || term === "가족펜션");
 }
 
 export function duplicateWeakThematicSimilarityReviewOnly(inputName: string, candidateName: string) {
@@ -277,7 +295,7 @@ function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
 
 function identityReviewOnly(signals: DuplicateCandidateSignals) {
   return Boolean(
-    (signals.sameBuildingReviewOnly || signals.branchSiblingReviewOnly || signals.weakThematicSimilarityReviewOnly) &&
+    (signals.sameBuildingReviewOnly || signals.branchSiblingReviewOnly || signals.lodgingClusterReviewOnly || signals.weakThematicSimilarityReviewOnly) &&
       !signals.externalRefsMatch &&
       !signals.kakaoPlaceIdMatch &&
       !hasStrongIdentityEvidence(signals)
@@ -349,6 +367,8 @@ const branchSiblingReviewTerms = [
   "홈플러스",
   "트레이더스"
 ].map(compactDuplicateText);
+
+const lodgingClusterReviewTerms = ["키즈풀빌라", "키즈펜션", "가족펜션", "풀빌라", "펜션", "리조트", "키즈"].map(compactDuplicateText);
 
 const publicInstitutionGenericTerms = [
   "교육문화원",

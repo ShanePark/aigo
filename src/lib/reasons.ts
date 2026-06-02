@@ -104,6 +104,7 @@ const reasonDefinitions: Record<string, ReasonDefinition> = {
   CLOSED_NOW: { labelKo: "현재 운영 아님", group: "context", tone: "negative", basePriority: 3 },
   CLOSING_SOON: { labelKo: "곧 마감", group: "context", tone: "partial", basePriority: 11 },
   OPENING_HOURS_UNKNOWN: { labelKo: "운영시간 판단 불가", group: "context", tone: "unknown", basePriority: 49 },
+  LODGING_STAY_WINDOW_KNOWN: { labelKo: "체크인/체크아웃 확인", group: "context", tone: "neutral", basePriority: 48 },
   CHILD_ENGAGEMENT_HIGH: { labelKo: "아이 몰입도 높음", group: "context", tone: "positive", basePriority: 29 },
   CHILD_ENGAGEMENT_LOW: { labelKo: "아이 몰입도 낮음", group: "context", tone: "partial", basePriority: 29 },
   PARENT_EFFORT_LOW: { labelKo: "부모 부담 낮음", group: "context", tone: "positive", basePriority: 33 },

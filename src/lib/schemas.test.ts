@@ -22,7 +22,7 @@ describe("place schemas", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts kid-primary accommodations", () => {
+  it("accepts accommodation places", () => {
     const result = createPlaceSchema.parse({
       name: "테스트 숙소",
       primaryCategory: "accommodation",
@@ -33,6 +33,19 @@ describe("place schemas", () => {
     });
 
     expect(result.primaryCategory).toBe("accommodation");
+  });
+
+  it("accepts shared childcare places", () => {
+    const result = createPlaceSchema.parse({
+      name: "테스트 공동육아나눔터",
+      primaryCategory: "shared_childcare",
+      regionSido: "전남",
+      lat: 35.01,
+      lng: 126.71,
+      sources: [{ sourceType: "public_agency", url: "https://example.com/shared-childcare" }]
+    });
+
+    expect(result.primaryCategory).toBe("shared_childcare");
   });
 
   it("rejects unknown primary categories", () => {
@@ -96,6 +109,56 @@ describe("place schemas", () => {
     expect(result.sources[0].sourceType).toBe("public_news");
   });
 
+  it("maps nested recommended age payloads to writable age fields", () => {
+    const create = createPlaceSchema.parse({
+      name: "연령대 장소",
+      primaryCategory: "accommodation",
+      regionSido: "제주",
+      lat: 33.45,
+      lng: 126.55,
+      recommendedAgeMonths: { min: 12, max: 120 },
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const update = updatePlaceSchema.parse({
+      recommendedAgeMonths: { min: 24, max: 96 },
+      minRecommendedAgeMonths: 36,
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(create.minRecommendedAgeMonths).toBe(12);
+    expect(create.maxRecommendedAgeMonths).toBe(120);
+    expect(update.minRecommendedAgeMonths).toBe(36);
+    expect(update.maxRecommendedAgeMonths).toBe(96);
+  });
+
+  it("maps nested contact payloads to writable contact fields", () => {
+    const create = createPlaceSchema.parse({
+      name: "연락처 장소",
+      primaryCategory: "accommodation",
+      regionSido: "경남",
+      lat: 35.5,
+      lng: 128.2,
+      contact: {
+        phone: " 0507-1386-8205 ",
+        officialUrl: "https://example.com/place",
+        reservationUrl: "https://example.com/reserve"
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+    const update = updatePlaceSchema.parse({
+      contact: {
+        phone: "0507-1111-2222"
+      },
+      phone: "0507-9999-0000",
+      sources: [{ sourceType: "official_site", url: "https://example.com" }]
+    });
+
+    expect(create.phone).toBe("0507-1386-8205");
+    expect(create.officialUrl).toBe("https://example.com/place");
+    expect(create.reservationUrl).toBe("https://example.com/reserve");
+    expect(update.phone).toBe("0507-9999-0000");
+  });
+
   it("accepts duplicate checks with address evidence when coordinates are unknown", () => {
     const addressOnly = duplicatePlaceSchema.parse({
       name: "도담도담 장난감월드 검단점",
@@ -113,9 +176,22 @@ describe("place schemas", () => {
 
     expect(addressOnly.regionSido).toBe("인천광역시");
     expect(addressOnly.limit).toBe(10);
+    expect(addressOnly.projection).toBe("full");
     expect(addressOnly.radiusMeters).toBe(500);
     expect(missingLocation.success).toBe(false);
     expect(partialCoordinates.success).toBe(false);
+  });
+
+  it("accepts compact duplicate projection for agent review payloads", () => {
+    const result = duplicatePlaceSchema.parse({
+      name: "남해 캐슬529키즈풀빌라",
+      regionSido: "경남",
+      regionSigungu: "남해군",
+      projection: "compact"
+    });
+
+    expect(result.regionSido).toBe("경상남도");
+    expect(result.projection).toBe("compact");
   });
 
   it("accepts overseas duplicate scope and alias hints", () => {
@@ -169,6 +245,21 @@ describe("place schemas", () => {
     expect(result.sourceBacked.accessTags).toEqual(["public_facility"]);
     expect(result.inferred.activityTypes).toEqual(["sand_play"]);
     expect(create.taxonomy?.sourceBacked.familyFitGates).toEqual(["child_primary"]);
+    expect(invalid.success).toBe(false);
+  });
+
+  it("accepts active and temporarily closed statuses for agent search", () => {
+    const result = searchPlacesSchema.parse({
+      query: "고성공룡박물관",
+      matchMode: "exactName",
+      includeStatuses: ["active", "temporarily_closed"]
+    });
+    const invalid = searchPlacesSchema.safeParse({
+      query: "고성공룡박물관",
+      includeStatuses: ["closed"]
+    });
+
+    expect(result.includeStatuses).toEqual(["active", "temporarily_closed"]);
     expect(invalid.success).toBe(false);
   });
 

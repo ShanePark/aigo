@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   checkAigoReadOnlyApiReadiness,
+  exactNameSearchReadOnly,
   isTransientAigoRouteResponse,
   normalizeSearchResponse,
   readAigoJsonReadOnly,
@@ -153,6 +154,20 @@ describe("AiGo search helper", () => {
     expect(log).toHaveBeenCalledWith("AiGo read-only API base URL: http://localhost:3010");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1]?.[1]?.body)).toContain('"matchMode":"exactName"');
+  });
+
+  it("includes temporarily closed records in read-only exact-name lookups", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await exactNameSearchReadOnly("고성공룡박물관");
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      query: "고성공룡박물관",
+      matchMode: "exactName",
+      includeStatuses: ["active", "temporarily_closed"],
+      projection: "compact"
+    });
   });
 
   it("fails readiness when the known exact-name id is missing", async () => {

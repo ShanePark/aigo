@@ -46,6 +46,7 @@ const relatedChildDestinationCategories = new Set([
   "indoor_playground",
   "playground",
   "toy_library",
+  "shared_childcare",
   "experience_center",
   "science_museum",
   "aquarium",
@@ -261,7 +262,7 @@ function distanceProfileFor(place: DistanceScoringPlace, input: SearchPlacesInpu
     return distanceProfiles.visitDestination;
   }
   if (isDestinationCategory(category)) return distanceProfiles.destination;
-  if (["family_cafe", "library", "toy_library", "toy_store", "family_restaurant"].includes(category)) {
+  if (["family_cafe", "library", "toy_library", "shared_childcare", "toy_store", "family_restaurant"].includes(category)) {
     return distanceProfiles.localFallback;
   }
   return distanceProfiles.destination;

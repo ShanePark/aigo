@@ -18,6 +18,7 @@ describe("taxonomy catalog", () => {
     expect(primaryCategories).toContain("aquarium");
     expect(primaryCategories).toContain("zoo");
     expect(primaryCategories).toContain("art_museum");
+    expect(primaryCategories).toContain("shared_childcare");
   });
 
   it("canonicalizes source type and region aliases", () => {
@@ -91,6 +92,19 @@ describe("taxonomy catalog", () => {
     expect(inferred.familyFitGates).toContain("route_break");
     expect(inferred.visitUseCases).toContain("day_trip");
     expect(inferred.logisticsTags).toEqual(expect.arrayContaining(["stroller", "nursing_room", "parking"]));
+  });
+
+  it("treats shared childcare rooms as child-primary indoor play spaces", () => {
+    const inferred = inferTaxonomyFromPlace({
+      primaryCategory: "shared_childcare",
+      tags: [],
+      strollerFriendly: "yes",
+      nursingRoom: "partial"
+    });
+
+    expect(inferred.familyFitGates).toContain("child_primary");
+    expect(inferred.activityTypes).toContain("indoor_play");
+    expect(inferred.logisticsTags).toContain("stroller");
   });
 
   it("infers Korean parent query facets for future search wiring", () => {

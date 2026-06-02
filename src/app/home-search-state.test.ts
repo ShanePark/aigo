@@ -105,10 +105,17 @@ describe("home search input", () => {
     });
   });
 
-  it("turns a lodging subtype into a required accommodation tag filter", () => {
+  it("keeps a lodging subtype nested under the accommodation category", () => {
     expect(buildSearchInput({ accommodationType: "poolVilla", categoryGroups: "shopping" })).toMatchObject({
-      primaryCategories: ["shopping_mall", "accommodation"],
+      primaryCategories: ["accommodation"],
       tags: expect.arrayContaining(["pool_villa", "풀빌라", "키즈풀빌라"])
+    });
+  });
+
+  it("applies multiple lodging subtypes as an OR tag filter", () => {
+    expect(buildSearchInput({ accommodationType: ["resort", "poolVilla"], categoryGroups: "shopping" })).toMatchObject({
+      primaryCategories: ["accommodation"],
+      tags: expect.arrayContaining(["resort", "리조트", "pool_villa", "풀빌라"])
     });
   });
 
@@ -153,9 +160,10 @@ describe("home search input", () => {
   });
 
   it("uses the supported result page sizes", () => {
-    expect(resultLimitParam({})).toBe(50);
-    expect(resultLimitParam({ limit: "30" })).toBe(50);
+    expect(resultLimitParam({})).toBe(100);
+    expect(resultLimitParam({ limit: "30" })).toBe(100);
     expect(resultLimitParam({ limit: "100" })).toBe(100);
+    expect(resultLimitParam({ limit: "300" })).toBe(300);
   });
 
   it("accepts rating sort for place evaluation ordering", () => {

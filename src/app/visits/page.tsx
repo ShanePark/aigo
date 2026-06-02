@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import type { Route } from "next";
 
+import { AppPageHeader, AppPagePill, AppPagePills } from "@/app/page-shell";
 import { PlaceCategoryBadge } from "@/app/place-category-badge";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { listMyVisitLog, type MyVisitLogItem } from "@/lib/place-visits";
@@ -53,36 +54,34 @@ export default async function VisitsPage({ searchParams }: VisitsPageProps) {
   const summary = summarizeVisits(groups);
 
   return (
-    <div className="page visits-page">
-      <header className="visits-hero">
-        <div className="visits-hero-title">
-          <span className="visits-hero-icon">
-            <ClipboardList size={18} aria-hidden="true" />
-          </span>
-          <h1>방문로그</h1>
-        </div>
-        <div className="visits-hero-side">
-          {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
-          <div className="visits-summary" aria-label="방문 로그 요약">
-            <span>
-              <CalendarDays size={15} aria-hidden="true" />
-              {groups.length}일
-            </span>
-            <span>
-              <MapPin size={15} aria-hidden="true" />
-              {summary.visitCount}곳
-            </span>
-            <span>
-              <RotateCcw size={15} aria-hidden="true" />
-              재방문 {summary.revisitCount}
-            </span>
-            <span>
-              <Camera size={15} aria-hidden="true" />
-              사진 {summary.photoCount}
-            </span>
-          </div>
-        </div>
-      </header>
+    <div className="page app-page collection-page">
+      <AppPageHeader
+        icon={ClipboardList}
+        title="방문로그"
+        actions={
+          <>
+            {demoMode ? <span className="visits-demo-badge">데모 데이터</span> : null}
+            <AppPagePills ariaLabel="방문 로그 요약">
+              <AppPagePill>
+                <CalendarDays size={15} aria-hidden="true" />
+                {groups.length}일
+              </AppPagePill>
+              <AppPagePill>
+                <MapPin size={15} aria-hidden="true" />
+                {summary.visitCount}곳
+              </AppPagePill>
+              <AppPagePill tone="mint">
+                <RotateCcw size={15} aria-hidden="true" />
+                재방문 {summary.revisitCount}
+              </AppPagePill>
+              <AppPagePill tone="blue">
+                <Camera size={15} aria-hidden="true" />
+                사진 {summary.photoCount}
+              </AppPagePill>
+            </AppPagePills>
+          </>
+        }
+      />
 
       {groups.length === 0 ? (
         <section className="empty-state empty-state-page">

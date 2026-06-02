@@ -1,4 +1,4 @@
-const allowedReturnPathnames = new Set(["/", "/regions", "/saved-places", "/recent-places", "/visits"]);
+const allowedReturnPathnames = new Set(["/", "/admin", "/regions", "/saved-places", "/recent-places", "/visits"]);
 
 export function safePlaceReturnHref(value: string | string[] | undefined) {
   const candidate = textParam(value);

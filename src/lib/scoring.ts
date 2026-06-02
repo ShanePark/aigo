@@ -1,5 +1,5 @@
 import type { Place } from "@/db/schema";
-import { seoulWallClockParts } from "@/lib/korea-time";
+import { SEOUL_UTC_OFFSET_MINUTES, seoulWallClockParts } from "@/lib/korea-time";
 import { distanceSignalForPlace } from "@/lib/recommendation-scoring";
 import type { SearchPlacesInput } from "@/lib/schemas";
 import { taxonomyFacetFamilies, type PlaceTaxonomy, type TaxonomyFacetFamily } from "@/lib/taxonomy";
@@ -224,7 +224,7 @@ function scorePlaceInternal(
   }
 
   if (mode.includeOpeningHours) {
-    applyOpeningHoursSignal(place.openingHours, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
+    applyOpeningHoursSignal(place, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
   }
   applyVisitFitSignal(place.visit, input, reasonCodes, (delta) => addScore("visitFit", delta));
   applyLodgingEvidenceGate(place, reasonCodes, (delta) => addScore("confidence", delta));
@@ -697,7 +697,7 @@ function applyVisitContextSignal(
       addScore(3);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "toy_library", "toy_store", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "toy_library", "shared_childcare", "toy_store", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -795,7 +795,7 @@ function applyVisitContextSignal(
 
 function isKidPrimaryPlace(category: string, tags: Set<string>) {
   return (
-    ["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium", "zoo"].includes(category) ||
+    ["kids_cafe", "indoor_playground", "toy_library", "shared_childcare", "experience_center", "science_museum", "aquarium", "zoo"].includes(category) ||
     tags.has("children_museum") ||
     tags.has("children_experience") ||
     tags.has("children_playground") ||
@@ -817,7 +817,7 @@ function isImmediateKidActivityIntent(input: SearchPlacesInput) {
   if (input.visitContext !== "nearbyNow") return false;
 
   const categories = new Set(input.primaryCategories ?? []);
-  if (categories.has("kids_cafe") || categories.has("indoor_playground") || categories.has("toy_library")) return true;
+  if (categories.has("kids_cafe") || categories.has("indoor_playground") || categories.has("toy_library") || categories.has("shared_childcare")) return true;
 
   const query = (input.query ?? "").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
   return ["kids", "kid", "키즈", "키즈카페", "어린이", "아이", "실내놀이터", "놀이터"].some((token) => query.includes(token));
@@ -958,12 +958,13 @@ function normalizeOneToFive(value: unknown) {
 }
 
 function applyOpeningHoursSignal(
-  openingHours: unknown,
+  place: Pick<ScoreablePlace, "openingHours" | "primaryCategory">,
   input: SearchPlacesInput,
   reasonCodes: Set<string>,
   addScore: (delta: number) => void,
   now: Date
 ) {
+  const openingHours = place.openingHours;
   const immediateContext = input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare";
   const unknownPenalty = input.visitContext === "nearbyNow" ? -8 : input.visitContext === "afterDaycare" ? -6 : 0;
 
@@ -986,6 +987,10 @@ function applyOpeningHoursSignal(
     addScore(immediateContext ? -22 : -10);
     reasonCodes.add("CLOSED_NOW");
   } else {
+    if (place.primaryCategory === "accommodation" && lodgingStayWindowSignal(openingHours)) {
+      reasonCodes.add("LODGING_STAY_WINDOW_KNOWN");
+      return;
+    }
     if (unknownPenalty !== 0) addScore(unknownPenalty);
     reasonCodes.add("OPENING_HOURS_UNKNOWN");
   }
@@ -1006,7 +1011,7 @@ type OpeningPeriod = {
 function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   if (!isRecord(openingHours)) return { state: "unknown" };
 
-  const explicitStatus = explicitOpeningStatus(openingHours);
+  const explicitStatus = explicitOpeningStatus(openingHours, now);
   if (explicitStatus) return explicitStatus;
 
   const periods = collectOpeningPeriods(openingHours);
@@ -1043,7 +1048,10 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   return hasApplicableSchedule ? { state: "closed" } : { state: "unknown" };
 }
 
-function explicitOpeningStatus(openingHours: Record<string, unknown>): OpeningStatus | null {
+function explicitOpeningStatus(openingHours: Record<string, unknown>, now: Date): OpeningStatus | null {
+  const closureStatus = temporaryClosureOpeningStatus(openingHours, now);
+  if (closureStatus) return closureStatus;
+
   if (typeof openingHours.openNow === "boolean") {
     return { state: openingHours.openNow ? "open" : "closed" };
   }
@@ -1057,6 +1065,24 @@ function explicitOpeningStatus(openingHours: Record<string, unknown>): OpeningSt
   if (status.some((value) => ["open", "open_now", "operating"].includes(value))) return { state: "open" };
   if (status.some((value) => ["closed", "closed_now", "temporarily_closed", "permanently_closed"].includes(value))) return { state: "closed" };
   return null;
+}
+
+function temporaryClosureOpeningStatus(openingHours: Record<string, unknown>, now: Date): OpeningStatus | null {
+  const closure = openingHours.temporaryClosure;
+  if (!isRecord(closure)) return null;
+
+  const startsOn = stringValue(closure.startsOn ?? closure.startDate ?? closure.from);
+  const endsOn = stringValue(closure.endsOn ?? closure.endDate ?? closure.to);
+  if (!startsOn && !endsOn) return null;
+
+  const today = seoulDateString(now);
+  if (startsOn && today < startsOn) return null;
+  if (endsOn && today > endsOn) return null;
+  return { state: "closed" };
+}
+
+function seoulDateString(date: Date) {
+  return new Date(date.getTime() + SEOUL_UTC_OFFSET_MINUTES * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function collectOpeningPeriods(openingHours: Record<string, unknown>) {
@@ -1179,6 +1205,22 @@ function parseTimeToMinutes(value: string | null) {
 
 function hasOpeningHoursData(openingHours: unknown) {
   return isRecord(openingHours) && Object.keys(openingHours).length > 0;
+}
+
+function lodgingStayWindowSignal(openingHours: unknown) {
+  if (!isRecord(openingHours)) return false;
+  if ([openingHours.checkIn, openingHours.checkInTime, openingHours.checkin, openingHours.checkinTime].some(isTimeLikeString)) return true;
+  if ([openingHours.checkOut, openingHours.checkOutTime, openingHours.checkout, openingHours.checkoutTime].some(isTimeLikeString)) return true;
+
+  const text = [openingHours.summary, openingHours.description, openingHours.specialNotes, openingHours.note, openingHours.sourceTitle]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase("ko-KR");
+  return /체크\s*인|체크\s*아웃|check[-\s]?in|check[-\s]?out/.test(text);
+}
+
+function isTimeLikeString(value: unknown) {
+  return typeof value === "string" && /^\s*\d{1,2}(?::\d{2})?\s*$/.test(value);
 }
 
 function stringValue(value: unknown) {

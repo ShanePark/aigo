@@ -260,6 +260,15 @@ const writablePlaceFields = {
   reservationUrl: urlString.optional(),
   kakaoPlaceUrl: urlString.optional(),
   kakaoPlaceId: z.string().trim().optional(),
+  contact: z
+    .object({
+      phone: z.string().trim().optional(),
+      officialUrl: urlString.optional(),
+      reservationUrl: urlString.optional(),
+      kakaoPlaceUrl: urlString.optional(),
+      kakaoPlaceId: z.string().trim().optional()
+    })
+    .optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   playFeatures: playFeaturesSchema.optional(),
   taxonomy: taxonomySchema.optional(),
@@ -309,8 +318,35 @@ const writablePlaceFields = {
   openingHours: z.unknown().optional()
 };
 
-export const createPlaceSchema = z
-  .object({
+const placeWriteAliasPreprocessor = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const input = { ...(value as Record<string, unknown>) };
+  const recommendedAgeMonths = input.recommendedAgeMonths;
+  if (recommendedAgeMonths && typeof recommendedAgeMonths === "object" && !Array.isArray(recommendedAgeMonths)) {
+    const ageRange = recommendedAgeMonths as Record<string, unknown>;
+    input.minRecommendedAgeMonths ??= ageRange.min;
+    input.maxRecommendedAgeMonths ??= ageRange.max;
+  }
+  const contact = input.contact;
+  if (contact && typeof contact === "object" && !Array.isArray(contact)) {
+    const contactFields = contact as Record<string, unknown>;
+    input.phone ??= contactFields.phone;
+    input.officialUrl ??= contactFields.officialUrl;
+    input.reservationUrl ??= contactFields.reservationUrl;
+    input.kakaoPlaceUrl ??= contactFields.kakaoPlaceUrl;
+    input.kakaoPlaceId ??= contactFields.kakaoPlaceId;
+  }
+
+  return input;
+};
+
+export const createPlaceSchema = z.preprocess(
+  placeWriteAliasPreprocessor,
+  z
+    .object({
     ...writablePlaceFields,
     name: nonEmptyString,
     primaryCategory: primaryCategorySchema,
@@ -331,10 +367,13 @@ export const createPlaceSchema = z
     {
       message: "minRecommendedAgeMonths must be less than or equal to maxRecommendedAgeMonths"
     }
-  );
+  )
+);
 
-export const updatePlaceSchema = z
-  .object({
+export const updatePlaceSchema = z.preprocess(
+  placeWriteAliasPreprocessor,
+  z
+    .object({
     ...writablePlaceFields,
     sources: z.array(sourceSchema).min(1),
     sourceMode: z.enum(["append", "replace"]).default("append"),
@@ -354,7 +393,8 @@ export const updatePlaceSchema = z
     {
       message: "minRecommendedAgeMonths must be less than or equal to maxRecommendedAgeMonths"
     }
-  );
+  )
+);
 
 const viewportBoundsSchema = z
   .object({
@@ -406,6 +446,7 @@ const searchPlacesBaseSchema = z.object({
     .optional(),
   query: z.string().trim().min(1).optional(),
   matchMode: z.enum(["keyword", "exactName"]).optional(),
+  includeStatuses: z.array(z.enum(["active", "temporarily_closed"])).min(1).max(2).optional(),
   regionSido: regionSidoSchema,
   regionSigungu: nonEmptyString.optional(),
   countryCode: countryCodeSchema,
@@ -435,7 +476,7 @@ const searchPlacesBaseSchema = z.object({
   sort: z.enum(["recommended", "distance", "rating", "updatedAt"]).default("recommended"),
   projection: z.enum(["full", "compact"]).optional(),
   coursePlan: z.boolean().optional(),
-  limit: z.number().int().min(1).max(100).default(20),
+  limit: z.number().int().min(1).max(300).default(20),
   offset: z.number().int().min(0).max(1000).default(0)
 })
   .refine((input) => input.visitStartTime === undefined || input.visitDate !== undefined, {
@@ -472,6 +513,7 @@ export const duplicatePlaceSchema = z
     radiusMeters: z.number().positive().max(5000).default(500),
     kakaoPlaceId: z.string().trim().optional(),
     externalRefs: z.record(z.string(), z.unknown()).optional(),
+    projection: z.enum(["full", "compact"]).default("full"),
     limit: z.number().int().min(1).max(20).default(10)
   })
   .refine((input) => (input.lat === undefined && input.lng === undefined) || (input.lat !== undefined && input.lng !== undefined), {

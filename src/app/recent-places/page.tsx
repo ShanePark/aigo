@@ -5,6 +5,7 @@ import type { Route } from "next";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlaceCategoryBadge } from "@/app/place-category-badge";
+import { AppPageHeader, AppPagePill, AppPagePills } from "@/app/page-shell";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { listRecentPlaces, type RecentPlaceItem } from "@/lib/user-place-views";
 
@@ -39,27 +40,23 @@ export default async function RecentPlacesPage() {
   const { items } = await listRecentPlaces(user.id, 30);
 
   return (
-    <div className="page visits-page">
-      <header className="visits-hero">
-        <div className="visits-hero-title">
-          <span className="visits-hero-icon">
-            <History size={18} aria-hidden="true" />
-          </span>
-          <h1>최근 본 장소</h1>
-        </div>
-        <div className="visits-hero-side">
-          <div className="visits-summary" aria-label="최근 본 장소 요약">
-            <span>
+    <div className="page app-page collection-page">
+      <AppPageHeader
+        icon={History}
+        title="최근 본 장소"
+        actions={
+          <AppPagePills ariaLabel="최근 본 장소 요약">
+            <AppPagePill>
               <History size={15} aria-hidden="true" />
               {items.length}곳
-            </span>
-            <span>
+            </AppPagePill>
+            <AppPagePill>
               <Clock size={15} aria-hidden="true" />
               최신순
-            </span>
-          </div>
-        </div>
-      </header>
+            </AppPagePill>
+          </AppPagePills>
+        }
+      />
 
       {items.length === 0 ? (
         <section className="empty-state empty-state-page">
@@ -71,7 +68,7 @@ export default async function RecentPlacesPage() {
           </div>
         </section>
       ) : (
-        <section className="recent-place-list" aria-label="최근 본 장소 목록">
+        <section className="place-collection-list" aria-label="최근 본 장소 목록">
           {items.map((item) => (
             <RecentPlaceCard item={item} key={item.placeId} />
           ))}
@@ -83,9 +80,9 @@ export default async function RecentPlacesPage() {
 
 function RecentPlaceCard({ item }: { item: RecentPlaceItem }) {
   return (
-    <Link className="recent-place-card" href={placeHref(item.placeId)} aria-label={`${item.placeName} 상세 보기`}>
+    <Link className="place-collection-card" href={placeHref(item.placeId)} aria-label={`${item.placeName} 상세 보기`}>
       <PlaceImage category={item.primaryCategory} src={item.imageUrl} alt={`${item.placeName} 대표 이미지`} variant="result" />
-      <div className="recent-place-card-body">
+      <div className="place-collection-card-body">
         <div className="visit-log-card-topline">
           <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" name={item.placeName} />
           <span className="trust-badge neutral">

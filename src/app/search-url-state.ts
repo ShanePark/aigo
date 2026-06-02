@@ -174,7 +174,7 @@ function isMapLocationParam(key: string): key is (typeof MAP_LOCATION_PARAM_KEYS
 }
 
 function isMultiValueFormParam(key: string) {
-  return key === "category" || key === "categoryGroups";
+  return key === "accommodationType" || key === "category" || key === "categoryGroups";
 }
 
 function hasAnyParam(params: URLSearchParams) {

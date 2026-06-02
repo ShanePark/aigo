@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createPlaceSchema } from "@/lib/schemas";
 import {
   applySearchDiversity,
   assertDeleteConfirmationMatches,
@@ -15,8 +16,10 @@ import {
   buildSearchSourceSummary,
   buildStructuredDataGaps,
   categoryClauseForKeywordTerm,
+  compactDuplicatePlaceCandidateForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
+  imageHealthPlaceStatusPredicateForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -143,6 +146,49 @@ describe("place search helpers", () => {
     });
   });
 
+  it("persists nested recommended age payload aliases to age columns", () => {
+    const payload = createPlaceSchema.parse({
+      name: "연령대 숙소",
+      primaryCategory: "accommodation",
+      lat: 33.45,
+      lng: 126.55,
+      regionSido: "제주",
+      recommendedAgeMonths: { min: 12, max: 120 },
+      sources: [officialSource],
+      actor: "agent"
+    });
+    const createRecord = placeDbRecordForTest(payload);
+
+    expect(createRecord).toMatchObject({
+      min_recommended_age_months: 12,
+      max_recommended_age_months: 120
+    });
+  });
+
+  it("persists nested contact payload aliases to contact columns", () => {
+    const payload = createPlaceSchema.parse({
+      name: "연락처 숙소",
+      primaryCategory: "accommodation",
+      lat: 35.49,
+      lng: 128.75,
+      regionSido: "경남",
+      contact: {
+        phone: "0507-1386-8205",
+        officialUrl: "https://example.com/oase",
+        reservationUrl: "https://example.com/oase/reserve"
+      },
+      sources: [officialSource],
+      actor: "agent"
+    });
+    const createRecord = placeDbRecordForTest(payload);
+
+    expect(createRecord).toMatchObject({
+      phone: "0507-1386-8205",
+      official_url: "https://example.com/oase",
+      reservation_url: "https://example.com/oase/reserve"
+    });
+  });
+
   it("splits spaced Korean queries into AND-able ilike patterns", () => {
     expect(searchTermPatterns("보문산 전망대")).toEqual(["%보문산%", "%전망대%"]);
   });
@@ -165,6 +211,25 @@ describe("place search helpers", () => {
     expect(unconstrained.sql).not.toContain("ST_DWithin");
     expect(unconstrained.sql).toContain("ST_Distance");
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
+  });
+
+  it("keeps active-only search by default and can include temporarily closed records for audits", () => {
+    const defaultQuery = buildSearchQuery({
+      ...baseSearchInput,
+      query: "고성공룡박물관",
+      matchMode: "exactName"
+    });
+    const auditQuery = buildSearchQuery({
+      ...baseSearchInput,
+      query: "고성공룡박물관",
+      matchMode: "exactName",
+      includeStatuses: ["active", "temporarily_closed"]
+    });
+
+    expect(defaultQuery.sql).toContain("status = 'active'");
+    expect(defaultQuery.params).not.toContainEqual(["active"]);
+    expect(auditQuery.sql).toContain("status = any($1::text[])");
+    expect(auditQuery.params[0]).toEqual(["active", "temporarily_closed"]);
   });
 
   it("filters by required tag aliases for accommodation subtype searches", () => {
@@ -409,6 +474,7 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("lower(name) = ");
     expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g')");
+    expect(query.sql).toContain("regexp_replace(lower(name), '[-");
     expect(query.sql).toContain("external_refs->'aliases'");
     expect(query.sql).not.toContain("description ilike");
     expect(query.sql).not.toContain("exists (select 1 from unnest(tags)");
@@ -428,6 +494,18 @@ describe("place search helpers", () => {
     expect(query.params).toEqual(["국립세종어린이박물관", "국립세종어린이박물관"]);
   });
 
+  it("treats hyphens and dashes as optional separators in exact-name aliases", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "스위트 풀빌라 수빌리지펜션",
+      matchMode: "exactName"
+    });
+
+    expect(query.sql).toContain("regexp_replace(lower(name), '[-");
+    expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[-");
+    expect(query.params).toEqual(["스위트 풀빌라 수빌리지펜션", "스위트풀빌라수빌리지펜션"]);
+  });
+
   it("includes Korean search aliases in exact-name lookup", () => {
     const query = buildSearchQuery({
       ...baseSearchInput,
@@ -437,6 +515,19 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("external_refs->'koreanSearchAliases'");
     expect(query.params).toEqual(["괌 pic", "괌pic"]);
+  });
+
+  it("matches compact external aliases in generic keyword search", () => {
+    const query = buildSearchQuery({
+      ...baseSearchInput,
+      query: "여수 하이맘키즈가족펜션골드"
+    });
+
+    expect(query.sql).toContain("regexp_replace(lower(name), '[[:space:]]+', '', 'g') ilike");
+    expect(query.sql).toContain("jsonb_array_elements_text");
+    expect(query.sql).toContain("external_refs->'aliases'");
+    expect(query.sql).toContain("regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') ilike");
+    expect(query.params).toEqual(["%여수%", "%하이맘키즈가족펜션골드%"]);
   });
 
   it("includes overseas English and local names in exact-name lookup", () => {
@@ -940,6 +1031,11 @@ describe("place search helpers", () => {
     });
   });
 
+  it("includes temporarily closed places in image health only when explicitly scoped", () => {
+    expect(imageHealthPlaceStatusPredicateForTest(false)).toBe("p.status = 'active'");
+    expect(imageHealthPlaceStatusPredicateForTest(true)).toBe("p.status in ('active', 'temporarily_closed')");
+  });
+
   it("summarizes source freshness and provenance for search results", () => {
     const now = new Date("2026-05-22T07:00:00.000Z");
 
@@ -1065,12 +1161,16 @@ describe("place search helpers", () => {
     expect(buildOpeningHoursDataSignal({ note: "공식 페이지 확인 필요" })).toEqual({
       dataStatus: "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null,
+      lodgingStayWindow: null
     });
     expect(buildOpeningHoursDataSignal("월-토 10:00-17:00")).toEqual({
       dataStatus: "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null,
+      lodgingStayWindow: null
     });
     expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)).toMatchObject({
       dataStatus: "missing",
@@ -1086,6 +1186,86 @@ describe("place search helpers", () => {
       confidenceLevel: "high",
       hasStructuredData: true,
       structuredDataGaps: []
+    });
+  });
+
+  it("treats temporary closure periods as structured operating status evidence", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      }
+    });
+    const sourceSummary = buildSearchSourceSummary([
+      {
+        source_type: "official_site",
+        title: "공식 임시휴관 안내",
+        summary: "공식 페이지가 임시휴관 기간을 안내한다.",
+        checked_at: "2026-06-02T00:00:00.000Z",
+        created_at: "2026-06-02T00:00:00.000Z"
+      }
+    ]);
+
+    expect(dataSignal).toEqual({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      },
+      lodgingStayWindow: null
+    });
+    expect(buildSearchOpeningHoursSummary(dataSignal, sourceSummary)).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "high",
+      hasStructuredData: true,
+      structuredDataGaps: [],
+      temporaryClosure: {
+        startsOn: "2026-01-01",
+        endsOn: "2026-12-31"
+      }
+    });
+  });
+
+  it("treats lodging check-in and check-out evidence as stay-window readiness", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      summary: "체크인 15:00 / 체크아웃 11:00",
+      specialNotes: "공개 숙박 listing에서 입퇴실 시간을 확인함",
+      sourceUrl: "https://example.com/lodging",
+      sourceTitle: "숙박 예약 안내",
+      dataStatus: "listing_supported"
+    });
+    const sourceSummary = buildSearchSourceSummary([]);
+    const summary = buildSearchOpeningHoursSummary(dataSignal, sourceSummary, {
+      reservationRequired: "unknown",
+      walkInAvailable: "unknown",
+      sessionBased: "unknown",
+      sameDayAvailabilityKnown: "unknown"
+    });
+
+    expect(dataSignal).toEqual({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      temporaryClosure: null,
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "medium",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: ["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"],
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
     });
   });
 
@@ -1558,6 +1738,68 @@ describe("place search helpers", () => {
     expect(compact).not.toHaveProperty("images");
     expect(compact).not.toHaveProperty("playFeatures");
     expect(compact).not.toHaveProperty("scoring");
+  });
+
+  it("builds compact duplicate candidates without full place detail payloads", () => {
+    const compact = compactDuplicatePlaceCandidateForTest({
+      place: {
+        id: "place-1",
+        name: "남해 캐슬529키즈풀빌라",
+        primaryCategory: "accommodation",
+        address: "경상남도 남해군",
+        roadAddress: null,
+        region: {
+          sido: "경상남도",
+          sigungu: "남해군",
+          dong: null,
+          countryCode: "KR",
+          countryName: "Korea",
+          city: null,
+          locality: null,
+          localCurrency: "KRW"
+        },
+        regionSido: "경상남도",
+        regionSigungu: "남해군",
+        countryCode: "KR",
+        countryName: "Korea",
+        city: null,
+        locality: null,
+        lat: 34.8,
+        lng: 127.9,
+        status: "active",
+        dataConfidence: "agent_collected",
+        updatedAt: "2026-06-02T00:00:00.000+09:00",
+        images: [{ url: "https://example.com/image.jpg" }],
+        sources: [{ url: "https://example.com" }],
+        versions: [{ versionNumber: 1 }]
+      },
+      confidence: "low",
+      reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
+      suggestedAction: "hold_duplicate_review",
+      relationshipHint: null,
+      outsideRadiusReviewOnly: true,
+      distanceMeters: 3800,
+      nameSimilarity: 0.58
+    } as unknown as Parameters<typeof compactDuplicatePlaceCandidateForTest>[0]);
+
+    expect(compact).toMatchObject({
+      place: {
+        id: "place-1",
+        name: "남해 캐슬529키즈풀빌라",
+        primaryCategory: "accommodation",
+        address: "경상남도 남해군",
+        regionSido: "경상남도",
+        regionSigungu: "남해군"
+      },
+      confidence: "low",
+      reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
+      suggestedAction: "hold_duplicate_review",
+      outsideRadiusReviewOnly: true,
+      distanceMeters: 3800
+    });
+    expect(compact.place).not.toHaveProperty("images");
+    expect(compact.place).not.toHaveProperty("sources");
+    expect(compact.place).not.toHaveProperty("versions");
   });
 
   it("groups ranked search items into a practical course plan", () => {
@@ -2081,6 +2323,25 @@ describe("place search helpers", () => {
         }
       },
       "국립세종어린이박물관"
+    );
+
+    expect(signal.delta).toBeGreaterThanOrEqual(24);
+    expect(signal.reasonCodes).toContain("QUERY_NAME_EXACT");
+  });
+
+  it("boosts external aliases with optional hyphen separators like exact place-name matches", () => {
+    const signal = queryMatchSignal(
+      {
+        name: "양평 수빌리지펜션",
+        tags: [],
+        description: null,
+        address: null,
+        roadAddress: null,
+        externalRefs: {
+          aliases: ["스위트 풀빌라 - 수빌리지펜션"]
+        }
+      },
+      "스위트 풀빌라 수빌리지펜션"
     );
 
     expect(signal.delta).toBeGreaterThanOrEqual(24);

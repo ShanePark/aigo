@@ -1123,6 +1123,42 @@ describe("scorePlace", () => {
     expect(closed.scoreBreakdown.openingHours).toBeLessThan(0);
   });
 
+  it("treats active temporary closure periods as closed instead of unknown hours", () => {
+    const shared = {
+      primaryCategory: "museum",
+      tags: ["children_museum"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 24,
+      maxRecommendedAgeMonths: 120,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "yes",
+      nursingRoom: "partial",
+      diaperChangingTable: "yes",
+      kidsToilet: "yes",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 12,
+      openingHours: {
+        temporaryClosure: {
+          startsOn: "2026-01-01",
+          endsOn: "2026-12-31"
+        }
+      }
+    };
+
+    const result = scorePlace(
+      shared,
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-06-02T04:00:00.000Z") }
+    );
+
+    expect(result.reasonCodes).toContain("CLOSED_NOW");
+    expect(result.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    expect(result.scoreBreakdown.openingHours).toBeLessThan(0);
+  });
+
   it("evaluates weekly opening hours against Asia/Seoul and Korean weekday keys", () => {
     const shared = {
       primaryCategory: "kids_cafe",
@@ -1509,6 +1545,39 @@ describe("scorePlace", () => {
     expect(weakLogistics.reasonCodes).toContain("LODGING_INFANT_LOGISTICS_GAP");
     expect(supportedLogistics.score).toBeGreaterThan(weakLogistics.score);
     expect(supportedLogistics.reasonCodes).toContain("LODGING_INFANT_LOGISTICS_EVIDENCE");
+  });
+
+  it("does not penalize accommodation check-in windows as unknown public opening hours", () => {
+    const result = scorePlace(
+      {
+        primaryCategory: "accommodation",
+        tags: ["pool_villa", "kids"],
+        dataConfidence: "official_verified",
+        minRecommendedAgeMonths: 0,
+        maxRecommendedAgeMonths: 144,
+        indoorType: "mixed",
+        parkingAvailable: "yes",
+        strollerFriendly: "partial",
+        nursingRoom: "unknown",
+        diaperChangingTable: "partial",
+        kidsToilet: "unknown",
+        elevator: "unknown",
+        babyChair: "unknown",
+        foodAllowed: "partial",
+        distanceKm: 95,
+        openingHours: {
+          summary: "체크인 15:00 / 체크아웃 11:00",
+          specialNotes: "숙박 예약 목록에서 입퇴실 시간을 확인함",
+          sourceTitle: "숙박 예약 안내",
+          dataStatus: "listing_supported"
+        }
+      },
+      { ...baseInput, primaryCategories: ["accommodation"], visitContext: "nearbyNow" }
+    );
+
+    expect(result.reasonCodes).toContain("LODGING_STAY_WINDOW_KNOWN");
+    expect(result.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    expect(result.scoreBreakdown.openingHours).toBe(0);
   });
 
   it("keeps kids cafe distance moderate so quality can overcome a short drive", () => {

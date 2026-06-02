@@ -1,6 +1,7 @@
-import { SearchX } from "lucide-react";
+import { MapPinned, SearchX } from "lucide-react";
 
 import { ResultsListPanel } from "@/app/explore-results";
+import { AppPageHeader, AppPagePill, AppPagePills } from "@/app/page-shell";
 import { KOREA_REGIONS, REGION_MAJOR_CATEGORIES, regionBySlug, type RegionCatalogItem } from "@/app/regions/region-catalog";
 import { RegionMap } from "@/app/regions/region-map";
 import { buildSearchPreferenceSemantics, searchPlaces } from "@/lib/places";
@@ -26,10 +27,16 @@ export default async function RegionsPage({ searchParams }: RegionsPageProps) {
   const returnHref = regionReturnHref(regionParams);
 
   return (
-    <div className="page regions-page">
-      <header className="regions-hero">
-        <h1>지역별 보기</h1>
-      </header>
+    <div className="page app-page regions-page">
+      <AppPageHeader
+        icon={MapPinned}
+        title="지역별 보기"
+        actions={
+          <AppPagePills ariaLabel="선택한 지역">
+            <AppPagePill tone="mint">{selectedRegion.label}</AppPagePill>
+          </AppPagePills>
+        }
+      />
 
       <section className="regions-layout">
         <section className="region-map-panel" aria-label="지역 선택 지도">

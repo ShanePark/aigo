@@ -234,7 +234,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates.
+          description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates. Explicitly scoped lookups include `temporarily_closed` records; the unscoped queue remains active-only.
         - name: limit
           in: query
           required: false
@@ -519,6 +519,7 @@ components:
         - indoor_playground
         - toy_store
         - toy_library
+        - shared_childcare
         - library
         - art_museum
         - museum
@@ -900,6 +901,23 @@ components:
           format: uri
         kakaoPlaceId:
           type: string
+        contact:
+          type: object
+          description: Backward-compatible write alias for contact fields. Values are persisted to the same top-level `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, and `kakaoPlaceId` columns unless those top-level fields are also provided.
+          properties:
+            phone:
+              type: string
+            officialUrl:
+              type: string
+              format: uri
+            reservationUrl:
+              type: string
+              format: uri
+            kakaoPlaceUrl:
+              type: string
+              format: uri
+            kakaoPlaceId:
+              type: string
         externalRefs:
           type: object
           description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
@@ -980,12 +998,12 @@ components:
           type: integer
           minimum: 0
           maximum: 240
-          description: Minimum recommended child age in months. When both age bounds are provided, this value must be less than or equal to `maxRecommendedAgeMonths`.
+          description: Minimum recommended child age in months. When both age bounds are provided, this value must be less than or equal to `maxRecommendedAgeMonths`. Create/update requests may also provide `recommendedAgeMonths.min` as a payload alias, which is normalized to this field.
         maxRecommendedAgeMonths:
           type: integer
           minimum: 0
           maximum: 240
-          description: Maximum recommended child age in months. When both age bounds are provided, this value must be greater than or equal to `minRecommendedAgeMonths`.
+          description: Maximum recommended child age in months. When both age bounds are provided, this value must be greater than or equal to `minRecommendedAgeMonths`. Create/update requests may also provide `recommendedAgeMonths.max` as a payload alias, which is normalized to this field.
         indoorType:
           $ref: "#/components/schemas/IndoorType"
         strollerFriendly:
@@ -1182,6 +1200,13 @@ components:
           enum: [keyword, exactName]
           default: keyword
           description: Use `exactName` for deterministic place-name lookup; it matches exact, whitespace-compacted, externalRefs.aliases, externalRefs.koreanSearchAliases, and known retail-chain alias place names instead of broad keyword/tag text.
+        includeStatuses:
+          type: array
+          maxItems: 2
+          description: Agent/admin audit option. Defaults to active-only search; include `temporarily_closed` when exact-name or duplicate-precheck workflows must find canonical temporary-closure records before staging creates. Permanently `closed`, `draft`, and `needs_review` records are intentionally not accepted here.
+          items:
+            type: string
+            enum: [active, temporarily_closed]
         countryCode:
           type: string
           pattern: "^[A-Z]{2}$"
@@ -1287,7 +1312,7 @@ components:
         limit:
           type: integer
           minimum: 1
-          maximum: 100
+          maximum: 300
           default: 20
         offset:
           type: integer
@@ -2237,6 +2262,41 @@ components:
           items:
             type: string
             enum: [openingHours, reservationRequired, walkInAvailable, sessionBased, sameDayAvailabilityKnown]
+        temporaryClosure:
+          type:
+            - object
+            - "null"
+          description: Structured temporary-closure period evidence when present; this clears the generic opening-hours structure gap but still indicates the place should not be treated as currently open.
+          properties:
+            startsOn:
+              type:
+                - string
+                - "null"
+              description: Inclusive closure start date when known, usually `YYYY-MM-DD`.
+            endsOn:
+              type:
+                - string
+                - "null"
+              description: Inclusive closure end date when known, usually `YYYY-MM-DD`.
+        lodgingStayWindow:
+          type:
+            - object
+            - "null"
+          description: Accommodation-specific check-in/check-out evidence. This is visit-window readiness for lodging, not normal public opening-hours evidence.
+          properties:
+            checkIn:
+              type:
+                - string
+                - "null"
+              description: Check-in time in `HH:mm` when known.
+            checkOut:
+              type:
+                - string
+                - "null"
+              description: Check-out time in `HH:mm` when known.
+            sourceBacked:
+              type: boolean
+              description: Whether the lodging window came from source-linked opening-hours metadata.
     OpeningHoursEvidenceSummary:
       type: object
       required: [sourceCount, sourceTypes, bestSourceType, bestSourceTier, latestCheckedAt, freshnessStatus]
@@ -2510,6 +2570,11 @@ components:
           minProperties: 1
           description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
           additionalProperties: true
+        projection:
+          type: string
+          enum: [full, compact]
+          default: full
+          description: Use `compact` for agent duplicate-review calls that only need candidate identity, location, status, confidence, suggestedAction, distanceMeters, and reasonCodes. The default `full` keeps complete `PlaceDetail` payloads.
         limit:
           type: integer
           minimum: 1
@@ -2550,7 +2615,10 @@ components:
             required: [place, confidence, reasonCodes, suggestedAction, outsideRadiusReviewOnly, distanceMeters, nameSimilarity]
             properties:
               place:
-                $ref: "#/components/schemas/PlaceDetail"
+                oneOf:
+                  - $ref: "#/components/schemas/PlaceDetail"
+                  - $ref: "#/components/schemas/DuplicateCompactPlace"
+                description: Full place detail by default, or a compact identity/location subset when `projection` is `compact`.
               confidence:
                 type: string
                 enum: [high, medium, low]
@@ -2577,6 +2645,56 @@ components:
               nameSimilarity:
                 type: number
                 nullable: true
+    DuplicateCompactPlace:
+      type: object
+      description: Compact duplicate candidate place returned when `DuplicatePlaceRequest.projection` is `compact`.
+      required: [id, name, primaryCategory, address, roadAddress, region, regionSido, regionSigungu, countryCode, countryName, city, locality, lat, lng, status, dataConfidence, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        primaryCategory:
+          type: string
+        address:
+          type: string
+          nullable: true
+        roadAddress:
+          type: string
+          nullable: true
+        region:
+          type: object
+          nullable: true
+          additionalProperties: true
+        regionSido:
+          type: string
+          nullable: true
+        regionSigungu:
+          type: string
+          nullable: true
+        countryCode:
+          type: string
+          nullable: true
+        countryName:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        locality:
+          type: string
+          nullable: true
+        lat:
+          type: number
+        lng:
+          type: number
+        status:
+          type: string
+        dataConfidence:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
     RecommendedAgeMonths:
       type: object
       required: [min, max]

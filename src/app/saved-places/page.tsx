@@ -5,6 +5,7 @@ import type { Route } from "next";
 
 import { PlaceImage } from "@/app/place-image";
 import { PlaceCategoryBadge } from "@/app/place-category-badge";
+import { AppPageHeader } from "@/app/page-shell";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import {
   getSavedPlacesSummary,
@@ -58,18 +59,8 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
   const [{ items }, summary] = await Promise.all([listSavedPlaces(user.id, filter), getSavedPlacesSummary(user.id)]);
 
   return (
-    <div className="page visits-page">
-      <header className="visits-hero saved-places-hero">
-        <div className="visits-hero-title">
-          <span className="visits-hero-icon">
-            <Bookmark size={18} aria-hidden="true" />
-          </span>
-          <h1>저장한 장소</h1>
-        </div>
-        <div className="visits-hero-side">
-          <SavedPlaceFilters activeFilter={filter} summary={summary} />
-        </div>
-      </header>
+    <div className="page app-page collection-page">
+      <AppPageHeader icon={Bookmark} title="저장한 장소" actions={<SavedPlaceFilters activeFilter={filter} summary={summary} />} />
 
       {items.length === 0 ? (
         <section className="empty-state empty-state-page">
@@ -81,7 +72,7 @@ export default async function SavedPlacesPage({ searchParams }: SavedPlacesPageP
           </div>
         </section>
       ) : (
-        <section className="recent-place-list" aria-label="저장한 장소 목록">
+        <section className="place-collection-list" aria-label="저장한 장소 목록">
           {items.map((item) => (
             <SavedPlaceCard item={item} key={item.placeId} />
           ))}
@@ -112,9 +103,9 @@ function SavedPlaceFilters({ activeFilter, summary }: { activeFilter: SavedPlace
 
 function SavedPlaceCard({ item }: { item: SavedPlaceItem }) {
   return (
-    <Link className="recent-place-card" href={placeHref(item.placeId)} aria-label={`${item.placeName} 상세 보기`}>
+    <Link className="place-collection-card" href={placeHref(item.placeId)} aria-label={`${item.placeName} 상세 보기`}>
       <PlaceImage category={item.primaryCategory} src={item.imageUrl} alt={`${item.placeName} 대표 이미지`} variant="result" />
-      <div className="recent-place-card-body">
+      <div className="place-collection-card-body">
         <div className="visit-log-card-topline">
           <PlaceCategoryBadge category={item.primaryCategory} className="category-pill" name={item.placeName} />
           {item.wantToGo ? (

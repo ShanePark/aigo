@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/lib/errors";
-import { listRecentPlaces, placeViewStateFromRow, recentPlacesLimitSchema, recordPlaceView } from "@/lib/user-place-views";
+import { listRecentPlaces, placeViewStateFromRow, recentPlacesLimitSchema, recordPlaceView, recordPublicPlaceView } from "@/lib/user-place-views";
 
 type QueryResponse = Array<Record<string, unknown>>;
 
@@ -53,6 +53,65 @@ describe("recent place view recording", () => {
     await expect(recordPlaceView(placeId, userId, executor)).rejects.toMatchObject({
       status: 404
     } satisfies Partial<ApiError>);
+  });
+});
+
+describe("public place view recording", () => {
+  it("increments the public count only when all dedupe keys are countable", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: placeId }],
+      [{ upsertedCount: 2 }],
+      [{ publicViewCount: 12 }]
+    ]);
+
+    await expect(
+      recordPublicPlaceView(
+        placeId,
+        [
+          { kind: "device", value: "device-1" },
+          { kind: "ip", value: "203.0.113.1" }
+        ],
+        executor
+      )
+    ).resolves.toEqual({
+      item: {
+        counted: true,
+        placeId,
+        publicViewCount: 12
+      }
+    });
+
+    expect(calls[1]).toContain("insert into place_view_dedupes");
+    expect(calls[1]).toContain("where place_view_dedupes.expires_at <= now()");
+    expect(calls[2]).toContain("public_view_count = public_view_count + 1");
+  });
+
+  it("does not increment when a dedupe key is still inside the server window", async () => {
+    const { calls, executor } = fakeExecutor([
+      [{ id: placeId }],
+      [{ upsertedCount: 1 }],
+      [{ publicViewCount: 12 }]
+    ]);
+
+    await expect(
+      recordPublicPlaceView(
+        placeId,
+        [
+          { kind: "device", value: "device-1" },
+          { kind: "ip", value: "203.0.113.1" }
+        ],
+        executor
+      )
+    ).resolves.toEqual({
+      item: {
+        counted: false,
+        placeId,
+        publicViewCount: 12
+      }
+    });
+
+    expect(calls[2]).toContain("select public_view_count");
+    expect(calls.join(" ")).not.toContain("public_view_count = public_view_count + 1");
   });
 });
 

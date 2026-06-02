@@ -122,6 +122,17 @@ describe("search URL state", () => {
     expect(params.has("page")).toBe(false);
   });
 
+  it("preserves multiple accommodation subtype filters from form data", () => {
+    const formData = new FormData();
+    formData.set("sort", "recommended");
+    formData.append("accommodationType", "resort");
+    formData.append("accommodationType", "poolVilla");
+
+    const params = searchParamsWithCurrentLocationState("", formData);
+
+    expect(params.getAll("accommodationType")).toEqual(["resort", "poolVilla"]);
+  });
+
   it("keeps current map state for facet changes even after text-search form data cleanup", () => {
     const formData = new FormData();
     formData.set("query", "수유실");

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, ClipboardList, History, Map, MapPinned, Menu, UserRound, X } from "lucide-react";
+import { Bookmark, ClipboardList, History, Map, MapPinned, Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
@@ -12,7 +12,12 @@ import { AccountControls } from "./account-controls";
 import styles from "./topbar-actions.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-type TopbarUser = Pick<AppUser, "id">;
+type TopbarUser = Pick<AppUser, "id" | "role">;
+type MenuItem = {
+  href: string;
+  icon: typeof Map;
+  label: string;
+};
 
 export function TopbarActions({
   appVersion,
@@ -61,24 +66,9 @@ export function TopbarActions({
       </button>
       {isOpen ? (
         <div className={styles.menuPanel} role="menu">
-          {menuItems.map((item) => {
-            const isCurrent = isCurrentMenuItem(pathname, item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                aria-current={isCurrent ? "page" : undefined}
-                className={`${styles.link} ${isCurrent ? styles.currentLink : ""}`}
-                href={item.href as Route}
-                key={item.href}
-                onClick={() => setIsOpen(false)}
-                role="menuitem"
-              >
-                <Icon size={16} aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {menuItems.map((item) => renderMenuLink(item, pathname, () => setIsOpen(false)))}
           <div className={styles.menuSection}>
+            {initialUser?.role === "admin" ? renderMenuLink(adminMenuItem, pathname, () => setIsOpen(false)) : null}
             <AccountControls initialUser={initialUser} />
           </div>
           <p className={styles.menuFooter}>
@@ -91,7 +81,7 @@ export function TopbarActions({
   );
 }
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   { href: "/", icon: Map, label: "장소찾기" },
   { href: "/regions", icon: MapPinned, label: "지역별보기" },
   { href: "/saved-places", icon: Bookmark, label: "저장한 장소" },
@@ -100,7 +90,28 @@ const menuItems = [
   { href: "/me", icon: UserRound, label: "내정보" }
 ] as const;
 
-function isCurrentMenuItem(pathname: string, href: (typeof menuItems)[number]["href"]) {
+const adminMenuItem: MenuItem = { href: "/admin", icon: ShieldCheck, label: "관리자" };
+
+function renderMenuLink(item: MenuItem, pathname: string, onClick: () => void) {
+  const isCurrent = isCurrentMenuItem(pathname, item.href);
+  const Icon = item.icon;
+
+  return (
+    <Link
+      aria-current={isCurrent ? "page" : undefined}
+      className={`${styles.link} ${isCurrent ? styles.currentLink : ""}`}
+      href={item.href as Route}
+      key={item.href}
+      onClick={onClick}
+      role="menuitem"
+    >
+      <Icon size={16} aria-hidden="true" />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
+function isCurrentMenuItem(pathname: string, href: string) {
   if (href === "/") return pathname === "/" || pathname.startsWith("/places/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }

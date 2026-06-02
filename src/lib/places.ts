@@ -13,10 +13,13 @@ import {
   placeImageHealthQuerySchema
 } from "@/lib/schemas";
 import {
+  type DuplicateCandidateRelationshipHint,
+  type DuplicateCandidateSuggestedAction,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
+  duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
@@ -117,6 +120,7 @@ type PlaceRow = {
   parent_notes: string | null;
   opening_hours: unknown | null;
   version: number;
+  public_view_count: number;
   created_at: Date;
   updated_at: Date;
   last_verified_at: Date | null;
@@ -771,6 +775,16 @@ function routeBreakPlaceMatchesDestination(place: ReturnType<typeof mapPlace>, d
 
 type FullSearchResponse = Awaited<ReturnType<typeof searchPlaces>>;
 type FullSearchItem = FullSearchResponse["items"][number];
+type DuplicateCandidateItem = {
+  place: Awaited<ReturnType<typeof getPlaceDetail>>;
+  confidence: "high" | "medium" | "low";
+  reasonCodes: string[];
+  suggestedAction: DuplicateCandidateSuggestedAction;
+  relationshipHint: DuplicateCandidateRelationshipHint;
+  outsideRadiusReviewOnly: boolean;
+  distanceMeters: number | null;
+  nameSimilarity: number | null;
+};
 type SearchFacilities = ReturnType<typeof mapPlace>["facilities"];
 type SearchCoursePlanItem = {
   id: string;
@@ -926,6 +940,41 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
   };
 }
 
+function compactDuplicatePlaceCandidate(item: DuplicateCandidateItem) {
+  return {
+    place: {
+      id: item.place.id,
+      name: item.place.name,
+      primaryCategory: item.place.primaryCategory,
+      address: item.place.address,
+      roadAddress: item.place.roadAddress,
+      region: item.place.region,
+      regionSido: item.place.regionSido,
+      regionSigungu: item.place.regionSigungu,
+      countryCode: item.place.countryCode,
+      countryName: item.place.countryName,
+      city: item.place.city,
+      locality: item.place.locality,
+      lat: item.place.lat,
+      lng: item.place.lng,
+      status: item.place.status,
+      dataConfidence: item.place.dataConfidence,
+      updatedAt: item.place.updatedAt
+    },
+    confidence: item.confidence,
+    reasonCodes: item.reasonCodes,
+    suggestedAction: item.suggestedAction,
+    relationshipHint: item.relationshipHint,
+    outsideRadiusReviewOnly: item.outsideRadiusReviewOnly,
+    distanceMeters: item.distanceMeters,
+    nameSimilarity: item.nameSimilarity
+  };
+}
+
+export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateItem) {
+  return compactDuplicatePlaceCandidate(item);
+}
+
 function searchDiversityRegionKey(
   region:
     | {
@@ -1061,7 +1110,8 @@ export function normalizePlaceImageHealthQueryForTest(input: PlaceImageHealthQue
 export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput | PlaceImageHealthHelperInput) {
   const input = normalizePlaceImageHealthQuery(rawInput);
   const params: SqlParam[] = [];
-  const where = ["p.status = 'active'"];
+  const scopedPlaceIds = Boolean(input.placeIds && input.placeIds.length > 0);
+  const where = [imageHealthPlaceStatusPredicate(scopedPlaceIds)];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
@@ -1191,6 +1241,14 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
       primaryCategory: input.primaryCategory ?? null
     }
   };
+}
+
+function imageHealthPlaceStatusPredicate(scopedPlaceIds: boolean) {
+  return scopedPlaceIds ? "p.status in ('active', 'temporarily_closed')" : "p.status = 'active'";
+}
+
+export function imageHealthPlaceStatusPredicateForTest(scopedPlaceIds: boolean) {
+  return imageHealthPlaceStatusPredicate(scopedPlaceIds);
 }
 
 async function getPlaceImageMetadata(placeId: string, executor: SqlExecutor = pg) {
@@ -1565,7 +1623,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
     limit ${input.limit}
   `;
 
-  const items = await Promise.all(
+  const items: DuplicateCandidateItem[] = await Promise.all(
     rows.map(async (row) => {
       const locationSignals = duplicateLocationSignals(input, {
         address: row.address,
@@ -1581,6 +1639,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         addressMatch: row.address_match,
         regionMatch: row.region_match,
         branchSiblingReviewOnly: duplicateBranchSiblingReviewOnly(input.name, row.name),
+        lodgingClusterReviewOnly: row.primary_category === "accommodation" && duplicateLodgingClusterReviewOnly(input.name, row.name),
         weakThematicSimilarityReviewOnly: duplicateWeakThematicSimilarityReviewOnly(input.name, row.name),
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
@@ -1611,7 +1670,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   );
 
   return {
-    items
+    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items
   };
 }
 
@@ -2248,11 +2307,15 @@ async function updatePlaceRow(executor: SqlExecutor, placeId: string, record: Re
 
 export function buildSearchQuery(input: SearchPlacesInput) {
   const params: SqlParam[] = [];
-  const where = ["status = 'active'"];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
     return `$${params.length}`;
   };
+  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active"];
+  const where =
+    includeStatuses.length === 1 && includeStatuses[0] === "active"
+      ? ["status = 'active'"]
+      : [`status = any(${add(includeStatuses)}::text[])`];
 
   const distanceSql = input.origin
     ? `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000`
@@ -2470,6 +2533,7 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
     const patternParam = add(pattern);
     const columns = [
       `name ilike ${patternParam}`,
+      `regexp_replace(lower(name), '[[:space:]]+', '', 'g') ilike ${patternParam}`,
       `description ilike ${patternParam}`,
       `region_sido ilike ${patternParam}`,
       `region_sigungu ilike ${patternParam}`,
@@ -2478,6 +2542,11 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
       `city ilike ${patternParam}`,
       `locality ilike ${patternParam}`,
       `exists (select 1 from unnest(tags) as keyword_tag where keyword_tag ilike ${patternParam})`,
+      `exists (
+        select 1
+        from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
+        where regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') ilike ${patternParam}
+      )`,
       `play_features::text ilike ${patternParam}`,
       `route_support::text ilike ${patternParam}`,
       `taxonomy::text ilike ${patternParam}`
@@ -2497,7 +2566,10 @@ function keywordSearchClauses(query: string, add: (value: unknown) => string) {
 
 function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const exactParam = add(normalizeSearchText(query));
-  const compactParam = add(compactSearchText(query));
+  const compactText = compactSearchText(query);
+  const compactParam = add(compactText);
+  const separatorlessText = separatorlessSearchText(query);
+  const separatorlessParam = separatorlessText === compactText ? compactParam : add(separatorlessText);
   const retailAliasCompacts = retailAliasCompactTexts(query);
   const retailAliasParam = retailAliasCompacts.length > 1 ? add(retailAliasCompacts) : null;
   const retailAliasClause =
@@ -2505,11 +2577,12 @@ function exactNameSearchClause(query: string, add: (value: unknown) => string) {
   const externalAliasRetailClause = retailAliasParam
     ? ` or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = any(${retailAliasParam}::text[])`
     : "";
-  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam}${retailAliasClause} or exists (
+  return `(lower(name) = ${exactParam} or regexp_replace(lower(name), '[[:space:]]+', '', 'g') = ${compactParam} or regexp_replace(lower(name), '[-‐‑‒–—―−[:space:]]+', '', 'g') = ${separatorlessParam}${retailAliasClause} or exists (
     select 1
     from jsonb_array_elements_text(${externalRefsAliasJsonbExpression()}) as external_alias(value)
     where lower(external_alias.value) = ${exactParam}
-      or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}${externalAliasRetailClause}
+      or regexp_replace(lower(external_alias.value), '[[:space:]]+', '', 'g') = ${compactParam}
+      or regexp_replace(lower(external_alias.value), '[-‐‑‒–—―−[:space:]]+', '', 'g') = ${separatorlessParam}${externalAliasRetailClause}
   ))`;
 }
 
@@ -3441,7 +3514,6 @@ const categoryKeywordMap: Record<string, string[]> = {
   수목원: ["park"],
   휴게소: ["rest_area"],
   숙소: ["accommodation"],
-  키즈숙소: ["accommodation"],
   호텔: ["accommodation"],
   리조트: ["accommodation"],
   펜션: ["accommodation"],
@@ -3676,12 +3748,15 @@ export function queryMatchSignal(
 
   const normalizedName = normalizeSearchText(place.name);
   const compactName = compactSearchText(place.name);
+  const separatorlessName = separatorlessSearchText(place.name);
   const compactQuery = compactSearchText(query);
+  const separatorlessQuery = separatorlessSearchText(query);
   const retailAliasMatched = retailAliasCompactTexts(query).some((alias) => retailAliasCompactTexts(place.name).includes(alias));
   const externalAliasExactMatched = externalRefsAliasTexts(place.externalRefs).some((alias) => {
     const normalizedAlias = normalizeSearchText(alias);
     const compactAlias = compactSearchText(alias);
-    return normalizedAlias === normalizedQuery || compactAlias === compactQuery;
+    const separatorlessAlias = separatorlessSearchText(alias);
+    return normalizedAlias === normalizedQuery || compactAlias === compactQuery || separatorlessAlias === separatorlessQuery;
   });
   const compactTerms = terms.map(compactSearchText);
   const reasonCodes = new Set<string>();
@@ -3700,7 +3775,7 @@ export function queryMatchSignal(
     };
   }
 
-  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || externalAliasExactMatched;
+  const exactNameMatch = normalizedName === normalizedQuery || compactName === compactQuery || separatorlessName === separatorlessQuery || externalAliasExactMatched;
   if (exactNameMatch) {
     delta += 24;
     reasonCodes.add("QUERY_NAME_EXACT");
@@ -3776,6 +3851,10 @@ function normalizeSearchText(value: string) {
 
 function compactSearchText(value: string) {
   return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+function separatorlessSearchText(value: string) {
+  return normalizeSearchText(value).replace(/[-‐‑‒–—―−\s]+/g, "");
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -4004,6 +4083,7 @@ function mapPlace(row: PlaceRow) {
     },
     openingHours: row.opening_hours,
     version: row.version,
+    publicViewCount: Number(row.public_view_count ?? 0),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     lastVerifiedAt: row.last_verified_at ? toIso(row.last_verified_at) : null
@@ -4159,10 +4239,13 @@ type OpeningHoursVisitSignal = Pick<
 
 export function buildOpeningHoursDataSignal(openingHours: unknown) {
   if (typeof openingHours === "string" && openingHours.trim().length > 0) {
+    const lodgingStayWindow = lodgingStayWindowSignal(openingHours);
     return {
-      dataStatus: "unstructured",
+      dataStatus: lodgingStayWindow ? "structured" : "unstructured",
       hasData: true,
-      hasStructuredData: false
+      hasStructuredData: Boolean(lodgingStayWindow),
+      temporaryClosure: null,
+      lodgingStayWindow
     };
   }
 
@@ -4170,15 +4253,21 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
     return {
       dataStatus: "missing",
       hasData: false,
-      hasStructuredData: false
+      hasStructuredData: false,
+      temporaryClosure: null,
+      lodgingStayWindow: null
     };
   }
 
   const hasStructuredData = hasStructuredOpeningHoursData(openingHours);
+  const temporaryClosure = temporaryClosurePeriod(openingHours);
+  const lodgingStayWindow = lodgingStayWindowSignal(openingHours);
   return {
     dataStatus: hasStructuredData ? "structured" : "unstructured",
     hasData: true,
-    hasStructuredData
+    hasStructuredData,
+    temporaryClosure,
+    lodgingStayWindow
   };
 }
 
@@ -4188,7 +4277,7 @@ export function buildSearchOpeningHoursSummary(
   visit?: OpeningHoursVisitSignal
 ) {
   const sourceEvidence = sourceSummary.openingHoursEvidence;
-  const sourceBacked = sourceEvidence.sourceCount > 0;
+  const sourceBacked = sourceEvidence.sourceCount > 0 || dataSignal.lodgingStayWindow?.sourceBacked === true;
   const confidenceLevel = openingHoursConfidenceLevel(dataSignal, sourceEvidence);
 
   return {
@@ -4202,7 +4291,9 @@ export function buildSearchOpeningHoursSummary(
     latestCheckedAt: sourceEvidence.latestCheckedAt,
     freshnessStatus: sourceEvidence.freshnessStatus,
     hasStructuredData: dataSignal.hasStructuredData,
-    structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : []
+    structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : [],
+    temporaryClosure: dataSignal.temporaryClosure,
+    lodgingStayWindow: dataSignal.lodgingStayWindow
   };
 }
 
@@ -4391,10 +4482,91 @@ function openingHoursConfidenceLevel(dataSignal: OpeningHoursDataSignal, sourceE
 function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   if (typeof openingHours.openNow === "boolean" || typeof openingHours.isOpen === "boolean") return true;
   if ([openingHours.status, openingHours.openStatus, openingHours.businessStatus].some((value) => typeof value === "string")) return true;
+  if (temporaryClosurePeriod(openingHours) !== null) return true;
+  if (lodgingStayWindowSignal(openingHours) !== null) return true;
   if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
   if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
   if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
   return false;
+}
+
+function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {
+  const checkIn = isPlainRecord(openingHours)
+    ? timeString(openingHours.checkIn ?? openingHours.checkInTime ?? openingHours.checkin ?? openingHours.checkinTime)
+    : null;
+  const checkOut = isPlainRecord(openingHours)
+    ? timeString(openingHours.checkOut ?? openingHours.checkOutTime ?? openingHours.checkout ?? openingHours.checkoutTime)
+    : null;
+  const text =
+    typeof openingHours === "string"
+      ? openingHours
+      : [
+          openingHours.summary,
+          openingHours.description,
+          openingHours.specialNotes,
+          openingHours.note,
+          openingHours.sourceTitle
+        ]
+          .filter((value): value is string => typeof value === "string")
+          .join(" ");
+  const inferredCheckIn = checkIn ?? extractLodgingTime(text, lodgingCheckInPatterns);
+  const inferredCheckOut = checkOut ?? extractLodgingTime(text, lodgingCheckOutPatterns);
+  if (!inferredCheckIn && !inferredCheckOut) return null;
+  return {
+    checkIn: inferredCheckIn,
+    checkOut: inferredCheckOut,
+    sourceBacked: isPlainRecord(openingHours) ? hasLodgingWindowSource(openingHours) : false
+  };
+}
+
+const lodgingCheckInPatterns = [
+  /체크\s*인\s*(?:시간)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i,
+  /check[-\s]?in\s*(?:time)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i
+];
+
+const lodgingCheckOutPatterns = [
+  /체크\s*아웃\s*(?:시간)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i,
+  /check[-\s]?out\s*(?:time)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i
+];
+
+function extractLodgingTime(text: string, patterns: RegExp[]) {
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match) return normalizeHourMinute(match[1], match[2]);
+  }
+  return null;
+}
+
+function timeString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = /^\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(value);
+  return match ? normalizeHourMinute(match[1], match[2]) : null;
+}
+
+function normalizeHourMinute(hourText: string, minuteText?: string) {
+  const hour = Number(hourText);
+  const minute = minuteText ? Number(minuteText) : 0;
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function hasLodgingWindowSource(openingHours: Record<string, unknown>) {
+  return [openingHours.sourceUrl, openingHours.sourceTitle, openingHours.sourceType, openingHours.dataStatus].some((value) =>
+    typeof value === "string" && value.trim().length > 0
+  );
+}
+
+function temporaryClosurePeriod(openingHours: Record<string, unknown>) {
+  const closure = openingHours.temporaryClosure;
+  if (!isPlainRecord(closure)) return null;
+  const startsOn = trimmedString(closure.startsOn ?? closure.startDate ?? closure.from);
+  const endsOn = trimmedString(closure.endsOn ?? closure.endDate ?? closure.to);
+  if (!startsOn && !endsOn) return null;
+  return { startsOn, endsOn };
+}
+
+function trimmedString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 export function buildSearchPreferenceSemantics(preferences: SearchPlacesInput["preferences"] | undefined) {

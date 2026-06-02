@@ -2,6 +2,7 @@
 
 import { AlertTriangle, X } from "lucide-react";
 import { useEffect, useId } from "react";
+import { createPortal } from "react-dom";
 
 type ConfirmDialogProps = {
   body: string;
@@ -40,9 +41,9 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [disabled, onCancel, open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="app-confirm-backdrop" onMouseDown={disabled ? undefined : onCancel}>
       <div
         aria-describedby={bodyId}
@@ -73,6 +74,7 @@ export function ConfirmDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
