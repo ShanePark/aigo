@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, ClipboardList, History, Map, MapPinned, Menu, UserRound, X } from "lucide-react";
+import { Bookmark, ClipboardList, History, Map, MapPinned, Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
@@ -12,7 +12,13 @@ import { AccountControls } from "./account-controls";
 import styles from "./topbar-actions.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-type TopbarUser = Pick<AppUser, "id">;
+type TopbarUser = Pick<AppUser, "id" | "role">;
+type MenuItem = {
+  adminOnly?: boolean;
+  href: string;
+  icon: typeof Map;
+  label: string;
+};
 
 export function TopbarActions({
   appVersion,
@@ -61,7 +67,7 @@ export function TopbarActions({
       </button>
       {isOpen ? (
         <div className={styles.menuPanel} role="menu">
-          {menuItems.map((item) => {
+          {menuItems.filter((item) => !item.adminOnly || initialUser?.role === "admin").map((item) => {
             const isCurrent = isCurrentMenuItem(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -91,12 +97,13 @@ export function TopbarActions({
   );
 }
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   { href: "/", icon: Map, label: "장소찾기" },
   { href: "/regions", icon: MapPinned, label: "지역별보기" },
   { href: "/saved-places", icon: Bookmark, label: "저장한 장소" },
   { href: "/recent-places", icon: History, label: "최근 본 장소" },
   { href: "/visits", icon: ClipboardList, label: "방문로그" },
+  { href: "/admin", icon: ShieldCheck, label: "관리자", adminOnly: true },
   { href: "/me", icon: UserRound, label: "내정보" }
 ] as const;
 

@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   currentUserFromSessionToken: vi.fn(),
   recordPlaceView: vi.fn(),
-  recordPublicPlaceView: vi.fn()
+  recordPublicPlaceView: vi.fn(),
+  recordVisitEvent: vi.fn()
 }));
 
 vi.mock("@/lib/app-auth", async (importOriginal) => ({
@@ -16,6 +17,11 @@ vi.mock("@/lib/user-place-views", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/user-place-views")>()),
   recordPlaceView: mocks.recordPlaceView,
   recordPublicPlaceView: mocks.recordPublicPlaceView
+}));
+
+vi.mock("@/lib/visit-events", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/visit-events")>()),
+  recordVisitEvent: mocks.recordVisitEvent
 }));
 
 import { POST as postPlaceView } from "@/app/api/places/[placeId]/views/route";
@@ -43,6 +49,7 @@ describe("place view API route", () => {
     mocks.recordPublicPlaceView.mockResolvedValue({
       item: { counted: true, placeId, publicViewCount: 8 }
     });
+    mocks.recordVisitEvent.mockResolvedValue({ id: "event-1" });
   });
 
   it("records anonymous public views with device and ip dedupe keys", async () => {
@@ -55,6 +62,14 @@ describe("place view API route", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.recordPlaceView).not.toHaveBeenCalled();
+    expect(mocks.recordVisitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "place_detail_view",
+        meta: { counted: true, publicViewCount: 8 },
+        placeId,
+        user: null
+      })
+    );
     expect(mocks.recordPublicPlaceView).toHaveBeenCalledWith(
       placeId,
       expect.arrayContaining([
@@ -85,6 +100,14 @@ describe("place view API route", () => {
       ])
     );
     expect(mocks.recordPlaceView).toHaveBeenCalledWith(placeId, userId);
+    expect(mocks.recordVisitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deviceKey: "device-1",
+        eventType: "place_detail_view",
+        placeId,
+        user: { id: userId }
+      })
+    );
     await expect(response.json()).resolves.toMatchObject({
       item: {
         userView: { placeId, viewCount: 3 }

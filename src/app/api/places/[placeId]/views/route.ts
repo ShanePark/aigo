@@ -5,6 +5,7 @@ import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth
 import { apiErrorResponse } from "@/lib/errors";
 import { recordPlaceView, recordPublicPlaceView, type PublicPlaceViewKey } from "@/lib/user-place-views";
 import { requireUuidParam } from "@/lib/route-params";
+import { clientIp, recordVisitEvent } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,6 +26,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
     const cookieValue = request.cookies.get(PLACE_VIEWER_COOKIE)?.value ?? randomUUID();
     const publicView = await recordPublicPlaceView(placeId, placeViewDedupeKeys(request, cookieValue, user?.id));
+    await recordVisitEvent({
+      deviceKey: cookieValue,
+      eventType: "place_detail_view",
+      meta: {
+        counted: publicView.item.counted,
+        publicViewCount: publicView.item.publicViewCount
+      },
+      placeId,
+      request,
+      user
+    });
 
     let userView = null;
     if (user) {
@@ -62,9 +74,4 @@ function placeViewDedupeKeys(request: NextRequest, deviceId: string, userId?: st
   if (ip) keys.push({ kind: "ip", value: ip });
 
   return keys;
-}
-
-function clientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwardedFor || request.headers.get("x-real-ip")?.trim() || request.headers.get("cf-connecting-ip")?.trim() || null;
 }

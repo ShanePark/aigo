@@ -14,7 +14,8 @@
     "ui:smoke": "tsx scripts/ui-smoke.ts",
     "test": "vitest run",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "visits:analyze-ua": "tsx scripts/analyze-visit-user-agents.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.7",

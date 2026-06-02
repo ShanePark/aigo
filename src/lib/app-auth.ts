@@ -122,6 +122,14 @@ export async function requireCurrentUser(request: NextRequest) {
   return user;
 }
 
+export async function requireAdminUser(request: NextRequest) {
+  const user = await requireCurrentUser(request);
+  if (user.role !== "admin") {
+    throw new ApiError(403, "Admin required");
+  }
+  return user;
+}
+
 export async function deleteSessionByToken(token: string | undefined | null) {
   if (!token) return;
 
