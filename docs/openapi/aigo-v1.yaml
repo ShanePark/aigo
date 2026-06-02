@@ -2277,6 +2277,25 @@ components:
                 - string
                 - "null"
               description: Inclusive closure end date when known, usually `YYYY-MM-DD`.
+        lodgingStayWindow:
+          type:
+            - object
+            - "null"
+          description: Accommodation-specific check-in/check-out evidence. This is visit-window readiness for lodging, not normal public opening-hours evidence.
+          properties:
+            checkIn:
+              type:
+                - string
+                - "null"
+              description: Check-in time in `HH:mm` when known.
+            checkOut:
+              type:
+                - string
+                - "null"
+              description: Check-out time in `HH:mm` when known.
+            sourceBacked:
+              type: boolean
+              description: Whether the lodging window came from source-linked opening-hours metadata.
     OpeningHoursEvidenceSummary:
       type: object
       required: [sourceCount, sourceTypes, bestSourceType, bestSourceTier, latestCheckedAt, freshnessStatus]

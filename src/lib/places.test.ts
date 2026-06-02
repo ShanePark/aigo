@@ -1162,13 +1162,15 @@ describe("place search helpers", () => {
       dataStatus: "unstructured",
       hasData: true,
       hasStructuredData: false,
-      temporaryClosure: null
+      temporaryClosure: null,
+      lodgingStayWindow: null
     });
     expect(buildOpeningHoursDataSignal("월-토 10:00-17:00")).toEqual({
       dataStatus: "unstructured",
       hasData: true,
       hasStructuredData: false,
-      temporaryClosure: null
+      temporaryClosure: null,
+      lodgingStayWindow: null
     });
     expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)).toMatchObject({
       dataStatus: "missing",
@@ -1211,7 +1213,8 @@ describe("place search helpers", () => {
       temporaryClosure: {
         startsOn: "2026-01-01",
         endsOn: "2026-12-31"
-      }
+      },
+      lodgingStayWindow: null
     });
     expect(buildSearchOpeningHoursSummary(dataSignal, sourceSummary)).toMatchObject({
       dataStatus: "structured",
@@ -1221,6 +1224,47 @@ describe("place search helpers", () => {
       temporaryClosure: {
         startsOn: "2026-01-01",
         endsOn: "2026-12-31"
+      }
+    });
+  });
+
+  it("treats lodging check-in and check-out evidence as stay-window readiness", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      summary: "체크인 15:00 / 체크아웃 11:00",
+      specialNotes: "공개 숙박 listing에서 입퇴실 시간을 확인함",
+      sourceUrl: "https://example.com/lodging",
+      sourceTitle: "숙박 예약 안내",
+      dataStatus: "listing_supported"
+    });
+    const sourceSummary = buildSearchSourceSummary([]);
+    const summary = buildSearchOpeningHoursSummary(dataSignal, sourceSummary, {
+      reservationRequired: "unknown",
+      walkInAvailable: "unknown",
+      sessionBased: "unknown",
+      sameDayAvailabilityKnown: "unknown"
+    });
+
+    expect(dataSignal).toEqual({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      temporaryClosure: null,
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "medium",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: ["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"],
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
       }
     });
   });

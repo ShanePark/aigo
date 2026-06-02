@@ -4239,11 +4239,13 @@ type OpeningHoursVisitSignal = Pick<
 
 export function buildOpeningHoursDataSignal(openingHours: unknown) {
   if (typeof openingHours === "string" && openingHours.trim().length > 0) {
+    const lodgingStayWindow = lodgingStayWindowSignal(openingHours);
     return {
-      dataStatus: "unstructured",
+      dataStatus: lodgingStayWindow ? "structured" : "unstructured",
       hasData: true,
-      hasStructuredData: false,
-      temporaryClosure: null
+      hasStructuredData: Boolean(lodgingStayWindow),
+      temporaryClosure: null,
+      lodgingStayWindow
     };
   }
 
@@ -4252,17 +4254,20 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
       dataStatus: "missing",
       hasData: false,
       hasStructuredData: false,
-      temporaryClosure: null
+      temporaryClosure: null,
+      lodgingStayWindow: null
     };
   }
 
   const hasStructuredData = hasStructuredOpeningHoursData(openingHours);
   const temporaryClosure = temporaryClosurePeriod(openingHours);
+  const lodgingStayWindow = lodgingStayWindowSignal(openingHours);
   return {
     dataStatus: hasStructuredData ? "structured" : "unstructured",
     hasData: true,
     hasStructuredData,
-    temporaryClosure
+    temporaryClosure,
+    lodgingStayWindow
   };
 }
 
@@ -4272,7 +4277,7 @@ export function buildSearchOpeningHoursSummary(
   visit?: OpeningHoursVisitSignal
 ) {
   const sourceEvidence = sourceSummary.openingHoursEvidence;
-  const sourceBacked = sourceEvidence.sourceCount > 0;
+  const sourceBacked = sourceEvidence.sourceCount > 0 || dataSignal.lodgingStayWindow?.sourceBacked === true;
   const confidenceLevel = openingHoursConfidenceLevel(dataSignal, sourceEvidence);
 
   return {
@@ -4287,7 +4292,8 @@ export function buildSearchOpeningHoursSummary(
     freshnessStatus: sourceEvidence.freshnessStatus,
     hasStructuredData: dataSignal.hasStructuredData,
     structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : [],
-    temporaryClosure: dataSignal.temporaryClosure
+    temporaryClosure: dataSignal.temporaryClosure,
+    lodgingStayWindow: dataSignal.lodgingStayWindow
   };
 }
 
@@ -4477,10 +4483,77 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   if (typeof openingHours.openNow === "boolean" || typeof openingHours.isOpen === "boolean") return true;
   if ([openingHours.status, openingHours.openStatus, openingHours.businessStatus].some((value) => typeof value === "string")) return true;
   if (temporaryClosurePeriod(openingHours) !== null) return true;
+  if (lodgingStayWindowSignal(openingHours) !== null) return true;
   if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
   if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
   if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
   return false;
+}
+
+function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {
+  const checkIn = isPlainRecord(openingHours)
+    ? timeString(openingHours.checkIn ?? openingHours.checkInTime ?? openingHours.checkin ?? openingHours.checkinTime)
+    : null;
+  const checkOut = isPlainRecord(openingHours)
+    ? timeString(openingHours.checkOut ?? openingHours.checkOutTime ?? openingHours.checkout ?? openingHours.checkoutTime)
+    : null;
+  const text =
+    typeof openingHours === "string"
+      ? openingHours
+      : [
+          openingHours.summary,
+          openingHours.description,
+          openingHours.specialNotes,
+          openingHours.note,
+          openingHours.sourceTitle
+        ]
+          .filter((value): value is string => typeof value === "string")
+          .join(" ");
+  const inferredCheckIn = checkIn ?? extractLodgingTime(text, lodgingCheckInPatterns);
+  const inferredCheckOut = checkOut ?? extractLodgingTime(text, lodgingCheckOutPatterns);
+  if (!inferredCheckIn && !inferredCheckOut) return null;
+  return {
+    checkIn: inferredCheckIn,
+    checkOut: inferredCheckOut,
+    sourceBacked: isPlainRecord(openingHours) ? hasLodgingWindowSource(openingHours) : false
+  };
+}
+
+const lodgingCheckInPatterns = [
+  /체크\s*인\s*(?:시간)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i,
+  /check[-\s]?in\s*(?:time)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i
+];
+
+const lodgingCheckOutPatterns = [
+  /체크\s*아웃\s*(?:시간)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i,
+  /check[-\s]?out\s*(?:time)?\s*[:：]?\s*(\d{1,2})(?::(\d{2}))?/i
+];
+
+function extractLodgingTime(text: string, patterns: RegExp[]) {
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match) return normalizeHourMinute(match[1], match[2]);
+  }
+  return null;
+}
+
+function timeString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = /^\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(value);
+  return match ? normalizeHourMinute(match[1], match[2]) : null;
+}
+
+function normalizeHourMinute(hourText: string, minuteText?: string) {
+  const hour = Number(hourText);
+  const minute = minuteText ? Number(minuteText) : 0;
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function hasLodgingWindowSource(openingHours: Record<string, unknown>) {
+  return [openingHours.sourceUrl, openingHours.sourceTitle, openingHours.sourceType, openingHours.dataStatus].some((value) =>
+    typeof value === "string" && value.trim().length > 0
+  );
 }
 
 function temporaryClosurePeriod(openingHours: Record<string, unknown>) {

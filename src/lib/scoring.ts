@@ -224,7 +224,7 @@ function scorePlaceInternal(
   }
 
   if (mode.includeOpeningHours) {
-    applyOpeningHoursSignal(place.openingHours, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
+    applyOpeningHoursSignal(place, input, reasonCodes, (delta) => addScore("openingHours", delta), options.now ?? new Date());
   }
   applyVisitFitSignal(place.visit, input, reasonCodes, (delta) => addScore("visitFit", delta));
   applyLodgingEvidenceGate(place, reasonCodes, (delta) => addScore("confidence", delta));
@@ -958,12 +958,13 @@ function normalizeOneToFive(value: unknown) {
 }
 
 function applyOpeningHoursSignal(
-  openingHours: unknown,
+  place: Pick<ScoreablePlace, "openingHours" | "primaryCategory">,
   input: SearchPlacesInput,
   reasonCodes: Set<string>,
   addScore: (delta: number) => void,
   now: Date
 ) {
+  const openingHours = place.openingHours;
   const immediateContext = input.visitContext === "nearbyNow" || input.visitContext === "afterDaycare";
   const unknownPenalty = input.visitContext === "nearbyNow" ? -8 : input.visitContext === "afterDaycare" ? -6 : 0;
 
@@ -986,6 +987,10 @@ function applyOpeningHoursSignal(
     addScore(immediateContext ? -22 : -10);
     reasonCodes.add("CLOSED_NOW");
   } else {
+    if (place.primaryCategory === "accommodation" && lodgingStayWindowSignal(openingHours)) {
+      reasonCodes.add("LODGING_STAY_WINDOW_KNOWN");
+      return;
+    }
     if (unknownPenalty !== 0) addScore(unknownPenalty);
     reasonCodes.add("OPENING_HOURS_UNKNOWN");
   }
@@ -1200,6 +1205,22 @@ function parseTimeToMinutes(value: string | null) {
 
 function hasOpeningHoursData(openingHours: unknown) {
   return isRecord(openingHours) && Object.keys(openingHours).length > 0;
+}
+
+function lodgingStayWindowSignal(openingHours: unknown) {
+  if (!isRecord(openingHours)) return false;
+  if ([openingHours.checkIn, openingHours.checkInTime, openingHours.checkin, openingHours.checkinTime].some(isTimeLikeString)) return true;
+  if ([openingHours.checkOut, openingHours.checkOutTime, openingHours.checkout, openingHours.checkoutTime].some(isTimeLikeString)) return true;
+
+  const text = [openingHours.summary, openingHours.description, openingHours.specialNotes, openingHours.note, openingHours.sourceTitle]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase("ko-KR");
+  return /체크\s*인|체크\s*아웃|check[-\s]?in|check[-\s]?out/.test(text);
+}
+
+function isTimeLikeString(value: unknown) {
+  return typeof value === "string" && /^\s*\d{1,2}(?::\d{2})?\s*$/.test(value);
 }
 
 function stringValue(value: unknown) {
