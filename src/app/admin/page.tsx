@@ -141,12 +141,12 @@ function AdminUserRow({ item }: { item: AdminUserItem }) {
           <small>{item.email}</small>
         </div>
         <div className="admin-log-meta">
-          <span>가입 {formatDateTime(item.createdAt)}</span>
           <span>수정 {formatDateTime(item.updatedAt)}</span>
           <span>소셜 {item.socialProviders.length > 0 ? item.socialProviders.join(", ") : "없음"}</span>
         </div>
       </div>
       <div className="admin-user-stats">
+        <Stat label="최초 가입일" value={formatDateTime(item.createdAt)} />
         <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
         <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
         <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
