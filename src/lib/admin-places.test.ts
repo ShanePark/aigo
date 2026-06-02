@@ -21,6 +21,11 @@ describe("admin place listing", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           name: "테스트 키즈카페",
+          primaryCategory: "kids_cafe",
+          tags: ["실내", "키즈"],
+          description: "아이와 가기 좋은 실내 놀이 공간",
+          parentNotes: "주차가 편합니다.",
+          safetyNotes: null,
           imageAltText: "테스트 키즈카페 실내",
           imageUrl: "https://example.com/place.webp",
           createdAt: new Date("2026-06-02T00:00:00.000Z"),
@@ -33,9 +38,13 @@ describe("admin place listing", () => {
     await expect(listAdminPlaces({ limit: 10 }, executor)).resolves.toMatchObject({
       items: [
         {
+          description: "아이와 가기 좋은 실내 놀이 공간",
           imageAltText: "테스트 키즈카페 실내",
           imageUrl: "https://example.com/place.webp",
-          name: "테스트 키즈카페"
+          name: "테스트 키즈카페",
+          parentNotes: "주차가 편합니다.",
+          primaryCategory: "kids_cafe",
+          tags: ["실내", "키즈"]
         }
       ],
       totalCount: 7

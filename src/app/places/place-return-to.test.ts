@@ -8,6 +8,7 @@ describe("place detail return href", () => {
     expect(safePlaceReturnHref("/saved-places?filter=wantToGo")).toBe("/saved-places?filter=wantToGo");
     expect(safePlaceReturnHref("/recent-places")).toBe("/recent-places");
     expect(safePlaceReturnHref("/visits")).toBe("/visits");
+    expect(safePlaceReturnHref("/admin?tab=places&month=2026-06&sort=updated&page=2")).toBe("/admin?tab=places&month=2026-06&sort=updated&page=2");
   });
 
   it("keeps search params for the main search page", () => {

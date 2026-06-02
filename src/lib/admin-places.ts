@@ -21,8 +21,13 @@ export const adminPlacesSortSchema = z.enum(["created", "updated"]).default("cre
 export type AdminPlacesSort = z.infer<typeof adminPlacesSortSchema>;
 
 type AdminPlaceRow = {
+  description: string | null;
   id: string;
   name: string;
+  parentNotes: string | null;
+  primaryCategory: string;
+  safetyNotes: string | null;
+  tags: string[] | null;
   imageAltText: string | null;
   imageUrl: string | null;
   createdAt: Date | string;
@@ -47,8 +52,13 @@ type AdminPlacesTotalRow = {
 };
 
 export type AdminPlaceItem = {
+  description: string | null;
   id: string;
   name: string;
+  parentNotes: string | null;
+  primaryCategory: string;
+  safetyNotes: string | null;
+  tags: string[];
   imageAltText: string | null;
   imageUrl: string | null;
   createdAt: string;
@@ -76,6 +86,11 @@ export async function listAdminPlaces(input: { date?: string | null; limit?: num
     select
       p.id::text as id,
       p.name,
+      p.primary_category as "primaryCategory",
+      p.tags,
+      p.description,
+      p.parent_notes as "parentNotes",
+      p.safety_notes as "safetyNotes",
       i.image_url as "imageUrl",
       i.image_alt_text as "imageAltText",
       p.created_at as "createdAt",
@@ -151,8 +166,13 @@ export async function getAdminPlacesSummary(executor: SqlExecutor = pg): Promise
 
 function adminPlaceFromRow(row: AdminPlaceRow): AdminPlaceItem {
   return {
+    description: row.description,
     id: row.id,
     name: row.name,
+    parentNotes: row.parentNotes,
+    primaryCategory: row.primaryCategory,
+    safetyNotes: row.safetyNotes,
+    tags: Array.isArray(row.tags) ? row.tags.filter(Boolean) : [],
     imageAltText: row.imageAltText,
     imageUrl: row.imageUrl,
     createdAt: dateTimeString(row.createdAt),

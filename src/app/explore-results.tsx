@@ -8,9 +8,9 @@ import type { ReactNode } from "react";
 import type { UrlObject } from "url";
 import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
 
-import { PlaceImage } from "@/app/place-image";
-import { PlaceCategoryBadge, placeCategoryLabel } from "@/app/place-category-badge";
-import { PlaceSaveControls, PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
+import { placeCategoryLabel } from "@/app/place-category-badge";
+import { PlaceResultCard, type PlaceResultCardMetric } from "@/app/place-result-card";
+import { PlaceSaveControlsProvider } from "@/app/places/place-save-controls";
 import { PlacesMap, type MapHomeLocation, type MapOrigin, type MapPlace, type ViewportSearchRequest } from "@/app/places-map";
 import { RESULT_LIMIT_OPTIONS, buildSearchInput, type HomeSearchSort } from "@/app/home-search-state";
 import { buildLocationSearchState } from "@/app/location-search-state";
@@ -621,50 +621,25 @@ export function ResultCard({
   const metrics = resultCardMetrics(place, metricKeys);
 
   return (
-    <article
-      className="result-card"
-      data-map-place-card="true"
-      data-map-place-id={place.placeId}
-      data-map-place-lat={place.lat}
-      data-map-place-lng={place.lng}
+    <PlaceResultCard
+      category={place.primaryCategory}
+      href={placeDetailHref(place.placeId, returnHref)}
       id={`place-card-${place.placeId}`}
-    >
-      <Link className="result-card-main" href={placeDetailHref(place.placeId, returnHref)}>
-        <div className="result-image-frame">
-          <PlaceImage category={place.primaryCategory} src={primaryImage?.url} alt={`${place.name} 대표 이미지`} variant="result" />
-          <span className="result-image-meta">
-            <span className="rank-badge" aria-label={`${index}번째 결과`}>
-              {index}
-            </span>
-            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill result-image-category" name={place.name} tags={place.tags} />
-          </span>
-        </div>
-        <div className="result-card-body">
-          <div className="result-card-topline">
-            <PlaceCategoryBadge category={place.primaryCategory} className="category-pill" name={place.name} tags={place.tags} />
-            {metrics.length > 0 ? (
-              <div className="result-metric-row" aria-label={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}>
-                {metrics.map((metric) => (
-                  <span className={`result-metric-pill metric-${metric.key} ${metric.tone ?? ""}`} title={metric.title} key={metric.key}>
-                    {metric.icon ? metric.icon : null}
-                    {metric.label ? <span className="result-metric-label">{metric.label}</span> : null}
-                    <strong>{metric.value}</strong>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <h3>{place.name}</h3>
-          <p className="result-card-summary">{summary}</p>
-          <div className="keyword-row" aria-label="키워드">
-            {keywords.map((keyword) => (
-              <span key={keyword}>{keyword}</span>
-            ))}
-          </div>
-        </div>
-      </Link>
-      <PlaceSaveControls compact placeId={place.placeId} />
-    </article>
+      imageAlt={`${place.name} 대표 이미지`}
+      imageUrl={primaryImage?.url}
+      keywords={keywords}
+      mapLat={place.lat}
+      mapLng={place.lng}
+      metrics={metrics}
+      metricAriaLabel={resultScoreRowLabel(place.score, place.placeQualityScore?.score)}
+      name={place.name}
+      placeId={place.placeId}
+      rank={index}
+      savePlaceId={place.placeId}
+      showImageCategory
+      summary={summary}
+      tags={place.tags}
+    />
   );
 }
 
@@ -960,16 +935,16 @@ function resultCardSummary(place: SearchItem, category: string, keywords: string
   return keywordText ? `${category} 후보 · ${keywordText} 중심으로 비교해볼 만한 곳` : `${category} 후보 · 가족 외출 기준으로 비교해볼 만한 곳`;
 }
 
-function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]) {
+function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]): PlaceResultCardMetric[] {
   const qualityScore = place.placeQualityScore?.score ?? null;
   const userRating = place.userRatingSummary?.averageRating ?? null;
   const evaluationValue = qualityScore !== null ? String(Math.round(qualityScore)) : userRating !== null ? userRating.toFixed(1) : "-";
   const evaluationTitle = qualityScore !== null ? placeQualityScoreTitle(qualityScore) : "방문 평가 데이터가 충분하지 않습니다.";
 
   const requestedKeys = metricKeys ? new Set(metricKeys) : null;
-  return [
+  const metrics: PlaceResultCardMetric[] = [
     {
-      icon: <MapPin size={13} aria-hidden="true" />,
+      icon: "distance",
       key: "distance",
       label: "",
       title: "검색 기준점에서의 직선 거리",
@@ -977,7 +952,7 @@ function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]
       value: distanceLabel(place.distanceKm)
     },
     {
-      icon: <Target size={13} aria-hidden="true" />,
+      icon: "relevance",
       key: "relevance",
       label: "관련도",
       title: searchRelevanceScoreTitle(place.score),
@@ -985,14 +960,16 @@ function resultCardMetrics(place: SearchItem, metricKeys?: ResultCardMetricKey[]
       value: String(Math.round(place.score))
     },
     {
-      icon: <Star size={13} aria-hidden="true" />,
+      icon: "evaluation",
       key: "evaluation",
       label: "평가",
       title: evaluationTitle,
       tone: qualityScore !== null ? scoreTone(qualityScore) : undefined,
       value: evaluationValue
     }
-  ].filter((metric) => !requestedKeys || requestedKeys.has(metric.key as ResultCardMetricKey));
+  ];
+
+  return metrics.filter((metric) => !requestedKeys || requestedKeys.has(metric.key as ResultCardMetricKey));
 }
 
 function distanceTone(distanceKm: number | null) {

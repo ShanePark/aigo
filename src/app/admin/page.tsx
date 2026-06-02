@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, ImageIcon, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
+import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -6,8 +6,10 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppPageHeader } from "@/app/page-shell";
+import { placeCategoryLabel } from "@/app/place-category-badge";
+import { PlaceResultCard } from "@/app/place-result-card";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
-import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, getAdminPlacesTotalCount, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
+import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
 import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsSourceSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
 
@@ -21,7 +23,7 @@ type AdminPageProps = {
 type AdminTab = "visits" | "users" | "places";
 
 const DEFAULT_ADMIN_LIMIT = 25;
-const DEFAULT_ADMIN_PLACE_LIMIT = 20;
+const DEFAULT_ADMIN_PLACE_LIMIT = 50;
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const cookieStore = await cookies();
@@ -46,12 +48,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const limit = adminLimit(tab, firstQueryValue(query.limit));
   const page = adminPage(firstQueryValue(query.page));
   const offset = (page - 1) * limit;
-  const [visitSummary, events, userSummary, users, placeTotal, placeDayCounts, places] = await Promise.all([
+  const [visitSummary, events, userSummary, users, placeDayCounts, places] = await Promise.all([
     getVisitEventsSummary(),
     tab === "visits" ? listVisitEvents({ eventSource, eventType, ipAddress, limit, offset, userId }) : Promise.resolve({ items: [], totalCount: 0 }),
     getAdminUsersSummary(),
     tab === "users" ? listAdminUsers({ limit, offset }) : Promise.resolve({ items: [] }),
-    tab === "places" ? getAdminPlacesTotalCount() : Promise.resolve({ totalCount: 0 }),
     tab === "places" ? listAdminPlaceDayCounts({ month: placeMonth }) : Promise.resolve({ items: [] }),
     tab === "places" ? listAdminPlaces({ date: placeDate, limit, offset, sort: placeSort }) : Promise.resolve({ items: [], totalCount: 0 })
   ]);
@@ -63,20 +64,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         eyebrow="관리자"
         icon={ShieldCheck}
         title={tab === "users" ? "사용자 관리" : tab === "places" ? "장소관리" : "방문 기록"}
+        actions={<AdminPrimaryTabs activeTab={tab} />}
       />
-      <div className="admin-nav-bar">
-        <nav className="admin-primary-tabs" aria-label="관리자 메뉴">
-          {adminTabs.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link className={`admin-primary-tab ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
-                <Icon size={15} aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        {tab === "visits" ? (
+      {tab === "visits" ? (
+        <div className="admin-nav-bar">
           <div className="admin-filter-tabs" aria-label="방문 기록 필터">
             {filterLinks.map((filter) => {
               const Icon = filter.icon;
@@ -88,8 +79,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               );
             })}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {tab === "visits" ? (
         <>
@@ -135,14 +126,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <PlaceRegistrationCalendar counts={placeDayCounts.items} limit={limit} month={placeMonth} selectedDate={placeDate} sort={placeSort} />
 
           <section className="admin-log-panel">
-            <div className="admin-section-head admin-place-list-head">
-              <PlaceSortTabs date={placeDate} limit={limit} month={placeMonth} sort={placeSort} />
-              <span className="admin-place-total-pill">전체 장소 {formatNumber(placeTotal.totalCount)}개</span>
-            </div>
             <div className="admin-place-list">
-              {places.items.length > 0 ? places.items.map((item) => <AdminPlaceRow item={item} key={item.id} />) : <p className="admin-empty">등록된 장소가 없습니다.</p>}
+              {places.items.length > 0 ? (
+                places.items.map((item, index) => <AdminPlaceRow index={offset + index + 1} item={item} key={item.id} returnHref={adminPageHref(placeListParams({ date: placeDate, month: placeMonth, sort: placeSort }), page, limit)} />)
+              ) : (
+                <p className="admin-empty">등록된 장소가 없습니다.</p>
+              )}
             </div>
-            <AdminPager baseParams={placeListParams({ date: placeDate, month: placeMonth, sort: placeSort })} itemCount={places.items.length} limit={limit} page={page} totalItems={totalItems} />
+            <AdminPager
+              baseParams={placeListParams({ date: placeDate, month: placeMonth, sort: placeSort })}
+              controls={<PlaceSortTabs date={placeDate} limit={limit} month={placeMonth} sort={placeSort} />}
+              itemCount={places.items.length}
+              limit={limit}
+              page={page}
+              totalItems={totalItems}
+            />
           </section>
         </>
       )}
@@ -218,12 +216,28 @@ function PlaceRegistrationCalendar({ counts, limit, month, selectedDate, sort }:
           return (
             <Link className={`admin-calendar-day ${selectedDate === day.date ? "is-selected" : ""} ${count > 0 ? "has-count" : ""}`} href={adminPlaceDateHref(day.date, limit, sort)} key={day.date}>
               <strong>{day.day}</strong>
-              <span>{count > 0 ? `${formatNumber(count)}개` : "-"}</span>
+              {count > 0 ? <span>{formatNumber(count)}</span> : null}
             </Link>
           );
         })}
       </div>
     </section>
+  );
+}
+
+function AdminPrimaryTabs({ activeTab }: { activeTab: AdminTab }) {
+  return (
+    <nav className="admin-primary-tabs" aria-label="관리자 메뉴">
+      {adminTabs.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Link className={`admin-primary-tab ${activeTab === item.value ? "is-active" : ""}`} href={adminTabHref(item.value)} key={item.value}>
+            <Icon size={15} aria-hidden="true" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -288,12 +302,14 @@ function ActiveVisitFilters({
 
 function AdminPager({
   baseParams,
+  controls,
   itemCount,
   limit,
   page,
   totalItems
 }: {
   baseParams: Record<string, string>;
+  controls?: ReactNode;
   itemCount: number;
   limit: number;
   page: number;
@@ -306,9 +322,12 @@ function AdminPager({
 
   return (
     <footer className="admin-pager" aria-label="관리자 목록 페이지 이동">
-      <span className="admin-pager-status">
-        {formatNumber(start)}-{formatNumber(end)} / {formatNumber(totalItems)}
-      </span>
+      <div className="admin-pager-meta">
+        {controls}
+        <span className="admin-pager-status">
+          {formatNumber(start)}-{formatNumber(end)} / {formatNumber(totalItems)}
+        </span>
+      </div>
       <div className="admin-pager-actions">
         {hasPrevious ? (
           <Link className="admin-pager-link" href={adminPageHref(baseParams, page - 1, limit)}>
@@ -355,32 +374,41 @@ function AdminUserRow({ item }: { item: AdminUserItem }) {
   );
 }
 
-function AdminPlaceRow({ item }: { item: AdminPlaceItem }) {
+function AdminPlaceRow({ index, item, returnHref }: { index: number; item: AdminPlaceItem; returnHref: Route }) {
+  const summary = adminPlaceSummary(item);
+  const keywords = adminPlaceKeywords(item);
+
   return (
-    <Link className="admin-place-row" href={`/places/${item.id}` as Route}>
-      <div className="admin-place-thumb">
-        {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imageUrl} alt={item.imageAltText ?? `${item.name} 대표 이미지`} loading="lazy" referrerPolicy="no-referrer" />
-        ) : (
-          <ImageIcon size={22} aria-hidden="true" />
-        )}
-      </div>
-      <div className="admin-place-main">
-        <strong>{item.name}</strong>
-        <div className="admin-place-dates">
-          <span>
-            <small>등록</small>
-            {formatDateTime(item.createdAt)}
-          </span>
-          <span>
-            <small>수정</small>
-            {formatDateTime(item.updatedAt)}
-          </span>
-        </div>
-      </div>
-    </Link>
+    <PlaceResultCard
+      category={item.primaryCategory}
+      className="admin-place-card"
+      dates={[
+        { label: "등록", value: formatDateTime(item.createdAt) },
+        { label: "수정", value: formatDateTime(item.updatedAt) }
+      ]}
+      href={`/places/${item.id}?returnTo=${encodeURIComponent(returnHref)}`}
+      imageAlt={item.imageAltText ?? `${item.name} 대표 이미지`}
+      imageUrl={item.imageUrl}
+      keywords={keywords}
+      name={item.name}
+      rank={index}
+      showImageCategory
+      summary={summary}
+      tags={item.tags}
+    />
   );
+}
+
+function adminPlaceSummary(item: AdminPlaceItem) {
+  return firstText([item.parentNotes, item.safetyNotes, item.description]) ?? `${placeCategoryLabel(item.primaryCategory)} 장소`;
+}
+
+function adminPlaceKeywords(item: AdminPlaceItem) {
+  return Array.from(new Set(item.tags.map((tag) => tag.trim()).filter(Boolean))).slice(0, 4);
+}
+
+function firstText(values: Array<string | null | undefined>) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? null;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -514,6 +542,10 @@ function adminLimit(tab: AdminTab, value: string | undefined) {
   if (tab === "users") return adminUsersLimitSchema.parse(fallback);
   if (tab === "places") return adminPlacesLimitSchema.parse(fallback);
   return visitEventsLimitSchema.parse(fallback);
+}
+
+function adminTabHref(tab: AdminTab) {
+  return `/admin?tab=${tab}` as Route;
 }
 
 function adminPage(value: string | undefined) {
