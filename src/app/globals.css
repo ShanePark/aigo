@@ -5116,6 +5116,10 @@ h3 {
 }
 
 .place-visit-stars {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  background: transparent;
+  border-radius: 6px;
   color: color-mix(in srgb, var(--muted) 42%, transparent);
   cursor: pointer;
   flex: 0 0 auto;
@@ -5123,18 +5127,23 @@ h3 {
   outline: none;
   position: relative;
   touch-action: none;
+  user-select: none;
   width: 190px;
 }
 
 .place-visit-star-row {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(5, 30px);
   height: 34px;
   left: 0;
   overflow: visible;
+  pointer-events: none;
   position: absolute;
   top: 0;
+  user-select: none;
   width: max-content;
 }
 
@@ -5156,8 +5165,13 @@ h3 {
 }
 
 .place-visit-stars:focus-visible {
-  border-radius: 6px;
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.place-visit-stars:active,
+.place-visit-stars:focus:not(:focus-visible) {
+  background: transparent;
+  box-shadow: none;
 }
 
 .place-visit-stars.is-disabled {

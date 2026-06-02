@@ -678,6 +678,7 @@ function VisitRatingInput({
     const nextRating = handleRatingFromPointer(event);
     setHoverRating(nextRating);
     if (event.type === "pointerdown") {
+      event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       onChange(nextRating);
     }
