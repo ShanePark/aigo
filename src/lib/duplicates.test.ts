@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
+  duplicateGenericAliasReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateLodgingClusterReviewOnly,
@@ -402,6 +403,60 @@ describe("duplicate helpers", () => {
         "NAME_SIMILAR"
       ])
     );
+  });
+
+  it("keeps public generic alias matches outside the source district as noisy manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 14200,
+      radiusMeters: 500,
+      nameSimilarity: 0.72
+    };
+
+    expect(
+      duplicateGenericAliasReviewOnly(
+        "수성구육아종합지원센터 장난감도서관",
+        undefined,
+        "달서아이꿈센터",
+        ["달서아이꿈센터 장난감도서관"],
+        ["육아종합지원센터", "장난감도서관"]
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "GENERIC_ALIAS_REVIEW_ONLY",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("lets same-address public generic alias matches stay actionable", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      radiusMeters: 500,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("lets same-address generic activity matches stay actionable", () => {

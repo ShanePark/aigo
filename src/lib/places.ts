@@ -17,6 +17,7 @@ import {
   type DuplicateCandidateSuggestedAction,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
+  duplicateGenericAliasReviewOnly,
   duplicateGenericBranchName,
   duplicateLocationSignals,
   duplicateLodgingClusterReviewOnly,
@@ -1641,6 +1642,13 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         branchSiblingReviewOnly: duplicateBranchSiblingReviewOnly(input.name, row.name),
         lodgingClusterReviewOnly: row.primary_category === "accommodation" && duplicateLodgingClusterReviewOnly(input.name, row.name),
         weakThematicSimilarityReviewOnly: duplicateWeakThematicSimilarityReviewOnly(input.name, row.name),
+        genericAliasReviewOnly: duplicateGenericAliasReviewOnly(
+          input.name,
+          input.aliases,
+          row.name,
+          duplicateExternalAliases(row.external_refs),
+          row.tags
+        ),
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
@@ -1830,6 +1838,23 @@ function normalizePlaceImages(images: PlaceImageInput[]): PlaceImageInput[] {
     ...image,
     ...(image.sourceType !== undefined ? { sourceType: normalizeSourceType(image.sourceType) ?? image.sourceType } : {})
   }));
+}
+
+function duplicateExternalAliases(externalRefs: Record<string, unknown> | null | undefined) {
+  if (!externalRefs) return [];
+  const aliases = [
+    ...stringArrayFromExternalRefs(externalRefs.aliases),
+    ...stringArrayFromExternalRefs(externalRefs.koreanSearchAliases),
+    ...stringArrayFromExternalRefs(externalRefs.englishName),
+    ...stringArrayFromExternalRefs(externalRefs.localName)
+  ];
+  return Array.from(new Set(aliases));
+}
+
+function stringArrayFromExternalRefs(value: unknown) {
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
 }
 
 function normalizeTags(tags: string[] | undefined) {
