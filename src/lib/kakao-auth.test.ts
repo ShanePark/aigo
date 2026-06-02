@@ -10,6 +10,7 @@ import {
   kakaoStateCookieOptions,
   safeNextPath
 } from "@/lib/kakao-auth";
+import { PRIVACY_POLICY_CONSENT } from "@/lib/consent-definitions";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalAigoAppOrigin = process.env.AIGO_APP_ORIGIN;
@@ -52,8 +53,24 @@ describe("kakao auth helpers", () => {
   it("decodes state and falls back to home for unsafe next paths", () => {
     const state = Buffer.from(JSON.stringify({ nextPath: "https://example.com", nonce: "nonce" }), "utf8").toString("base64url");
 
-    expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce" });
+    expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce", privacyConsent: null });
     expect(decodeKakaoState("not-json")).toBeNull();
+  });
+
+  it("round-trips the privacy consent version in Kakao state", () => {
+    process.env.KAKAO_REST_API_KEY = "test-key";
+
+    const request = new NextRequest("https://localhost:3000/api/auth/kakao");
+    const { url } = createKakaoAuthorizationUrl(request, "/me", "login", {
+      privacyPolicyVersion: PRIVACY_POLICY_CONSENT.version
+    });
+    const state = decodeKakaoState(url.searchParams.get("state"));
+
+    expect(state).toMatchObject({
+      mode: "login",
+      nextPath: "/me",
+      privacyConsent: { privacyPolicyVersion: PRIVACY_POLICY_CONSENT.version }
+    });
   });
 
   it("uses the configured app origin for Kakao redirect URIs", () => {

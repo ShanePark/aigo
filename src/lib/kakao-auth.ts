@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
 
 import { ApiError } from "@/lib/errors";
+import { isCurrentPrivacyPolicyConsent, type PrivacyPolicyConsentVersion } from "@/lib/consent-definitions";
 
 export const KAKAO_AUTH_STATE_COOKIE = "aigo_kakao_oauth_state";
 
@@ -30,6 +31,9 @@ export type KakaoLoginProfile = {
 };
 
 export type KakaoAuthMode = "link" | "login";
+export type KakaoAuthPrivacyConsent = {
+  privacyPolicyVersion: PrivacyPolicyConsentVersion;
+};
 
 export function isKakaoLoginConfigured(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.KAKAO_REST_API_KEY);
@@ -55,7 +59,12 @@ export function expiredKakaoStateCookieOptions() {
   };
 }
 
-export function createKakaoAuthorizationUrl(request: NextRequest, nextPath: string, mode: KakaoAuthMode = "login") {
+export function createKakaoAuthorizationUrl(
+  request: NextRequest,
+  nextPath: string,
+  mode: KakaoAuthMode = "login",
+  privacyConsent?: KakaoAuthPrivacyConsent | null
+) {
   const restApiKey = process.env.KAKAO_REST_API_KEY;
   if (!restApiKey) {
     throw new ApiError(503, "Kakao login is not configured");
@@ -63,7 +72,7 @@ export function createKakaoAuthorizationUrl(request: NextRequest, nextPath: stri
 
   const nonce = randomBytes(24).toString("base64url");
   const redirectUri = kakaoRedirectUri(request);
-  const state = encodeState({ mode, nextPath, nonce });
+  const state = encodeState({ mode, nextPath, nonce, privacyConsent: privacyConsent ?? null });
   const url = new URL(KAKAO_AUTHORIZE_URL);
   url.searchParams.set("client_id", restApiKey);
   url.searchParams.set("redirect_uri", redirectUri);
@@ -117,12 +126,18 @@ export function decodeKakaoState(value: string | null | undefined) {
   if (!value) return null;
 
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as { mode?: unknown; nextPath?: unknown; nonce?: unknown };
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as {
+      mode?: unknown;
+      nextPath?: unknown;
+      nonce?: unknown;
+      privacyConsent?: unknown;
+    };
     if (typeof parsed.nonce !== "string" || typeof parsed.nextPath !== "string") return null;
     return {
       mode: parsed.mode === "link" ? "link" : ("login" as KakaoAuthMode),
       nextPath: safeNextPath(parsed.nextPath),
-      nonce: parsed.nonce
+      nonce: parsed.nonce,
+      privacyConsent: parsePrivacyConsent(parsed.privacyConsent)
     };
   } catch {
     return null;
@@ -136,7 +151,14 @@ export function safeNextPath(value: string | string[] | undefined) {
   return raw;
 }
 
-function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: string }) {
+function parsePrivacyConsent(value: unknown): KakaoAuthPrivacyConsent | null {
+  if (!value || typeof value !== "object") return null;
+  const rawVersion = (value as { privacyPolicyVersion?: unknown }).privacyPolicyVersion;
+  const version = typeof rawVersion === "string" ? rawVersion : null;
+  return isCurrentPrivacyPolicyConsent(version) ? { privacyPolicyVersion: version } : null;
+}
+
+function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: string; privacyConsent: KakaoAuthPrivacyConsent | null }) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 

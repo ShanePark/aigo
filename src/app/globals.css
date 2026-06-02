@@ -3843,6 +3843,35 @@ h3 {
   gap: 12px;
 }
 
+.login-consent {
+  align-items: flex-start;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: grid;
+  font-size: var(--text-sm);
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+  line-height: 1.55;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.login-consent input {
+  accent-color: var(--mint);
+  height: 18px;
+  margin: 2px 0 0;
+  width: 18px;
+}
+
+.login-consent a {
+  color: var(--mint);
+  font-weight: var(--weight-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .login-option {
   align-items: center;
   background: var(--control-bg);

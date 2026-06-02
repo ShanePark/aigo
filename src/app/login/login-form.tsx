@@ -2,6 +2,10 @@
 
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+
+import { PRIVACY_POLICY_CONSENT } from "@/lib/consent-definitions";
 
 type LoginFormProps = {
   initialError: string | null;
@@ -11,9 +15,12 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
+  const [privacyConsentChecked, setPrivacyConsentChecked] = useState(false);
   const user = initialUser;
   const error = initialError;
-  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}`;
+  const privacyConsentRequired = !user;
+  const canStartKakaoLogin = kakaoLoginEnabled && (!privacyConsentRequired || privacyConsentChecked);
+  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}&privacyPolicyVersion=${encodeURIComponent(PRIVACY_POLICY_CONSENT.version)}`;
 
   return (
     <div className="login-panel">
@@ -30,12 +37,28 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
             </div>
           ) : null}
 
+          {privacyConsentRequired ? (
+            <label className="login-consent">
+              <input
+                checked={privacyConsentChecked}
+                onChange={(event) => setPrivacyConsentChecked(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                <Link href="/privacy" rel="noreferrer" target="_blank">
+                  개인정보 처리방침
+                </Link>
+                에 동의합니다.
+              </span>
+            </label>
+          ) : null}
+
           <a
-            aria-disabled={!kakaoLoginEnabled}
+            aria-disabled={!canStartKakaoLogin}
             className="login-option is-kakao"
-            href={kakaoLoginEnabled ? kakaoLoginHref : undefined}
+            href={canStartKakaoLogin ? kakaoLoginHref : undefined}
             onClick={(event) => {
-              if (!kakaoLoginEnabled) event.preventDefault();
+              if (!canStartKakaoLogin) event.preventDefault();
             }}
           >
             <span className="login-option-icon">
@@ -45,6 +68,7 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
               <strong>카카오로 계속하기</strong>
             </span>
             {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
+            {kakaoLoginEnabled && privacyConsentRequired && !privacyConsentChecked ? <span className="login-provider-badge">동의 필요</span> : null}
           </a>
 
           <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">
