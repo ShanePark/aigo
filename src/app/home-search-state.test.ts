@@ -160,9 +160,10 @@ describe("home search input", () => {
   });
 
   it("uses the supported result page sizes", () => {
-    expect(resultLimitParam({})).toBe(50);
-    expect(resultLimitParam({ limit: "30" })).toBe(50);
+    expect(resultLimitParam({})).toBe(100);
+    expect(resultLimitParam({ limit: "30" })).toBe(100);
     expect(resultLimitParam({ limit: "100" })).toBe(100);
+    expect(resultLimitParam({ limit: "300" })).toBe(300);
   });
 
   it("accepts rating sort for place evaluation ordering", () => {

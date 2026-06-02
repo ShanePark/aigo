@@ -8,8 +8,8 @@ export const DEFAULT_ORIGIN = {
   lng: 127.8,
   label: "전국 지도 중심"
 };
-export const DEFAULT_RESULT_LIMIT = 50;
-export const RESULT_LIMIT_OPTIONS = [50, 100] as const;
+export const DEFAULT_RESULT_LIMIT = 100;
+export const RESULT_LIMIT_OPTIONS = [100, 300] as const;
 export const CATEGORY_GROUP_CATEGORY_FILTERS = {
   all: undefined,
   stay: ["accommodation"],
