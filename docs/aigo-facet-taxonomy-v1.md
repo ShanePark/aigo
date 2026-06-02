@@ -78,6 +78,15 @@ Closed `primaryCategory` values:
 - `accommodation`
 - `zoo`
 
+Accommodation subtype is not a top-level category. Keep kid-primary lodging records as `primaryCategory: "accommodation"` and classify the user-facing subtype with tags:
+
+- `resort`: resort-scale/campus lodging, condo or resort brands, kids clubs, water parks, ski/ocean resorts, or source-backed 리조트 identity.
+- `pool_villa`: private-pool villas or 풀빌라-branded stays where the pool villa identity is core, including records also described as pensions.
+- `kids_hotel`: hotel-operated kids hotels or hotel-style child-primary lodging.
+- `pension`: pension-style kids/family stays that are not primarily resorts, pool villas, or hotels.
+
+Common aliases are defined in `src/app/accommodation-types.ts`; data updates should include the canonical subtype slug plus useful Korean/source-facing aliases when they improve search recall.
+
 Facet families:
 
 - `familyFitGates`: `child_primary`, `baby_logistics`, `retail_fallback`, `route_break`, `user_signal`

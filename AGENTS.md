@@ -53,6 +53,8 @@ Treat user-requested and user-visited places as product feedback, but do not enc
 - Short outdoor sensory play: sand play, water play, forest playgrounds, lawns, fountains, and stroller walks are important, especially near dense residential areas, lodging, transit hubs, or easy parking.
 - Day-trip nature with practical stops: nationwide nature/travel candidates should include route limits, toilets, shade, water-edge risk, and feeding/change fallback.
 - Playroom/family restaurants: these are useful after daycare or for meal+play combinations, but grill/fire risks, playroom line-of-sight, baby chairs, parking, and floor changes should be explicit.
+- Kid-primary accommodations: keep the top-level category as `accommodation`, and classify the user-facing lodging subtype with source-backed tags. The active subtype set is `resort`, `pool_villa`, `kids_hotel`, and `pension`; do not leave broad "키즈 숙소" records without a subtype when sources can distinguish them.
+- Lodging subtype precedence: use `resort` for resort-scale/campus lodging, `pool_villa` when private-pool villa identity is core, `kids_hotel` for hotel-operated kids hotels, and `pension` for pension-style kid/family stays that are not primarily resorts, pool villas, or hotels.
 
 When a source is weak or current operation is uncertain, keep the place searchable for user-requested registration and use cautionary parent notes, `unknown` fields, and conservative scoring rather than silently removing it from research. Do not use `needs_check` or `needs_review` as registration/review states for places the user asked us to add.
 

@@ -370,6 +370,19 @@ For resorts, hotels, pensions, and pool villas with named child-primary venues, 
 
 For resort parent/child `relatedPlaces`, include relation evidence such as `parentPlaceRole`, `childVenueRole`, `sameSiteName`, `sourceUrls`, and a short `displayNote` when available.
 
+## Accommodation Type Classification
+
+Accommodation remains a closed top-level `primaryCategory: "accommodation"`. The user-facing lodging subtype is stored in `tags`, and every active kid-primary accommodation should carry exactly one dominant subtype tag set when the evidence supports it:
+
+- Resort: use `resort` for resort-scale lodging, condo/resort brands, large campus lodging, bundled leisure facilities, water parks, ski/ocean resorts, kids clubs, or official/operator naming that clearly says 리조트. Useful aliases include `lodging_resort`, `family_resort`, `kids_resort`, `리조트`, and `키즈리조트`.
+- Pool villa: use `pool_villa` for private-pool villas, spa/pool villa brands, detached villas whose core family value is an in-room or private pool, or official/operator naming that clearly says 풀빌라. Useful aliases include `poolvilla`, `private_pool_villa`, `풀빌라`, and `키즈풀빌라`.
+- Kids hotel: use `kids_hotel` for hotel-style lodging branded as a kids hotel or hotel, especially when rooms/services are hotel-operated rather than pension-style detached units. Useful aliases include `kid_hotel`, `children_hotel`, `키즈호텔`, and `키즈 호텔`.
+- Pension: use `pension` for pension-style kid lodgings, kids pensions, family pensions, guesthouse-like independent stays, and places officially named 펜션 when they are not primarily a private-pool villa. Useful aliases include `family_pension`, `kids_pension`, `펜션`, and `키즈펜션`.
+
+When names contain multiple signals, classify by the strongest source-backed operating model instead of keyword order. Prefer `pool_villa` over `pension` when a private pool or 풀빌라 branding is core to the lodging. Prefer `resort` when the place is a resort campus even if it includes hotel rooms or pool villas. Prefer `kids_hotel` for hotel-operated properties branded as hotels without resort-scale campus evidence. Use `pension` as the conservative fallback for kid-primary accommodations that are clearly pensions or family stays but not resort, pool villa, or hotel.
+
+For accommodation subtype audit waves, use a duplicate-first and source-backed flow: query active production `accommodation` records, read detail, inspect existing tags/name/sources, search official/operator/public listing pages when subtype is ambiguous, then patch `tags` with the subtype tag set through `PATCH /v1/places/{placeId}`. Add an `agent_observation` source whose summary states the subtype evidence and checked date. Verify detail and versions after each meaningful update. If the same place exists on localhost, apply the same API patch locally; if it exists only in production, record `skip_local_missing` and do not create local data just for parity.
+
 Common `primaryCategory` values used by the UI/search:
 
 - `kids_cafe`
