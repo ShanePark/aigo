@@ -30,7 +30,7 @@ export type KakaoLoginProfile = {
   kakaoId: string;
 };
 
-export type KakaoAuthMode = "link" | "login" | "signup";
+export type KakaoAuthMode = "link" | "login";
 export type KakaoAuthRequiredConsents = RequiredConsentVersions;
 
 export function isKakaoLoginConfigured(env: NodeJS.ProcessEnv = process.env) {
@@ -144,7 +144,7 @@ export function decodeKakaoState(value: string | null | undefined) {
 }
 
 function parseKakaoAuthMode(value: unknown): KakaoAuthMode {
-  if (value === "link" || value === "signup") return value;
+  if (value === "link") return value;
   return "login";
 }
 

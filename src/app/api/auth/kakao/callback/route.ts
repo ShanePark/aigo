@@ -4,11 +4,8 @@ import {
   AIGO_SESSION_COOKIE,
   createLoginSessionForAppUser,
   currentUserFromSessionToken,
-  sessionCookieOptions,
-  upsertAppUser
+  sessionCookieOptions
 } from "@/lib/app-auth";
-import { CURRENT_REQUIRED_CONSENT_VERSIONS } from "@/lib/consent-definitions";
-import { recordRequiredConsents } from "@/lib/consents";
 import { ApiError } from "@/lib/errors";
 import {
   appUrl,
@@ -17,6 +14,11 @@ import {
   KAKAO_AUTH_STATE_COOKIE,
   kakaoProfileFromCode
 } from "@/lib/kakao-auth";
+import {
+  createPendingKakaoSignupToken,
+  pendingKakaoSignupCookieOptions,
+  PENDING_KAKAO_SIGNUP_COOKIE
+} from "@/lib/pending-kakao-signup";
 import { findUserBySocialAccount, linkSocialAccount } from "@/lib/social-accounts";
 
 export const dynamic = "force-dynamic";
@@ -55,25 +57,14 @@ export async function GET(request: NextRequest) {
     }
 
     const linkedUser = await findUserBySocialAccount("kakao", kakaoProfile.kakaoId);
-    if (!linkedUser && state.mode !== "signup") {
-      throw new ApiError(400, "회원가입하려면 필수 약관 동의가 필요합니다.");
-    }
-    if (state.mode === "signup") {
-      if (!state.requiredConsents || !requiredConsentVersionsMatch(state.requiredConsents, CURRENT_REQUIRED_CONSENT_VERSIONS)) {
-        throw new ApiError(400, "필수 약관 동의 기록이 없습니다.");
-      }
+    if (!linkedUser) {
+      const response = NextResponse.redirect(appUrl(`/signup/consents?next=${encodeURIComponent(state.nextPath)}`, request));
+      response.cookies.set(PENDING_KAKAO_SIGNUP_COOKIE, createPendingKakaoSignupToken({ nextPath: state.nextPath, profile: kakaoProfile }), pendingKakaoSignupCookieOptions());
+      response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
+      return response;
     }
 
-    const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
-    if (!linkedUser) {
-      await recordRequiredConsents(sessionUser.id, request, { source: "signup" });
-      await linkSocialAccount(sessionUser.id, {
-        provider: "kakao",
-        providerEmail: kakaoProfile.email,
-        providerUserId: kakaoProfile.kakaoId
-      });
-    }
-    const { expiresAt, token } = await createLoginSessionForAppUser(sessionUser);
+    const { expiresAt, token } = await createLoginSessionForAppUser(linkedUser);
     const response = NextResponse.redirect(appUrl(state.nextPath, request));
     response.cookies.set(AIGO_SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, "", expiredKakaoStateCookieOptions());
@@ -97,8 +88,4 @@ function loginErrorUrl(url: URL, error: unknown) {
 
 function stringDetail(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function requiredConsentVersionsMatch(left: Record<string, string>, right: Record<string, string>) {
-  return Object.entries(right).every(([key, value]) => left[key] === value);
 }

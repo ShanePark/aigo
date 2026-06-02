@@ -10,7 +10,6 @@ import {
   kakaoStateCookieOptions,
   safeNextPath
 } from "@/lib/kakao-auth";
-import { CURRENT_REQUIRED_CONSENT_VERSIONS } from "@/lib/consent-definitions";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalAigoAppOrigin = process.env.AIGO_APP_ORIGIN;
@@ -55,20 +54,6 @@ describe("kakao auth helpers", () => {
 
     expect(decodeKakaoState(state)).toEqual({ mode: "login", nextPath: "/", nonce: "nonce", requiredConsents: null });
     expect(decodeKakaoState("not-json")).toBeNull();
-  });
-
-  it("round-trips the required consent versions in Kakao state", () => {
-    process.env.KAKAO_REST_API_KEY = "test-key";
-
-    const request = new NextRequest("https://localhost:3000/api/auth/kakao");
-    const { url } = createKakaoAuthorizationUrl(request, "/me", "signup", CURRENT_REQUIRED_CONSENT_VERSIONS);
-    const state = decodeKakaoState(url.searchParams.get("state"));
-
-    expect(state).toMatchObject({
-      mode: "signup",
-      nextPath: "/me",
-      requiredConsents: CURRENT_REQUIRED_CONSENT_VERSIONS
-    });
   });
 
   it("does not require consent versions for a login state", () => {

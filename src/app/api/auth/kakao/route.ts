@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
-import {
-  CURRENT_REQUIRED_CONSENT_VERSIONS,
-  isCurrentRequiredConsentVersions,
-  requiredConsentVersionsFromSearchParams
-} from "@/lib/consent-definitions";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { createKakaoAuthorizationUrl, KAKAO_AUTH_STATE_COOKIE, kakaoStateCookieOptions, safeNextPath } from "@/lib/kakao-auth";
 
@@ -16,23 +11,15 @@ export async function GET(request: NextRequest) {
   try {
     const nextPath = safeNextPath(request.nextUrl.searchParams.get("next") ?? undefined);
     const modeParam = request.nextUrl.searchParams.get("mode");
-    const mode = modeParam === "link" || modeParam === "signup" ? modeParam : "login";
-    const requiredConsentVersions = requiredConsentVersionsFromSearchParams(request.nextUrl.searchParams);
+    const mode = modeParam === "link" ? modeParam : "login";
     if (mode === "link") {
       const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
       if (!user) {
         throw new ApiError(401, "Login required");
       }
-    } else if (mode === "signup" && !isCurrentRequiredConsentVersions(requiredConsentVersions)) {
-      throw new ApiError(400, "필수 약관 동의가 필요합니다.");
     }
 
-    const { nonce, url } = createKakaoAuthorizationUrl(
-      request,
-      nextPath,
-      mode,
-      mode === "signup" ? CURRENT_REQUIRED_CONSENT_VERSIONS : null
-    );
+    const { nonce, url } = createKakaoAuthorizationUrl(request, nextPath, mode);
     const response = NextResponse.redirect(url);
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, nonce, kakaoStateCookieOptions());
     return response;

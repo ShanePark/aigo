@@ -2,10 +2,6 @@
 
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-
-import { REQUIRED_CONSENTS, type RequiredConsentStateKey } from "@/lib/consent-definitions";
 
 type LoginFormProps = {
   initialError: string | null;
@@ -15,21 +11,10 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
-  const [checkedConsents, setCheckedConsents] = useState<Record<RequiredConsentStateKey, boolean>>({
-    locationTermsVersion: false,
-    privacyPolicyVersion: false,
-    termsVersion: false
-  });
   const user = initialUser;
   const error = initialError;
-  const signupAvailable = !user;
-  const allRequiredConsentsChecked = REQUIRED_CONSENTS.every((consent) => checkedConsents[consent.stateKey]);
   const canStartKakaoLogin = kakaoLoginEnabled;
-  const canStartKakaoSignup = kakaoLoginEnabled && allRequiredConsentsChecked;
   const kakaoLoginHref = `/api/auth/kakao?mode=login&next=${encodeURIComponent(nextPath)}`;
-  const kakaoSignupHref = `/api/auth/kakao?mode=signup&next=${encodeURIComponent(nextPath)}&${REQUIRED_CONSENTS.map(
-    (consent) => `${consent.paramName}=${encodeURIComponent(consent.version)}`
-  ).join("&")}`;
 
   return (
     <div className="login-panel">
@@ -58,54 +43,10 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
               <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
             </span>
             <span className="login-provider-label">
-              <strong>카카오로 로그인</strong>
+              <strong>카카오로 계속하기</strong>
             </span>
             {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
           </a>
-
-          {signupAvailable ? (
-            <div className="login-consent-group" aria-label="필수 약관 동의">
-              {REQUIRED_CONSENTS.map((consent) => (
-                <label className="login-consent" key={consent.type}>
-                  <input
-                    checked={checkedConsents[consent.stateKey]}
-                    onChange={(event) =>
-                      setCheckedConsents((current) => ({
-                        ...current,
-                        [consent.stateKey]: event.target.checked
-                      }))
-                    }
-                    type="checkbox"
-                  />
-                  <span>
-                    <Link href={consent.documentUrl} rel="noreferrer" target="_blank">
-                      {consent.label}
-                    </Link>
-                    에 동의합니다.
-                  </span>
-                </label>
-              ))}
-            </div>
-          ) : null}
-
-          {signupAvailable ? (
-            <a
-              aria-disabled={!canStartKakaoSignup}
-              className="login-option is-kakao"
-              href={canStartKakaoSignup ? kakaoSignupHref : undefined}
-              onClick={(event) => {
-                if (!canStartKakaoSignup) event.preventDefault();
-              }}
-            >
-              <span className="login-option-icon">
-                <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
-              </span>
-              <span className="login-provider-label">
-                <strong>카카오로 회원가입</strong>
-              </span>
-              {kakaoLoginEnabled && !allRequiredConsentsChecked ? <span className="login-provider-badge">동의 필요</span> : null}
-            </a>
-          ) : null}
 
           <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">
             <span className="login-option-icon">
