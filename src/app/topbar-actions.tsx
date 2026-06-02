@@ -67,8 +67,8 @@ export function TopbarActions({
       {isOpen ? (
         <div className={styles.menuPanel} role="menu">
           {menuItems.map((item) => renderMenuLink(item, pathname, () => setIsOpen(false)))}
-          {initialUser?.role === "admin" ? renderMenuLink(adminMenuItem, pathname, () => setIsOpen(false)) : null}
           <div className={styles.menuSection}>
+            {initialUser?.role === "admin" ? renderMenuLink(adminMenuItem, pathname, () => setIsOpen(false)) : null}
             <AccountControls initialUser={initialUser} />
           </div>
           <p className={styles.menuFooter}>
