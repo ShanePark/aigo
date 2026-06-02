@@ -168,6 +168,25 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR"]));
   });
 
+  it("keeps same parent-building tenant siblings as manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 120,
+      nameSimilarity: 0.72,
+      sameBuildingReviewOnly: true
+    };
+
+    expect(duplicateSameBuildingReviewOnly("주라지 테마파크 대구신세계", "리틀란드 대구신세계")).toBe(true);
+    expect(duplicateSameBuildingReviewOnly("주라지 테마파크 대구신세계", "대구 이월드")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("same_building");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"]));
+  });
+
   it("keeps chain branch siblings as manual review instead of blocking or updating", () => {
     const signals = {
       aliasMatch: true,
