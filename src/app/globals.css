@@ -4740,11 +4740,22 @@ h3 {
   color: var(--accent-text);
 }
 
+.advanced-filter-apply-button {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--accent-text);
+}
+
 .app-modal-cancel:hover:not(:disabled),
 .app-modal-submit:hover:not(:disabled) {
   border-color: var(--hover-border);
   box-shadow: var(--shadow-soft);
   transform: translateY(-1px);
+}
+
+.app-modal-submit.advanced-filter-apply-button:hover:not(:disabled) {
+  background: var(--button-hover);
+  border-color: var(--button-hover);
 }
 
 .app-modal-cancel:disabled,
@@ -7661,6 +7672,44 @@ dd {
   .region-results-panel.results-panel {
     height: auto;
     max-height: none;
+  }
+}
+
+@media (min-width: 761px) {
+  .app-modal-backdrop:has(.advanced-filter-modal-content) {
+    --app-modal-block-end: 8px;
+    --app-modal-block-start: 8px;
+    --app-modal-max-height: min(900px, calc(100dvh - 16px));
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .app-modal-head {
+    padding-bottom: 10px;
+    padding-top: 12px;
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .app-modal-footer {
+    padding-bottom: 8px;
+    padding-top: 8px;
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .app-modal-submit {
+    min-height: 38px;
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .advanced-filter-modal-content {
+    gap: 8px;
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .advanced-filter-guide {
+    padding-bottom: 7px;
+    padding-top: 7px;
+  }
+
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .advanced-filter-group,
+  .app-modal-backdrop:has(.advanced-filter-modal-content) .child-profile-panel {
+    gap: 7px;
+    padding-bottom: 9px;
+    padding-top: 9px;
   }
 }
 
