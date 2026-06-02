@@ -7,8 +7,8 @@ import {
   sessionCookieOptions,
   upsertAppUser
 } from "@/lib/app-auth";
-import { PRIVACY_POLICY_CONSENT } from "@/lib/consent-definitions";
-import { recordPrivacyPolicyConsent } from "@/lib/consents";
+import { CURRENT_REQUIRED_CONSENT_VERSIONS } from "@/lib/consent-definitions";
+import { recordRequiredConsents } from "@/lib/consents";
 import { ApiError } from "@/lib/errors";
 import {
   appUrl,
@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    if (state.privacyConsent?.privacyPolicyVersion !== PRIVACY_POLICY_CONSENT.version) {
-      throw new ApiError(400, "개인정보 처리방침 동의 기록이 없습니다.");
+    if (!state.requiredConsents || !requiredConsentVersionsMatch(state.requiredConsents, CURRENT_REQUIRED_CONSENT_VERSIONS)) {
+      throw new ApiError(400, "필수 약관 동의 기록이 없습니다.");
     }
     const linkedUser = await findUserBySocialAccount("kakao", kakaoProfile.kakaoId);
     const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
-    await recordPrivacyPolicyConsent(sessionUser.id, request, { source: linkedUser ? "login" : "signup" });
+    await recordRequiredConsents(sessionUser.id, request, { source: linkedUser ? "login" : "signup" });
     if (!linkedUser) {
       await linkSocialAccount(sessionUser.id, {
         provider: "kakao",
@@ -91,4 +91,8 @@ function loginErrorUrl(url: URL, error: unknown) {
 
 function stringDetail(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function requiredConsentVersionsMatch(left: Record<string, string>, right: Record<string, string>) {
+  return Object.entries(right).every(([key, value]) => left[key] === value);
 }

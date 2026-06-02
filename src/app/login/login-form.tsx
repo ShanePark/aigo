@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-import { PRIVACY_POLICY_CONSENT } from "@/lib/consent-definitions";
+import { REQUIRED_CONSENTS, type RequiredConsentStateKey } from "@/lib/consent-definitions";
 
 type LoginFormProps = {
   initialError: string | null;
@@ -15,12 +15,19 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPath }: LoginFormProps) {
-  const [privacyConsentChecked, setPrivacyConsentChecked] = useState(false);
+  const [checkedConsents, setCheckedConsents] = useState<Record<RequiredConsentStateKey, boolean>>({
+    locationTermsVersion: false,
+    privacyPolicyVersion: false,
+    termsVersion: false
+  });
   const user = initialUser;
   const error = initialError;
   const privacyConsentRequired = !user;
-  const canStartKakaoLogin = kakaoLoginEnabled && (!privacyConsentRequired || privacyConsentChecked);
-  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}&privacyPolicyVersion=${encodeURIComponent(PRIVACY_POLICY_CONSENT.version)}`;
+  const allRequiredConsentsChecked = REQUIRED_CONSENTS.every((consent) => checkedConsents[consent.stateKey]);
+  const canStartKakaoLogin = kakaoLoginEnabled && (!privacyConsentRequired || allRequiredConsentsChecked);
+  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}&${REQUIRED_CONSENTS.map(
+    (consent) => `${consent.paramName}=${encodeURIComponent(consent.version)}`
+  ).join("&")}`;
 
   return (
     <div className="login-panel">
@@ -38,19 +45,28 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
           ) : null}
 
           {privacyConsentRequired ? (
-            <label className="login-consent">
-              <input
-                checked={privacyConsentChecked}
-                onChange={(event) => setPrivacyConsentChecked(event.target.checked)}
-                type="checkbox"
-              />
-              <span>
-                <Link href="/privacy" rel="noreferrer" target="_blank">
-                  개인정보 처리방침
-                </Link>
-                에 동의합니다.
-              </span>
-            </label>
+            <div className="login-consent-group" aria-label="필수 약관 동의">
+              {REQUIRED_CONSENTS.map((consent) => (
+                <label className="login-consent" key={consent.type}>
+                  <input
+                    checked={checkedConsents[consent.stateKey]}
+                    onChange={(event) =>
+                      setCheckedConsents((current) => ({
+                        ...current,
+                        [consent.stateKey]: event.target.checked
+                      }))
+                    }
+                    type="checkbox"
+                  />
+                  <span>
+                    <Link href={consent.documentUrl} rel="noreferrer" target="_blank">
+                      {consent.label}
+                    </Link>
+                    에 동의합니다.
+                  </span>
+                </label>
+              ))}
+            </div>
           ) : null}
 
           <a
@@ -68,7 +84,7 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
               <strong>카카오로 계속하기</strong>
             </span>
             {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
-            {kakaoLoginEnabled && privacyConsentRequired && !privacyConsentChecked ? <span className="login-provider-badge">동의 필요</span> : null}
+            {kakaoLoginEnabled && privacyConsentRequired && !allRequiredConsentsChecked ? <span className="login-provider-badge">동의 필요</span> : null}
           </a>
 
           <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">

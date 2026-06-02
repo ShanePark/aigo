@@ -123,8 +123,14 @@
 .menuFooterLink {
   color: var(--text);
   font-weight: var(--weight-strong);
-  justify-self: end;
   text-decoration: none;
+}
+
+.menuFooterLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  justify-content: flex-end;
 }
 
 .menuFooterLink:hover,

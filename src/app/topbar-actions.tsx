@@ -72,9 +72,17 @@ export function TopbarActions({
             <AccountControls initialUser={initialUser} />
           </div>
           <p className={styles.menuFooter}>
-            <Link className={styles.menuFooterLink} href={"/privacy" as Route} onClick={() => setIsOpen(false)}>
-              개인정보 처리방침
-            </Link>
+            <span className={styles.menuFooterLinks}>
+              <Link className={styles.menuFooterLink} href={"/privacy" as Route} onClick={() => setIsOpen(false)}>
+                개인정보 처리방침
+              </Link>
+              <Link className={styles.menuFooterLink} href={"/terms" as Route} onClick={() => setIsOpen(false)}>
+                이용약관
+              </Link>
+              <Link className={styles.menuFooterLink} href={"/location-terms" as Route} onClick={() => setIsOpen(false)}>
+                위치기반서비스 약관
+              </Link>
+            </span>
             <span>{footerText}</span>
             <span>{appVersion}</span>
           </p>

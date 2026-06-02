@@ -3,14 +3,27 @@ import type { NextRequest } from "next/server";
 import type postgres from "postgres";
 
 import { pg } from "@/db/client";
-import { PRIVACY_POLICY_CONSENT } from "@/lib/consent-definitions";
+import { REQUIRED_CONSENTS, type RequiredConsent } from "@/lib/consent-definitions";
 
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
+type ConsentSource = "signup" | "login" | "account_update" | "admin";
 
-export async function recordPrivacyPolicyConsent(
+export async function recordRequiredConsents(
   userId: string,
   request: NextRequest,
-  options: { source?: "signup" | "login" | "account_update" | "admin" } = {},
+  options: { source?: ConsentSource } = {},
+  executor: SqlExecutor = pg
+) {
+  for (const consent of REQUIRED_CONSENTS) {
+    await recordUserConsent(userId, request, consent, options, executor);
+  }
+}
+
+export async function recordUserConsent(
+  userId: string,
+  request: NextRequest,
+  consent: RequiredConsent,
+  options: { source?: ConsentSource } = {},
   executor: SqlExecutor = pg
 ) {
   await executor`
@@ -29,12 +42,12 @@ export async function recordPrivacyPolicyConsent(
     )
     values (
       ${userId},
-      ${PRIVACY_POLICY_CONSENT.type},
-      ${PRIVACY_POLICY_CONSENT.version},
-      ${PRIVACY_POLICY_CONSENT.documentTitle},
-      ${PRIVACY_POLICY_CONSENT.documentUrl},
-      ${PRIVACY_POLICY_CONSENT.documentEffectiveDate},
-      ${PRIVACY_POLICY_CONSENT.consentText},
+      ${consent.type},
+      ${consent.version},
+      ${consent.documentTitle},
+      ${consent.documentUrl},
+      ${consent.documentEffectiveDate},
+      ${consent.consentText},
       ${options.source ?? "signup"},
       ${clientIp(request)},
       ${request.headers.get("user-agent")?.trim() || null},

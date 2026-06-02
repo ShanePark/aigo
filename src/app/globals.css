@@ -3843,6 +3843,11 @@ h3 {
   gap: 12px;
 }
 
+.login-consent-group {
+  display: grid;
+  gap: 8px;
+}
+
 .login-consent {
   align-items: flex-start;
   background: var(--control-bg);

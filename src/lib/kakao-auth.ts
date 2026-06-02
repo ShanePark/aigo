@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
 
 import { ApiError } from "@/lib/errors";
-import { isCurrentPrivacyPolicyConsent, type PrivacyPolicyConsentVersion } from "@/lib/consent-definitions";
+import { isCurrentRequiredConsentVersions, type RequiredConsentVersions } from "@/lib/consent-definitions";
 
 export const KAKAO_AUTH_STATE_COOKIE = "aigo_kakao_oauth_state";
 
@@ -31,9 +31,7 @@ export type KakaoLoginProfile = {
 };
 
 export type KakaoAuthMode = "link" | "login";
-export type KakaoAuthPrivacyConsent = {
-  privacyPolicyVersion: PrivacyPolicyConsentVersion;
-};
+export type KakaoAuthRequiredConsents = RequiredConsentVersions;
 
 export function isKakaoLoginConfigured(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.KAKAO_REST_API_KEY);
@@ -63,7 +61,7 @@ export function createKakaoAuthorizationUrl(
   request: NextRequest,
   nextPath: string,
   mode: KakaoAuthMode = "login",
-  privacyConsent?: KakaoAuthPrivacyConsent | null
+  requiredConsents?: KakaoAuthRequiredConsents | null
 ) {
   const restApiKey = process.env.KAKAO_REST_API_KEY;
   if (!restApiKey) {
@@ -72,7 +70,7 @@ export function createKakaoAuthorizationUrl(
 
   const nonce = randomBytes(24).toString("base64url");
   const redirectUri = kakaoRedirectUri(request);
-  const state = encodeState({ mode, nextPath, nonce, privacyConsent: privacyConsent ?? null });
+  const state = encodeState({ mode, nextPath, nonce, requiredConsents: requiredConsents ?? null });
   const url = new URL(KAKAO_AUTHORIZE_URL);
   url.searchParams.set("client_id", restApiKey);
   url.searchParams.set("redirect_uri", redirectUri);
@@ -131,13 +129,14 @@ export function decodeKakaoState(value: string | null | undefined) {
       nextPath?: unknown;
       nonce?: unknown;
       privacyConsent?: unknown;
+      requiredConsents?: unknown;
     };
     if (typeof parsed.nonce !== "string" || typeof parsed.nextPath !== "string") return null;
     return {
       mode: parsed.mode === "link" ? "link" : ("login" as KakaoAuthMode),
       nextPath: safeNextPath(parsed.nextPath),
       nonce: parsed.nonce,
-      privacyConsent: parsePrivacyConsent(parsed.privacyConsent)
+      requiredConsents: parseRequiredConsents(parsed.requiredConsents ?? parsed.privacyConsent)
     };
   } catch {
     return null;
@@ -151,14 +150,18 @@ export function safeNextPath(value: string | string[] | undefined) {
   return raw;
 }
 
-function parsePrivacyConsent(value: unknown): KakaoAuthPrivacyConsent | null {
+function parseRequiredConsents(value: unknown): KakaoAuthRequiredConsents | null {
   if (!value || typeof value !== "object") return null;
-  const rawVersion = (value as { privacyPolicyVersion?: unknown }).privacyPolicyVersion;
-  const version = typeof rawVersion === "string" ? rawVersion : null;
-  return isCurrentPrivacyPolicyConsent(version) ? { privacyPolicyVersion: version } : null;
+  const input = value as Partial<Record<keyof RequiredConsentVersions, unknown>>;
+  const versions = {
+    locationTermsVersion: typeof input.locationTermsVersion === "string" ? input.locationTermsVersion : null,
+    privacyPolicyVersion: typeof input.privacyPolicyVersion === "string" ? input.privacyPolicyVersion : null,
+    termsVersion: typeof input.termsVersion === "string" ? input.termsVersion : null
+  };
+  return isCurrentRequiredConsentVersions(versions) ? (versions as KakaoAuthRequiredConsents) : null;
 }
 
-function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: string; privacyConsent: KakaoAuthPrivacyConsent | null }) {
+function encodeState(value: { mode: KakaoAuthMode; nextPath: string; nonce: string; requiredConsents: KakaoAuthRequiredConsents | null }) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
