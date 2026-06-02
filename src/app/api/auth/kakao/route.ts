@@ -15,14 +15,15 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const nextPath = safeNextPath(request.nextUrl.searchParams.get("next") ?? undefined);
-    const mode = request.nextUrl.searchParams.get("mode") === "link" ? "link" : "login";
+    const modeParam = request.nextUrl.searchParams.get("mode");
+    const mode = modeParam === "link" || modeParam === "signup" ? modeParam : "login";
     const requiredConsentVersions = requiredConsentVersionsFromSearchParams(request.nextUrl.searchParams);
     if (mode === "link") {
       const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);
       if (!user) {
         throw new ApiError(401, "Login required");
       }
-    } else if (!isCurrentRequiredConsentVersions(requiredConsentVersions)) {
+    } else if (mode === "signup" && !isCurrentRequiredConsentVersions(requiredConsentVersions)) {
       throw new ApiError(400, "필수 약관 동의가 필요합니다.");
     }
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       request,
       nextPath,
       mode,
-      mode === "login" ? CURRENT_REQUIRED_CONSENT_VERSIONS : null
+      mode === "signup" ? CURRENT_REQUIRED_CONSENT_VERSIONS : null
     );
     const response = NextResponse.redirect(url);
     response.cookies.set(KAKAO_AUTH_STATE_COOKIE, nonce, kakaoStateCookieOptions());

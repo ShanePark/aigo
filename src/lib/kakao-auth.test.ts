@@ -61,13 +61,27 @@ describe("kakao auth helpers", () => {
     process.env.KAKAO_REST_API_KEY = "test-key";
 
     const request = new NextRequest("https://localhost:3000/api/auth/kakao");
-    const { url } = createKakaoAuthorizationUrl(request, "/me", "login", CURRENT_REQUIRED_CONSENT_VERSIONS);
+    const { url } = createKakaoAuthorizationUrl(request, "/me", "signup", CURRENT_REQUIRED_CONSENT_VERSIONS);
+    const state = decodeKakaoState(url.searchParams.get("state"));
+
+    expect(state).toMatchObject({
+      mode: "signup",
+      nextPath: "/me",
+      requiredConsents: CURRENT_REQUIRED_CONSENT_VERSIONS
+    });
+  });
+
+  it("does not require consent versions for a login state", () => {
+    process.env.KAKAO_REST_API_KEY = "test-key";
+
+    const request = new NextRequest("https://localhost:3000/api/auth/kakao");
+    const { url } = createKakaoAuthorizationUrl(request, "/me", "login");
     const state = decodeKakaoState(url.searchParams.get("state"));
 
     expect(state).toMatchObject({
       mode: "login",
       nextPath: "/me",
-      requiredConsents: CURRENT_REQUIRED_CONSENT_VERSIONS
+      requiredConsents: null
     });
   });
 

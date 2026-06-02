@@ -54,13 +54,19 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    if (!state.requiredConsents || !requiredConsentVersionsMatch(state.requiredConsents, CURRENT_REQUIRED_CONSENT_VERSIONS)) {
-      throw new ApiError(400, "필수 약관 동의 기록이 없습니다.");
-    }
     const linkedUser = await findUserBySocialAccount("kakao", kakaoProfile.kakaoId);
+    if (!linkedUser && state.mode !== "signup") {
+      throw new ApiError(400, "회원가입하려면 필수 약관 동의가 필요합니다.");
+    }
+    if (state.mode === "signup") {
+      if (!state.requiredConsents || !requiredConsentVersionsMatch(state.requiredConsents, CURRENT_REQUIRED_CONSENT_VERSIONS)) {
+        throw new ApiError(400, "필수 약관 동의 기록이 없습니다.");
+      }
+    }
+
     const sessionUser = linkedUser ?? (await upsertAppUser(kakaoProfile));
-    await recordRequiredConsents(sessionUser.id, request, { source: linkedUser ? "login" : "signup" });
     if (!linkedUser) {
+      await recordRequiredConsents(sessionUser.id, request, { source: "signup" });
       await linkSocialAccount(sessionUser.id, {
         provider: "kakao",
         providerEmail: kakaoProfile.email,

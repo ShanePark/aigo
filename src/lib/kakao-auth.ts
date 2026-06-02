@@ -30,7 +30,7 @@ export type KakaoLoginProfile = {
   kakaoId: string;
 };
 
-export type KakaoAuthMode = "link" | "login";
+export type KakaoAuthMode = "link" | "login" | "signup";
 export type KakaoAuthRequiredConsents = RequiredConsentVersions;
 
 export function isKakaoLoginConfigured(env: NodeJS.ProcessEnv = process.env) {
@@ -133,7 +133,7 @@ export function decodeKakaoState(value: string | null | undefined) {
     };
     if (typeof parsed.nonce !== "string" || typeof parsed.nextPath !== "string") return null;
     return {
-      mode: parsed.mode === "link" ? "link" : ("login" as KakaoAuthMode),
+      mode: parseKakaoAuthMode(parsed.mode),
       nextPath: safeNextPath(parsed.nextPath),
       nonce: parsed.nonce,
       requiredConsents: parseRequiredConsents(parsed.requiredConsents ?? parsed.privacyConsent)
@@ -141,6 +141,11 @@ export function decodeKakaoState(value: string | null | undefined) {
   } catch {
     return null;
   }
+}
+
+function parseKakaoAuthMode(value: unknown): KakaoAuthMode {
+  if (value === "link" || value === "signup") return value;
+  return "login";
 }
 
 export function safeNextPath(value: string | string[] | undefined) {

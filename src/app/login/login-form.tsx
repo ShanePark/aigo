@@ -22,10 +22,12 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
   });
   const user = initialUser;
   const error = initialError;
-  const privacyConsentRequired = !user;
+  const signupAvailable = !user;
   const allRequiredConsentsChecked = REQUIRED_CONSENTS.every((consent) => checkedConsents[consent.stateKey]);
-  const canStartKakaoLogin = kakaoLoginEnabled && (!privacyConsentRequired || allRequiredConsentsChecked);
-  const kakaoLoginHref = `/api/auth/kakao?next=${encodeURIComponent(nextPath)}&${REQUIRED_CONSENTS.map(
+  const canStartKakaoLogin = kakaoLoginEnabled;
+  const canStartKakaoSignup = kakaoLoginEnabled && allRequiredConsentsChecked;
+  const kakaoLoginHref = `/api/auth/kakao?mode=login&next=${encodeURIComponent(nextPath)}`;
+  const kakaoSignupHref = `/api/auth/kakao?mode=signup&next=${encodeURIComponent(nextPath)}&${REQUIRED_CONSENTS.map(
     (consent) => `${consent.paramName}=${encodeURIComponent(consent.version)}`
   ).join("&")}`;
 
@@ -44,7 +46,24 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
             </div>
           ) : null}
 
-          {privacyConsentRequired ? (
+          <a
+            aria-disabled={!canStartKakaoLogin}
+            className="login-option is-kakao"
+            href={canStartKakaoLogin ? kakaoLoginHref : undefined}
+            onClick={(event) => {
+              if (!canStartKakaoLogin) event.preventDefault();
+            }}
+          >
+            <span className="login-option-icon">
+              <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
+            </span>
+            <span className="login-provider-label">
+              <strong>카카오로 로그인</strong>
+            </span>
+            {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
+          </a>
+
+          {signupAvailable ? (
             <div className="login-consent-group" aria-label="필수 약관 동의">
               {REQUIRED_CONSENTS.map((consent) => (
                 <label className="login-consent" key={consent.type}>
@@ -69,23 +88,24 @@ export function LoginForm({ initialError, initialUser, kakaoLoginEnabled, nextPa
             </div>
           ) : null}
 
-          <a
-            aria-disabled={!canStartKakaoLogin}
-            className="login-option is-kakao"
-            href={canStartKakaoLogin ? kakaoLoginHref : undefined}
-            onClick={(event) => {
-              if (!canStartKakaoLogin) event.preventDefault();
-            }}
-          >
-            <span className="login-option-icon">
-              <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
-            </span>
-            <span className="login-provider-label">
-              <strong>카카오로 계속하기</strong>
-            </span>
-            {!kakaoLoginEnabled ? <span className="login-provider-badge">설정 필요</span> : null}
-            {kakaoLoginEnabled && privacyConsentRequired && !allRequiredConsentsChecked ? <span className="login-provider-badge">동의 필요</span> : null}
-          </a>
+          {signupAvailable ? (
+            <a
+              aria-disabled={!canStartKakaoSignup}
+              className="login-option is-kakao"
+              href={canStartKakaoSignup ? kakaoSignupHref : undefined}
+              onClick={(event) => {
+                if (!canStartKakaoSignup) event.preventDefault();
+              }}
+            >
+              <span className="login-option-icon">
+                <Image className="login-provider-icon" src="/auth/kakao.png" alt="" aria-hidden="true" width={24} height={24} />
+              </span>
+              <span className="login-provider-label">
+                <strong>카카오로 회원가입</strong>
+              </span>
+              {kakaoLoginEnabled && !allRequiredConsentsChecked ? <span className="login-provider-badge">동의 필요</span> : null}
+            </a>
+          ) : null}
 
           <button aria-label="네이버로 계속하기, 준비 중" className="login-option is-naver" disabled type="button">
             <span className="login-option-icon">
