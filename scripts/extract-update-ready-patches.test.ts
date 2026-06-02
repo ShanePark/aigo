@@ -69,9 +69,16 @@ describe("update-ready patch extractor", () => {
     ]);
 
     expect(args.candidates).toEqual(["롯데프리미엄아울렛 의왕점", "왕송호수공원", "의왕철도박물관"]);
+    expect(args.apiBaseUrl).toBe("https://aigo.o-r.kr");
     expect(args.limit).toBe(5);
     expect(args.staleAfterDays).toBe(90);
     expect(args.json).toBe(true);
+  });
+
+  it("allows an explicit local API base override for disposable route tests", () => {
+    const args = parseArgs(["--candidate=테스트 장소", "--api-base-url=http://localhost:3000"]);
+
+    expect(args.apiBaseUrl).toBe("http://localhost:3000");
   });
 
   it("detects missing family fields from nested place detail", () => {
