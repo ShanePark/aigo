@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
+import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, FileText, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { PlaceResultCard, type PlaceResultCardDate, type PlaceResultCardMetric }
 import { placeQualityScoreTitle } from "@/app/result-score-labels";
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { adminPlacesDateSchema, adminPlacesLimitSchema, adminPlacesMonthSchema, adminPlacesSortSchema, listAdminPlaceDayCounts, listAdminPlaces, type AdminPlaceDayCount, type AdminPlaceItem, type AdminPlacesSort } from "@/lib/admin-places";
-import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserItem } from "@/lib/admin-users";
+import { adminUsersLimitSchema, getAdminUsersSummary, listAdminUsers, type AdminUserConsentItem, type AdminUserItem } from "@/lib/admin-users";
 import { getVisitEventsSummary, listVisitEvents, visitEventsLimitSchema, visitEventsSourceSchema, visitEventsTypeSchema, type VisitEventItem } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
@@ -371,7 +371,65 @@ function AdminUserRow({ item }: { item: AdminUserItem }) {
         <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
         <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
       </div>
+      <AdminUserConsents consents={item.consents} />
     </article>
+  );
+}
+
+function AdminUserConsents({ consents }: { consents: AdminUserConsentItem[] }) {
+  return (
+    <div className="admin-user-consents">
+      <div className="admin-consent-head">
+        <FileText size={14} aria-hidden="true" />
+        <strong>약관 동의</strong>
+        <span>{formatNumber(consents.length)}건</span>
+      </div>
+      {consents.length > 0 ? (
+        <div className="admin-consent-list">
+          {consents.map((consent) => (
+            <details className="admin-consent-item" key={consent.documentId}>
+              <summary>
+                <span>
+                  <strong>{consent.documentTitle || consentTypeLabel(consent.consentType)}</strong>
+                  <small>{consent.version}</small>
+                </span>
+                <time dateTime={consent.consentedAt}>{formatDateTime(consent.consentedAt)}</time>
+              </summary>
+              <dl className="admin-consent-meta">
+                <div>
+                  <dt>문서 ID</dt>
+                  <dd>{consent.documentId}</dd>
+                </div>
+                <div>
+                  <dt>시행일</dt>
+                  <dd>{consent.documentEffectiveDate ?? "기록 없음"}</dd>
+                </div>
+                <div>
+                  <dt>동의 문구</dt>
+                  <dd>{consent.consentText || "기록 없음"}</dd>
+                </div>
+                <div>
+                  <dt>출처</dt>
+                  <dd>{consent.source || "기록 없음"}</dd>
+                </div>
+                <div>
+                  <dt>IP</dt>
+                  <dd>{consent.ipAddress ?? "기록 없음"}</dd>
+                </div>
+                <div>
+                  <dt>해시</dt>
+                  <dd>{consent.bodySha256 ?? "기록 없음"}</dd>
+                </div>
+              </dl>
+              {consent.userAgent ? <p className="admin-consent-agent">{consent.userAgent}</p> : null}
+              <pre className="admin-consent-body">{consent.bodyText || "문서 본문 기록이 없습니다."}</pre>
+            </details>
+          ))}
+        </div>
+      ) : (
+        <p className="admin-consent-empty">동의 기록 없음</p>
+      )}
+    </div>
   );
 }
 
@@ -705,6 +763,13 @@ function parseAdminPlaceSort(value: string | undefined) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+function consentTypeLabel(value: string) {
+  if (value === "privacy_policy") return "개인정보 처리방침";
+  if (value === "terms_of_service") return "이용약관";
+  if (value === "location_terms") return "위치기반서비스 이용약관";
+  return value || "약관";
 }
 
 function formatDateTime(value: string) {

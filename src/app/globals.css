@@ -7086,6 +7086,127 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.admin-user-consents {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.admin-consent-head {
+  align-items: center;
+  color: var(--mint);
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-consent-head span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.admin-consent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-consent-item {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.admin-consent-item summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 9px 10px;
+}
+
+.admin-consent-item summary span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-consent-item summary strong {
+  font-size: 13px;
+}
+
+.admin-consent-item summary small,
+.admin-consent-item summary time {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.admin-consent-meta {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 10px;
+}
+
+.admin-consent-meta div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-consent-meta dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.admin-consent-meta dd {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-consent-agent {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 9px 10px;
+}
+
+.admin-consent-body {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.65;
+  margin: 0 10px 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+.admin-consent-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  margin: 0;
+}
+
 .admin-stat {
   background: var(--control-bg);
   border: 1px solid var(--line);
@@ -10411,6 +10532,10 @@ dd {
   }
 
   .admin-user-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-consent-meta {
     grid-template-columns: 1fr;
   }
 
