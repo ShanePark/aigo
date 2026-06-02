@@ -49,19 +49,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         actions={
           <>
             <nav className="app-page-filter-group" aria-label="관리자 메뉴">
-              {adminTabs.map((item) => (
-                <Link className={`app-page-filter-chip ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
-                  {item.label}
-                </Link>
-              ))}
+              {adminTabs.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link className={`app-page-filter-chip ${tab === item.value ? "is-active" : ""}`} href={`/admin?tab=${item.value}&limit=${limit}`} key={item.value}>
+                    <Icon size={14} aria-hidden="true" />
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
             {tab === "visits" ? (
               <div className="app-page-filter-group" aria-label="방문 기록 필터">
-                {filterLinks.map((filter) => (
-                  <Link className={`app-page-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
-                    {filter.label}
-                  </Link>
-                ))}
+                {filterLinks.map((filter) => {
+                  const Icon = filter.icon;
+                  return (
+                    <Link className={`app-page-filter-chip ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
+                      <Icon size={14} aria-hidden="true" />
+                      {filter.label}
+                    </Link>
+                  );
+                })}
               </div>
             ) : null}
           </>
@@ -110,14 +118,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 }
 
 const adminTabs = [
-  { label: "방문 기록", value: "visits" },
-  { label: "사용자 관리", value: "users" }
+  { icon: Activity, label: "방문 기록", value: "visits" },
+  { icon: Users, label: "사용자 관리", value: "users" }
 ] as const;
 
 const filterLinks = [
-  { label: "전체", value: "all" },
-  { label: "상세조회", value: "place_detail_view" },
-  { label: "검색", value: "place_search" }
+  { icon: Activity, label: "전체", value: "all" },
+  { icon: Eye, label: "상세조회", value: "place_detail_view" },
+  { icon: Search, label: "검색", value: "place_search" }
 ] as const;
 
 function SummaryCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {

@@ -408,7 +408,7 @@ summary {
 }
 
 .collection-page {
-  max-width: 980px;
+  max-width: 1180px;
 }
 
 .app-page-header {
@@ -472,6 +472,16 @@ summary {
   justify-content: flex-end;
 }
 
+.app-page-filter-group {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-soft);
+  gap: 3px;
+  min-height: 44px;
+  padding: 4px;
+}
+
 .app-page-pill,
 .app-page-filter-chip {
   align-items: center;
@@ -514,18 +524,25 @@ summary {
 }
 
 .app-page-filter-chip {
-  background: var(--surface-card-strong);
+  background: transparent;
+  border-color: transparent;
   color: var(--muted);
-  min-height: 36px;
-  padding: 0 13px;
+  min-height: 34px;
+  padding: 0 12px;
   text-decoration: none;
 }
 
 .app-page-filter-chip:hover,
-.app-page-filter-chip:focus-visible,
-.app-page-filter-chip.is-active {
+.app-page-filter-chip:focus-visible {
   background: var(--mint-soft);
-  border-color: color-mix(in srgb, var(--mint) 34%, var(--line));
+  border-color: transparent;
+  color: var(--mint);
+}
+
+.app-page-filter-chip.is-active {
+  background: var(--panel);
+  border-color: var(--line-strong);
+  box-shadow: 0 5px 14px rgba(24, 33, 29, 0.08);
   color: var(--mint);
 }
 
