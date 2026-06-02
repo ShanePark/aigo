@@ -351,28 +351,37 @@ function AdminPager({
 }
 
 function AdminUserRow({ item }: { item: AdminUserItem }) {
+  const latestActivity = item.lastSessionUsedAt ?? item.lastVisitAt ?? item.updatedAt;
+  const hasRecentActivity = Boolean(item.lastSessionUsedAt || item.lastVisitAt);
+
   return (
-    <article className="admin-user-row">
-      <div className="admin-user-main">
-        <div className="admin-log-title-row">
+    <details className="admin-user-row">
+      <summary className="admin-user-summary">
+        <div className="admin-user-identity">
           <span className={`admin-role-badge is-${item.role === "admin" ? "admin" : "user"}`}>{item.role === "admin" ? "관리자" : "사용자"}</span>
-          <strong>{item.displayName}</strong>
-          <small>{item.email}</small>
+          <span className="admin-user-name">{item.displayName}</span>
+          <span className="admin-user-email">{item.email}</span>
         </div>
+        <div className="admin-user-quick-stats">
+          <span>가입 {formatDateTime(item.createdAt)}</span>
+          <span>{hasRecentActivity ? `최근 ${formatDateTime(latestActivity)}` : "최근 활동 없음"}</span>
+          <span>동의 {formatNumber(item.consents.length)}건</span>
+        </div>
+      </summary>
+      <div className="admin-user-detail">
         <div className="admin-log-meta">
           <span>수정 {formatDateTime(item.updatedAt)}</span>
           <span>소셜 {item.socialProviders.length > 0 ? item.socialProviders.join(", ") : "없음"}</span>
         </div>
+        <div className="admin-user-stats">
+          <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
+          <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
+          <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
+          <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
+        </div>
+        <AdminUserConsents consents={item.consents} />
       </div>
-      <div className="admin-user-stats">
-        <Stat label="최초 가입일" value={formatDateTime(item.createdAt)} />
-        <Stat label="마지막 로그인" value={item.lastSessionUsedAt ? formatDateTime(item.lastSessionUsedAt) : "기록 없음"} />
-        <Stat label="마지막 방문" value={item.lastVisitAt ? formatDateTime(item.lastVisitAt) : "기록 없음"} />
-        <Stat label="상세/검색" value={`${formatNumber(item.detailViewCount)} / ${formatNumber(item.searchCount)}`} />
-        <Stat label="전체 이벤트" value={formatNumber(item.totalEventCount)} />
-      </div>
-      <AdminUserConsents consents={item.consents} />
-    </article>
+    </details>
   );
 }
 

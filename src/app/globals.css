@@ -6862,7 +6862,96 @@ h3 {
 }
 
 .admin-user-row {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  display: block;
+  padding: 0;
+}
+
+.admin-user-row[open] {
+  background: color-mix(in srgb, var(--control-bg) 58%, transparent);
+}
+
+.admin-user-summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px) auto;
+  list-style: none;
+  min-height: 74px;
+  padding: 14px 16px;
+}
+
+.admin-user-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-user-summary::after {
+  color: var(--muted);
+  content: "상세";
+  font-size: 11px;
+  font-weight: 900;
+  justify-self: end;
+  text-transform: uppercase;
+}
+
+.admin-user-row[open] .admin-user-summary::after {
+  content: "닫기";
+}
+
+.admin-user-summary:hover,
+.admin-user-summary:focus-visible {
+  background: var(--control-bg);
+}
+
+.admin-user-identity {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-user-name {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.admin-user-email {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-quick-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.admin-user-quick-stats span {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  min-width: 0;
+  overflow: hidden;
+  padding: 7px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-detail {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px 16px;
 }
 
 .admin-place-card {
@@ -7083,13 +7172,12 @@ h3 {
 .admin-user-stats {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-user-consents {
   display: grid;
   gap: 8px;
-  grid-column: 1 / -1;
   min-width: 0;
 }
 
@@ -7110,6 +7198,7 @@ h3 {
 .admin-consent-list {
   display: grid;
   gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .admin-consent-item {
@@ -10528,6 +10617,34 @@ dd {
   .admin-log-row,
   .admin-user-row {
     grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .admin-user-row {
+    padding: 0;
+  }
+
+  .admin-user-summary {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .admin-user-summary::after {
+    justify-self: start;
+  }
+
+  .admin-user-email {
+    white-space: normal;
+  }
+
+  .admin-user-quick-stats,
+  .admin-user-stats,
+  .admin-consent-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-detail {
     padding: 12px;
   }
 
