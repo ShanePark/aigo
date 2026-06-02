@@ -1,10 +1,9 @@
 import type { NextRequest } from "next/server";
-import { createHash } from "node:crypto";
 
 import type postgres from "postgres";
 
 import { pg } from "@/db/client";
-import { consentDocumentByType, type ConsentDocument } from "@/lib/consent-documents";
+import { loadCurrentConsentDocument } from "@/lib/consent-document-store";
 import { REQUIRED_CONSENTS, type RequiredConsent } from "@/lib/consent-definitions";
 
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
@@ -28,13 +27,11 @@ export async function recordUserConsent(
   options: { source?: ConsentSource } = {},
   executor: SqlExecutor = pg
 ) {
-  const document = consentDocumentByType(consent.type);
+  const document = await loadCurrentConsentDocument(consent.type, executor);
 
   if (!document || document.version !== consent.version) {
-    throw new Error(`Consent document is not registered for ${consent.type} ${consent.version}`);
+    throw new Error(`Consent document is not registered in DB for ${consent.type} ${consent.version}`);
   }
-
-  const registeredDocument = await ensureConsentDocument(document, executor);
 
   await executor`
     insert into user_consents (
@@ -56,11 +53,11 @@ export async function recordUserConsent(
       ${userId},
       ${consent.type},
       ${consent.version},
-      ${registeredDocument.id},
-      ${consent.documentTitle},
-      ${consent.documentUrl},
-      ${consent.documentEffectiveDate},
-      ${registeredDocument.bodySha256},
+      ${document.id},
+      ${document.documentTitle},
+      ${document.documentUrl},
+      ${document.documentEffectiveDate},
+      ${document.bodySha256},
       ${consent.consentText},
       ${options.source ?? "signup"},
       ${clientIp(request)},
@@ -69,57 +66,6 @@ export async function recordUserConsent(
     )
     on conflict (user_id, consent_type, version) do nothing
   `;
-}
-
-async function ensureConsentDocument(document: ConsentDocument, executor: SqlExecutor) {
-  const bodySha256 = sha256(document.bodyText);
-
-  await executor`
-    insert into consent_documents (
-      consent_type,
-      version,
-      document_title,
-      document_url,
-      document_effective_date,
-      body_text,
-      body_sha256,
-      status
-    )
-    values (
-      ${document.type},
-      ${document.version},
-      ${document.documentTitle},
-      ${document.documentUrl},
-      ${document.documentEffectiveDate},
-      ${document.bodyText},
-      ${bodySha256},
-      'active'
-    )
-    on conflict (consent_type, version) do nothing
-  `;
-
-  const rows = await executor<{ id: string; body_sha256: string }[]>`
-    select id, body_sha256
-    from consent_documents
-    where consent_type = ${document.type}
-      and version = ${document.version}
-    limit 1
-  `;
-  const registeredDocument = rows[0];
-
-  if (!registeredDocument) {
-    throw new Error(`Consent document lookup failed for ${document.type} ${document.version}`);
-  }
-
-  if (registeredDocument.body_sha256 !== bodySha256) {
-    throw new Error(`Consent document hash mismatch for ${document.type} ${document.version}`);
-  }
-
-  return { bodySha256, id: registeredDocument.id };
-}
-
-function sha256(value: string) {
-  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function clientIp(request: NextRequest) {

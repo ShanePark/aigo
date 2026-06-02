@@ -8,8 +8,11 @@ export type ConsentDocumentSection = {
   table?: Array<{ label: string; value: string }>;
 };
 
-export type ConsentDocument = RequiredConsent & {
+export type ConsentDocument = Omit<RequiredConsent, "documentEffectiveDate" | "documentTitle" | "documentUrl"> & {
   bodyText: string;
+  documentEffectiveDate: string;
+  documentTitle: string;
+  documentUrl: string;
   effectiveDateLabel: string;
   sections: ConsentDocumentSection[];
 };

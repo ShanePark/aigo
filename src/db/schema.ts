@@ -91,6 +91,7 @@ export const consentDocuments = pgTable(
     documentUrl: text("document_url").notNull(),
     documentEffectiveDate: text("document_effective_date"),
     bodyText: text("body_text").notNull(),
+    bodySections: jsonb("body_sections").$type<unknown[]>(),
     bodySha256: text("body_sha256").notNull(),
     status: text("status").notNull().default("active"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
