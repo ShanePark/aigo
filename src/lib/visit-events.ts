@@ -10,8 +10,11 @@ import type { AppUser } from "@/lib/app-auth";
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export const visitEventsLimitSchema = z.coerce.number().int().min(1).max(200).default(50);
+export const visitEventsOffsetSchema = z.coerce.number().int().min(0).default(0);
+export const visitEventsSourceSchema = z.enum(["all", "app", "v1"]).default("all");
 export const visitEventsTypeSchema = z.enum(["all", "place_detail_view", "place_search"]).default("all");
 
+export type VisitEventsSourceFilter = z.infer<typeof visitEventsSourceSchema>;
 export type VisitEventType = z.infer<typeof visitEventsTypeSchema>;
 export type VisitEventKind = Exclude<VisitEventType, "all">;
 export type VisitEventSource = "app" | "v1";
@@ -35,6 +38,7 @@ type VisitEventRow = {
   eventMeta: Record<string, unknown>;
   userAgentAnalysis: Record<string, unknown>;
   createdAt: Date | string;
+  totalCount: number | string;
 };
 
 type VisitEventSummaryRow = {
@@ -135,9 +139,16 @@ export function recordVisitEventLater(input: VisitEventRequestContext) {
   });
 }
 
-export async function listVisitEvents(input: { eventType?: VisitEventType; limit?: number } = {}, executor: SqlExecutor = pg) {
+export async function listVisitEvents(
+  input: { eventSource?: VisitEventsSourceFilter; eventType?: VisitEventType; ipAddress?: string | null; limit?: number; offset?: number; userId?: string | null } = {},
+  executor: SqlExecutor = pg
+) {
   const eventType = visitEventsTypeSchema.parse(input.eventType ?? "all");
+  const eventSource = visitEventsSourceSchema.parse(input.eventSource ?? "all");
+  const ipAddress = nonEmptyFilter(input.ipAddress);
+  const userId = nonEmptyFilter(input.userId);
   const limit = visitEventsLimitSchema.parse(input.limit);
+  const offset = visitEventsOffsetSchema.parse(input.offset ?? 0);
   const rows = await executor<VisitEventRow[]>`
     select
       e.id::text as id,
@@ -157,16 +168,21 @@ export async function listVisitEvents(input: { eventType?: VisitEventType; limit
       e.search_result_total as "searchResultTotal",
       e.event_meta as "eventMeta",
       e.user_agent_analysis as "userAgentAnalysis",
-      e.created_at as "createdAt"
+      e.created_at as "createdAt",
+      count(*) over()::int as "totalCount"
     from visit_events e
     left join users u on u.id = e.user_id
     left join places p on p.id = e.place_id
-    where ${eventType} = 'all' or e.event_type = ${eventType}
+    where (${eventType} = 'all' or e.event_type = ${eventType})
+      and (${eventSource} = 'all' or e.event_source = ${eventSource})
+      and (${ipAddress}::text is null or e.ip_address = ${ipAddress})
+      and (${userId}::uuid is null or e.user_id = ${userId}::uuid)
     order by e.created_at desc
     limit ${limit}
+    offset ${offset}
   `;
 
-  return { items: rows.map(visitEventFromRow) };
+  return { items: rows.map(visitEventFromRow), totalCount: numberValue(rows[0]?.totalCount) };
 }
 
 export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise<VisitEventsSummary> {
@@ -183,6 +199,10 @@ export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise
     searchCount: numberValue(rows[0]?.searchCount),
     totalCount: numberValue(rows[0]?.totalCount)
   };
+}
+
+function nonEmptyFilter(value: string | null | undefined) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 export function analyzeUserAgent(userAgent: string | null | undefined) {

@@ -6,6 +6,7 @@ import { pg } from "@/db/client";
 type SqlExecutor = postgres.Sql | postgres.TransactionSql;
 
 export const adminUsersLimitSchema = z.coerce.number().int().min(1).max(200).default(50);
+export const adminUsersOffsetSchema = z.coerce.number().int().min(0).default(0);
 
 type AdminUserRow = {
   id: string;
@@ -49,8 +50,9 @@ export type AdminUsersSummary = {
   visitedUserCount: number;
 };
 
-export async function listAdminUsers(input: { limit?: number } = {}, executor: SqlExecutor = pg) {
+export async function listAdminUsers(input: { limit?: number; offset?: number } = {}, executor: SqlExecutor = pg) {
   const limit = adminUsersLimitSchema.parse(input.limit);
+  const offset = adminUsersOffsetSchema.parse(input.offset ?? 0);
   const rows = await executor<AdminUserRow[]>`
     select
       u.id::text as id,
@@ -89,6 +91,7 @@ export async function listAdminUsers(input: { limit?: number } = {}, executor: S
     ) e on e.user_id = u.id
     order by coalesce(e.last_visit_at, a.last_session_used_at, u.updated_at, u.created_at) desc
     limit ${limit}
+    offset ${offset}
   `;
 
   return { items: rows.map(adminUserFromRow) };
