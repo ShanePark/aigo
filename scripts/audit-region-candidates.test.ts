@@ -72,6 +72,7 @@ describe("region candidate audit helper", () => {
     ]);
 
     expect(args.region).toBe("부천시");
+    expect(args.apiBaseUrl).toBe("https://aigo.o-r.kr");
     expect(args.regionSido).toBe("경기");
     expect(args.candidates).toEqual(["스타필드 시티 부천", "웅진플레이도시", "부천자연생태공원"]);
     expect(args.duplicateLimit).toBe(7);
@@ -80,6 +81,12 @@ describe("region candidate audit helper", () => {
     expect(args.skipHealthcheck).toBe(true);
     expect(args.staleAfterDays).toBe(90);
     expect(args.json).toBe(true);
+  });
+
+  it("allows an explicit local API base override for disposable route tests", () => {
+    const args = parseArgs(["--candidate=테스트 장소", "--api-base-url=http://localhost:3000"]);
+
+    expect(args.apiBaseUrl).toBe("http://localhost:3000");
   });
 
   it("computes source freshness from checkedAt before createdAt", () => {

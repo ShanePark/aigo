@@ -93,6 +93,8 @@ type DuplicateAuditSummary = {
 
 type PlaceDetail = Record<string, unknown>;
 
+const PRODUCTION_AIGO_API_BASE_URL = "https://aigo.o-r.kr";
+
 if (isMain()) {
   void main();
 }
@@ -115,6 +117,7 @@ async function main() {
 export function parseArgs(argv: string[]): RegionCandidateAuditArgs {
   const args: RegionCandidateAuditArgs = {
     candidates: [],
+    apiBaseUrl: PRODUCTION_AIGO_API_BASE_URL,
     json: false,
     limit: 5,
     duplicateLimit: 10,
@@ -460,6 +463,7 @@ async function readDuplicateCandidatesReadOnly(candidate: string, args: RegionCa
   const body: Record<string, unknown> = {
     name: candidate,
     radiusMeters: args.radiusMeters,
+    projection: "compact",
     limit: args.duplicateLimit
   };
   if (args.regionSido) body.regionSido = args.regionSido;
