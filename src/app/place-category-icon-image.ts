@@ -17,6 +17,7 @@ const CATEGORY_ICON_IMAGES: Record<string, string> = {
   playground: "/icons/place-categories/playground.webp",
   rest_area: "/icons/place-categories/rest_area.webp",
   science_museum: "/icons/place-categories/science_museum.webp",
+  shared_childcare: "/icons/place-categories/shared_childcare.webp",
   shopping_mall: "/icons/place-categories/shopping_mall.webp",
   sports_venue: "/icons/place-categories/sports_venue.webp",
   toy_library: "/icons/place-categories/toy_library.webp",

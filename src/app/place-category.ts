@@ -4,6 +4,7 @@ export const PLACE_CATEGORY_LABELS: Record<string, string> = {
   indoor_playground: "실내놀이터",
   toy_store: "장난감 가게",
   toy_library: "장난감도서관",
+  shared_childcare: "공동육아공간",
   library: "도서관",
   art_museum: "미술관",
   museum: "박물관",

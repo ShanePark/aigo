@@ -35,6 +35,19 @@ describe("place schemas", () => {
     expect(result.primaryCategory).toBe("accommodation");
   });
 
+  it("accepts shared childcare places", () => {
+    const result = createPlaceSchema.parse({
+      name: "테스트 공동육아나눔터",
+      primaryCategory: "shared_childcare",
+      regionSido: "전남",
+      lat: 35.01,
+      lng: 126.71,
+      sources: [{ sourceType: "public_agency", url: "https://example.com/shared-childcare" }]
+    });
+
+    expect(result.primaryCategory).toBe("shared_childcare");
+  });
+
   it("rejects unknown primary categories", () => {
     const result = createPlaceSchema.safeParse({
       name: "임의 분류 장소",

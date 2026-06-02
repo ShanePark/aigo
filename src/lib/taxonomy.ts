@@ -3,6 +3,7 @@ export const primaryCategories = [
   "indoor_playground",
   "toy_store",
   "toy_library",
+  "shared_childcare",
   "library",
   "art_museum",
   "museum",
@@ -171,6 +172,7 @@ const legacyTagMappings: Record<string, Partial<TaxonomyFacetSet>> = {
   모래놀이: { activityTypes: ["sand_play"] },
   sandPlay: { activityTypes: ["sand_play"] },
   toy_library: { activityTypes: ["toy_borrowing"] },
+  shared_childcare: { activityTypes: ["indoor_play"] },
   toy_store: { familyFitGates: ["retail_fallback"], activityTypes: ["shopping_browse"] },
   놀이방식당: { activityTypes: ["meal_play"] },
   주말당일: { visitUseCases: ["weekend_half_day", "day_trip"] },
@@ -261,13 +263,16 @@ export function inferTaxonomyFromPlace(place: {
 
   if (
     category &&
-    ["kids_cafe", "indoor_playground", "toy_library", "library", "science_museum", "experience_center", "aquarium", "playground", "zoo"].includes(category)
+    ["kids_cafe", "indoor_playground", "toy_library", "shared_childcare", "library", "science_museum", "experience_center", "aquarium", "playground", "zoo"].includes(category)
   ) {
     inferred.familyFitGates.push("child_primary");
   }
   if (category === "toy_store") {
     inferred.familyFitGates.push("retail_fallback");
     inferred.activityTypes.push("shopping_browse");
+  }
+  if (category === "shared_childcare") {
+    inferred.activityTypes.push("indoor_play");
   }
   if (category === "rest_area") {
     inferred.familyFitGates.push("route_break");

@@ -697,7 +697,7 @@ function applyVisitContextSignal(
       addScore(3);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_WEATHER_SAFE");
     }
-    if (["kids_cafe", "indoor_playground", "toy_library", "toy_store", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
+    if (["kids_cafe", "indoor_playground", "toy_library", "shared_childcare", "toy_store", "library", "family_cafe", "family_restaurant", "shopping_mall"].includes(category)) {
       addScore(4);
       reasonCodes.add("CONTEXT_AFTER_DAYCARE_CATEGORY");
     }
@@ -795,7 +795,7 @@ function applyVisitContextSignal(
 
 function isKidPrimaryPlace(category: string, tags: Set<string>) {
   return (
-    ["kids_cafe", "indoor_playground", "toy_library", "experience_center", "science_museum", "aquarium", "zoo"].includes(category) ||
+    ["kids_cafe", "indoor_playground", "toy_library", "shared_childcare", "experience_center", "science_museum", "aquarium", "zoo"].includes(category) ||
     tags.has("children_museum") ||
     tags.has("children_experience") ||
     tags.has("children_playground") ||
@@ -817,7 +817,7 @@ function isImmediateKidActivityIntent(input: SearchPlacesInput) {
   if (input.visitContext !== "nearbyNow") return false;
 
   const categories = new Set(input.primaryCategories ?? []);
-  if (categories.has("kids_cafe") || categories.has("indoor_playground") || categories.has("toy_library")) return true;
+  if (categories.has("kids_cafe") || categories.has("indoor_playground") || categories.has("toy_library") || categories.has("shared_childcare")) return true;
 
   const query = (input.query ?? "").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
   return ["kids", "kid", "키즈", "키즈카페", "어린이", "아이", "실내놀이터", "놀이터"].some((token) => query.includes(token));

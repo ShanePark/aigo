@@ -519,6 +519,7 @@ components:
         - indoor_playground
         - toy_store
         - toy_library
+        - shared_childcare
         - library
         - art_museum
         - museum

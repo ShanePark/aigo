@@ -398,6 +398,7 @@ Common `primaryCategory` values used by the UI/search:
 - `indoor_playground`
 - `toy_store`
 - `toy_library`
+- `shared_childcare`
 - `library`
 - `art_museum`
 - `museum`
@@ -415,7 +416,7 @@ Common `primaryCategory` values used by the UI/search:
 - `accommodation`
 - `zoo`
 
-`primaryCategory` is a closed top-level set. Do not invent category values outside this contract; use canonical tags and taxonomy facets for finer meanings. Existing legacy values such as `aquarium_zoo` may remain until data is reclassified, but new or corrected records should prefer the more specific value when source evidence supports it. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
+`primaryCategory` is a closed top-level set. Do not invent category values outside this contract; use canonical tags and taxonomy facets for finer meanings. Use `shared_childcare` for source-backed 공동육아나눔터, 공동육아방, 가족센터 공동육아 play/community rooms, or similar public/nonprofit child-care support spaces; do not route these through `toy_library` unless the specific branch is primarily a toy-lending library. Existing legacy values such as `aquarium_zoo` may remain until data is reclassified, but new or corrected records should prefer the more specific value when source evidence supports it. Source inputs are also canonicalized: use source types such as `official_site`, `public_agency`, `public_tourism`, `operator_page`, `public_listing`, `public_news`, `public_blog`, `user_observation`, `agent_observation`, `official_image_source`, `public_listing_image_source`, `public_news_image_source`, `map_service`, or `geocode`. Region aliases such as `서울`, `경기`, `부산`, and `제주` are normalized by the API to full province/city names.
 
 Before reclassifying legacy `primaryCategory` values, run the read-only audit helper:
 
