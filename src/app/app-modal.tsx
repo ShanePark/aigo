@@ -8,6 +8,7 @@ type AppModalProps = {
   children: ReactNode;
   description?: string;
   disabled?: boolean;
+  footer?: ReactNode;
   onClose: () => void;
   open: boolean;
   size?: "default" | "wide" | "media";
@@ -19,7 +20,7 @@ type AppModalActionsProps = {
   status?: string | null;
 };
 
-export function AppModal({ children, description, disabled = false, onClose, open, size = "default", title }: AppModalProps) {
+export function AppModal({ children, description, disabled = false, footer, onClose, open, size = "default", title }: AppModalProps) {
   const titleId = useId();
   const descriptionId = useId();
 
@@ -56,6 +57,7 @@ export function AppModal({ children, description, disabled = false, onClose, ope
           </button>
         </div>
         <div className="app-modal-body">{children}</div>
+        {footer ? <div className="app-modal-footer">{footer}</div> : null}
       </div>
     </div>
   );
