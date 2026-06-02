@@ -387,7 +387,7 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
           <div className="advanced-filter-guide" aria-label="조건 적용 방식 안내">
             <Info size={16} aria-hidden="true" />
             <p className="advanced-filter-guide-copy">
-              <b>파란 필수</b> 배지는 꼭 맞는 장소만 남기고, <b>회색 선호</b> 배지는 맞는 장소를 더 위로 올려줘요.
+              <b>필수</b>는 결과를 좁히고, <b>선호</b>는 맞는 장소를 위로 올려줘요.
             </p>
           </div>
           <div className="advanced-filter-layout" aria-label="세부 조건">

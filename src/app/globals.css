@@ -8306,6 +8306,7 @@ dd {
     max-width: none;
     min-height: 56px;
     min-width: 0;
+    overflow: visible;
     padding: 5px 2px;
   }
 
@@ -8352,6 +8353,16 @@ dd {
   .advanced-filter-option-copy small {
     font-size: 9px;
     padding: 2px 5px;
+  }
+
+  .advanced-filter-option-application {
+    border: 1px solid var(--panel);
+    box-shadow: 0 1px 4px rgba(24, 33, 29, 0.08);
+    font-size: 8.5px;
+    padding: 2px 4px;
+    right: -2px;
+    top: -4px;
+    z-index: 2;
   }
 
   .app-modal-body .advanced-filter-option-copy strong {
