@@ -81,14 +81,9 @@ const FILTER_GROUPS: Array<{
   title: string;
 }> = [
   {
-    title: "운영/성격",
+    title: "운영/환경",
     filters: [
-      { key: "publicFacility", label: "공공시설", icon: Building2, matchMode: "required" }
-    ]
-  },
-  {
-    title: "놀이/환경",
-    filters: [
+      { key: "publicFacility", label: "공공시설", icon: Building2, matchMode: "required" },
       { key: "indoor", label: "실내", icon: Home, matchMode: "soft" },
       { key: "sandPlay", label: "모래놀이", icon: TreePine, matchMode: "soft" },
       { key: "waterPlay", label: "물놀이", icon: Waves, matchMode: "soft" }
@@ -385,10 +380,10 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
         title="세부 조건"
       >
         <div className="advanced-filter-modal-content">
-          <div className="advanced-filter-guide advanced-filter-guide-desktop" aria-label="조건 적용 방식 안내">
+          <div className="advanced-filter-guide" aria-label="조건 적용 방식 안내">
             <Info size={16} aria-hidden="true" />
             <p className="advanced-filter-guide-copy">
-              <b>파란 필수</b> 배지는 조건에 맞는 장소만 찾고, <b>회색 선호</b> 배지는 맞는 장소를 더 위에 보여줘요.
+              <b>파란 필수</b>=결과 좁힘, <b>회색 선호</b>=순서 올림
             </p>
           </div>
           <div className="advanced-filter-layout" aria-label="세부 조건">
@@ -398,24 +393,12 @@ export function SearchFilters({ childParamSource = "none", initialParams }: Sear
               </div>
               <div className="advanced-filter-options accommodation-type-options">{ACCOMMODATION_TYPES.map(renderAccommodationOption)}</div>
             </section>
-            {FILTER_GROUPS.map((group, groupIndex) => (
+            {FILTER_GROUPS.map((group) => (
               <section className="advanced-filter-group" key={group.title} aria-label={group.title}>
                 <div className="advanced-filter-group-head">
                   <strong>{group.title}</strong>
                 </div>
-                {groupIndex === 0 ? (
-                  <div className="advanced-filter-first-row">
-                    <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
-                    <div className="advanced-filter-guide advanced-filter-guide-mobile" aria-label="조건 적용 방식 안내">
-                      <Info size={15} aria-hidden="true" />
-                      <p className="advanced-filter-guide-copy">
-                        <b>필수</b>는 결과를 좁히고, <b>선호</b>는 순서를 올려줘요.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
-                )}
+                <div className="advanced-filter-options">{group.filters.map(renderFilterOption)}</div>
               </section>
             ))}
           </div>

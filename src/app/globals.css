@@ -805,6 +805,7 @@ h3 {
 .advanced-filter-layout > .advanced-filter-group.accommodation-type-filter-group + .advanced-filter-group {
   border-left: 0;
   border-top: 1px solid var(--line);
+  grid-column: 1 / -1;
   padding-left: 0;
   padding-top: 12px;
 }
@@ -7961,36 +7962,21 @@ dd {
     gap: 6px;
   }
 
-  .advanced-filter-guide-desktop {
-    display: none;
-  }
-
-  .advanced-filter-first-row {
-    display: grid;
-    gap: 5px;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  }
-
-  .advanced-filter-first-row .advanced-filter-options {
-    grid-template-columns: 1fr;
-  }
-
-  .advanced-filter-guide-mobile {
-    align-self: stretch;
+  .advanced-filter-guide {
     display: flex;
     gap: 5px;
-    padding: 7px 8px;
+    padding: 6px 8px;
   }
 
-  .advanced-filter-guide-mobile > svg {
+  .advanced-filter-guide > svg {
     height: 14px;
     margin-top: 0;
     width: 14px;
   }
 
-  .advanced-filter-guide-mobile .advanced-filter-guide-copy {
+  .advanced-filter-guide .advanced-filter-guide-copy {
     font-size: 10px;
-    line-height: 1.35;
+    line-height: 1.25;
   }
 
   .app-modal-body:has(.advanced-filter-modal-content) {
@@ -8044,7 +8030,7 @@ dd {
   .advanced-filter-options {
     display: grid;
     gap: 5px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     justify-content: start;
   }
 
