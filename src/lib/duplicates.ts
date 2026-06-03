@@ -131,7 +131,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.genericAliasReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
-  if (signals.publicSubfacilityReviewOnly && !signals.aliasMatch) return "medium";
+  if (signals.publicSubfacilityReviewOnly) return "medium";
   if (signals.sameBuildingReviewOnly) return "medium";
   if (signals.branchSiblingReviewOnly) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
@@ -429,6 +429,7 @@ const lodgingClusterReviewTerms = ["키즈풀빌라", "키즈펜션", "가족펜
 const publicInstitutionGenericTerms = [
   "교육문화원",
   "육아종합지원센터",
+  "교통문화연수원",
   "공동육아나눔터",
   "아이사랑놀이터",
   "장난감도서관",
@@ -463,6 +464,7 @@ const publicChildSubfacilityTerms = [
   "공동육아방",
   "공동육아나눔터",
   "장난감도서관",
+  "실내놀이터",
   "나누리장난감도서관",
   "육아종합지원센터",
   "어린이집",
@@ -473,6 +475,8 @@ const genericActivityTerms = [
   "물놀이터",
   "분수",
   "수영장",
+  "교통안전체험",
+  "안전체험",
   "어린이자료실",
   "장난감도서관",
   "어린이체험실",

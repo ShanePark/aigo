@@ -291,6 +291,55 @@ describe("duplicate helpers", () => {
     ).toBe(false);
   });
 
+  it("keeps same-building public childcare siblings as manual review even with generic aliases", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicSubfacilityReviewOnly: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicSubfacilityReviewOnly(
+        "광주광역시육아종합지원센터 키움뜰 실내놀이터",
+        "키움뜰장난감도서관"
+      )
+    ).toBe(true);
+    expect(
+      duplicateGenericAliasReviewOnly(
+        "광주광역시육아종합지원센터 키움뜰 실내놀이터",
+        ["광주광역시육아종합지원센터", "키움뜰 실내놀이터"],
+        "키움뜰장난감도서관",
+        ["광주육아종합지원센터 키움뜰장난감도서관"],
+        ["육아종합지원센터", "장난감도서관"]
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "GENERIC_ALIAS_REVIEW_ONLY", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
+  it("treats traffic safety experience aliases as generic public activity review signals", () => {
+    expect(duplicateWeakThematicSimilarityReviewOnly("광주광역시교통문화연수원 어린이 교통안전체험", "어린이 안전체험관")).toBe(true);
+    expect(
+      duplicateGenericAliasReviewOnly(
+        "광주광역시교통문화연수원 어린이 교통안전체험",
+        ["광주광역시교통문화연수원"],
+        "북구 어린이 교통공원",
+        ["교통문화연수원 어린이 안전체험"],
+        ["교통문화연수원", "안전체험"]
+      )
+    ).toBe(true);
+  });
+
   it("treats exact self-check signals as high confidence", () => {
     const signals = {
       aliasMatch: false,
