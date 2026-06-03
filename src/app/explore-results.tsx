@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { UrlObject } from "url";
-import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
+import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target, X } from "lucide-react";
 
 import { placeCategoryLabel } from "@/app/place-category-badge";
 import { PlaceResultCard, type PlaceResultCardMetric } from "@/app/place-result-card";
@@ -382,6 +382,21 @@ export function ExploreResults({
     [activeInput, result.meta.limit, runClientSearch]
   );
 
+  const handleClearLocationScope = useCallback(() => {
+    const nextParams = searchParamsWithoutLocationScope(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()));
+    const nextInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
+    void runClientSearch(
+      {
+        ...nextInput,
+        filterByRadius: false,
+        offset: 0,
+        viewportBounds: undefined
+      },
+      nextParams,
+      "filters"
+    );
+  }, [activeParams, runClientSearch]);
+
   const mapOrigin = mapOriginFromMeta(result.meta);
   const mapPlaces = result.items.map(mapPlaceForMap);
   const shownError = clientError ?? result.error;
@@ -406,7 +421,7 @@ export function ExploreResults({
       <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
-          <LocationScopeIndicator input={activeInput} />
+          <LocationScopeIndicator input={activeInput} onClear={handleClearLocationScope} />
           <div className="result-actions">
             <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
           </div>
@@ -673,14 +688,17 @@ function SortControls({
   );
 }
 
-function LocationScopeIndicator({ input }: { input: SearchPlacesInput }) {
+function LocationScopeIndicator({ input, onClear }: { input: SearchPlacesInput; onClear: () => void }) {
   const label = locationScopeLabel(input);
   if (!label) return <span aria-hidden="true" />;
 
   return (
     <span className="location-scope-chip" aria-label={`${label} 필터 적용됨`}>
       <MapPin size={14} aria-hidden="true" />
-      {label}
+      <span>{label}</span>
+      <button className="location-scope-clear" type="button" onClick={onClear} aria-label={`${label} 필터 해제`} title="거리 필터 해제">
+        <X size={13} aria-hidden="true" />
+      </button>
     </span>
   );
 }
@@ -1149,6 +1167,12 @@ function searchHref(pathname: string, params: Record<string, string | string[]>)
 
   const search = query.toString();
   return search ? `${pathname}?${search}` : pathname;
+}
+
+function searchParamsWithoutLocationScope(params: SearchParamsRecord) {
+  const next = queryWithout(params, [...MAP_LOCATION_PARAM_KEYS, "page", "offset"]);
+  if (textParam(next.sort) === "distance") next.sort = "recommended";
+  return next;
 }
 
 function replaceCurrentSearchParams(params: SearchParamsRecord) {

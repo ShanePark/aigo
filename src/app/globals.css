@@ -1877,6 +1877,26 @@ h3 {
   flex: 0 0 auto;
 }
 
+.location-scope-clear {
+  align-items: center;
+  background: color-mix(in srgb, var(--mint) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mint) 22%, transparent);
+  border-radius: 999px;
+  color: inherit;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  margin-right: -5px;
+  min-width: 22px;
+  padding: 0;
+}
+
+.location-scope-clear:hover,
+.location-scope-clear:focus-visible {
+  background: var(--mint);
+  color: var(--bg);
+}
+
 .sort-control,
 .limit-control {
   align-items: center;
