@@ -846,8 +846,7 @@ function locationScopeLabel(input: SearchPlacesInput) {
   if (input.viewportBounds) return "지도 화면 안";
   if (!input.origin || input.filterByRadius === false || typeof input.radiusKm !== "number") return null;
 
-  const origin = input.origin.label?.trim() || "기준 위치";
-  return `${origin} 반경 ${distanceRadiusLabel(input.radiusKm)}`;
+  return `반경 ${distanceRadiusLabel(input.radiusKm)}`;
 }
 
 function distanceRadiusLabel(radiusKm: number) {
