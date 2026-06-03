@@ -1926,6 +1926,10 @@ h3 {
   flex: 0 0 auto;
 }
 
+.sort-label-short {
+  display: none;
+}
+
 .sort-control-label::after {
   background: color-mix(in srgb, var(--line) 78%, transparent);
   content: "";
@@ -10131,7 +10135,6 @@ dd {
     font-size: 32px;
   }
 
-  .result-header,
   .detail-head,
   .search-interpretation {
     align-items: flex-start;
@@ -10139,7 +10142,9 @@ dd {
   }
 
   .results-panel .result-header {
-    align-items: stretch;
+    align-items: center;
+    gap: 5px;
+    justify-content: space-between;
     min-height: auto;
     padding: 6px 8px 4px;
   }
@@ -10245,6 +10250,7 @@ dd {
     display: flex;
     justify-content: flex-end;
     margin-left: auto;
+    min-width: 0;
     width: auto;
   }
 
@@ -10284,6 +10290,14 @@ dd {
     flex: 0 0 auto;
     gap: 3px;
     padding: 0 2px;
+  }
+
+  .sort-label-full {
+    display: none;
+  }
+
+  .sort-label-short {
+    display: inline;
   }
 
   .sort-control-label::after {

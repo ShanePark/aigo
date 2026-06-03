@@ -670,7 +670,8 @@ function SortControls({
     <nav className="sort-control" aria-label="목록 정렬">
       <span className="sort-control-label">
         <SlidersHorizontal size={13} aria-hidden="true" />
-        정렬기준
+        <span className="sort-label-full">정렬기준</span>
+        <span className="sort-label-short" aria-hidden="true">기준</span>
       </span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
         <Target size={13} aria-hidden="true" />
