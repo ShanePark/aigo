@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { AIGO_SESSION_COOKIE, currentUserFromSessionToken } from "@/lib/app-auth";
 import { apiErrorResponse } from "@/lib/errors";
+import { assertPublicReadRateLimit } from "@/lib/public-rate-limit";
 import { recordPlaceView, recordPublicPlaceView, type PublicPlaceViewKey } from "@/lib/user-place-views";
 import { requireUuidParam } from "@/lib/route-params";
 import { clientIp, recordVisitEventLater } from "@/lib/visit-events";
@@ -21,6 +22,7 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
+    assertPublicReadRateLimit(request, { bucket: "place-view" });
     const { placeId: rawPlaceId } = await context.params;
     const placeId = requireUuidParam(rawPlaceId, "placeId");
     const user = await currentUserFromSessionToken(request.cookies.get(AIGO_SESSION_COOKIE)?.value);

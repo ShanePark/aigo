@@ -126,6 +126,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
 
 6. Mutate through the API.
    - Use `Authorization: Bearer <AIGO_API_KEY>`.
+   - Production `/v1` API-key calls are intentionally separate from public app read throttles used for browser/search/detail scraping protection. Do not work around API-key failures by calling public app routes such as `/places/search` or place detail pages in loops; fix the API key or `/v1` route issue instead.
    - For any task whose goal is registration, enrichment, dedupe verification, image-health verification, or count movement, load `AIGO_API_KEY` from the repository `.env` file before calling the API. If `.env` does not provide `AIGO_API_KEY`, stop the mutation workflow and ask the user to add or provide it; do not continue with additional research-only density sprints as a substitute for the requested API work.
    - Before registration or enrichment batches, call `GET /v1/health` with `Authorization: Bearer $AIGO_API_KEY`. A `200` response means the bearer key is accepted and the API can complete a shallow database query. Treat `401` as a key/configuration issue, `429` as a temporary invalid-key attempt block, and `5xx` as server or database health trouble to resolve before mutation.
    - Health checks are for readiness only. Do not use deliberately bad keys for probing; repeated invalid health-check attempts from the same client are temporarily blocked.

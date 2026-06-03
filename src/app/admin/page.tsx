@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
+import { Activity, CalendarDays, ChevronLeft, ChevronRight, Clock, Eye, KeyRound, MapPin, Search, ShieldCheck, UserRound, Users, Wifi } from "lucide-react";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -70,11 +70,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       />
       {tab === "visits" ? (
         <div className="admin-nav-bar">
-          <div className="admin-filter-tabs" aria-label="방문 기록 필터">
-            {filterLinks.map((filter) => {
+          <div className="admin-filter-tabs" aria-label="방문 기록 소스 필터">
+            {sourceFilterLinks.map((filter) => {
               const Icon = filter.icon;
               return (
-                <Link className={`admin-filter-tab ${eventType === filter.value ? "is-active" : ""}`} href={`/admin?tab=visits&type=${filter.value}&limit=${limit}`} key={filter.value}>
+                <Link className={`admin-filter-tab ${eventSource === filter.value ? "is-active" : ""}`} href={adminVisitSourceHref({ eventSource: filter.value, eventType, limit })} key={filter.value}>
+                  <Icon size={14} aria-hidden="true" />
+                  {filter.label}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="admin-filter-tabs" aria-label="방문 기록 유형 필터">
+            {typeFilterLinks.map((filter) => {
+              const Icon = filter.icon;
+              return (
+                <Link className={`admin-filter-tab ${eventType === filter.value ? "is-active" : ""}`} href={adminVisitTypeHref({ eventSource, eventType: filter.value, limit })} key={filter.value}>
                   <Icon size={14} aria-hidden="true" />
                   {filter.label}
                 </Link>
@@ -88,6 +99,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <>
           <section className="admin-summary-grid" aria-label="방문 기록 요약">
             <SummaryCard icon={<Activity size={18} aria-hidden="true" />} label="전체" value={visitSummary.totalCount} />
+            <SummaryCard icon={<UserRound size={18} aria-hidden="true" />} label="직접 방문" value={visitSummary.appCount} />
+            <SummaryCard icon={<KeyRound size={18} aria-hidden="true" />} label="API 요청" value={visitSummary.apiCount} />
             <SummaryCard icon={<Eye size={18} aria-hidden="true" />} label="상세조회" value={visitSummary.detailViewCount} />
             <SummaryCard icon={<Search size={18} aria-hidden="true" />} label="검색" value={visitSummary.searchCount} />
           </section>
@@ -154,7 +167,13 @@ const adminTabs = [
   { icon: MapPin, label: "장소관리", value: "places" }
 ] as const;
 
-const filterLinks = [
+const sourceFilterLinks = [
+  { icon: Activity, label: "전체", value: "all" },
+  { icon: UserRound, label: "직접 방문", value: "app" },
+  { icon: KeyRound, label: "API 요청", value: "v1" }
+] as const;
+
+const typeFilterLinks = [
   { icon: Activity, label: "전체", value: "all" },
   { icon: Eye, label: "상세조회", value: "place_detail_view" },
   { icon: Search, label: "검색", value: "place_search" }
@@ -272,7 +291,7 @@ function ActiveVisitFilters({
 }) {
   const filters = [
     eventType !== "all" ? { key: "type", label: eventType === "place_detail_view" ? "상세조회" : "검색", value: "유형" } : null,
-    eventSource !== "all" ? { key: "source", label: eventSource, value: "소스" } : null,
+    eventSource !== "all" ? { key: "source", label: visitSourceLabel(eventSource), value: "소스" } : null,
     userId ? { key: "userId", label: shortId(userId), value: "사용자" } : null,
     ipAddress ? { key: "ip", label: ipAddress, value: "IP" } : null
   ].filter(Boolean) as Array<{ key: "ip" | "source" | "type" | "userId"; label: string; value: string }>;
@@ -444,7 +463,7 @@ function VisitEventRow({ event, eventType, limit }: { event: VisitEventItem; eve
             <span>비회원</span>
           )}
           <Link className="admin-meta-link" href={adminVisitFilterHref({ eventSource: event.eventSource, eventType, limit })}>
-            {event.eventSource}
+            {visitSourceLabel(event.eventSource)}
           </Link>
           <span>{event.requestPath ?? "-"}</span>
         </div>
@@ -592,6 +611,20 @@ function adminVisitFilterHref({
   if (ipAddress) query.set("ip", ipAddress);
   if (userId) query.set("userId", userId);
   return `/admin?${query.toString()}` as Route;
+}
+
+function adminVisitSourceHref({ eventSource, eventType, limit }: { eventSource: string; eventType: string; limit: number }) {
+  return adminVisitFilterHref({ eventSource, eventType, limit });
+}
+
+function adminVisitTypeHref({ eventSource, eventType, limit }: { eventSource: string; eventType: string; limit: number }) {
+  return adminVisitFilterHref({ eventSource, eventType, limit });
+}
+
+function visitSourceLabel(source: string) {
+  if (source === "app") return "직접 방문";
+  if (source === "v1") return "API 요청";
+  return source;
 }
 
 function adminVisitFilterRemoveHref({

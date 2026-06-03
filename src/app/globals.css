@@ -6305,6 +6305,8 @@ h3 {
 .admin-nav-bar {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
   margin-top: -10px;
   min-width: 0;
@@ -6427,7 +6429,24 @@ h3 {
 
 .admin-summary-card strong {
   font-size: 22px;
+  letter-spacing: 0;
   line-height: 1;
+}
+
+.detail-rate-limit {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.detail-rate-limit h1 {
+  font-size: 24px;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.detail-rate-limit small {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .admin-active-filters {
