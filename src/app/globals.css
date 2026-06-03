@@ -1855,6 +1855,28 @@ h3 {
   margin-left: auto;
 }
 
+.location-scope-chip {
+  align-items: center;
+  background: var(--mint-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--mint);
+  display: inline-flex;
+  flex: 0 1 auto;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  gap: 5px;
+  line-height: 1;
+  min-height: var(--control-md);
+  min-width: 0;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.location-scope-chip svg {
+  flex: 0 0 auto;
+}
+
 .sort-control,
 .limit-control {
   align-items: center;
@@ -10097,7 +10119,7 @@ dd {
   }
 
   .results-panel .result-header {
-    align-items: flex-end;
+    align-items: stretch;
     min-height: auto;
     padding: 6px 8px 4px;
   }
@@ -10204,6 +10226,13 @@ dd {
     justify-content: flex-end;
     margin-left: auto;
     width: auto;
+  }
+
+  .location-scope-chip {
+    align-self: flex-start;
+    font-size: 11.5px;
+    min-height: 29px;
+    padding: 0 8px;
   }
 
   .sort-control {

@@ -406,6 +406,7 @@ export function ExploreResults({
       <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
+          <LocationScopeIndicator input={activeInput} />
           <div className="result-actions">
             <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
           </div>
@@ -672,6 +673,18 @@ function SortControls({
   );
 }
 
+function LocationScopeIndicator({ input }: { input: SearchPlacesInput }) {
+  const label = locationScopeLabel(input);
+  if (!label) return <span aria-hidden="true" />;
+
+  return (
+    <span className="location-scope-chip" aria-label={`${label} 필터 적용됨`}>
+      <MapPin size={14} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
 function LimitControls({
   activeLimit,
   params,
@@ -809,6 +822,18 @@ function emptyStateCategoryGroups(activeCategoryGroup: string) {
 function resultLimitParam(params: Record<string, string | string[]>) {
   const requested = Number(textParam(params.limit) || RESULT_LIMIT_OPTIONS[0]);
   return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? RESULT_LIMIT_OPTIONS[0];
+}
+
+function locationScopeLabel(input: SearchPlacesInput) {
+  if (input.viewportBounds) return "지도 화면 안";
+  if (!input.origin || input.filterByRadius === false || typeof input.radiusKm !== "number") return null;
+
+  const origin = input.origin.label?.trim() || "기준 위치";
+  return `${origin} 반경 ${distanceRadiusLabel(input.radiusKm)}`;
+}
+
+function distanceRadiusLabel(radiusKm: number) {
+  return Number.isInteger(radiusKm) ? `${radiusKm}km` : `${radiusKm.toFixed(1)}km`;
 }
 
 function searchInterpretationChips(meta: SearchMeta | null | undefined) {
