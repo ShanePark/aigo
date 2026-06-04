@@ -17,6 +17,7 @@ import {
   buildStructuredDataGaps,
   categoryClauseForKeywordTerm,
   compactDuplicatePlaceCandidateForTest,
+  duplicateExternalRefsForMatchForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
   imageHealthPlaceStatusPredicateForTest,
@@ -542,6 +543,27 @@ describe("place search helpers", () => {
     expect(query.sql).toContain("external_refs->'englishName'");
     expect(query.sql).toContain("external_refs->'localName'");
     expect(query.params).toEqual(["jpark island resort & waterpark cebu", "jparkislandresort&waterparkcebu"]);
+  });
+
+  it("drops empty duplicate external refs before JSON containment matching", () => {
+    expect(duplicateExternalRefsForMatchForTest({ aliases: [] })).toBeNull();
+    expect(
+      duplicateExternalRefsForMatchForTest({
+        aliases: ["", "  "],
+        source: { ids: [], empty: "" }
+      })
+    ).toBeNull();
+    expect(
+      duplicateExternalRefsForMatchForTest({
+        aliases: ["이바돔감자탕 광주화정점", ""],
+        kakaoPlaceId: "123",
+        source: { ids: ["abc"], empty: [] }
+      })
+    ).toEqual({
+      aliases: ["이바돔감자탕 광주화정점"],
+      kakaoPlaceId: "123",
+      source: { ids: ["abc"] }
+    });
   });
 
   it("uses overseas English names as exact query-match aliases", () => {

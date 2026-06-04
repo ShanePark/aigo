@@ -1478,8 +1478,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const compactRegionSido = input.regionSido ? compactSearchText(input.regionSido) : null;
   const compactRegionSigungu = input.regionSigungu ? compactSearchText(input.regionSigungu) : null;
   const compactCity = input.city ? compactSearchText(input.city) : null;
-  const externalRefsJson =
-    input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
+  const duplicateExternalRefs = duplicateExternalRefsForMatch(input.externalRefs);
+  const externalRefsJson = duplicateExternalRefs ? JSON.stringify(duplicateExternalRefs) : null;
   const rows = await pg<
     (PlaceRow & {
       distance_meters: number | null;
@@ -1855,6 +1855,42 @@ function stringArrayFromExternalRefs(value: unknown) {
   if (typeof value === "string" && value.trim()) return [value.trim()];
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+}
+
+function duplicateExternalRefsForMatch(externalRefs: Record<string, unknown> | null | undefined) {
+  if (!externalRefs) return null;
+
+  const entries = Object.entries(externalRefs)
+    .map(([key, value]) => [key, compactDuplicateExternalRefValue(value)] as const)
+    .filter((entry): entry is readonly [string, unknown] => entry[1] !== null);
+
+  if (entries.length === 0) return null;
+  return Object.fromEntries(entries);
+}
+
+function compactDuplicateExternalRefValue(value: unknown): unknown | null {
+  if (Array.isArray(value)) {
+    const values = value.map(compactDuplicateExternalRefValue).filter((item) => item !== null);
+    return values.length > 0 ? values : null;
+  }
+
+  if (isRecord(value)) {
+    const entries = Object.entries(value)
+      .map(([key, nestedValue]) => [key, compactDuplicateExternalRefValue(nestedValue)] as const)
+      .filter((entry): entry is readonly [string, unknown] => entry[1] !== null);
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  return value === null || value === undefined ? null : value;
+}
+
+export function duplicateExternalRefsForMatchForTest(externalRefs: Record<string, unknown> | null | undefined) {
+  return duplicateExternalRefsForMatch(externalRefs);
 }
 
 function normalizeTags(tags: string[] | undefined) {
