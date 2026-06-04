@@ -3132,7 +3132,7 @@ components:
               format: date-time
     PlaceVersionSummary:
       type: object
-      required: [id, versionNumber, action, actor, createdAt]
+      required: [id, versionNumber, action, actor, sources, createdAt]
       properties:
         id:
           type: string
@@ -3147,6 +3147,10 @@ components:
         changeSummary:
           type: string
           nullable: true
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceInput"
         createdAt:
           type: string
           format: date-time
@@ -3175,15 +3179,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceVersionSummary"
         - type: object
-          required: [snapshot, sources]
+          required: [snapshot]
           properties:
             snapshot:
               type: object
               additionalProperties: true
-            sources:
-              type: array
-              items:
-                $ref: "#/components/schemas/SourceInput"
     PlaceDetail:
       type: object
       required:

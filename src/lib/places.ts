@@ -4926,6 +4926,7 @@ function mapVersionSummary(row: VersionRow) {
     action: row.action,
     actor: row.actor,
     changeSummary: row.change_summary,
+    sources: Array.isArray(row.sources) ? row.sources : [],
     createdAt: toIso(row.created_at)
   };
 }
@@ -4933,8 +4934,7 @@ function mapVersionSummary(row: VersionRow) {
 function mapVersion(row: VersionRow) {
   return {
     ...mapVersionSummary(row),
-    snapshot: row.snapshot,
-    sources: row.sources
+    snapshot: row.snapshot
   };
 }
 

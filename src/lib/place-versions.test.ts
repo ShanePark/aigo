@@ -63,7 +63,50 @@ describe("place version listing", () => {
           action: "update",
           actor: "agent",
           changeSummary: "Updated family logistics",
+          sources: [],
           createdAt: "2026-05-22T13:00:00.000Z"
+        }
+      ]
+    });
+  });
+
+  it("exposes stored source snapshots in version summaries", async () => {
+    const createdAt = new Date("2026-06-04T04:00:00.000Z");
+    const source = {
+      sourceType: "official",
+      title: "서울시 공공서비스 예약",
+      url: "https://example.test/source",
+      externalId: null,
+      summary: "운영 정보 확인",
+      checkedAt: "2026-06-04T00:00:00.000Z"
+    };
+    const { executor } = fakeExecutor([
+      [{ id: placeId }],
+      [
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          place_id: placeId,
+          version_number: 3,
+          action: "update",
+          actor: "agent",
+          change_summary: "Append official source",
+          snapshot: {},
+          sources: [source],
+          created_at: createdAt
+        }
+      ]
+    ]);
+
+    await expect(listPlaceVersions(placeId, executor)).resolves.toEqual({
+      items: [
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          versionNumber: 3,
+          action: "update",
+          actor: "agent",
+          changeSummary: "Append official source",
+          sources: [source],
+          createdAt: "2026-06-04T04:00:00.000Z"
         }
       ]
     });
