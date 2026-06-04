@@ -1196,6 +1196,46 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).not.toContain("CLOSED_NOW");
   });
 
+  it("applies dated opening-hours specification only on the matching Seoul date", () => {
+    const shared = {
+      primaryCategory: "museum",
+      tags: ["science_experience"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 36,
+      maxRecommendedAgeMonths: 120,
+      indoorType: "indoor",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "partial",
+      kidsToilet: "yes",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 20,
+      openingHours: {
+        openingHoursSpecification: [{ date: "2026-06-06", opens: "10:00", closes: "12:00" }]
+      }
+    };
+
+    const nonSessionDay = scorePlace(
+      shared,
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-06-04T02:30:00.000Z") }
+    );
+    const sessionDay = scorePlace(
+      shared,
+      { ...baseInput, visitContext: "nearbyNow" },
+      { now: new Date("2026-06-06T02:30:00.000Z") }
+    );
+
+    expect(nonSessionDay.reasonCodes).not.toContain("OPEN_NOW");
+    expect(nonSessionDay.reasonCodes).not.toContain("CLOSING_SOON");
+    expect(nonSessionDay.reasonCodes).toContain("OPENING_HOURS_UNKNOWN");
+    expect(sessionDay.reasonCodes).toContain("OPEN_NOW");
+    expect(sessionDay.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+  });
+
   it("keeps Seoul overnight hours open after midnight", () => {
     const shared = {
       primaryCategory: "kids_cafe",

@@ -1003,6 +1003,7 @@ type OpeningStatus = {
 
 type OpeningPeriod = {
   days: number[] | null;
+  dates: string[] | null;
   opens: string | null;
   closes: string | null;
   closed: boolean;
@@ -1021,18 +1022,22 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   const nowMinutes = nowParts.hours * 60 + nowParts.minutes;
   const today = nowParts.weekday;
   const yesterday = (today + 6) % 7;
+  const todayDate = seoulDateString(now);
+  const yesterdayDate = seoulDateString(new Date(now.getTime() - 24 * 60 * 60 * 1000));
   let hasApplicableSchedule = false;
 
   for (const period of periods) {
     const opens = parseTimeToMinutes(period.opens);
     const closes = parseTimeToMinutes(period.closes);
-    if (periodAppliesToDay(period, today) || periodAppliesToDay(period, yesterday)) {
+    const appliesToday = periodAppliesToDateAndDay(period, todayDate, today);
+    const appliesYesterday = periodAppliesToDateAndDay(period, yesterdayDate, yesterday);
+    if (appliesToday || appliesYesterday) {
       hasApplicableSchedule = true;
     }
     if (period.closed || opens === null || closes === null || (opens === 0 && closes === 0)) continue;
 
     const crossesMidnight = closes <= opens;
-    if (periodAppliesToDay(period, today)) {
+    if (appliesToday) {
       if (!crossesMidnight && nowMinutes >= opens && nowMinutes < closes) {
         return { state: "open", closesInMinutes: closes - nowMinutes };
       }
@@ -1040,7 +1045,7 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
         return { state: "open", closesInMinutes: 24 * 60 - nowMinutes + closes };
       }
     }
-    if (crossesMidnight && periodAppliesToDay(period, yesterday) && nowMinutes < closes) {
+    if (crossesMidnight && appliesYesterday && nowMinutes < closes) {
       return { state: "open", closesInMinutes: closes - nowMinutes };
     }
   }
@@ -1101,7 +1106,7 @@ function collectOpeningPeriods(openingHours: Record<string, unknown>) {
       } else if (isRecord(dayValue)) {
         periods.push(periodFromRecord(dayValue, [day]));
       } else if (typeof dayValue === "string" && dayValue.toLowerCase() === "closed") {
-        periods.push({ days: [day], opens: null, closes: null, closed: true });
+        periods.push({ days: [day], dates: null, opens: null, closes: null, closed: true });
       }
     }
   }
@@ -1119,16 +1124,34 @@ function addRawPeriods(periods: OpeningPeriod[], raw: unknown) {
 function periodFromRecord(record: Record<string, unknown>, fallbackDays?: number[]): OpeningPeriod {
   const dayValue = record.dayOfWeek ?? record.day ?? record.days;
   const days = parseDays(dayValue) ?? fallbackDays ?? null;
+  const dates = parseDates(record.date ?? record.validFrom ?? record.startDate ?? record.startsOn);
   const opens = stringValue(record.opens ?? record.open ?? record.opensAt ?? record.start);
   const closes = stringValue(record.closes ?? record.close ?? record.closesAt ?? record.end);
   const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
 
   return {
     days,
+    dates,
     opens,
     closes,
     closed: record.closed === true || status === "closed"
   };
+}
+
+function parseDates(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    const dates = value.map(parseDateString).filter((date): date is string => date !== null);
+    return dates.length > 0 ? dates : null;
+  }
+  const date = parseDateString(value);
+  return date === null ? null : [date];
+}
+
+function parseDateString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+  return match ? match[1] : null;
 }
 
 function parseDays(value: unknown): number[] | null {
@@ -1188,7 +1211,8 @@ function parseDay(value: unknown) {
   return dayNames[normalized] ?? koreanDayNames[normalized] ?? null;
 }
 
-function periodAppliesToDay(period: OpeningPeriod, day: number) {
+function periodAppliesToDateAndDay(period: OpeningPeriod, date: string, day: number) {
+  if (period.dates !== null && !period.dates.includes(date)) return false;
   return period.days === null || period.days.includes(day);
 }
 
