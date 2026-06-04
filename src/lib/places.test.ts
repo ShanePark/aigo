@@ -26,6 +26,7 @@ import {
   isBroadWaterPlayIntentQuery,
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
+  officialNameVariantCompactTextsForTest,
   placeDbRecordForTest,
   normalizeSearchInput,
   normalizePlaceImageHealthQueryForTest,
@@ -564,6 +565,13 @@ describe("place search helpers", () => {
       kakaoPlaceId: "123",
       source: { ids: ["abc"] }
     });
+  });
+
+  it("builds official-name duplicate variants for inserted municipal brand words", () => {
+    expect(officialNameVariantCompactTextsForTest(["전주 덕진공원 야호맘껏숲놀이터"])).toEqual([
+      "전주덕진공원야호맘껏숲놀이터",
+      "전주덕진공원맘껏숲놀이터"
+    ]);
   });
 
   it("uses overseas English names as exact query-match aliases", () => {

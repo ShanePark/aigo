@@ -1469,6 +1469,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const compactName = compactSearchText(input.name);
   const containsCompactName = `%${compactName}%`;
   const aliasCompacts = Array.from(new Set([input.name, ...(input.aliases ?? [])].map(compactSearchText).filter(Boolean)));
+  const officialNameVariantCompacts = officialNameVariantCompactTexts([input.name, ...(input.aliases ?? [])]);
   const retailAliasCompacts = retailAliasCompactTexts(input.name);
   const genericAliasTerms = duplicateGenericAliasTerms;
   const hasCoordinates = input.lat !== undefined && input.lng !== undefined;
@@ -1525,6 +1526,11 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[]) then 0.82 else 0 end,
           case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[]) then 0.9 else 0 end,
           case
+            when regexp_replace(regexp_replace(lower(name), '\\s+', '', 'g'), ${officialNameVariantTokenPattern}, '', 'g') = any(${officialNameVariantCompacts}::text[])
+            then 0.86
+            else 0
+          end,
+          case
             when exists (
               select 1
               from jsonb_array_elements_text(
@@ -1568,6 +1574,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[])
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
+          or regexp_replace(regexp_replace(lower(name), '\\s+', '', 'g'), ${officialNameVariantTokenPattern}, '', 'g') = any(${officialNameVariantCompacts}::text[])
           or exists (
             select 1
             from jsonb_array_elements_text(
@@ -3932,6 +3939,27 @@ function normalizeSearchText(value: string) {
 
 function compactSearchText(value: string) {
   return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+const officialNameVariantTokens = ["야호"];
+const officialNameVariantTokenPattern = officialNameVariantTokens.map((token) => compactSearchText(token)).join("|");
+
+function officialNameVariantCompactTexts(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) => {
+          const compact = compactSearchText(value);
+          const normalized = compact.replace(new RegExp(officialNameVariantTokenPattern, "g"), "");
+          return [compact, normalized];
+        })
+        .filter(Boolean)
+    )
+  );
+}
+
+export function officialNameVariantCompactTextsForTest(values: string[]) {
+  return officialNameVariantCompactTexts(values);
 }
 
 function separatorlessSearchText(value: string) {
