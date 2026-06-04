@@ -331,6 +331,8 @@ Mutation and duplicate-check rules:
 
 For tenant places that must use a parent mall/building coordinate, run `pnpm tsx scripts/build-coordinate-provenance.ts --level=parent_building_coordinate` with `--parent-place-name` or `--parent-place-id`, `--parent-source-url`, `--tenant-source-url`, and a conservative `--duplicate-radius-meters`. The helper outputs the `externalRefs.coordinateProvenance` draft plus a parent-building duplicate-review caution so agents do not accidentally merge a tenant with its parent site.
 
+For public playground or park coordinate audits, run `pnpm tsx scripts/audit-coordinate-quality.ts --candidate='name|lat|lng|sourceUrl|sourceTitle' --json`. The script is read-only: it exact-name searches AiGo, reads detail, compares the current coordinate to the official/public coordinate, rejects Kakao itemId links without `urlX`/`urlY` as coordinate evidence, and reports duplicate candidates for manual follow-up.
+
 Common writable fields:
 
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
