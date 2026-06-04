@@ -39,9 +39,10 @@ type PlaceMergeSummary = {
   roadAddress: string | null;
   lat: number | null;
   lng: number | null;
+  externalRefs: Record<string, unknown>;
   aliases: string[];
   sources: SourceSummary[];
-  imageCount: number;
+  images: ImageSummary[];
   latestVersion: VersionSummary | null;
 };
 
@@ -49,6 +50,21 @@ type SourceSummary = {
   sourceType: string | null;
   title: string | null;
   url: string | null;
+  externalId: string | null;
+  summary: string | null;
+  checkedAt: string | null;
+};
+
+type ImageSummary = {
+  url: string;
+  sourceUrl: string | null;
+  sourceType: string | null;
+  sourceTitle: string | null;
+  altText: string | null;
+  description: string | null;
+  displayTier: string | null;
+  reviewStatus: string | null;
+  checkedAt: string | null;
 };
 
 type VersionSummary = {
@@ -61,8 +77,16 @@ type VersionSummary = {
 type TransferPlan = {
   aliasesToAppend: string[];
   sourceUrlsToReview: string[];
-  imageCountToReview: number;
+  sourcesToAppend: SourceSummary[];
+  imageUrlsToAppend: string[];
+  imagesToAppend: ImageSummary[];
+  canonicalPatchDraft: CanonicalTransferPatchDraft | null;
   suggestedChangeSummary: string;
+};
+
+type CanonicalTransferPatchDraft = {
+  route: string;
+  payload: Record<string, unknown>;
 };
 
 const PRODUCTION_AIGO_API_BASE_URL = "https://aigo.o-r.kr";
@@ -182,17 +206,61 @@ export function buildTransferPlan(keep: PlaceMergeSummary | null, retire: PlaceM
   const keepAliases = new Set((keep?.aliases ?? []).map(normalizeAlias));
   const aliasesToAppend = (retire?.aliases ?? []).filter((alias) => !keepAliases.has(normalizeAlias(alias)));
   const keepSourceUrls = new Set((keep?.sources ?? []).map((source) => source.url).filter(Boolean));
-  const sourceUrlsToReview = (retire?.sources ?? [])
-    .map((source) => source.url)
-    .filter((url): url is string => Boolean(url) && !keepSourceUrls.has(url));
-  const imageCountToReview = Math.max(0, (retire?.imageCount ?? 0) - (keep?.imageCount ?? 0));
+  const sourcesToAppend = (retire?.sources ?? []).filter((source) => source.url && !keepSourceUrls.has(source.url));
+  const sourceUrlsToReview = sourcesToAppend.map((source) => source.url).filter((url): url is string => Boolean(url));
+  const keepImageUrls = new Set((keep?.images ?? []).map((image) => image.url));
+  const imagesToAppend = (retire?.images ?? []).filter((image) => !keepImageUrls.has(image.url));
+  const imageUrlsToAppend = imagesToAppend.map((image) => image.url);
+  const suggestedChangeSummary = retire
+    ? `중복 은퇴 전 canonical 레코드에 ${retire.name}의 별칭, 출처, 이미지 후보를 검토해 이전한다.`
+    : "중복 은퇴 전 canonical 레코드 이전 계획을 세웠지만 retire 후보 상세를 확인하지 못했다.";
   return {
     aliasesToAppend,
     sourceUrlsToReview,
-    imageCountToReview,
-    suggestedChangeSummary: retire
-      ? `Plan duplicate retirement: keep ${keep?.name ?? "canonical place"} and retire duplicate ${retire.name}; review aliases, sources, and images before mutation.`
-      : "Plan duplicate retirement: retire candidate detail was unavailable; resolve before mutation."
+    sourcesToAppend,
+    imageUrlsToAppend,
+    imagesToAppend,
+    canonicalPatchDraft: buildCanonicalTransferPatchDraft(keep, aliasesToAppend, sourcesToAppend, imagesToAppend, suggestedChangeSummary),
+    suggestedChangeSummary
+  };
+}
+
+export function buildCanonicalTransferPatchDraft(
+  keep: PlaceMergeSummary | null,
+  aliasesToAppend: string[],
+  sourcesToAppend: SourceSummary[],
+  imagesToAppend: ImageSummary[],
+  changeSummary: string
+): CanonicalTransferPatchDraft | null {
+  if (!keep) return null;
+  const payload: Record<string, unknown> = {
+    actor: "agent",
+    changeSummary,
+    sourceMode: "append",
+    imageMode: "append"
+  };
+
+  if (aliasesToAppend.length > 0) {
+    payload.externalRefs = {
+      ...keep.externalRefs,
+      aliases: unique([...stringArrayField(keep.externalRefs, "aliases"), ...aliasesToAppend])
+    };
+  }
+
+  const sourceInputs = sourcesToAppend.map(sourceInputFromSummary).filter((source): source is Record<string, unknown> => source !== null);
+  if (sourceInputs.length > 0) {
+    payload.sources = sourceInputs;
+  }
+
+  const imageInputs = imagesToAppend.map(imageInputFromSummary);
+  if (imageInputs.length > 0) {
+    payload.images = imageInputs;
+  }
+
+  if (!payload.externalRefs && !payload.sources && !payload.images) return null;
+  return {
+    route: `PATCH /v1/places/${keep.id}`,
+    payload
   };
 }
 
@@ -216,9 +284,10 @@ function placeMergeSummary(detail: Record<string, unknown>): PlaceMergeSummary {
     roadAddress: stringField(detail, "roadAddress"),
     lat: numberField(detail, "lat"),
     lng: numberField(detail, "lng"),
+    externalRefs: recordField(detail, "externalRefs"),
     aliases: aliasesFromDetail(detail),
     sources: sourcesFromDetail(detail),
-    imageCount: arrayField(detail, "images").length,
+    images: imagesFromDetail(detail),
     latestVersion: latestVersionFromDetail(detail)
   };
 }
@@ -238,8 +307,58 @@ function sourcesFromDetail(detail: Record<string, unknown>) {
     return {
       sourceType: stringField(record, "sourceType"),
       title: stringField(record, "title"),
-      url: stringField(record, "url")
+      url: stringField(record, "url"),
+      externalId: stringField(record, "externalId"),
+      summary: stringField(record, "summary"),
+      checkedAt: stringField(record, "checkedAt")
     };
+  });
+}
+
+function imagesFromDetail(detail: Record<string, unknown>) {
+  return arrayField(detail, "images")
+    .map((image) => {
+      const record = recordField(image);
+      const url = stringField(record, "url");
+      if (!url) return null;
+      return {
+        url,
+        sourceUrl: stringField(record, "sourceUrl"),
+        sourceType: stringField(record, "sourceType"),
+        sourceTitle: stringField(record, "sourceTitle"),
+        altText: stringField(record, "altText"),
+        description: stringField(record, "description"),
+        displayTier: stringField(record, "displayTier"),
+        reviewStatus: stringField(record, "reviewStatus"),
+        checkedAt: stringField(record, "checkedAt")
+      };
+    })
+    .filter((image): image is ImageSummary => image !== null);
+}
+
+function sourceInputFromSummary(source: SourceSummary) {
+  if (!source.url && !source.externalId) return null;
+  return dropNullish({
+    sourceType: source.sourceType ?? "agent_observation",
+    title: source.title,
+    url: source.url,
+    externalId: source.externalId,
+    summary: source.summary,
+    checkedAt: source.checkedAt
+  });
+}
+
+function imageInputFromSummary(image: ImageSummary) {
+  return dropNullish({
+    url: image.url,
+    sourceUrl: image.sourceUrl,
+    sourceType: image.sourceType ?? undefined,
+    sourceTitle: image.sourceTitle,
+    altText: image.altText,
+    description: image.description,
+    displayTier: image.displayTier ?? undefined,
+    reviewStatus: image.reviewStatus ?? undefined,
+    checkedAt: image.checkedAt
   });
 }
 
@@ -271,7 +390,8 @@ function formatActiveDuplicateRetireReport(report: ActiveDuplicateRetireReport) 
     lines.push(`  retire: ${pair.retire?.name ?? "missing"} (${pair.retire?.status ?? "unknown"})`);
     if (pair.transferPlan.aliasesToAppend.length > 0) lines.push(`  aliases: ${pair.transferPlan.aliasesToAppend.join(", ")}`);
     if (pair.transferPlan.sourceUrlsToReview.length > 0) lines.push(`  sources: ${pair.transferPlan.sourceUrlsToReview.join(", ")}`);
-    lines.push(`  images to review: ${pair.transferPlan.imageCountToReview}`);
+    lines.push(`  images to append: ${pair.transferPlan.imageUrlsToAppend.length}`);
+    if (pair.transferPlan.canonicalPatchDraft) lines.push(`  patch draft: ${pair.transferPlan.canonicalPatchDraft.route}`);
     if (pair.warnings.length > 0) lines.push(`  warnings: ${pair.warnings.join(", ")}`);
   }
   return lines.join("\n");
@@ -312,6 +432,10 @@ function normalizeAlias(value: string) {
 
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function dropNullish(input: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== null && value !== undefined));
 }
 
 function positiveInteger(rawValue: string, key: string) {
