@@ -1701,6 +1701,7 @@ components:
         - id
         - placeId
         - name
+        - status
         - primaryCategory
         - tags
         - description
@@ -1744,6 +1745,9 @@ components:
           description: Backward-compatible alias for `id`; prefer `id` in new agent/client code.
         name:
           type: string
+        status:
+          type: string
+          enum: [active, temporarily_closed]
         primaryCategory:
           type: string
         tags:
@@ -1898,6 +1902,7 @@ components:
       required:
         - id
         - name
+        - status
         - primaryCategory
         - tags
         - address
@@ -1931,6 +1936,9 @@ components:
           format: uuid
         name:
           type: string
+        status:
+          type: string
+          enum: [active, temporarily_closed]
         primaryCategory:
           type: string
         tags:
@@ -2624,7 +2632,7 @@ components:
                 enum: [high, medium, low]
               reasonCodes:
                 type: array
-                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
+                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
                 items:
                   type: string
               suggestedAction:
@@ -3132,7 +3140,7 @@ components:
               format: date-time
     PlaceVersionSummary:
       type: object
-      required: [id, versionNumber, action, actor, createdAt]
+      required: [id, versionNumber, action, actor, sources, createdAt]
       properties:
         id:
           type: string
@@ -3147,6 +3155,10 @@ components:
         changeSummary:
           type: string
           nullable: true
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceInput"
         createdAt:
           type: string
           format: date-time
@@ -3175,15 +3187,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceVersionSummary"
         - type: object
-          required: [snapshot, sources]
+          required: [snapshot]
           properties:
             snapshot:
               type: object
               additionalProperties: true
-            sources:
-              type: array
-              items:
-                $ref: "#/components/schemas/SourceInput"
     PlaceDetail:
       type: object
       required:

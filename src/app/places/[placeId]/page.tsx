@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { PlaceImage } from "@/app/place-image";
@@ -27,6 +28,7 @@ import { PlaceViewRecorder } from "@/app/places/place-view-recorder";
 import { buildNaverMapLink, buildPlaceInfoLinks } from "@/lib/place-links";
 import { getPlaceDetail } from "@/lib/places";
 import { pricingEvidenceLabel, pricingItemLabels, pricingNote, pricingSummaryLabel } from "@/lib/pricing";
+import { checkPublicReadRateLimit } from "@/lib/public-rate-limit";
 import { describeReasonCodes } from "@/lib/reasons";
 import { scorePlaceIntrinsic } from "@/lib/scoring";
 
@@ -50,6 +52,10 @@ function formatCount(count: number) {
 export default async function PlaceDetailPage({ params, searchParams }: PlaceDetailProps) {
   const { placeId } = await params;
   const query = await searchParams;
+  const rateLimit = checkPublicReadRateLimit({ bucket: "place-detail", headers: await headers() });
+  if (!rateLimit.allowed) {
+    return <PlaceDetailRateLimited retryAfterSeconds={rateLimit.retryAfterSeconds} />;
+  }
   const place = await loadPlace(placeId);
   const displaySources = uniqueDisplaySources(place.sources);
   const infoLinks = buildPlaceInfoLinks(place);
@@ -402,6 +408,18 @@ async function loadPlace(placeId: string) {
   } catch {
     notFound();
   }
+}
+
+function PlaceDetailRateLimited({ retryAfterSeconds }: { retryAfterSeconds: number }) {
+  return (
+    <div className="page detail-page">
+      <section className="info-block full detail-rate-limit">
+        <h1>잠시 후 다시 확인해 주세요</h1>
+        <p>공개 장소 정보 요청이 짧은 시간에 많이 들어와 일시적으로 제한되었습니다.</p>
+        <small>약 {Math.ceil(retryAfterSeconds / 60)}분 뒤 다시 시도할 수 있습니다.</small>
+      </section>
+    </div>
+  );
 }
 
 type PlaceDetail = Awaited<ReturnType<typeof getPlaceDetail>>;
@@ -780,7 +798,7 @@ function playFeatureEntries(playFeatures: Record<string, unknown>) {
     "toiletNearby"
   ];
   const entries = Object.entries(playFeatures ?? {}).filter(
-    ([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null && value !== "unknown" && value !== "no" && value !== false
+    ([key, value]) => playFeatureLabel(key) && value !== undefined && value !== null && value !== "unknown" && value !== "no" && value !== false
   );
   const order = new Map(preferredOrder.map((key, index) => [key, index]));
   return entries.sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999) || a[0].localeCompare(b[0]));
@@ -805,7 +823,7 @@ function playFeatureLabel(key: string) {
     strollerPath: "유모차길",
     toiletNearby: "화장실 인근"
   };
-  return labels[key] ?? key;
+  return labels[key] ?? null;
 }
 
 function playFeatureChipLabel(key: string, value: unknown) {

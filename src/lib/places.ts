@@ -22,6 +22,7 @@ import {
   duplicateLocationSignals,
   duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
+  duplicatePublicProviderSiblingReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
@@ -509,6 +510,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       id: place.id,
       placeId: place.id,
       name: place.name,
+      status: place.status,
       primaryCategory: place.primaryCategory,
       tags: place.tags,
       address: place.address,
@@ -882,6 +884,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
   return {
     id: item.id,
     name: item.name,
+    status: item.status,
     primaryCategory: item.primaryCategory,
     tags: item.tags,
     address: item.address,
@@ -1469,6 +1472,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const compactName = compactSearchText(input.name);
   const containsCompactName = `%${compactName}%`;
   const aliasCompacts = Array.from(new Set([input.name, ...(input.aliases ?? [])].map(compactSearchText).filter(Boolean)));
+  const officialNameVariantCompacts = officialNameVariantCompactTexts([input.name, ...(input.aliases ?? [])]);
   const retailAliasCompacts = retailAliasCompactTexts(input.name);
   const genericAliasTerms = duplicateGenericAliasTerms;
   const hasCoordinates = input.lat !== undefined && input.lng !== undefined;
@@ -1478,8 +1482,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   const compactRegionSido = input.regionSido ? compactSearchText(input.regionSido) : null;
   const compactRegionSigungu = input.regionSigungu ? compactSearchText(input.regionSigungu) : null;
   const compactCity = input.city ? compactSearchText(input.city) : null;
-  const externalRefsJson =
-    input.externalRefs && Object.keys(input.externalRefs).length > 0 ? JSON.stringify(input.externalRefs) : null;
+  const duplicateExternalRefs = duplicateExternalRefsForMatch(input.externalRefs);
+  const externalRefsJson = duplicateExternalRefs ? JSON.stringify(duplicateExternalRefs) : null;
   const rows = await pg<
     (PlaceRow & {
       distance_meters: number | null;
@@ -1525,6 +1529,11 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[]) then 0.82 else 0 end,
           case when regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[]) then 0.9 else 0 end,
           case
+            when regexp_replace(regexp_replace(lower(name), '\\s+', '', 'g'), ${officialNameVariantTokenPattern}, '', 'g') = any(${officialNameVariantCompacts}::text[])
+            then 0.86
+            else 0
+          end,
+          case
             when exists (
               select 1
               from jsonb_array_elements_text(
@@ -1568,6 +1577,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
           or regexp_replace(lower(external_refs::text), '\\s+', '', 'g') ilike ${containsCompactName}
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${retailAliasCompacts}::text[])
           or regexp_replace(lower(name), '\\s+', '', 'g') = any(${aliasCompacts}::text[])
+          or regexp_replace(regexp_replace(lower(name), '\\s+', '', 'g'), ${officialNameVariantTokenPattern}, '', 'g') = any(${officialNameVariantCompacts}::text[])
           or exists (
             select 1
             from jsonb_array_elements_text(
@@ -1652,6 +1662,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
+        publicProviderSiblingReviewOnly: duplicatePublicProviderSiblingReviewOnly(input.name, row.name),
         ...locationSignals,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
@@ -1855,6 +1866,42 @@ function stringArrayFromExternalRefs(value: unknown) {
   if (typeof value === "string" && value.trim()) return [value.trim()];
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+}
+
+function duplicateExternalRefsForMatch(externalRefs: Record<string, unknown> | null | undefined) {
+  if (!externalRefs) return null;
+
+  const entries = Object.entries(externalRefs)
+    .map(([key, value]) => [key, compactDuplicateExternalRefValue(value)] as const)
+    .filter((entry): entry is readonly [string, unknown] => entry[1] !== null);
+
+  if (entries.length === 0) return null;
+  return Object.fromEntries(entries);
+}
+
+function compactDuplicateExternalRefValue(value: unknown): unknown | null {
+  if (Array.isArray(value)) {
+    const values = value.map(compactDuplicateExternalRefValue).filter((item) => item !== null);
+    return values.length > 0 ? values : null;
+  }
+
+  if (isRecord(value)) {
+    const entries = Object.entries(value)
+      .map(([key, nestedValue]) => [key, compactDuplicateExternalRefValue(nestedValue)] as const)
+      .filter((entry): entry is readonly [string, unknown] => entry[1] !== null);
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  return value === null || value === undefined ? null : value;
+}
+
+export function duplicateExternalRefsForMatchForTest(externalRefs: Record<string, unknown> | null | undefined) {
+  return duplicateExternalRefsForMatch(externalRefs);
 }
 
 function normalizeTags(tags: string[] | undefined) {
@@ -2336,11 +2383,13 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     params.push(value as SqlParam);
     return `$${params.length}`;
   };
-  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active"];
+  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active", "temporarily_closed"];
   const where =
     includeStatuses.length === 1 && includeStatuses[0] === "active"
       ? ["status = 'active'"]
-      : [`status = any(${add(includeStatuses)}::text[])`];
+      : includesDefaultSearchStatuses(includeStatuses)
+        ? ["status in ('active', 'temporarily_closed')"]
+        : [`status = any(${add(includeStatuses)}::text[])`];
 
   const distanceSql = input.origin
     ? `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000`
@@ -2451,6 +2500,10 @@ export function searchTermPatterns(query: string) {
     .split(/\s+/)
     .filter(Boolean)
     .map((term) => `%${term}%`);
+}
+
+function includesDefaultSearchStatuses(statuses: string[]) {
+  return statuses.length === 2 && statuses.includes("active") && statuses.includes("temporarily_closed");
 }
 
 export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInput {
@@ -3898,6 +3951,27 @@ function compactSearchText(value: string) {
   return normalizeSearchText(value).replace(/\s+/g, "");
 }
 
+const officialNameVariantTokens = ["야호"];
+const officialNameVariantTokenPattern = officialNameVariantTokens.map((token) => compactSearchText(token)).join("|");
+
+function officialNameVariantCompactTexts(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) => {
+          const compact = compactSearchText(value);
+          const normalized = compact.replace(new RegExp(officialNameVariantTokenPattern, "g"), "");
+          return [compact, normalized];
+        })
+        .filter(Boolean)
+    )
+  );
+}
+
+export function officialNameVariantCompactTextsForTest(values: string[]) {
+  return officialNameVariantCompactTexts(values);
+}
+
 function separatorlessSearchText(value: string) {
   return normalizeSearchText(value).replace(/[-‐‑‒–—―−\s]+/g, "");
 }
@@ -4862,6 +4936,7 @@ function mapVersionSummary(row: VersionRow) {
     action: row.action,
     actor: row.actor,
     changeSummary: row.change_summary,
+    sources: Array.isArray(row.sources) ? row.sources : [],
     createdAt: toIso(row.created_at)
   };
 }
@@ -4869,8 +4944,7 @@ function mapVersionSummary(row: VersionRow) {
 function mapVersion(row: VersionRow) {
   return {
     ...mapVersionSummary(row),
-    snapshot: row.snapshot,
-    sources: row.sources
+    snapshot: row.snapshot
   };
 }
 

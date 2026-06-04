@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   currentUserFromSessionToken: vi.fn(),
@@ -23,6 +23,7 @@ vi.mock("@/lib/visit-events", async (importOriginal) => ({
 }));
 
 import { POST as postPlaceSearch } from "@/app/places/search/route";
+import { resetPublicReadRateLimitForTests } from "@/lib/public-rate-limit";
 
 const userId = "11111111-1111-4111-8111-111111111111";
 
@@ -39,6 +40,11 @@ function request(body: unknown = {}) {
 }
 
 describe("place search route analytics", () => {
+  afterEach(() => {
+    delete process.env.AIGO_PUBLIC_SEARCH_RATE_LIMIT;
+    resetPublicReadRateLimitForTests();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.currentUserFromSessionToken.mockResolvedValue({ id: userId });
@@ -65,6 +71,20 @@ describe("place search route analytics", () => {
     });
     await expect(response.json()).resolves.toMatchObject({
       items: [{ placeId: "place-1" }, { placeId: "place-2" }]
+    });
+  });
+
+  it("rate-limits public search calls before running the search", async () => {
+    process.env.AIGO_PUBLIC_SEARCH_RATE_LIMIT = "1";
+
+    expect((await postPlaceSearch(request({ query: "키즈카페" }))).status).toBe(200);
+    const response = await postPlaceSearch(request({ query: "키즈카페" }));
+
+    expect(response.status).toBe(429);
+    expect(mocks.searchPlaces).toHaveBeenCalledTimes(1);
+    await expect(response.json()).resolves.toMatchObject({
+      details: { retryAfterSeconds: expect.any(Number) },
+      error: "Too many public place requests"
     });
   });
 });

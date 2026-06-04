@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { UrlObject } from "url";
-import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target } from "lucide-react";
+import { ArrowUp, Blocks, ChevronLeft, ChevronRight, CircleAlert, MapPin, RotateCcw, SearchX, SlidersHorizontal, Star, Target, X } from "lucide-react";
 
 import { placeCategoryLabel } from "@/app/place-category-badge";
 import { PlaceResultCard, type PlaceResultCardMetric } from "@/app/place-result-card";
@@ -173,6 +173,7 @@ export type SearchItem = {
   name: string;
   openingHoursSummary: SearchResultBadgeOpeningHoursSummary;
   placeId: string;
+  status?: string;
   playFeatures?: Record<string, unknown> | null;
   pricing?: unknown;
   primaryCategory: string;
@@ -382,6 +383,21 @@ export function ExploreResults({
     [activeInput, result.meta.limit, runClientSearch]
   );
 
+  const handleClearLocationScope = useCallback(() => {
+    const nextParams = searchParamsWithoutLocationScope(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()));
+    const nextInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
+    void runClientSearch(
+      {
+        ...nextInput,
+        filterByRadius: false,
+        offset: 0,
+        viewportBounds: undefined
+      },
+      nextParams,
+      "filters"
+    );
+  }, [activeParams, runClientSearch]);
+
   const mapOrigin = mapOriginFromMeta(result.meta);
   const mapPlaces = result.items.map(mapPlaceForMap);
   const shownError = clientError ?? result.error;
@@ -406,6 +422,7 @@ export function ExploreResults({
       <div className="results-panel" ref={resultsPanelRef}>
         <section className="result-header">
           <h2 className="sr-only">{activeCategoryGroup === "all" ? "검색 결과" : `${activeCategoryGroupLabel} 검색 결과`}</h2>
+          <LocationScopeIndicator input={activeInput} onClear={handleClearLocationScope} />
           <div className="result-actions">
             <SortControls activeSort={homeSort(activeInput.sort, activeSort)} params={activeParams} />
           </div>
@@ -654,7 +671,8 @@ function SortControls({
     <nav className="sort-control" aria-label="목록 정렬">
       <span className="sort-control-label">
         <SlidersHorizontal size={13} aria-hidden="true" />
-        정렬기준
+        <span className="sort-label-full">정렬기준</span>
+        <span className="sort-label-short" aria-hidden="true">기준</span>
       </span>
       <Link className={`sort-option ${activeSort === "recommended" ? "is-active" : ""}`} href={sortHref(params, "recommended")}>
         <Target size={13} aria-hidden="true" />
@@ -669,6 +687,21 @@ function SortControls({
         <span>평가</span>
       </Link>
     </nav>
+  );
+}
+
+function LocationScopeIndicator({ input, onClear }: { input: SearchPlacesInput; onClear: () => void }) {
+  const label = locationScopeLabel(input);
+  if (!label) return <span aria-hidden="true" />;
+
+  return (
+    <span className="location-scope-chip" aria-label={`${label} 필터 적용됨`}>
+      <MapPin size={14} aria-hidden="true" />
+      <span>{label}</span>
+      <button className="location-scope-clear" type="button" onClick={onClear} aria-label={`${label} 필터 해제`} title="거리 필터 해제">
+        <X size={13} aria-hidden="true" />
+      </button>
+    </span>
   );
 }
 
@@ -811,6 +844,17 @@ function resultLimitParam(params: Record<string, string | string[]>) {
   return RESULT_LIMIT_OPTIONS.find((option) => option === requested) ?? RESULT_LIMIT_OPTIONS[0];
 }
 
+function locationScopeLabel(input: SearchPlacesInput) {
+  if (input.viewportBounds) return "지도 화면 안";
+  if (!input.origin || input.filterByRadius === false || typeof input.radiusKm !== "number") return null;
+
+  return `반경 ${distanceRadiusLabel(input.radiusKm)}`;
+}
+
+function distanceRadiusLabel(radiusKm: number) {
+  return Number.isInteger(radiusKm) ? `${radiusKm}km` : `${radiusKm.toFixed(1)}km`;
+}
+
 function searchInterpretationChips(meta: SearchMeta | null | undefined) {
   if (!meta) return [];
 
@@ -915,13 +959,14 @@ function mapPlaceForMap(place: SearchItem): MapPlace {
 
 function resultKeywordChips(place: SearchItem) {
   const keywords = [
+    place.status === "temporarily_closed" ? "임시휴장" : null,
     indoorLabel(place.facilities.indoorType),
     ...positivePlayFeatureKeywords(place),
     ...positiveFacilityKeywords(place),
     ...place.tags.map(formatKeyword)
-  ];
+  ].filter((keyword): keyword is string => Boolean(keyword));
 
-  return Array.from(new Set(keywords.filter((keyword) => keyword && !lowSignalResultKeyword(keyword)))).slice(0, 4);
+  return Array.from(new Set(keywords.filter((keyword) => !lowSignalResultKeyword(keyword)))).slice(0, 4);
 }
 
 function resultCardSummary(place: SearchItem, category: string, keywords: string[]) {
@@ -1124,6 +1169,12 @@ function searchHref(pathname: string, params: Record<string, string | string[]>)
 
   const search = query.toString();
   return search ? `${pathname}?${search}` : pathname;
+}
+
+function searchParamsWithoutLocationScope(params: SearchParamsRecord) {
+  const next = queryWithout(params, [...MAP_LOCATION_PARAM_KEYS, "page", "offset"]);
+  if (textParam(next.sort) === "distance") next.sort = "recommended";
+  return next;
 }
 
 function replaceCurrentSearchParams(params: SearchParamsRecord) {

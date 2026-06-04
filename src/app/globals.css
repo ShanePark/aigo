@@ -1855,6 +1855,48 @@ h3 {
   margin-left: auto;
 }
 
+.location-scope-chip {
+  align-items: center;
+  background: var(--mint-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--mint);
+  display: inline-flex;
+  flex: 0 1 auto;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  gap: 5px;
+  line-height: 1;
+  min-height: var(--control-md);
+  min-width: 0;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.location-scope-chip svg {
+  flex: 0 0 auto;
+}
+
+.location-scope-clear {
+  align-items: center;
+  background: color-mix(in srgb, var(--mint) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mint) 22%, transparent);
+  border-radius: 999px;
+  color: inherit;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  margin-right: -5px;
+  min-width: 22px;
+  padding: 0;
+}
+
+.location-scope-clear:hover,
+.location-scope-clear:focus-visible {
+  background: var(--mint);
+  color: var(--bg);
+}
+
 .sort-control,
 .limit-control {
   align-items: center;
@@ -1882,6 +1924,10 @@ h3 {
 .sort-control-label svg,
 .sort-option svg {
   flex: 0 0 auto;
+}
+
+.sort-label-short {
+  display: none;
 }
 
 .sort-control-label::after {
@@ -6305,6 +6351,8 @@ h3 {
 .admin-nav-bar {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
   margin-top: -10px;
   min-width: 0;
@@ -6427,7 +6475,24 @@ h3 {
 
 .admin-summary-card strong {
   font-size: 22px;
+  letter-spacing: 0;
   line-height: 1;
+}
+
+.detail-rate-limit {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.detail-rate-limit h1 {
+  font-size: 24px;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.detail-rate-limit small {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .admin-active-filters {
@@ -10070,7 +10135,6 @@ dd {
     font-size: 32px;
   }
 
-  .result-header,
   .detail-head,
   .search-interpretation {
     align-items: flex-start;
@@ -10078,7 +10142,9 @@ dd {
   }
 
   .results-panel .result-header {
-    align-items: flex-end;
+    align-items: center;
+    gap: 5px;
+    justify-content: space-between;
     min-height: auto;
     padding: 6px 8px 4px;
   }
@@ -10184,7 +10250,15 @@ dd {
     display: flex;
     justify-content: flex-end;
     margin-left: auto;
+    min-width: 0;
     width: auto;
+  }
+
+  .location-scope-chip {
+    align-self: flex-start;
+    font-size: 11.5px;
+    min-height: 29px;
+    padding: 0 8px;
   }
 
   .sort-control {
@@ -10216,6 +10290,14 @@ dd {
     flex: 0 0 auto;
     gap: 3px;
     padding: 0 2px;
+  }
+
+  .sort-label-full {
+    display: none;
+  }
+
+  .sort-label-short {
+    display: inline;
   }
 
   .sort-control-label::after {

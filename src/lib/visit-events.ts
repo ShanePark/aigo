@@ -42,6 +42,8 @@ type VisitEventRow = {
 };
 
 type VisitEventSummaryRow = {
+  appCount: number | string;
+  apiCount: number | string;
   totalCount: number | string;
   detailViewCount: number | string;
   searchCount: number | string;
@@ -86,6 +88,8 @@ export type VisitEventItem = {
 };
 
 export type VisitEventsSummary = {
+  appCount: number;
+  apiCount: number;
   detailViewCount: number;
   searchCount: number;
   totalCount: number;
@@ -189,12 +193,16 @@ export async function getVisitEventsSummary(executor: SqlExecutor = pg): Promise
   const rows = await executor<VisitEventSummaryRow[]>`
     select
       count(*)::int as "totalCount",
+      count(*) filter (where event_source = 'app')::int as "appCount",
+      count(*) filter (where event_source = 'v1')::int as "apiCount",
       count(*) filter (where event_type = 'place_detail_view')::int as "detailViewCount",
       count(*) filter (where event_type = 'place_search')::int as "searchCount"
     from visit_events
   `;
 
   return {
+    appCount: numberValue(rows[0]?.appCount),
+    apiCount: numberValue(rows[0]?.apiCount),
     detailViewCount: numberValue(rows[0]?.detailViewCount),
     searchCount: numberValue(rows[0]?.searchCount),
     totalCount: numberValue(rows[0]?.totalCount)

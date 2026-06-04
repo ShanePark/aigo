@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
-import { analyzeUserAgent, listVisitEvents, recordVisitEvent } from "@/lib/visit-events";
+import { analyzeUserAgent, getVisitEventsSummary, listVisitEvents, recordVisitEvent } from "@/lib/visit-events";
 
 type QueryResponse = Array<Record<string, unknown>>;
 
@@ -91,6 +91,30 @@ describe("visit event listing", () => {
     });
     expect(calls[0]).toContain("left join users");
     expect(calls[0]).toContain("left join places");
+  });
+
+  it("summarizes direct app visits separately from v1 API requests", async () => {
+    const { calls, executor } = fakeExecutor([
+      [
+        {
+          appCount: 7,
+          apiCount: 3,
+          detailViewCount: 4,
+          searchCount: 6,
+          totalCount: 10
+        }
+      ]
+    ]);
+
+    await expect(getVisitEventsSummary(executor)).resolves.toEqual({
+      appCount: 7,
+      apiCount: 3,
+      detailViewCount: 4,
+      searchCount: 6,
+      totalCount: 10
+    });
+    expect(calls[0]).toContain("event_source = 'app'");
+    expect(calls[0]).toContain("event_source = 'v1'");
   });
 });
 

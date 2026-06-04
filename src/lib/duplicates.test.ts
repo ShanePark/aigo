@@ -8,6 +8,7 @@ import {
   duplicateLocationSignals,
   duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
+  duplicatePublicProviderSiblingReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
@@ -282,6 +283,55 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps same-provider toy-library sibling branches from blocking enrichment", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 2400,
+      nameSimilarity: 0.82,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicProviderSiblingReviewOnly(
+        "광명시육아종합지원센터 소하점 장난감도서관",
+        "광명시육아종합지원센터 하안점 장난감도서관"
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "REGION_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("lets strict identity evidence override public provider sibling cautions", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.88,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
+  });
+
   it("does not mark matching public childcare subfacility terms as review-only", () => {
     expect(
       duplicatePublicSubfacilityReviewOnly(
@@ -289,6 +339,55 @@ describe("duplicate helpers", () => {
         "금천구 아이세상놀이터"
       )
     ).toBe(false);
+  });
+
+  it("keeps same-building public childcare siblings as manual review even with generic aliases", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicSubfacilityReviewOnly: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicSubfacilityReviewOnly(
+        "광주광역시육아종합지원센터 키움뜰 실내놀이터",
+        "키움뜰장난감도서관"
+      )
+    ).toBe(true);
+    expect(
+      duplicateGenericAliasReviewOnly(
+        "광주광역시육아종합지원센터 키움뜰 실내놀이터",
+        ["광주광역시육아종합지원센터", "키움뜰 실내놀이터"],
+        "키움뜰장난감도서관",
+        ["광주육아종합지원센터 키움뜰장난감도서관"],
+        ["육아종합지원센터", "장난감도서관"]
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "GENERIC_ALIAS_REVIEW_ONLY", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
+  it("treats traffic safety experience aliases as generic public activity review signals", () => {
+    expect(duplicateWeakThematicSimilarityReviewOnly("광주광역시교통문화연수원 어린이 교통안전체험", "어린이 안전체험관")).toBe(true);
+    expect(
+      duplicateGenericAliasReviewOnly(
+        "광주광역시교통문화연수원 어린이 교통안전체험",
+        ["광주광역시교통문화연수원"],
+        "북구 어린이 교통공원",
+        ["교통문화연수원 어린이 안전체험"],
+        ["교통문화연수원", "안전체험"]
+      )
+    ).toBe(true);
   });
 
   it("treats exact self-check signals as high confidence", () => {
