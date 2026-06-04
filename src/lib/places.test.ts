@@ -215,23 +215,23 @@ describe("place search helpers", () => {
     expect(unconstrained.params).toEqual([127.4348, 36.3317]);
   });
 
-  it("keeps active-only search by default and can include temporarily closed records for audits", () => {
+  it("includes temporarily closed records by default and can restrict to active-only searches", () => {
     const defaultQuery = buildSearchQuery({
       ...baseSearchInput,
       query: "고성공룡박물관",
       matchMode: "exactName"
     });
-    const auditQuery = buildSearchQuery({
+    const activeOnlyQuery = buildSearchQuery({
       ...baseSearchInput,
       query: "고성공룡박물관",
       matchMode: "exactName",
-      includeStatuses: ["active", "temporarily_closed"]
+      includeStatuses: ["active"]
     });
 
-    expect(defaultQuery.sql).toContain("status = 'active'");
-    expect(defaultQuery.params).not.toContainEqual(["active"]);
-    expect(auditQuery.sql).toContain("status = any($1::text[])");
-    expect(auditQuery.params[0]).toEqual(["active", "temporarily_closed"]);
+    expect(defaultQuery.sql).toContain("status in ('active', 'temporarily_closed')");
+    expect(defaultQuery.params).not.toContainEqual(["active", "temporarily_closed"]);
+    expect(activeOnlyQuery.sql).toContain("status = 'active'");
+    expect(activeOnlyQuery.params).not.toContainEqual(["active"]);
   });
 
   it("filters by required tag aliases for accommodation subtype searches", () => {
@@ -265,10 +265,11 @@ describe("place search helpers", () => {
     expect(query.params).toEqual([127.38, 36.35, 36.3, 36.4, 127.3, 127.5]);
   });
 
-  it("search candidates exclude soft-deleted closed places", () => {
+  it("search candidates include active and temporarily closed places but exclude soft-deleted closed places", () => {
     const query = buildSearchQuery(baseSearchInput);
 
-    expect(query.sql).toContain("where status = 'active'");
+    expect(query.sql).toContain("where status in ('active', 'temporarily_closed')");
+    expect(query.params).not.toContainEqual(["active", "temporarily_closed"]);
   });
 
   it("does not cap SQL candidates before runtime scoring and pagination", () => {
@@ -1558,6 +1559,7 @@ describe("place search helpers", () => {
     const compact = compactSearchPlaceItem({
       id: "place-1",
       name: "대전 어린이 시설",
+      status: "temporarily_closed",
       primaryCategory: "museum",
       tags: ["어린이", "공공"],
       address: "대전광역시 중구",
@@ -1716,6 +1718,7 @@ describe("place search helpers", () => {
     expect(compact).toMatchObject({
       id: "place-1",
       name: "대전 어린이 시설",
+      status: "temporarily_closed",
       primaryImageUrl: "https://example.com/place.jpg",
       region: {
         countryCode: "JP",

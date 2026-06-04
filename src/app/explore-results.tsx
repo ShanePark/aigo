@@ -173,6 +173,7 @@ export type SearchItem = {
   name: string;
   openingHoursSummary: SearchResultBadgeOpeningHoursSummary;
   placeId: string;
+  status?: string;
   playFeatures?: Record<string, unknown> | null;
   pricing?: unknown;
   primaryCategory: string;
@@ -958,13 +959,14 @@ function mapPlaceForMap(place: SearchItem): MapPlace {
 
 function resultKeywordChips(place: SearchItem) {
   const keywords = [
+    place.status === "temporarily_closed" ? "임시휴장" : null,
     indoorLabel(place.facilities.indoorType),
     ...positivePlayFeatureKeywords(place),
     ...positiveFacilityKeywords(place),
     ...place.tags.map(formatKeyword)
-  ];
+  ].filter((keyword): keyword is string => Boolean(keyword));
 
-  return Array.from(new Set(keywords.filter((keyword) => keyword && !lowSignalResultKeyword(keyword)))).slice(0, 4);
+  return Array.from(new Set(keywords.filter((keyword) => !lowSignalResultKeyword(keyword)))).slice(0, 4);
 }
 
 function resultCardSummary(place: SearchItem, category: string, keywords: string[]) {

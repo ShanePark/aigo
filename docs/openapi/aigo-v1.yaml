@@ -1701,6 +1701,7 @@ components:
         - id
         - placeId
         - name
+        - status
         - primaryCategory
         - tags
         - description
@@ -1744,6 +1745,9 @@ components:
           description: Backward-compatible alias for `id`; prefer `id` in new agent/client code.
         name:
           type: string
+        status:
+          type: string
+          enum: [active, temporarily_closed]
         primaryCategory:
           type: string
         tags:
@@ -1898,6 +1902,7 @@ components:
       required:
         - id
         - name
+        - status
         - primaryCategory
         - tags
         - address
@@ -1931,6 +1936,9 @@ components:
           format: uuid
         name:
           type: string
+        status:
+          type: string
+          enum: [active, temporarily_closed]
         primaryCategory:
           type: string
         tags:

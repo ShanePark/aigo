@@ -510,6 +510,7 @@ export async function searchPlaces(input: SearchPlacesInput) {
       id: place.id,
       placeId: place.id,
       name: place.name,
+      status: place.status,
       primaryCategory: place.primaryCategory,
       tags: place.tags,
       address: place.address,
@@ -883,6 +884,7 @@ export function compactSearchPlaceItem(item: FullSearchItem) {
   return {
     id: item.id,
     name: item.name,
+    status: item.status,
     primaryCategory: item.primaryCategory,
     tags: item.tags,
     address: item.address,
@@ -2381,11 +2383,13 @@ export function buildSearchQuery(input: SearchPlacesInput) {
     params.push(value as SqlParam);
     return `$${params.length}`;
   };
-  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active"];
+  const includeStatuses = input.includeStatuses?.length ? Array.from(new Set(input.includeStatuses)) : ["active", "temporarily_closed"];
   const where =
     includeStatuses.length === 1 && includeStatuses[0] === "active"
       ? ["status = 'active'"]
-      : [`status = any(${add(includeStatuses)}::text[])`];
+      : includesDefaultSearchStatuses(includeStatuses)
+        ? ["status in ('active', 'temporarily_closed')"]
+        : [`status = any(${add(includeStatuses)}::text[])`];
 
   const distanceSql = input.origin
     ? `ST_Distance(geo, ST_SetSRID(ST_MakePoint(${add(input.origin.lng)}, ${add(input.origin.lat)}), 4326)::geography) / 1000`
@@ -2496,6 +2500,10 @@ export function searchTermPatterns(query: string) {
     .split(/\s+/)
     .filter(Boolean)
     .map((term) => `%${term}%`);
+}
+
+function includesDefaultSearchStatuses(statuses: string[]) {
+  return statuses.length === 2 && statuses.includes("active") && statuses.includes("temporarily_closed");
 }
 
 export function normalizeSearchInput(input: SearchPlacesInput): SearchPlacesInput {
