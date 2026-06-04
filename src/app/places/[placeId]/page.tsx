@@ -795,7 +795,14 @@ function playFeatureEntries(playFeatures: Record<string, unknown>) {
     "fenced",
     "rubberSurface",
     "strollerPath",
-    "toiletNearby"
+    "toiletNearby",
+    "indoorPlayArea",
+    "outdoorPlayground",
+    "readingArea",
+    "readingBooks",
+    "toyBorrowing",
+    "membershipRequired",
+    "guardianRequired"
   ];
   const entries = Object.entries(playFeatures ?? {}).filter(
     ([key, value]) => key !== "evidence" && key !== "notes" && value !== undefined && value !== null && value !== "unknown" && value !== "no" && value !== false
@@ -821,7 +828,14 @@ function playFeatureLabel(key: string) {
     fenced: "울타리",
     rubberSurface: "탄성포장",
     strollerPath: "유모차길",
-    toiletNearby: "화장실 인근"
+    toiletNearby: "화장실 인근",
+    indoorPlayArea: "실내 놀이공간",
+    outdoorPlayground: "야외 놀이터",
+    readingArea: "독서 공간",
+    readingBooks: "책 읽기",
+    toyBorrowing: "장난감 대여",
+    membershipRequired: "회원가입 필요",
+    guardianRequired: "보호자 동반"
   };
   return labels[key] ?? key;
 }

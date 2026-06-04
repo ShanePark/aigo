@@ -38,12 +38,12 @@ export function pricingItemLabels(pricing: unknown) {
     const itemRecord = asRecord(item);
     if (!itemRecord) return [];
 
-    const label = stringValue(itemRecord.label);
+    const label = pricingTextLabel(stringValue(itemRecord.label));
     if (!label) return [];
 
     const amount = typeof itemRecord.amount === "number" && Number.isFinite(itemRecord.amount) ? formatAmount(itemRecord.amount, stringValue(itemRecord.currency) ?? defaultCurrency) : null;
-    const unit = stringValue(itemRecord.unit);
-    const conditions = stringValue(itemRecord.conditions);
+    const unit = pricingTextLabel(stringValue(itemRecord.unit));
+    const conditions = pricingTextLabel(stringValue(itemRecord.conditions));
     const detail = [amount, unit].filter(Boolean).join(" / ");
     const suffix = conditions ? ` (${conditions})` : "";
 
@@ -58,6 +58,61 @@ export function pricingNote(pricing: unknown) {
 
 function firstPricingItemLabel(record: PricingRecord) {
   return pricingItemLabels(record)[0] ?? null;
+}
+
+function pricingTextLabel(value: string | null) {
+  if (!value) return null;
+  const labels: Record<string, string> = {
+    "adult admission": "성인 입장료",
+    "adult ticket": "성인권",
+    adult: "성인",
+    "youth admission": "청소년 입장료",
+    "teen admission": "청소년 입장료",
+    youth: "청소년",
+    teen: "청소년",
+    "child admission": "어린이 입장료",
+    "children admission": "어린이 입장료",
+    "children museum admission": "어린이박물관 입장료",
+    "children hall admission": "어린이회관 입장료",
+    "zoo adult admission": "동물원 성인 입장료",
+    "zoo youth admission": "동물원 청소년 입장료",
+    "zoo child admission": "동물원 어린이 입장료",
+    child: "어린이",
+    children: "어린이",
+    "infant admission": "영유아 입장료",
+    infant: "영유아",
+    baby: "영아",
+    guardian: "보호자",
+    person: "1인",
+    session: "회차",
+    day: "일",
+    hour: "시간",
+    "2h": "2시간",
+    "3h": "3시간",
+    "all day": "종일",
+    "half day": "반일"
+  };
+  const normalized = value.trim().toLowerCase();
+  if (labels[normalized]) return labels[normalized];
+  return value
+    .replace(/\bAdult admission\b/gi, "성인 입장료")
+    .replace(/\bYouth admission\b/gi, "청소년 입장료")
+    .replace(/\bTeen admission\b/gi, "청소년 입장료")
+    .replace(/\bChild admission\b/gi, "어린이 입장료")
+    .replace(/\bChildren admission\b/gi, "어린이 입장료")
+    .replace(/\bChildren museum admission\b/gi, "어린이박물관 입장료")
+    .replace(/\bChildren Hall admission\b/gi, "어린이회관 입장료")
+    .replace(/\bZoo adult admission\b/gi, "동물원 성인 입장료")
+    .replace(/\bZoo youth admission\b/gi, "동물원 청소년 입장료")
+    .replace(/\bZoo child admission\b/gi, "동물원 어린이 입장료")
+    .replace(/\bInfant admission\b/gi, "영유아 입장료")
+    .replace(/\bguardian\b/gi, "보호자")
+    .replace(/\bperson\b/gi, "1인")
+    .replace(/\bsession\b/gi, "회차")
+    .replace(/\bchild\b/gi, "어린이")
+    .replace(/\badult\b/gi, "성인")
+    .replace(/\byouth\b/gi, "청소년")
+    .replace(/\binfant\b/gi, "영유아");
 }
 
 function formatAmount(amount: number, currency: string | null) {
