@@ -11,6 +11,7 @@ export type DuplicateCandidateSignals = {
   weakThematicSimilarityReviewOnly?: boolean;
   genericAliasReviewOnly?: boolean;
   publicSubfacilityReviewOnly?: boolean;
+  publicProviderSiblingReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
@@ -81,6 +82,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("PUBLIC_SUBFACILITY_REVIEW_ONLY");
   }
 
+  if (signals.publicProviderSiblingReviewOnly) {
+    reasonCodes.push("PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY");
+  }
+
   if (signals.addressMatch) {
     reasonCodes.push("ADDRESS_MATCH");
   } else if (signals.regionMatch) {
@@ -131,6 +136,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.genericAliasReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly) return "medium";
   if (signals.sameBuildingReviewOnly) return "medium";
   if (signals.branchSiblingReviewOnly) return "medium";
@@ -229,6 +235,18 @@ export function duplicatePublicSubfacilityReviewOnly(inputName: string, candidat
   return !inputTerms.some((term) => candidateTerms.includes(term));
 }
 
+export function duplicatePublicProviderSiblingReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  const sharedProvider = publicProviderSiblingProviderTerms.some((term) => input.includes(term) && candidate.includes(term));
+  const sharedService = publicProviderSiblingServiceTerms.some((term) => input.includes(term) && candidate.includes(term));
+  if (!sharedProvider || !sharedService) return false;
+
+  return hasDifferentBranchToken(input, candidate);
+}
+
 export function duplicateGenericAliasReviewOnly(
   inputName: string,
   inputAliases: string[] | undefined,
@@ -301,6 +319,7 @@ function hasStrictLocationMatch(signals: DuplicateCandidateSignals) {
 function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidence: string) {
   if (identityReviewOnly(signals)) return false;
   if (genericPublicFacilityNoiseReviewOnly(signals)) return false;
+  if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -312,7 +331,7 @@ function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
     signals.externalRefsMatch ||
       signals.kakaoPlaceIdMatch ||
       signals.addressMatch ||
-      signals.sameSigunguMatch ||
+      (signals.sameSigunguMatch && !signals.publicProviderSiblingReviewOnly) ||
       (signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85)
   );
 }
@@ -323,7 +342,8 @@ function identityReviewOnly(signals: DuplicateCandidateSignals) {
       signals.branchSiblingReviewOnly ||
       signals.lodgingClusterReviewOnly ||
       signals.weakThematicSimilarityReviewOnly ||
-      signals.genericAliasReviewOnly) &&
+      signals.genericAliasReviewOnly ||
+      signals.publicProviderSiblingReviewOnly) &&
       !signals.externalRefsMatch &&
       !signals.kakaoPlaceIdMatch &&
       !hasStrongIdentityEvidence(signals)
@@ -375,6 +395,29 @@ function sharedRetailParentBuildingAnchor(input: string, candidate: string) {
     }
   }
   return best;
+}
+
+function hasDifferentBranchToken(input: string, candidate: string) {
+  const inputTokens = branchTokens(input);
+  const candidateTokens = branchTokens(candidate);
+  if (inputTokens.length === 0 || candidateTokens.length === 0) return false;
+  return !inputTokens.some((token) => candidateTokens.includes(token));
+}
+
+function branchTokens(value: string) {
+  const tokens = new Set<string>();
+
+  for (const provider of publicProviderSiblingProviderTerms) {
+    const providerIndex = value.indexOf(provider);
+    if (providerIndex < 0) continue;
+    const tail = value.slice(providerIndex + provider.length);
+    const branchMatch = tail.match(/^([가-힣A-Za-z0-9]{2,8})점/);
+    if (branchMatch?.[1]) tokens.add(compactDuplicateText(branchMatch[1]));
+  }
+
+  return Array.from(tokens).filter(
+    (token) => !publicProviderSiblingGenericBranchTokens.some((generic) => token.includes(generic) || generic.includes(token))
+  );
 }
 
 const genericBranchNameTerms = [
@@ -469,6 +512,38 @@ const publicChildSubfacilityTerms = [
   "육아종합지원센터",
   "어린이집",
   "어린이도서관"
+].map(compactDuplicateText);
+
+const publicProviderSiblingProviderTerms = [
+  "육아종합지원센터",
+  "가족센터",
+  "도서관",
+  "어린이도서관",
+  "공동육아나눔터",
+  "아이사랑놀이터"
+].map(compactDuplicateText);
+
+const publicProviderSiblingServiceTerms = [
+  "장난감도서관",
+  "장난감나라",
+  "장난감대여실",
+  "나누리장난감도서관",
+  "공동육아방",
+  "실내놀이터",
+  "어린이자료실",
+  "유아자료실"
+].map(compactDuplicateText);
+
+const publicProviderSiblingGenericBranchTokens = [
+  "육아종합지원",
+  "육아종합지원센터",
+  "장난감도서",
+  "나누리장난감도서",
+  "어린이도서",
+  "공동육아",
+  "아이사랑",
+  "실내놀이터",
+  "자료실"
 ].map(compactDuplicateText);
 
 const genericActivityTerms = [

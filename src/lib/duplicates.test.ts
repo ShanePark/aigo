@@ -8,6 +8,7 @@ import {
   duplicateLocationSignals,
   duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
+  duplicatePublicProviderSiblingReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
@@ -280,6 +281,55 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ADDRESS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
     );
+  });
+
+  it("keeps same-provider toy-library sibling branches from blocking enrichment", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 2400,
+      nameSimilarity: 0.82,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicProviderSiblingReviewOnly(
+        "광명시육아종합지원센터 소하점 장난감도서관",
+        "광명시육아종합지원센터 하안점 장난감도서관"
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "REGION_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("lets strict identity evidence override public provider sibling cautions", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.88,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("high");
+    expect(duplicateSuggestedAction(signals)).toBe("update_existing");
   });
 
   it("does not mark matching public childcare subfacility terms as review-only", () => {
