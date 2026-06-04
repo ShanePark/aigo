@@ -573,6 +573,8 @@ Use `playFeatures` for place-level physical play signals:
 
 Known fields include `slide`, `swing`, `babySwing`, `waterPlayground`, `sandPlay`, `climbing`, `seesaw`, `trampoline`, `rideOnToys`, `playHouse`, `openLawn`, `shade`, `fenced`, `rubberSurface`, `strollerPath`, and `toiletNearby`.
 
+Do not invent extra top-level `playFeatures` keys such as `indoorPlayArea`, `outdoorPlayground`, `indoorPlay`, `waterPlay`, `readingArea`, `readingBooks`, `toyBorrowing`, `nursingRoom`, or `diaperChangingTable`. Broader activity, reading, toy-library, logistics, and risk concepts belong in canonical `taxonomy.sourceBacked` facets or first-class structured fields, not in ad hoc `playFeatures` keys. For example, use `taxonomy.sourceBacked.activityTypes: ["indoor_play"]`, `["outdoor_playground"]`, `["reading_books"]`, or `["toy_borrowing"]`; use `taxonomy.sourceBacked.logisticsTags` for nursing room, diaper table, stroller, reservation, and food-support evidence; and use `taxonomy.sourceBacked.riskTags` for water-edge or similar risks. Keep `playFeatures` reserved for the known physical equipment/support fields above, and keep `playFeatures.evidence[].basis` in Korean when it could surface in admin or public review contexts.
+
 Evidence confidence values: `official`, `visual_confirmed`, `user_reported`, `blog_supported`, `needs_check`, `unknown`.
 
 ## Route Support
