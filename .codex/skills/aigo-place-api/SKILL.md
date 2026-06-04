@@ -333,6 +333,8 @@ For tenant places that must use a parent mall/building coordinate, run `pnpm tsx
 
 For public playground or park coordinate audits, run `pnpm tsx scripts/audit-coordinate-quality.ts --candidate='name|lat|lng|sourceUrl|sourceTitle' --json`. The script is read-only: it exact-name searches AiGo, reads detail, compares the current coordinate to the official/public coordinate, rejects Kakao itemId links without `urlX`/`urlY` as coordinate evidence, and reports duplicate candidates for manual follow-up.
 
+For active duplicate retirement planning, run `pnpm tsx scripts/plan-active-duplicate-retire.ts --pair=<canonicalKeepId>:<duplicateRetireId> --json` before designing or calling any mutation endpoint. The script is read-only and reports active-status blockers, aliases/sources/images that need transfer review, and the latest version context for the keep/retire pair.
+
 Common writable fields:
 
 - Identity/location: `name`, `primaryCategory`, `tags`, `description`, `address`, `roadAddress`, `regionSido`, `regionSigungu`, `regionDong`, `lat`, `lng`, `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, `kakaoPlaceId`, `externalRefs`.
