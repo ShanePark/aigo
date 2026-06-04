@@ -30,6 +30,7 @@ import {
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
@@ -1738,6 +1739,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
         publicProviderSiblingReviewOnly: duplicatePublicProviderSiblingReviewOnly(input.name, row.name),
+        unrelatedBranchCategoryReviewOnly: duplicateUnrelatedBranchCategoryReviewOnly(input.name, row.name),
         ...locationSignals,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
