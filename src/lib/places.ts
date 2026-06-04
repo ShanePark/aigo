@@ -15,6 +15,7 @@ import {
 } from "@/lib/schemas";
 import {
   type DuplicateCandidateRelationshipHint,
+  type DuplicateCandidateReviewBucket,
   type DuplicateCandidateSuggestedAction,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
@@ -27,6 +28,7 @@ import {
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
+  duplicateReviewBucket,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
@@ -860,6 +862,7 @@ type DuplicateCandidateItem = {
   reasonCodes: string[];
   suggestedAction: DuplicateCandidateSuggestedAction;
   relationshipHint: DuplicateCandidateRelationshipHint;
+  reviewBucket: DuplicateCandidateReviewBucket;
   outsideRadiusReviewOnly: boolean;
   distanceMeters: number | null;
   nameSimilarity: number | null;
@@ -1045,10 +1048,24 @@ function compactDuplicatePlaceCandidate(item: DuplicateCandidateItem) {
     reasonCodes: item.reasonCodes,
     suggestedAction: item.suggestedAction,
     relationshipHint: item.relationshipHint,
+    reviewBucket: item.reviewBucket,
     outsideRadiusReviewOnly: item.outsideRadiusReviewOnly,
     distanceMeters: item.distanceMeters,
     nameSimilarity: item.nameSimilarity
   };
+}
+
+function duplicateReviewBucketRank(bucket: DuplicateCandidateReviewBucket) {
+  switch (bucket) {
+    case "identity":
+      return 0;
+    case "relationship_context":
+      return 1;
+    case "sibling_branch_review":
+      return 2;
+    case "low_priority_noise":
+      return 3;
+  }
 }
 
 export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateItem) {
@@ -1758,12 +1775,14 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         reasonCodes: duplicateReasonCodes(duplicateSignals),
         suggestedAction: duplicateSuggestedAction(duplicateSignals),
         relationshipHint: duplicateRelationshipHint(duplicateSignals),
+        reviewBucket: duplicateReviewBucket(duplicateSignals),
         outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };
     })
   );
+  items.sort((a, b) => duplicateReviewBucketRank(a.reviewBucket) - duplicateReviewBucketRank(b.reviewBucket));
 
   return {
     items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items

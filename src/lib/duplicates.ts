@@ -25,6 +25,7 @@ export type DuplicateCandidateSignals = {
 
 export type DuplicateCandidateSuggestedAction = "update_existing" | "manual_duplicate_review" | "hold_duplicate_review";
 export type DuplicateCandidateRelationshipHint = "same_building" | "parent_child" | null;
+export type DuplicateCandidateReviewBucket = "identity" | "relationship_context" | "sibling_branch_review" | "low_priority_noise";
 
 export type DuplicateLocationInput = {
   address?: string | null;
@@ -171,6 +172,27 @@ export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): D
   if (signals.sameBuildingReviewOnly) return "same_building";
   if (signals.publicSubfacilityReviewOnly && (signals.addressMatch || signals.sameSigunguMatch)) return "parent_child";
   return null;
+}
+
+export function duplicateReviewBucket(signals: DuplicateCandidateSignals): DuplicateCandidateReviewBucket {
+  if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return "identity";
+  if (signals.sameBuildingReviewOnly || signals.publicSubfacilityReviewOnly) return "relationship_context";
+  if (
+    signals.branchSiblingReviewOnly ||
+    signals.publicProviderSiblingReviewOnly ||
+    (signals.genericAliasReviewOnly && !hasStrongIdentityEvidence(signals) && (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
+  ) {
+    return "sibling_branch_review";
+  }
+  if (
+    signals.unrelatedBranchCategoryReviewOnly ||
+    signals.weakThematicSimilarityReviewOnly ||
+    signals.sameSidoGenericReviewOnly ||
+    (signals.genericBranchName && !hasStrictLocationMatch(signals))
+  ) {
+    return "low_priority_noise";
+  }
+  return "identity";
 }
 
 export function duplicateOutsideRadiusReviewOnly(signals: DuplicateCandidateSignals) {

@@ -12,6 +12,7 @@ import {
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
+  duplicateReviewBucket,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
@@ -439,6 +440,7 @@ describe("duplicate helpers", () => {
     expect(duplicateUnrelatedBranchCategoryReviewOnly("미랑샤브 노원본점", "미랑샤브 공릉점")).toBe(false);
     expect(duplicateConfidence(signals)).toBe("medium");
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY", "GEO_NEAR"]));
   });
 
@@ -530,6 +532,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",
@@ -568,6 +571,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",
@@ -595,6 +599,7 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("high");
     expect(duplicateSuggestedAction(signals)).toBe("update_existing");
+    expect(duplicateReviewBucket(signals)).toBe("identity");
   });
 
   it("lets same-address generic activity matches stay actionable", () => {

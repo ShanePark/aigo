@@ -1845,6 +1845,7 @@ describe("place search helpers", () => {
       reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
       suggestedAction: "hold_duplicate_review",
       relationshipHint: null,
+      reviewBucket: "sibling_branch_review",
       outsideRadiusReviewOnly: true,
       distanceMeters: 3800,
       nameSimilarity: 0.58
@@ -1862,6 +1863,7 @@ describe("place search helpers", () => {
       confidence: "low",
       reasonCodes: ["LODGING_CLUSTER_REVIEW_ONLY", "GEO_OUTSIDE_REQUEST_RADIUS"],
       suggestedAction: "hold_duplicate_review",
+      reviewBucket: "sibling_branch_review",
       outsideRadiusReviewOnly: true,
       distanceMeters: 3800
     });

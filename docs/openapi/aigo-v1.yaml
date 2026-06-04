@@ -2690,6 +2690,10 @@ components:
                 type: string
                 enum: [update_existing, manual_duplicate_review, hold_duplicate_review]
                 description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district. `manual_duplicate_review` is also used for branch-sibling, same-building/tenant, or generic public-facility alias cautions where name or address similarity is useful context but not identity proof.
+              reviewBucket:
+                type: string
+                enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
+                description: Operator-facing review bucket. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence.
               relationshipHint:
                 type: string
                 nullable: true
