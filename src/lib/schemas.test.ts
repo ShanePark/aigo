@@ -5,6 +5,7 @@ import {
   deletePlaceSchema,
   duplicatePlaceSchema,
   placeImageHealthQuerySchema,
+  retireDuplicatePlaceSchema,
   searchPlacesSchema,
   taxonomySchema,
   updatePlaceSchema
@@ -665,6 +666,25 @@ describe("place schemas", () => {
     expect(result.actor).toBe("agent");
     expect(result.confirmation).toBe("close_place");
     expect(missingSummary.success).toBe(false);
+    expect(wrongToken.success).toBe(false);
+  });
+
+  it("requires explicit canonical details for duplicate retire requests", () => {
+    const result = retireDuplicatePlaceSchema.parse({
+      confirmation: "retire_duplicate",
+      canonicalPlaceId: "11111111-1111-4111-8111-111111111111",
+      changeSummary: "중복 레코드를 canonical 장소로 병합 처리한다.",
+      sources: [{ sourceType: "agent_observation", externalId: "duplicate-retire-plan-20260604" }]
+    });
+    const wrongToken = retireDuplicatePlaceSchema.safeParse({
+      confirmation: "close_place",
+      canonicalPlaceId: "11111111-1111-4111-8111-111111111111",
+      changeSummary: "중복 레코드를 canonical 장소로 병합 처리한다.",
+      sources: [{ sourceType: "agent_observation", externalId: "duplicate-retire-plan-20260604" }]
+    });
+
+    expect(result.actor).toBe("agent");
+    expect(result.confirmation).toBe("retire_duplicate");
     expect(wrongToken.success).toBe(false);
   });
 

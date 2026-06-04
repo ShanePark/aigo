@@ -7,6 +7,7 @@ import {
   type PlaceImageHealthQueryInput,
   type PlaceImageInput,
   type RelatedPlaceInput,
+  type RetireDuplicatePlaceInput,
   type SearchPlacesInput,
   type SourceInput,
   type UpdatePlaceInput,
@@ -412,6 +413,80 @@ export function assertDeleteConfirmationMatches(placeName: string, confirmName: 
   if (placeName.trim() !== confirmName.trim()) {
     throw new ApiError(400, "confirmName must match the current place name before deletion");
   }
+}
+
+export function assertRetireDuplicatePreconditions(input: {
+  retireId: string;
+  retireStatus: string;
+  canonicalId: string;
+  canonicalStatus: string;
+}) {
+  if (input.retireId === input.canonicalId) {
+    throw new ApiError(400, "canonicalPlaceId must be different from the retired duplicate place id");
+  }
+  if (input.retireStatus !== "active") {
+    throw new ApiError(400, "Only active duplicate places can be retired as merged");
+  }
+  if (input.canonicalStatus !== "active") {
+    throw new ApiError(400, "Canonical place must be active before retiring a duplicate");
+  }
+}
+
+export async function retireDuplicatePlace(placeId: string, input: RetireDuplicatePlaceInput) {
+  return pg.begin(async (tx) => {
+    const retireRows = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
+    if (retireRows.length === 0) {
+      throw new ApiError(404, "Place not found");
+    }
+
+    const canonicalRows = await tx<PlaceRow[]>`select * from places where id = ${input.canonicalPlaceId}`;
+    if (canonicalRows.length === 0) {
+      throw new ApiError(404, "Canonical place not found");
+    }
+
+    const existing = retireRows[0];
+    const canonical = canonicalRows[0];
+    assertRetireDuplicatePreconditions({
+      retireId: existing.id,
+      retireStatus: existing.status,
+      canonicalId: canonical.id,
+      canonicalStatus: canonical.status
+    });
+
+    const [updated] = await tx<PlaceRow[]>`
+      update places
+      set
+        status = 'merged',
+        external_refs = coalesce(external_refs, '{}'::jsonb) || jsonb_build_object(
+          'duplicateRetirement',
+          jsonb_build_object(
+            'canonicalPlaceId', ${canonical.id},
+            'canonicalPlaceName', ${canonical.name},
+            'retiredAt', now(),
+            'actor', ${input.actor},
+            'changeSummary', ${input.changeSummary}
+          )
+        ),
+        updated_at = now(),
+        version = version + 1
+      where id = ${placeId}
+      returning *
+    `;
+    await insertSources(tx, updated.id, input.sources);
+    await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      retired: true,
+      retirementMode: "duplicate_merge",
+      status: updated.status,
+      canonicalPlaceId: canonical.id,
+      canonicalPlaceName: canonical.name,
+      actor: input.actor,
+      changeSummary: input.changeSummary
+    };
+  });
 }
 
 export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg) {
@@ -1620,7 +1695,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
         (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
       from places
-      where status <> 'closed'
+      where status in ('active', 'temporarily_closed')
     )
     select *
     from scored

@@ -140,12 +140,14 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Creates use `POST /v1/places`.
    - Updates use `PATCH /v1/places/{placeId}`.
    - Deletes use `DELETE /v1/places/{placeId}` only after an explicit user removal request or deliberate audit decision. The endpoint performs a source-backed soft delete by setting `status: "closed"` and preserving sources, images, and version history. Requests must include `confirmation: "close_place"`, the exact `confirmName`, at least one source, and a `changeSummary`.
+   - Active duplicate retirement uses `POST /v1/places/{placeId}/retire-duplicate`, not `DELETE`. Use it only after duplicate review has identified a canonical active place and an active duplicate to retire. Requests must include `confirmation: "retire_duplicate"`, `canonicalPlaceId`, at least one source, and a `changeSummary`; the endpoint sets the duplicate to `status: "merged"`, stores the canonical id under `externalRefs.duplicateRetirement`, and writes a version audit.
    - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
 
 7. Verify after meaningful changes.
    - Call `GET /v1/places/{placeId}`.
    - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list. A 404 means the parent place id is invalid; an empty version list should only be treated as "no versions yet" after the place itself exists.
    - For soft deletes, confirm `GET /v1/places/{placeId}` returns the place with `status: "closed"`, exact-name search no longer returns it, and `GET /v1/places/{placeId}/versions` includes the delete audit `changeSummary`.
+   - For duplicate retirements, confirm `GET /v1/places/{placeId}` returns `status: "merged"` with `externalRefs.duplicateRetirement.canonicalPlaceId`, exact-name search and duplicate checks no longer return the retired id, and versions include the merge audit `changeSummary`.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
    - To focus image-health checks on a current batch, call `GET /v1/places/image-health?status=attention&placeIds=<id1>,<id2>` or `listPlaceImageHealth({ status: "attention", placeIds: ["<id1>", "<id2>"], limit: 100 })`. The helper also accepts the same comma-separated `placeIds` string as the HTTP API, and explicitly scoped `placeIds` lookups include `temporarily_closed` records even though the unscoped queue stays active-only.
    - For search relevance, call `POST /v1/places/search` with the intended visit context and family preferences.
@@ -358,7 +360,7 @@ Use these enum values:
 - Tri-state fields: `yes`, `no`, `partial`, `unknown`.
 - `indoorType`: `indoor`, `outdoor`, `mixed`, `unknown`.
 - `parkingFrictionLevel`: `low`, `medium`, `high`, `unknown`.
-- `status`: API accepts `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`.
+- `status`: normal create/update payloads accept `active`, `temporarily_closed`, `closed`, `draft`, `needs_review`; user-requested registrations from this skill should use `active`. Duplicate retirement can also produce read-only `merged` status through `POST /v1/places/{placeId}/retire-duplicate`; do not set it through ordinary place updates.
 - `dataConfidence`: API accepts `official_verified`, `operator_curated`, `agent_collected`, `user_reported`, `needs_check`, `unknown`; user-requested registrations from this skill should use `agent_collected`, `user_reported`, or `official_verified`.
 - Related-place `relationType`: use `same_building` for branches inside the same mall/building, `same_site` for campus/resort/public-facility subvenues, `nearby` for very close practical companions, `parent_child` for explicit parent/subfacility relationships, `route_pair` for route-break pairings, and `itinerary_cluster` for day-trip clusters that share drive burden, meal/rest fallback, and parent-effort planning.
 

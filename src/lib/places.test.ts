@@ -4,6 +4,7 @@ import { createPlaceSchema } from "@/lib/schemas";
 import {
   applySearchDiversity,
   assertDeleteConfirmationMatches,
+  assertRetireDuplicatePreconditions,
   buildInfantLogisticsSignal,
   buildImageMetadata,
   buildOpeningHoursDataSignal,
@@ -270,6 +271,33 @@ describe("place search helpers", () => {
 
     expect(query.sql).toContain("where status in ('active', 'temporarily_closed')");
     expect(query.params).not.toContainEqual(["active", "temporarily_closed"]);
+  });
+
+  it("guards duplicate retirement to active non-self canonical pairs", () => {
+    expect(() =>
+      assertRetireDuplicatePreconditions({
+        retireId: "retire-id",
+        retireStatus: "active",
+        canonicalId: "canonical-id",
+        canonicalStatus: "active"
+      })
+    ).not.toThrow();
+    expect(() =>
+      assertRetireDuplicatePreconditions({
+        retireId: "same-id",
+        retireStatus: "active",
+        canonicalId: "same-id",
+        canonicalStatus: "active"
+      })
+    ).toThrow("canonicalPlaceId must be different");
+    expect(() =>
+      assertRetireDuplicatePreconditions({
+        retireId: "retire-id",
+        retireStatus: "merged",
+        canonicalId: "canonical-id",
+        canonicalStatus: "active"
+      })
+    ).toThrow("Only active duplicate places");
   });
 
   it("does not cap SQL candidates before runtime scoring and pagination", () => {
