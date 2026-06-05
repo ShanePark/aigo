@@ -688,6 +688,16 @@ describe("place schemas", () => {
     expect(wrongToken.success).toBe(false);
   });
 
+  it("accepts merged status for retired duplicate place records", () => {
+    const result = updatePlaceSchema.parse({
+      status: "merged",
+      changeSummary: "중복 레코드를 canonical 장소로 병합 처리한다.",
+      sources: [{ sourceType: "agent_observation", externalId: "duplicate-retire-plan-20260605" }]
+    });
+
+    expect(result.status).toBe("merged");
+  });
+
   it("accepts reservation and session planning flags", () => {
     const result = createPlaceSchema.parse({
       name: "예약제 어린이 시설",

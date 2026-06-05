@@ -984,7 +984,7 @@ components:
             $ref: "#/components/schemas/RelatedPlaceInput"
         status:
           type: string
-          enum: [active, temporarily_closed, closed, draft, needs_review]
+          enum: [active, temporarily_closed, closed, draft, needs_review, merged]
         dataConfidence:
           type: string
           enum: [official_verified, operator_curated, agent_collected, user_reported, needs_check, unknown]

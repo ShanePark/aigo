@@ -278,7 +278,7 @@ const writablePlaceFields = {
   imageUrls: z.array(urlString).max(20).optional(),
   images: z.array(placeImageInputSchema).max(30).optional(),
   relatedPlaces: z.array(relatedPlaceInputSchema).max(50).optional(),
-  status: z.enum(["active", "temporarily_closed", "closed", "draft", "needs_review"]).optional(),
+  status: z.enum(["active", "temporarily_closed", "closed", "draft", "needs_review", "merged"]).optional(),
   dataConfidence: z
     .enum(["official_verified", "operator_curated", "agent_collected", "user_reported", "needs_check", "unknown"])
     .optional(),

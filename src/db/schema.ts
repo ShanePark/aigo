@@ -276,6 +276,7 @@ export const places = pgTable(
     lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true })
   },
   (table) => ({
+    statusCheck: check("places_status_check", sql`${table.status} in ('active', 'temporarily_closed', 'closed', 'draft', 'needs_review', 'merged')`),
     primaryCategoryIdx: index("places_primary_category_idx").on(table.primaryCategory),
     taxonomyIdx: index("places_taxonomy_gin_idx").using("gin", table.taxonomy),
     routeSupportIdx: index("places_route_support_gin_idx").using("gin", table.routeSupport),
