@@ -349,6 +349,32 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/places/{placeId}/retire-duplicate:
+    post:
+      summary: Retire an active duplicate place into a canonical place
+      description: Marks the target place `merged`, preserves source-backed audit history, stores the canonical place id in `externalRefs.duplicateRetirement`, and excludes the retired duplicate from search and duplicate candidate results.
+      operationId: retireDuplicatePlace
+      parameters:
+        - $ref: "#/components/parameters/PlaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetireDuplicatePlaceRequest"
+      responses:
+        "200":
+          description: Retired duplicate summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetireDuplicatePlaceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /v1/places/{placeId}/versions:
     get:
       summary: List place versions
@@ -2612,6 +2638,31 @@ components:
           minLength: 10
           maxLength: 2000
           description: Deletion reason or audit summary stored in the preserved version history.
+    RetireDuplicatePlaceRequest:
+      type: object
+      required: [confirmation, canonicalPlaceId, sources, changeSummary]
+      properties:
+        confirmation:
+          type: string
+          const: retire_duplicate
+          description: Explicit confirmation token. This endpoint is for source-backed active duplicate retirement, not closure or hard deletion.
+        canonicalPlaceId:
+          type: string
+          format: uuid
+          description: Active canonical place id that should remain searchable.
+        sources:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SourceInput"
+        actor:
+          type: string
+          default: agent
+        changeSummary:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Merge/retirement reason stored in the retired place version history.
     DuplicatePlaceResponse:
       type: object
       required: [items]
@@ -2632,13 +2683,17 @@ components:
                 enum: [high, medium, low]
               reasonCodes:
                 type: array
-                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
+                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
                 items:
                   type: string
               suggestedAction:
                 type: string
                 enum: [update_existing, manual_duplicate_review, hold_duplicate_review]
                 description: Safe default action for automation clients. `hold_duplicate_review` means the candidate is review-only and must not be patched without stronger identity evidence such as provider id, external refs, same address, or same district. `manual_duplicate_review` is also used for branch-sibling, same-building/tenant, or generic public-facility alias cautions where name or address similarity is useful context but not identity proof.
+              reviewBucket:
+                type: string
+                enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
+                description: Operator-facing review bucket. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence.
               relationshipHint:
                 type: string
                 nullable: true
@@ -3179,6 +3234,32 @@ components:
         status:
           type: string
           enum: [closed]
+        actor:
+          type: string
+        changeSummary:
+          type: string
+    RetireDuplicatePlaceResponse:
+      type: object
+      required: [id, name, retired, retirementMode, status, canonicalPlaceId, canonicalPlaceName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        retired:
+          type: boolean
+        retirementMode:
+          type: string
+          enum: [duplicate_merge]
+        status:
+          type: string
+          enum: [merged]
+        canonicalPlaceId:
+          type: string
+          format: uuid
+        canonicalPlaceName:
+          type: string
         actor:
           type: string
         changeSummary:

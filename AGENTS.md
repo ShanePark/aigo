@@ -115,7 +115,7 @@ Use these Korean status labels at the start of each open item:
 - `[대기]` for an improvement that has not started.
 - `[개선 중]` for the single improvement currently being worked on.
 
-When starting work on an existing improvement, first update that item from `[대기]` to `[개선 중]`, then implement and verify the fix. When finishing, delete the item from `docs/aigo-improvements.md` instead of changing it to `[완료]`; keep verification details in the relevant commit, PR, test, or implementation notes. Do not leave multiple unrelated items marked `[개선 중]` unless they are intentionally part of the same active change.
+When starting work on an existing improvement, first review the `[대기]` item while it is still queued. Confirm that the improvement is still real, necessary, and worth doing; assess whether the proposed direction could introduce product, data, API, migration, UX, or operational problems; and weigh expected value against risk and implementation cost. Only if that review supports proceeding should the item be updated from `[대기]` to `[개선 중]`, then implemented and verified. When finishing, delete the item from `docs/aigo-improvements.md` instead of changing it to `[완료]`; keep verification details in the relevant commit, PR, test, or implementation notes. Do not leave multiple unrelated items marked `[개선 중]` unless they are intentionally part of the same active change.
 
 ## API Data Mutation Rules
 

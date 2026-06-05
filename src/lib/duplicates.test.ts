@@ -12,9 +12,11 @@ import {
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
+  duplicateReviewBucket,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 
@@ -422,6 +424,26 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toContain("REGION_MATCH");
   });
 
+  it("keeps unrelated nearby food branch candidates as manual review", () => {
+    const signals = {
+      aliasMatch: false,
+      addressMatch: true,
+      unrelatedBranchCategoryReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 45,
+      nameSimilarity: 0.42
+    };
+
+    expect(duplicateUnrelatedBranchCategoryReviewOnly("노원구육아종합지원센터 놀이아띠 공릉점", "미랑샤브 노원본점")).toBe(true);
+    expect(duplicateUnrelatedBranchCategoryReviewOnly("미랑샤브 노원본점", "미랑샤브 노원본점")).toBe(false);
+    expect(duplicateUnrelatedBranchCategoryReviewOnly("미랑샤브 노원본점", "미랑샤브 공릉점")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ADDRESS_MATCH", "UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY", "GEO_NEAR"]));
+  });
+
   it("lowers generic branch-name candidates when source-backed regions conflict", () => {
     const signals = {
       aliasMatch: false,
@@ -510,6 +532,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",
@@ -548,6 +571,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",
@@ -575,6 +599,7 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("high");
     expect(duplicateSuggestedAction(signals)).toBe("update_existing");
+    expect(duplicateReviewBucket(signals)).toBe("identity");
   });
 
   it("lets same-address generic activity matches stay actionable", () => {

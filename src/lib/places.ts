@@ -7,6 +7,7 @@ import {
   type PlaceImageHealthQueryInput,
   type PlaceImageInput,
   type RelatedPlaceInput,
+  type RetireDuplicatePlaceInput,
   type SearchPlacesInput,
   type SourceInput,
   type UpdatePlaceInput,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/schemas";
 import {
   type DuplicateCandidateRelationshipHint,
+  type DuplicateCandidateReviewBucket,
   type DuplicateCandidateSuggestedAction,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
@@ -26,9 +28,11 @@ import {
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
+  duplicateReviewBucket,
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
 import { dateFromSeoulWallClock } from "@/lib/korea-time";
@@ -414,6 +418,80 @@ export function assertDeleteConfirmationMatches(placeName: string, confirmName: 
   }
 }
 
+export function assertRetireDuplicatePreconditions(input: {
+  retireId: string;
+  retireStatus: string;
+  canonicalId: string;
+  canonicalStatus: string;
+}) {
+  if (input.retireId === input.canonicalId) {
+    throw new ApiError(400, "canonicalPlaceId must be different from the retired duplicate place id");
+  }
+  if (input.retireStatus !== "active") {
+    throw new ApiError(400, "Only active duplicate places can be retired as merged");
+  }
+  if (input.canonicalStatus !== "active") {
+    throw new ApiError(400, "Canonical place must be active before retiring a duplicate");
+  }
+}
+
+export async function retireDuplicatePlace(placeId: string, input: RetireDuplicatePlaceInput) {
+  return pg.begin(async (tx) => {
+    const retireRows = await tx<PlaceRow[]>`select * from places where id = ${placeId}`;
+    if (retireRows.length === 0) {
+      throw new ApiError(404, "Place not found");
+    }
+
+    const canonicalRows = await tx<PlaceRow[]>`select * from places where id = ${input.canonicalPlaceId}`;
+    if (canonicalRows.length === 0) {
+      throw new ApiError(404, "Canonical place not found");
+    }
+
+    const existing = retireRows[0];
+    const canonical = canonicalRows[0];
+    assertRetireDuplicatePreconditions({
+      retireId: existing.id,
+      retireStatus: existing.status,
+      canonicalId: canonical.id,
+      canonicalStatus: canonical.status
+    });
+
+    const [updated] = await tx<PlaceRow[]>`
+      update places
+      set
+        status = 'merged',
+        external_refs = coalesce(external_refs, '{}'::jsonb) || jsonb_build_object(
+          'duplicateRetirement',
+          jsonb_build_object(
+            'canonicalPlaceId', ${canonical.id},
+            'canonicalPlaceName', ${canonical.name},
+            'retiredAt', now(),
+            'actor', ${input.actor},
+            'changeSummary', ${input.changeSummary}
+          )
+        ),
+        updated_at = now(),
+        version = version + 1
+      where id = ${placeId}
+      returning *
+    `;
+    await insertSources(tx, updated.id, input.sources);
+    await createVersion(tx, updated.id, updated.version, "update", input.actor, input.changeSummary, input.sources);
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      retired: true,
+      retirementMode: "duplicate_merge",
+      status: updated.status,
+      canonicalPlaceId: canonical.id,
+      canonicalPlaceName: canonical.name,
+      actor: input.actor,
+      changeSummary: input.changeSummary
+    };
+  });
+}
+
 export async function getPlaceDetail(placeId: string, executor: SqlExecutor = pg) {
   const rows = await executor<PlaceRow[]>`select * from places where id = ${placeId}`;
   if (rows.length === 0) {
@@ -784,6 +862,7 @@ type DuplicateCandidateItem = {
   reasonCodes: string[];
   suggestedAction: DuplicateCandidateSuggestedAction;
   relationshipHint: DuplicateCandidateRelationshipHint;
+  reviewBucket: DuplicateCandidateReviewBucket;
   outsideRadiusReviewOnly: boolean;
   distanceMeters: number | null;
   nameSimilarity: number | null;
@@ -969,10 +1048,24 @@ function compactDuplicatePlaceCandidate(item: DuplicateCandidateItem) {
     reasonCodes: item.reasonCodes,
     suggestedAction: item.suggestedAction,
     relationshipHint: item.relationshipHint,
+    reviewBucket: item.reviewBucket,
     outsideRadiusReviewOnly: item.outsideRadiusReviewOnly,
     distanceMeters: item.distanceMeters,
     nameSimilarity: item.nameSimilarity
   };
+}
+
+function duplicateReviewBucketRank(bucket: DuplicateCandidateReviewBucket) {
+  switch (bucket) {
+    case "identity":
+      return 0;
+    case "relationship_context":
+      return 1;
+    case "sibling_branch_review":
+      return 2;
+    case "low_priority_noise":
+      return 3;
+  }
 }
 
 export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateItem) {
@@ -1620,7 +1713,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         (${externalRefsJson}::jsonb is not null and external_refs @> ${externalRefsJson}::jsonb) as external_refs_match,
         (${input.kakaoPlaceId ?? null}::text is not null and kakao_place_id = ${input.kakaoPlaceId ?? null}) as kakao_place_id_match
       from places
-      where status <> 'closed'
+      where status in ('active', 'temporarily_closed')
     )
     select *
     from scored
@@ -1663,6 +1756,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
         publicProviderSiblingReviewOnly: duplicatePublicProviderSiblingReviewOnly(input.name, row.name),
+        unrelatedBranchCategoryReviewOnly: duplicateUnrelatedBranchCategoryReviewOnly(input.name, row.name),
         ...locationSignals,
         externalRefsMatch: row.external_refs_match,
         kakaoPlaceIdMatch: row.kakao_place_id_match,
@@ -1681,12 +1775,14 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         reasonCodes: duplicateReasonCodes(duplicateSignals),
         suggestedAction: duplicateSuggestedAction(duplicateSignals),
         relationshipHint: duplicateRelationshipHint(duplicateSignals),
+        reviewBucket: duplicateReviewBucket(duplicateSignals),
         outsideRadiusReviewOnly: duplicateOutsideRadiusReviewOnly(duplicateSignals),
         distanceMeters: row.distance_meters,
         nameSimilarity: row.name_similarity
       };
     })
   );
+  items.sort((a, b) => duplicateReviewBucketRank(a.reviewBucket) - duplicateReviewBucketRank(b.reviewBucket));
 
   return {
     items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items

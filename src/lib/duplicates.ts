@@ -14,6 +14,7 @@ export type DuplicateCandidateSignals = {
   publicProviderSiblingReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
+  unrelatedBranchCategoryReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
   externalRefsMatch: boolean;
   kakaoPlaceIdMatch: boolean;
@@ -24,6 +25,7 @@ export type DuplicateCandidateSignals = {
 
 export type DuplicateCandidateSuggestedAction = "update_existing" | "manual_duplicate_review" | "hold_duplicate_review";
 export type DuplicateCandidateRelationshipHint = "same_building" | "parent_child" | null;
+export type DuplicateCandidateReviewBucket = "identity" | "relationship_context" | "sibling_branch_review" | "low_priority_noise";
 
 export type DuplicateLocationInput = {
   address?: string | null;
@@ -104,6 +106,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("SAME_SIDO_GENERIC_REVIEW_ONLY");
   }
 
+  if (signals.unrelatedBranchCategoryReviewOnly) {
+    reasonCodes.push("UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY");
+  }
+
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
     reasonCodes.push("GEO_NEAR");
   } else if (
@@ -136,6 +142,9 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.genericAliasReviewOnly && !hasStrictLocationMatch(signals)) return "low";
   if (signals.genericBranchName && !hasStrictLocationMatch(signals)) return "low";
   if (signals.sameSidoGenericReviewOnly && !hasStrictLocationMatch(signals)) return "low";
+  if (signals.unrelatedBranchCategoryReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) {
+    return signals.addressMatch || (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 ? "medium" : "low";
+  }
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly) return "medium";
   if (signals.sameBuildingReviewOnly) return "medium";
@@ -151,6 +160,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
 
 export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): DuplicateCandidateSuggestedAction {
   const confidence = duplicateConfidence(signals);
+  if (signals.unrelatedBranchCategoryReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) return "manual_duplicate_review";
   if (identityReviewOnly(signals)) return "manual_duplicate_review";
   if (shouldHoldDuplicateReview(signals, confidence)) return "hold_duplicate_review";
   if (confidence === "high" && hasStrongIdentityEvidence(signals)) return "update_existing";
@@ -162,6 +172,27 @@ export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): D
   if (signals.sameBuildingReviewOnly) return "same_building";
   if (signals.publicSubfacilityReviewOnly && (signals.addressMatch || signals.sameSigunguMatch)) return "parent_child";
   return null;
+}
+
+export function duplicateReviewBucket(signals: DuplicateCandidateSignals): DuplicateCandidateReviewBucket {
+  if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return "identity";
+  if (signals.sameBuildingReviewOnly || signals.publicSubfacilityReviewOnly) return "relationship_context";
+  if (
+    signals.branchSiblingReviewOnly ||
+    signals.publicProviderSiblingReviewOnly ||
+    (signals.genericAliasReviewOnly && !hasStrongIdentityEvidence(signals) && (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
+  ) {
+    return "sibling_branch_review";
+  }
+  if (
+    signals.unrelatedBranchCategoryReviewOnly ||
+    signals.weakThematicSimilarityReviewOnly ||
+    signals.sameSidoGenericReviewOnly ||
+    (signals.genericBranchName && !hasStrictLocationMatch(signals))
+  ) {
+    return "low_priority_noise";
+  }
+  return "identity";
 }
 
 export function duplicateOutsideRadiusReviewOnly(signals: DuplicateCandidateSignals) {
@@ -282,6 +313,16 @@ export function duplicateSameSidoGenericReviewOnly(
   if (!isOutsideRequestedRadius && signals.distanceMeters !== null) return false;
 
   return publicInstitutionGenericTerms.some((term) => input.includes(term) && candidate.includes(term));
+}
+
+export function duplicateUnrelatedBranchCategoryReviewOnly(inputName: string, candidateName: string) {
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+
+  const inputHasFoodBranchTerm = genericBranchNameTerms.some((term) => input.includes(term));
+  const candidateHasFoodBranchTerm = genericBranchNameTerms.some((term) => candidate.includes(term));
+  return candidateHasFoodBranchTerm && !inputHasFoodBranchTerm;
 }
 
 export function duplicateLocationSignals(input: DuplicateLocationInput, candidate: DuplicateLocationCandidate) {
