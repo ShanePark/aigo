@@ -463,11 +463,11 @@ export async function retireDuplicatePlace(placeId: string, input: RetireDuplica
         external_refs = coalesce(external_refs, '{}'::jsonb) || jsonb_build_object(
           'duplicateRetirement',
           jsonb_build_object(
-            'canonicalPlaceId', ${canonical.id},
-            'canonicalPlaceName', ${canonical.name},
+            'canonicalPlaceId', ${canonical.id}::text,
+            'canonicalPlaceName', ${canonical.name}::text,
             'retiredAt', now(),
-            'actor', ${input.actor},
-            'changeSummary', ${input.changeSummary}
+            'actor', ${input.actor}::text,
+            'changeSummary', ${input.changeSummary}::text
           )
         ),
         updated_at = now(),
