@@ -921,6 +921,18 @@ describe("place search helpers", () => {
       undefined,
       sources
     );
+    const structuredWithExtraShorthand = imageConflictPolicyForTest(
+      [
+        {
+          url: "https://example.go.kr/place.jpg",
+          sourceUrl: "https://example.go.kr/place",
+          reviewStatus: "approved",
+          isPrimary: true
+        }
+      ],
+      ["https://example.go.kr/extra-legacy.jpg"],
+      sources
+    );
 
     expect(shorthand).toEqual([
       {
@@ -931,6 +943,14 @@ describe("place search helpers", () => {
       }
     ]);
     expect(structured).toEqual([
+      {
+        url: "https://example.go.kr/place.jpg",
+        metadata: true,
+        primary: true,
+        reviewStatus: true
+      }
+    ]);
+    expect(structuredWithExtraShorthand).toEqual([
       {
         url: "https://example.go.kr/place.jpg",
         metadata: true,

@@ -2138,6 +2138,7 @@ function normalizeImageInputs(
   let index = 0;
   const assignFallbackPrimary = options.assignFallbackPrimary ?? true;
   const allowStructuredPrimaryOverwrite = options.allowStructuredPrimaryOverwrite ?? true;
+  const legacyImageUrls = images && images.length > 0 ? [] : (imageUrls ?? []);
 
   for (const image of images ?? []) {
     byUrl.set(
@@ -2151,7 +2152,7 @@ function normalizeImageInputs(
     index += 1;
   }
 
-  for (const url of imageUrls ?? []) {
+  for (const url of legacyImageUrls) {
     if (byUrl.has(url)) continue;
     byUrl.set(
       url,

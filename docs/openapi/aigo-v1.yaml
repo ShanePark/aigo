@@ -965,7 +965,7 @@ components:
         imageUrls:
           type: array
           deprecated: true
-          description: Backward-compatible shorthand. New agents should use `images`; these URLs are translated into `place_images` records.
+          description: Backward-compatible legacy fallback used only when `images` is omitted. New agents should use `images`; when structured `images` are present, `imageUrls` is ignored to avoid creating unaudited pending images.
           maxItems: 20
           items:
             type: string
