@@ -336,20 +336,44 @@ const placeWriteAliasPreprocessor = (value: unknown) => {
   }
 
   const input = { ...(value as Record<string, unknown>) };
+  const setAliasIfPresent = (targetKey: string, sourceValue: unknown) => {
+    if (input[targetKey] !== undefined || sourceValue === undefined || sourceValue === null) {
+      return;
+    }
+    input[targetKey] = sourceValue;
+  };
+
   const recommendedAgeMonths = input.recommendedAgeMonths;
   if (recommendedAgeMonths && typeof recommendedAgeMonths === "object" && !Array.isArray(recommendedAgeMonths)) {
     const ageRange = recommendedAgeMonths as Record<string, unknown>;
-    input.minRecommendedAgeMonths ??= ageRange.min;
-    input.maxRecommendedAgeMonths ??= ageRange.max;
+    setAliasIfPresent("minRecommendedAgeMonths", ageRange.min);
+    setAliasIfPresent("maxRecommendedAgeMonths", ageRange.max);
   }
   const contact = input.contact;
   if (contact && typeof contact === "object" && !Array.isArray(contact)) {
     const contactFields = contact as Record<string, unknown>;
-    input.phone ??= contactFields.phone;
-    input.officialUrl ??= contactFields.officialUrl;
-    input.reservationUrl ??= contactFields.reservationUrl;
-    input.kakaoPlaceUrl ??= contactFields.kakaoPlaceUrl;
-    input.kakaoPlaceId ??= contactFields.kakaoPlaceId;
+    setAliasIfPresent("phone", contactFields.phone);
+    setAliasIfPresent("officialUrl", contactFields.officialUrl);
+    setAliasIfPresent("reservationUrl", contactFields.reservationUrl);
+    setAliasIfPresent("kakaoPlaceUrl", contactFields.kakaoPlaceUrl);
+    setAliasIfPresent("kakaoPlaceId", contactFields.kakaoPlaceId);
+  }
+  const scoring = input.scoring;
+  if (scoring && typeof scoring === "object" && !Array.isArray(scoring)) {
+    const scoringFields = scoring as Record<string, unknown>;
+    setAliasIfPresent("placeScore", scoringFields.placeScore);
+    setAliasIfPresent("placeScoreRationale", scoringFields.placeScoreRationale ?? scoringFields.rationale);
+    setAliasIfPresent("externalRatingScore", scoringFields.externalRatingScore);
+    setAliasIfPresent("externalReviewCount", scoringFields.externalReviewCount);
+    setAliasIfPresent("searchEvidenceScore", scoringFields.searchEvidenceScore);
+    setAliasIfPresent("scoreSignals", scoringFields.scoreSignals ?? scoringFields.signals);
+    setAliasIfPresent("scoreUpdatedAt", scoringFields.scoreUpdatedAt);
+  }
+  const notes = input.notes;
+  if (notes && typeof notes === "object" && !Array.isArray(notes)) {
+    const noteFields = notes as Record<string, unknown>;
+    setAliasIfPresent("parentNotes", noteFields.parentNotes ?? noteFields.parent);
+    setAliasIfPresent("safetyNotes", noteFields.safetyNotes ?? noteFields.safety);
   }
 
   return input;

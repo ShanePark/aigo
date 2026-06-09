@@ -981,6 +981,59 @@ describe("place schemas", () => {
     });
   });
 
+  it("maps nested scoring and notes payloads to writable public fields", () => {
+    const create = createPlaceSchema.parse({
+      name: "중첩 점수 장소",
+      primaryCategory: "playground",
+      regionSido: "제주",
+      lat: 33.23,
+      lng: 126.48,
+      scoring: {
+        placeScore: 7.5,
+        placeScoreRationale: "자연 물놀이 가치가 있지만 안전 확인이 필요해 보수적으로 평가했습니다.",
+        externalRatingScore: null,
+        scoreSignals: {
+          freeAdmission: true,
+          waterEdgeRisk: true
+        }
+      },
+      notes: {
+        parent: "화장실과 주차 신호는 있으나 수유실은 확인되지 않았습니다.",
+        safety: "자연 하천이라 물살과 미끄러운 돌을 조심해야 합니다."
+      },
+      sources: [{ sourceType: "public_tourism", url: "https://example.com/place" }]
+    });
+    const update = updatePlaceSchema.parse({
+      sources: [{ sourceType: "public_listing", url: "https://example.com/place" }],
+      placeScore: 8.1,
+      parentNotes: "기존 flat 보호자 메모가 우선됩니다.",
+      scoring: {
+        placeScore: 6.2,
+        rationale: "중첩 점수 설명입니다.",
+        signals: { sourceConfidence: "medium" }
+      },
+      notes: {
+        parent: "중첩 보호자 메모입니다.",
+        safety: "중첩 안전 메모입니다."
+      }
+    });
+
+    expect(create.placeScore).toBe(7.5);
+    expect(create.placeScoreRationale).toBe("자연 물놀이 가치가 있지만 안전 확인이 필요해 보수적으로 평가했습니다.");
+    expect(create.externalRatingScore).toBeUndefined();
+    expect(create.scoreSignals).toMatchObject({
+      freeAdmission: true,
+      waterEdgeRisk: true
+    });
+    expect(create.parentNotes).toBe("화장실과 주차 신호는 있으나 수유실은 확인되지 않았습니다.");
+    expect(create.safetyNotes).toBe("자연 하천이라 물살과 미끄러운 돌을 조심해야 합니다.");
+    expect(update.placeScore).toBe(8.1);
+    expect(update.placeScoreRationale).toBe("중첩 점수 설명입니다.");
+    expect(update.scoreSignals).toMatchObject({ sourceConfidence: "medium" });
+    expect(update.parentNotes).toBe("기존 flat 보호자 메모가 우선됩니다.");
+    expect(update.safetyNotes).toBe("중첩 안전 메모입니다.");
+  });
+
   it("rejects out-of-range score fields", () => {
     const result = updatePlaceSchema.safeParse({
       sources: [{ sourceType: "public_listing", url: "https://example.com/place" }],
