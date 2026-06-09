@@ -15,6 +15,7 @@ export type DuplicateCandidateSignals = {
   sameBuildingReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
   unrelatedBranchCategoryReviewOnly?: boolean;
+  categoryConflictReviewOnly?: boolean;
   sameSigunguMatch?: boolean;
   externalRefsMatch: boolean;
   kakaoPlaceIdMatch: boolean;
@@ -110,6 +111,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY");
   }
 
+  if (signals.categoryConflictReviewOnly) {
+    reasonCodes.push("CATEGORY_CONFLICT_REVIEW_ONLY");
+  }
+
   if (signals.distanceMeters !== null && signals.distanceMeters <= 500) {
     reasonCodes.push("GEO_NEAR");
   } else if (
@@ -145,6 +150,10 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   if (signals.unrelatedBranchCategoryReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) {
     return signals.addressMatch || (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 500 ? "medium" : "low";
   }
+  if (signals.categoryConflictReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) {
+    if (signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85) return "high";
+    return signals.addressMatch || (signals.distanceMeters ?? Number.POSITIVE_INFINITY) <= 1000 ? "medium" : "low";
+  }
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly) return "medium";
   if (signals.sameBuildingReviewOnly) return "medium";
@@ -161,6 +170,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
 export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): DuplicateCandidateSuggestedAction {
   const confidence = duplicateConfidence(signals);
   if (signals.unrelatedBranchCategoryReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) return "manual_duplicate_review";
+  if (signals.categoryConflictReviewOnly && !signals.externalRefsMatch && !signals.kakaoPlaceIdMatch) return "manual_duplicate_review";
   if (identityReviewOnly(signals)) return "manual_duplicate_review";
   if (shouldHoldDuplicateReview(signals, confidence)) return "hold_duplicate_review";
   if (confidence === "high" && hasStrongIdentityEvidence(signals)) return "update_existing";
@@ -186,6 +196,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
   }
   if (
     signals.unrelatedBranchCategoryReviewOnly ||
+    signals.categoryConflictReviewOnly ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -325,6 +336,15 @@ export function duplicateUnrelatedBranchCategoryReviewOnly(inputName: string, ca
   return candidateHasFoodBranchTerm && !inputHasFoodBranchTerm;
 }
 
+export function duplicateCategoryConflictReviewOnly(inputCategory?: string | null, candidateCategory?: string | null) {
+  if (!inputCategory || !candidateCategory || inputCategory === candidateCategory) return false;
+
+  return (
+    (publicChildcareSubfacilityCategories.has(inputCategory) && broadDestinationCategories.has(candidateCategory)) ||
+    (publicChildcareSubfacilityCategories.has(candidateCategory) && broadDestinationCategories.has(inputCategory))
+  );
+}
+
 export function duplicateLocationSignals(input: DuplicateLocationInput, candidate: DuplicateLocationCandidate) {
   const inputSido = duplicateSidoFromLocation(input.regionSido, input.roadAddress, input.address);
   const candidateSido = duplicateSidoFromLocation(candidate.regionSido, candidate.roadAddress, candidate.address);
@@ -384,6 +404,7 @@ function identityReviewOnly(signals: DuplicateCandidateSignals) {
       signals.lodgingClusterReviewOnly ||
       signals.weakThematicSimilarityReviewOnly ||
       signals.genericAliasReviewOnly ||
+      signals.categoryConflictReviewOnly ||
       signals.publicProviderSiblingReviewOnly) &&
       !signals.externalRefsMatch &&
       !signals.kakaoPlaceIdMatch &&
@@ -554,6 +575,24 @@ const publicChildSubfacilityTerms = [
   "어린이집",
   "어린이도서관"
 ].map(compactDuplicateText);
+
+const publicChildcareSubfacilityCategories = new Set(["shared_childcare", "toy_library"]);
+
+const broadDestinationCategories = new Set([
+  "experience_center",
+  "museum",
+  "science_museum",
+  "aquarium",
+  "zoo",
+  "park",
+  "playground",
+  "shopping_mall",
+  "accommodation",
+  "family_restaurant",
+  "family_cafe",
+  "sports_venue",
+  "rest_area"
+]);
 
 const publicProviderSiblingProviderTerms = [
   "육아종합지원센터",

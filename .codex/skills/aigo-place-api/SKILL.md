@@ -110,7 +110,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it. A later implementation pass must review the queued item first, confirm it is still real, necessary, and worth doing, and assess product/data/API/migration/UX/operational risk before moving it to `[개선 중]`.
 
 5. Check duplicates before mutation.
-   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng`, source-backed `roadAddress`/`address`/`regionSigungu`, `kakaoPlaceId`, or non-empty `externalRefs`. Include a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address/provider-id/external-ref duplicate checks for `manual_hold` or uncertain coordinates.
+   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng`, source-backed `roadAddress`/`address`/`regionSigungu`, `kakaoPlaceId`, or non-empty `externalRefs`. Include `primaryCategory` when the candidate category is known so the API can lower confidence for unrelated category collisions such as a public child-support subfacility matching a broad attraction. Include a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address/provider-id/external-ref duplicate checks for `manual_hold` or uncertain coordinates.
    - For generic branch names such as common food chains or category-like restaurant names, treat `GENERIC_BRANCH_NAME` and `ADDRESS_REGION_CONFLICT` reason codes as strong caution. A same-province fuzzy name is not enough for high confidence; prefer same address, same 시군구, nearby coordinates, external refs, or a provider id before calling it a duplicate.
    - When coordinates are supplied, duplicate checks compare both the stored geography point and the raw `lat`/`lng` columns so self-checks and recent coordinate updates remain stable. Duplicate responses may still include low-confidence address/region/name candidates outside the requested radius for review. Treat `GEO_OUTSIDE_REQUEST_RADIUS`, `OUTSIDE_RADIUS_REVIEW_ONLY`, or `outsideRadiusReviewOnly: true` as a caution that the candidate matched by non-radius evidence and should not be accepted as a duplicate without stronger identity evidence.
    - Duplicate responses include `suggestedAction`. Automation clients must treat `hold_duplicate_review` as a hard stop for create/update execution until a human or follow-up agent records stronger identity evidence such as same address, same 시군구, provider id, or external refs. Do not override it just because `ALIAS_MATCH`, `REGION_MATCH`, or a plausible name similarity is present.
@@ -679,6 +679,7 @@ curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example Kids Cafe Seoul",
+    "primaryCategory": "kids_cafe",
     "lat": 36.3504,
     "lng": 127.3845,
     "radiusMeters": 800,
@@ -694,6 +695,7 @@ curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example Toy Library Branch",
+    "primaryCategory": "toy_library",
     "roadAddress": "Seoul ...",
     "regionSido": "Seoul",
     "regionSigungu": "Dong-gu",

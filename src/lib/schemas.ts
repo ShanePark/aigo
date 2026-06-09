@@ -545,6 +545,7 @@ export const duplicatePlaceSchema = z
     regionSigungu: nonEmptyString.optional(),
     countryCode: countryCodeSchema,
     city: z.string().trim().min(1).max(200).optional(),
+    primaryCategory: primaryCategorySchema.optional(),
     aliases: z.array(nonEmptyString).max(30).optional(),
     radiusMeters: z.number().positive().max(5000).default(500),
     kakaoPlaceId: z.string().trim().optional(),

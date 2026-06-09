@@ -216,11 +216,13 @@ describe("place schemas", () => {
   it("accepts compact duplicate projection for agent review payloads", () => {
     const result = duplicatePlaceSchema.parse({
       name: "남해 캐슬529키즈풀빌라",
+      primaryCategory: "accommodation",
       regionSido: "경남",
       regionSigungu: "남해군",
       projection: "compact"
     });
 
+    expect(result.primaryCategory).toBe("accommodation");
     expect(result.regionSido).toBe("경상남도");
     expect(result.projection).toBe("compact");
   });
