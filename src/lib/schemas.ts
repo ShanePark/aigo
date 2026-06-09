@@ -106,18 +106,30 @@ export const playFeaturesSchema = z
   })
   .catchall(z.unknown());
 
-export const sourceSchema = z
-  .object({
-    sourceType: sourceTypeSchema,
-    title: z.string().trim().optional(),
-    url: urlString.optional(),
-    externalId: z.string().trim().optional(),
-    summary: z.string().trim().max(2000).optional(),
-    checkedAt: z.string().datetime({ offset: true }).optional()
-  })
-  .refine((source) => Boolean(source.url || source.externalId), {
-    message: "source requires either url or externalId"
-  });
+export const sourceSchema = z.preprocess(
+  (input) => {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      return input;
+    }
+    const source = input as Record<string, unknown>;
+    if (source.checkedAt || !source.accessedAt) {
+      return input;
+    }
+    return { ...source, checkedAt: source.accessedAt };
+  },
+  z
+    .object({
+      sourceType: sourceTypeSchema,
+      title: z.string().trim().optional(),
+      url: urlString.optional(),
+      externalId: z.string().trim().optional(),
+      summary: z.string().trim().max(2000).optional(),
+      checkedAt: z.string().datetime({ offset: true }).optional()
+    })
+    .refine((source) => Boolean(source.url || source.externalId), {
+      message: "source requires either url or externalId"
+    })
+);
 
 export const placeImageInputSchema = z.object({
   url: urlString,

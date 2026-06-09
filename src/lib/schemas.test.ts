@@ -7,6 +7,7 @@ import {
   placeImageHealthQuerySchema,
   retireDuplicatePlaceSchema,
   searchPlacesSchema,
+  sourceSchema,
   taxonomySchema,
   updatePlaceSchema
 } from "@/lib/schemas";
@@ -108,6 +109,35 @@ describe("place schemas", () => {
     });
 
     expect(result.sources[0].sourceType).toBe("public_news");
+  });
+
+  it("normalizes source accessedAt aliases to checkedAt", () => {
+    const checkedAt = "2026-06-09T10:30:00.000+09:00";
+    const existingCheckedAt = "2026-06-08T10:30:00.000+09:00";
+    const aliasOnly = sourceSchema.parse({
+      sourceType: "official_site",
+      url: "https://example.com/source",
+      accessedAt: checkedAt
+    });
+    const checkedAtWins = sourceSchema.parse({
+      sourceType: "official_site",
+      url: "https://example.com/source",
+      checkedAt: existingCheckedAt,
+      accessedAt: checkedAt
+    });
+    const create = createPlaceSchema.parse({
+      name: "출처 확인 장소",
+      primaryCategory: "library",
+      regionSido: "서울",
+      lat: 37.56,
+      lng: 126.97,
+      sources: [{ sourceType: "official_site", url: "https://example.com/source", accessedAt: checkedAt }]
+    });
+
+    expect(aliasOnly.checkedAt).toBe(checkedAt);
+    expect("accessedAt" in aliasOnly).toBe(false);
+    expect(checkedAtWins.checkedAt).toBe(existingCheckedAt);
+    expect(create.sources[0].checkedAt).toBe(checkedAt);
   });
 
   it("maps nested recommended age payloads to writable age fields", () => {
