@@ -4447,6 +4447,7 @@ const openingHoursEvidenceTerms = [
 
 type OpeningHoursDataSignal = ReturnType<typeof buildOpeningHoursDataSignal>;
 type SearchSourceSummary = ReturnType<typeof buildSearchSourceSummary>;
+type OpeningHoursEvidenceSummary = SearchSourceSummary["openingHoursEvidence"];
 type OpeningHoursVisitSignal = Pick<
   ReturnType<typeof mapPlace>["visit"],
   "reservationRequired" | "walkInAvailable" | "sessionBased" | "sameDayAvailabilityKnown"
@@ -4460,7 +4461,8 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
       hasData: true,
       hasStructuredData: Boolean(lodgingStayWindow),
       temporaryClosure: null,
-      lodgingStayWindow
+      lodgingStayWindow,
+      embeddedSourceEvidence: null
     };
   }
 
@@ -4470,19 +4472,22 @@ export function buildOpeningHoursDataSignal(openingHours: unknown) {
       hasData: false,
       hasStructuredData: false,
       temporaryClosure: null,
-      lodgingStayWindow: null
+      lodgingStayWindow: null,
+      embeddedSourceEvidence: null
     };
   }
 
   const hasStructuredData = hasStructuredOpeningHoursData(openingHours);
   const temporaryClosure = temporaryClosurePeriod(openingHours);
   const lodgingStayWindow = lodgingStayWindowSignal(openingHours);
+  const embeddedSourceEvidence = embeddedOpeningHoursSourceEvidence(openingHours);
   return {
     dataStatus: hasStructuredData ? "structured" : "unstructured",
     hasData: true,
     hasStructuredData,
     temporaryClosure,
-    lodgingStayWindow
+    lodgingStayWindow,
+    embeddedSourceEvidence
   };
 }
 
@@ -4491,7 +4496,7 @@ export function buildSearchOpeningHoursSummary(
   sourceSummary: SearchSourceSummary,
   visit?: OpeningHoursVisitSignal
 ) {
-  const sourceEvidence = sourceSummary.openingHoursEvidence;
+  const sourceEvidence = mergeOpeningHoursEvidence(sourceSummary.openingHoursEvidence, dataSignal.embeddedSourceEvidence);
   const sourceBacked = sourceEvidence.sourceCount > 0 || dataSignal.lodgingStayWindow?.sourceBacked === true;
   const confidenceLevel = openingHoursConfidenceLevel(dataSignal, sourceEvidence);
 
@@ -4509,6 +4514,47 @@ export function buildSearchOpeningHoursSummary(
     structuredDataGaps: sourceBacked ? openingHoursStructuredDataGaps(dataSignal, visit) : [],
     temporaryClosure: dataSignal.temporaryClosure,
     lodgingStayWindow: dataSignal.lodgingStayWindow
+  };
+}
+
+function mergeOpeningHoursEvidence(sourceEvidence: OpeningHoursEvidenceSummary, embeddedEvidence: OpeningHoursEvidenceSummary | null): OpeningHoursEvidenceSummary {
+  if (!embeddedEvidence || embeddedEvidence.sourceCount === 0) return sourceEvidence;
+  if (sourceEvidence.sourceCount === 0) return embeddedEvidence;
+
+  const bestSourceType = [sourceEvidence, embeddedEvidence]
+    .filter((evidence) => evidence.bestSourceType)
+    .sort(
+      (a, b) =>
+        sourceTierRank(sourceTrustTier(b.bestSourceType ?? "")) - sourceTierRank(sourceTrustTier(a.bestSourceType ?? "")) ||
+        (a.bestSourceType ?? "").localeCompare(b.bestSourceType ?? "")
+    )[0]?.bestSourceType ?? null;
+  const latestCheckedAt = latestIso([sourceEvidence.latestCheckedAt, embeddedEvidence.latestCheckedAt]);
+
+  return {
+    sourceCount: sourceEvidence.sourceCount + embeddedEvidence.sourceCount,
+    sourceTypes: Array.from(new Set([...sourceEvidence.sourceTypes, ...embeddedEvidence.sourceTypes])).sort(compareSourceTypes),
+    bestSourceType,
+    bestSourceTier: bestSourceType ? sourceTrustTier(bestSourceType) : "none",
+    latestCheckedAt,
+    freshnessStatus: sourceFreshnessStatus(latestCheckedAt, new Date())
+  };
+}
+
+function embeddedOpeningHoursSourceEvidence(openingHours: Record<string, unknown>): OpeningHoursEvidenceSummary | null {
+  const sourceType = trimmedString(openingHours.sourceType ?? openingHours.source_type ?? openingHours.bestSourceType);
+  const sourceUrl = trimmedString(openingHours.sourceUrl ?? openingHours.url);
+  const sourceTitle = trimmedString(openingHours.sourceTitle ?? openingHours.title);
+  const checkedAt = isoDateString(openingHours.checkedAt ?? openingHours.accessedAt ?? openingHours.sourceCheckedAt);
+  if (!sourceType && !sourceUrl && !sourceTitle && !checkedAt) return null;
+
+  const bestSourceType = canonicalStoredSourceType(sourceType ?? "opening_hours_metadata");
+  return {
+    sourceCount: 1,
+    sourceTypes: [bestSourceType],
+    bestSourceType,
+    bestSourceTier: sourceTrustTier(bestSourceType),
+    latestCheckedAt: checkedAt,
+    freshnessStatus: sourceFreshnessStatus(checkedAt, new Date())
   };
 }
 
@@ -4756,6 +4802,20 @@ function timeString(value: unknown) {
   if (typeof value !== "string") return null;
   const match = /^\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(value);
   return match ? normalizeHourMinute(match[1], match[2]) : null;
+}
+
+function isoDateString(value: unknown) {
+  if (!(value instanceof Date) && typeof value !== "string") return null;
+  const millis = dateMillis(value);
+  return Number.isFinite(millis) ? new Date(millis).toISOString() : null;
+}
+
+function latestIso(values: Array<Date | string | null>) {
+  const latest = values
+    .map((value) => (value ? dateMillis(value) : NaN))
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  return latest === undefined ? null : new Date(latest).toISOString();
 }
 
 function normalizeHourMinute(hourText: string, minuteText?: string) {
