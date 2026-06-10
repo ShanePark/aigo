@@ -47,13 +47,15 @@ Before recommending `create` for a real place, explicitly record why it belongs 
 
 - Child-primary destination: kids cafe, indoor playground, children's museum, toy library, children's room/library, playground, water/sand/sensory play, or an official child/family program.
 - Care-logistics destination: source-backed nursing room, diaper-changing table, stroller/elevator route, baby chair, food/snack handling, or a mall/public facility where child activity and caregiver needs can be solved together.
-- User-requested short retail fallback: toy stores or character stores can be registered under `toy_store` when they are source-backed and useful for child-focused shopping, rainy-day browsing, or a practical stop inside a mall/outlet with family logistics. Keep play value and stay duration conservative unless sources show real play/experience zones.
+- User-requested short retail fallback: toy stores, character stores, or other child-primary specialty retailers can be registered under `toy_store` when they are source-backed and useful for child-focused shopping, rainy-day browsing, or a practical stop inside a mall/outlet with family logistics. Keep play value and stay duration conservative unless sources show real play/experience zones. Do not register general retail chains such as Daiso-style household goods stores merely because they carry some toys, stationery, snacks, or baby items; stage those candidates as `skip` or `hold_for_later` unless the user explicitly asks for that exact branch and the weak family fit is documented.
 - Route-break utility: highway rest area, public facility, or route stop with source-backed toilets, nursing/diaper support, parking, and a clear route context such as family travel routes, regional day trips, or long-distance kid-friendly itineraries.
 - User-signal exception: the user explicitly mentioned or visited the place, but weak family fit must still be documented with cautionary notes and conservative scores.
 
 Do not create or keep an active recommendation just because a place is indoor, free, official, close to a base area, or has tourism/culture value. Tourist information centers, travel lounges, adult-oriented galleries, generic historic exhibits, scenic viewpoints, large cafes, and general rest spaces should be skipped or held in research notes unless they pass one of the gates above or the user explicitly asks to register them.
 
 Do not force a weak candidate into `family_cafe` only because no better category exists. Use `family_cafe` for a cafe/restaurant-style place with source-backed family logistics or child value. Use `rest_area` only for route-break stops, and make the route-break purpose explicit in tags and `parentNotes`; it is not a standalone outing destination.
+
+Do not invent broad catch-all retail categories such as `general_store` for place registration. If a shop is mainly a household goods, convenience, pharmacy, mart, stationery, or general lifestyle chain, skip it for AiGo public data unless it independently passes the Family-Fit Gate as a child-primary destination, care-logistics destination, route-break utility, or explicit user-signal exception.
 
 When a candidate is useful only as a short add-on or fallback, encode that honestly:
 
@@ -471,6 +473,8 @@ Playground search semantics:
 Use `accommodation` for lodging such as hotels, resorts, pensions, pool villas, or family suites where children's rooms, play rooms, water play, kids programs, or child-centered facilities are a core reason to visit. Do not register ordinary kid-friendly lodging unless the user explicitly asks or the child-centered evidence is strong.
 
 Tags are soft matching signals. Use them for secondary intent and geography, not as a replacement for structured fields. Useful existing signals include `children_museum`, `children_experience`, `children_playground`, `toy_library`, `toy_store`, `kids`, `어린이`, `장난감가게`, `완구점`, `놀이방식당`, `주말당일`, `세종`, `청주`, and `공주`.
+
+Use `toy_store`, `장난감가게`, or `완구점` only when the operating model is child-primary specialty retail, such as toy stores, character shops, educational toy stores, or clearly kid-centered shopping venues. Do not apply these tags to general stores like Daiso-style branches just because a toy aisle exists.
 
 Do not put `needs_check` into tri-state fields. Use `unknown` for missing evidence and `partial` for limited or conditional availability. For user-requested registrations, do not use `needs_check` in `dataConfidence`; use `agent_collected` or `user_reported` and describe weak freshness/provenance in notes.
 
