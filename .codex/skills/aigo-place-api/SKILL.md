@@ -110,7 +110,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - When API, product, schema, search, dedupe, or tooling usage reveals friction, bugs, unclear behavior, or future improvements during place collection/registration, do not fix it directly in that wave. Add or update an actionable `[대기]` proposal in `docs/aigo-improvements.md`, including the source task/research file and enough payload/result context for a later automation to reproduce it. A later implementation pass must review the queued item first, confirm it is still real, necessary, and worth doing, and assess product/data/API/migration/UX/operational risk before moving it to `[개선 중]`.
 
 5. Check duplicates before mutation.
-   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng`, source-backed `roadAddress`/`address`/`regionSigungu`, `kakaoPlaceId`, or non-empty `externalRefs`. Include a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address/provider-id/external-ref duplicate checks for `manual_hold` or uncertain coordinates.
+   - Call `POST /v1/places/duplicates` with `name` plus either `lat`/`lng`, source-backed `roadAddress`/`address`/`regionSigungu`, `kakaoPlaceId`, or non-empty `externalRefs`. Include `primaryCategory` when the candidate category is known so the API can lower confidence for unrelated category collisions such as a public child-support subfacility matching a broad attraction. Include a reasonable `radiusMeters` when coordinates are known. Only use `lat`/`lng` for radius duplicate checks when coordinate provenance is at least `official_embedded_map`, `public_dataset_exact_address`, or `public_address_coordinate`; `parent_building_coordinate` is acceptable only for same-building/campus candidates with a conservative radius and explicit building evidence. Use address/provider-id/external-ref duplicate checks for `manual_hold` or uncertain coordinates.
    - For generic branch names such as common food chains or category-like restaurant names, treat `GENERIC_BRANCH_NAME` and `ADDRESS_REGION_CONFLICT` reason codes as strong caution. A same-province fuzzy name is not enough for high confidence; prefer same address, same 시군구, nearby coordinates, external refs, or a provider id before calling it a duplicate.
    - When coordinates are supplied, duplicate checks compare both the stored geography point and the raw `lat`/`lng` columns so self-checks and recent coordinate updates remain stable. Duplicate responses may still include low-confidence address/region/name candidates outside the requested radius for review. Treat `GEO_OUTSIDE_REQUEST_RADIUS`, `OUTSIDE_RADIUS_REVIEW_ONLY`, or `outsideRadiusReviewOnly: true` as a caution that the candidate matched by non-radius evidence and should not be accepted as a duplicate without stronger identity evidence.
    - Duplicate responses include `suggestedAction`. Automation clients must treat `hold_duplicate_review` as a hard stop for create/update execution until a human or follow-up agent records stronger identity evidence such as same address, same 시군구, provider id, or external refs. Do not override it just because `ALIAS_MATCH`, `REGION_MATCH`, or a plausible name similarity is present.
@@ -145,6 +145,8 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Active duplicate retirement uses `POST /v1/places/{placeId}/retire-duplicate`, not `DELETE`. Use it only after duplicate review has identified a canonical active place and an active duplicate to retire. Requests must include `confirmation: "retire_duplicate"`, `canonicalPlaceId`, at least one source, and a `changeSummary`; the endpoint sets the duplicate to `status: "merged"`, stores the canonical id under `externalRefs.duplicateRetirement`, and writes a version audit.
    - Before the first production duplicate-retirement batch after a deploy, run `pnpm tsx scripts/smoke-retire-duplicate-route.ts`. The smoke check posts schema-valid nonexistent sentinel ids and must return an API JSON 404; a Next.js HTML 404 means the route is not deployed and real retire requests must stop.
    - Before retiring a duplicate, run `pnpm tsx scripts/plan-active-duplicate-retire.ts --pair=<canonicalId>:<retireId> --json` and review `transferPlan.canonicalPatchDraft`. Apply the canonical PATCH draft first when it carries useful aliases, sources, or images from the duplicate, then verify the canonical detail/version before calling the retire endpoint.
+   - Duplicate retirement does not automatically merge public text or structured planning fields into the canonical record. Before calling `/retire-duplicate`, manually compare the canonical and duplicate details for `description`, `parentNotes`, `safetyNotes`, `openingHours`, `pricing`, `routeSupport`, `taxonomy`, `scoreSignals`, visit-fit fields, and family-logistics fields. If the duplicate has fresher, more source-backed, or more useful information, patch the canonical record first with a concise Korean rewrite and source-backed structured fields; do not concatenate descriptions or copy stale/conflicting notes verbatim.
+   - If the canonical record is already equal or better for public text and structured planning fields, record that no canonical enrichment was needed in the retire `changeSummary` or work summary. The purpose of retirement is to remove active duplicate exposure while preserving auditability, not to hide useful place knowledge in a `merged` record.
    - Keep `sourceMode: "append"` and `imageMode: "append"` unless correcting contamination after a deliberate audit.
 
 7. Verify after meaningful changes.
@@ -236,6 +238,8 @@ Create/update accepts contact evidence either as top-level `phone`, `officialUrl
 
 Age-fit writes should use `minRecommendedAgeMonths` and `maxRecommendedAgeMonths`. The API also accepts copied research payloads with `recommendedAgeMonths: { min, max }` and normalizes those values to the canonical top-level fields before persistence.
 
+Public scoring and note writes should use flat fields: `placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`, `parentNotes`, and `safetyNotes`. The API also accepts copied research payloads with `scoring.*` and `notes.parent` / `notes.safety` aliases and normalizes those values to the same flat fields before persistence; if both flat and nested forms are present, the flat value wins. Keep `null` scoring aliases out of payloads when the value is unknown.
+
 For overseas place payloads, use first-class location and pricing fields when source-backed: `countryCode`, `countryName`, `city`, `locality`, `localCurrency`, and non-KRW `pricing.currency` / `pricing.items[].currency`. Keep Korean `regionSido` only as a broad grouping fallback when needed, not as the only place to store country/city context.
 
 For overseas duplicate and exact-name checks, pass `countryCode`, `city`, and candidate `aliases` when available. Search and duplicate matching can use both `externalRefs.aliases` and `externalRefs.koreanSearchAliases`, which is useful for pairs such as official English resort names and Korean parent-search names.
@@ -273,7 +277,8 @@ Image enrichment updates require:
 
 - `images` with at least one source-backed image when adding or replacing images.
 - For user-requested registration/enrichment work, include at least one source-backed `images` item in the same API mutation. If no usable image is found, hold the candidate in research notes unless the user explicitly approves a no-image exception.
-- Re-sending an existing URL through `imageUrls` is a safe shorthand append: it should not downgrade existing source linkage, display tier, review status, or primary-image selection on URL conflict. Use structured `images` when intentionally changing image metadata or review status, and use `imageMode: "replace"` only after a deliberate visual audit.
+- Do not send `imageUrls` in new agent payloads. It remains a deprecated legacy fallback only when no structured `images` are provided; when `images` are present, legacy `imageUrls` are ignored by the API and should be removed from research payloads before mutation.
+- Use structured `images` when intentionally changing image metadata or review status, and use `imageMode: "replace"` only after a deliberate visual audit.
 - With default `imageMode: "append"`, structured images stay secondary unless the image explicitly has `isPrimary: true`; use that explicit flag only when intentionally replacing the current representative image.
 
 Source objects:
@@ -339,7 +344,7 @@ For tenant places that must use a parent mall/building coordinate, run `pnpm tsx
 
 For public playground or park coordinate audits, run `pnpm tsx scripts/audit-coordinate-quality.ts --candidate='name|lat|lng|sourceUrl|sourceTitle' --json`. The script is read-only: it exact-name searches AiGo, reads detail, compares the current coordinate to the official/public coordinate, rejects Kakao itemId links without `urlX`/`urlY` as coordinate evidence, and reports duplicate candidates for manual follow-up.
 
-For active duplicate retirement planning, run `pnpm tsx scripts/plan-active-duplicate-retire.ts --pair=<canonicalKeepId>:<duplicateRetireId> --json` before designing or calling any mutation endpoint. The script is read-only and reports active-status blockers, aliases/sources/images that need transfer review, and the latest version context for the keep/retire pair.
+For active duplicate retirement planning, run `pnpm tsx scripts/plan-active-duplicate-retire.ts --pair=<canonicalKeepId>:<duplicateRetireId> --json` before designing or calling any mutation endpoint. The script is read-only and reports active-status blockers, aliases/sources/images that need transfer review, and the latest version context for the keep/retire pair. This helper does not decide whether narrative or structured fields should be merged, so agents must still read both place details and compare public text, operating/pricing evidence, family logistics, taxonomy, scoring signals, and visit-fit fields before retiring the duplicate. Patch the canonical record first when the duplicate contains source-backed information that should survive in search/detail experiences.
 
 Common writable fields:
 
@@ -674,6 +679,7 @@ curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example Kids Cafe Seoul",
+    "primaryCategory": "kids_cafe",
     "lat": 36.3504,
     "lng": 127.3845,
     "radiusMeters": 800,
@@ -689,6 +695,7 @@ curl -sS "$AIGO_API_BASE_URL/v1/places/duplicates" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example Toy Library Branch",
+    "primaryCategory": "toy_library",
     "roadAddress": "Seoul ...",
     "regionSido": "Seoul",
     "regionSigungu": "Dong-gu",

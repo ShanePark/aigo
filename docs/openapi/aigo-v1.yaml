@@ -965,7 +965,7 @@ components:
         imageUrls:
           type: array
           deprecated: true
-          description: Backward-compatible shorthand. New agents should use `images`; these URLs are translated into `place_images` records.
+          description: Backward-compatible legacy fallback used only when `images` is omitted. New agents should use `images`; when structured `images` are present, `imageUrls` is ignored to avoid creating unaudited pending images.
           maxItems: 20
           items:
             type: string
@@ -2585,6 +2585,9 @@ components:
           type: string
           maxLength: 200
           description: Optional city/locality scope for overseas duplicate checks.
+        primaryCategory:
+          $ref: "#/components/schemas/PrimaryCategory"
+          description: Optional candidate category used to lower confidence when a public child-support subfacility candidate conflicts with an unrelated broad destination category.
         aliases:
           type: array
           maxItems: 30

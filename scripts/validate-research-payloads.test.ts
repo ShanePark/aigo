@@ -47,6 +47,21 @@ describe("research payload workflow lint", () => {
     );
   });
 
+  it("rejects legacy imageUrls mixed with structured images", () => {
+    const result = validateResearchPayload({ ...validPayload(), imageUrls: ["https://example.com/legacy-extra.jpg"] });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "workflow_legacy_image_urls_with_images",
+          path: "imageUrls",
+          severity: "error"
+        })
+      ])
+    );
+  });
+
   it("rejects nested facility and visit blocks that the places API would ignore", () => {
     const result = validateResearchPayload({
       ...validPayload(),

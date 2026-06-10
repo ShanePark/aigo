@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  duplicateCategoryConflictReviewOnly,
   duplicateConfidence,
   duplicateBranchSiblingReviewOnly,
   duplicateGenericAliasReviewOnly,
@@ -315,6 +316,28 @@ describe("duplicate helpers", () => {
         "OUTSIDE_RADIUS_REVIEW_ONLY",
         "NAME_SIMILAR"
       ])
+    );
+  });
+
+  it("keeps public childcare candidates from merging into nearby broad attractions", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      categoryConflictReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 714,
+      radiusMeters: 1200,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "experience_center")).toBe(true);
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "shared_childcare")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "CATEGORY_CONFLICT_REVIEW_ONLY", "NAME_SIMILAR"])
     );
   });
 

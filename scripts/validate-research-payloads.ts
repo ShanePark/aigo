@@ -298,6 +298,16 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
 function collectRawPayloadShapeIssues(payload: unknown, issues: ResearchPayloadLintIssue[]) {
   if (!isRecord(payload)) return;
 
+  if (Array.isArray(payload.images) && payload.images.length > 0 && Array.isArray(payload.imageUrls) && payload.imageUrls.length > 0) {
+    issues.push(
+      error(
+        "imageUrls",
+        "workflow_legacy_image_urls_with_images",
+        "do not mix deprecated imageUrls with structured images; move every usable image into images and remove imageUrls before mutation"
+      )
+    );
+  }
+
   for (const block of unsupportedNestedApiBlocks) {
     if (!isRecord(payload[block.path])) continue;
     issues.push(

@@ -921,6 +921,18 @@ describe("place search helpers", () => {
       undefined,
       sources
     );
+    const structuredWithExtraShorthand = imageConflictPolicyForTest(
+      [
+        {
+          url: "https://example.go.kr/place.jpg",
+          sourceUrl: "https://example.go.kr/place",
+          reviewStatus: "approved",
+          isPrimary: true
+        }
+      ],
+      ["https://example.go.kr/extra-legacy.jpg"],
+      sources
+    );
 
     expect(shorthand).toEqual([
       {
@@ -931,6 +943,14 @@ describe("place search helpers", () => {
       }
     ]);
     expect(structured).toEqual([
+      {
+        url: "https://example.go.kr/place.jpg",
+        metadata: true,
+        primary: true,
+        reviewStatus: true
+      }
+    ]);
+    expect(structuredWithExtraShorthand).toEqual([
       {
         url: "https://example.go.kr/place.jpg",
         metadata: true,
@@ -1229,14 +1249,16 @@ describe("place search helpers", () => {
       hasData: true,
       hasStructuredData: false,
       temporaryClosure: null,
-      lodgingStayWindow: null
+      lodgingStayWindow: null,
+      embeddedSourceEvidence: null
     });
     expect(buildOpeningHoursDataSignal("월-토 10:00-17:00")).toEqual({
       dataStatus: "unstructured",
       hasData: true,
       hasStructuredData: false,
       temporaryClosure: null,
-      lodgingStayWindow: null
+      lodgingStayWindow: null,
+      embeddedSourceEvidence: null
     });
     expect(buildSearchOpeningHoursSummary(buildOpeningHoursDataSignal(null), sourceSummary, visit)).toMatchObject({
       dataStatus: "missing",
@@ -1280,7 +1302,8 @@ describe("place search helpers", () => {
         startsOn: "2026-01-01",
         endsOn: "2026-12-31"
       },
-      lodgingStayWindow: null
+      lodgingStayWindow: null,
+      embeddedSourceEvidence: null
     });
     expect(buildSearchOpeningHoursSummary(dataSignal, sourceSummary)).toMatchObject({
       dataStatus: "structured",
@@ -1319,6 +1342,14 @@ describe("place search helpers", () => {
         checkIn: "15:00",
         checkOut: "11:00",
         sourceBacked: true
+      },
+      embeddedSourceEvidence: {
+        sourceCount: 1,
+        sourceTypes: ["opening_hours_metadata"],
+        bestSourceType: "opening_hours_metadata",
+        bestSourceTier: "other",
+        latestCheckedAt: null,
+        freshnessStatus: "unchecked"
       }
     });
     expect(summary).toMatchObject({
@@ -1332,6 +1363,43 @@ describe("place search helpers", () => {
         checkOut: "11:00",
         sourceBacked: true
       }
+    });
+  });
+
+  it("treats embedded opening-hours source metadata as source-backed evidence", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      status: "seasonal",
+      summary: "2026년 물놀이장 운영 기간은 공공 보도자료 기준으로 확인되었습니다.",
+      note: "기상 상황에 따라 운영이 달라질 수 있습니다.",
+      sourceUrl: "https://example.com/public-news",
+      sourceTitle: "정모시쉼터 물놀이장 운영 안내",
+      sourceType: "public_news",
+      checkedAt: "2026-06-08T12:00:00.000Z"
+    });
+    const summary = buildSearchOpeningHoursSummary(dataSignal, buildSearchSourceSummary([]));
+
+    expect(dataSignal).toMatchObject({
+      dataStatus: "structured",
+      hasStructuredData: true,
+      embeddedSourceEvidence: {
+        sourceCount: 1,
+        sourceTypes: ["public_news"],
+        bestSourceType: "public_news",
+        bestSourceTier: "public_listing",
+        latestCheckedAt: "2026-06-08T12:00:00.000Z"
+      }
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "medium",
+      sourceBacked: true,
+      sourceCount: 1,
+      sourceTypes: ["public_news"],
+      bestSourceType: "public_news",
+      bestSourceTier: "public_listing",
+      latestCheckedAt: "2026-06-08T12:00:00.000Z",
+      hasStructuredData: true,
+      structuredDataGaps: []
     });
   });
 
