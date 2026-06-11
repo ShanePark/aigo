@@ -27,6 +27,7 @@ import {
   isBroadWaterPlayIntentQuery,
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
+  mergeExternalRefsForUpdateForTest,
   officialNameVariantCompactTextsForTest,
   placeDbRecordForTest,
   normalizeSearchInput,
@@ -93,6 +94,67 @@ function courseItem(
 describe("place search helpers", () => {
   const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
   const officialSource = { sourceType: "official_site" as const, url: "https://example.com/place" };
+
+  it("deep-merges externalRefs updates without dropping existing provenance", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["제주오성"],
+        koreanSearchAliases: ["제주 오성"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address",
+          sourceUrl: "https://example.com/source",
+          confidence: "high"
+        },
+        infoLinks: [{ url: "https://example.com/info", label: "안내" }]
+      },
+      {
+        coordinateProvenance: {
+          checkedAt: "2026-06-11T00:00:00.000Z"
+        },
+        parentReviewEvidence: {
+          queries: ["제주오성 아이랑"]
+        }
+      }
+    );
+
+    expect(merged).toEqual({
+      aliases: ["제주오성"],
+      koreanSearchAliases: ["제주 오성"],
+      coordinateProvenance: {
+        level: "public_dataset_exact_address",
+        sourceUrl: "https://example.com/source",
+        confidence: "high",
+        checkedAt: "2026-06-11T00:00:00.000Z"
+      },
+      infoLinks: [{ url: "https://example.com/info", label: "안내" }],
+      parentReviewEvidence: {
+        queries: ["제주오성 아이랑"]
+      }
+    });
+  });
+
+  it("treats externalRefs arrays, scalars, and null as explicit replacements", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["기존 별칭"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address",
+          sourceUrl: "https://example.com/source"
+        },
+        reviewLinks: [{ url: "https://example.com/review" }]
+      },
+      {
+        aliases: ["새 별칭"],
+        coordinateProvenance: null
+      }
+    );
+
+    expect(merged).toEqual({
+      aliases: ["새 별칭"],
+      coordinateProvenance: null,
+      reviewLinks: [{ url: "https://example.com/review" }]
+    });
+  });
 
   it("maps create and update region and overseas fields to persisted DB columns", () => {
     const createRecord = placeDbRecordForTest({

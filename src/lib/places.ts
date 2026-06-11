@@ -334,8 +334,6 @@ export async function createPlace(input: CreatePlaceInput) {
 
 export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   const normalizedInput = normalizeUpdatePlaceInput(input);
-  const patch = toDbRecord(normalizedInput);
-  const columns = Object.keys(patch);
   const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources, {
     assignFallbackPrimary: normalizedInput.imageMode === "replace",
     allowStructuredPrimaryOverwrite: normalizedInput.imageMode === "replace"
@@ -348,6 +346,16 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
     if (existing.length === 0) {
       throw new ApiError(404, "Place not found");
     }
+
+    const patchInput =
+      normalizedInput.externalRefs === undefined
+        ? normalizedInput
+        : {
+            ...normalizedInput,
+            externalRefs: mergeExternalRefsForUpdate(existing[0].external_refs, normalizedInput.externalRefs)
+          };
+    const patch = toDbRecord(patchInput);
+    const columns = Object.keys(patch);
 
     let updated: PlaceRow;
     if (columns.length > 0) {
@@ -2000,6 +2008,33 @@ function compactDuplicateExternalRefValue(value: unknown): unknown | null {
 
 export function duplicateExternalRefsForMatchForTest(externalRefs: Record<string, unknown> | null | undefined) {
   return duplicateExternalRefsForMatch(externalRefs);
+}
+
+function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMergeJsonObject(existing: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existing };
+  for (const [key, value] of Object.entries(patch)) {
+    const previous = merged[key];
+    merged[key] = isPlainJsonObject(previous) && isPlainJsonObject(value) ? deepMergeJsonObject(previous, value) : value;
+  }
+  return merged;
+}
+
+function mergeExternalRefsForUpdate(
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>
+) {
+  return deepMergeJsonObject(isPlainJsonObject(existing) ? existing : {}, patch);
+}
+
+export function mergeExternalRefsForUpdateForTest(
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>
+) {
+  return mergeExternalRefsForUpdate(existing, patch);
 }
 
 function normalizeTags(tags: string[] | undefined) {

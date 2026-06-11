@@ -1126,7 +1126,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
         - type: object
-          description: Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together; when both age bounds are sent, min must be less than or equal to max.
+          description: Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together; when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null replace the addressed key.
           required: [sources]
           dependentRequired:
             lat: [lng]
