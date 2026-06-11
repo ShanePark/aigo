@@ -1479,6 +1479,39 @@ describe("place search helpers", () => {
     });
   });
 
+  it("reads lodging stay-window metadata from the canonical nested openingHours shape", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    const summary = buildSearchOpeningHoursSummary(dataSignal, buildSearchSourceSummary([]));
+
+    expect(dataSignal).toMatchObject({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: [],
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+  });
+
   it("treats embedded opening-hours source metadata as source-backed evidence", () => {
     const dataSignal = buildOpeningHoursDataSignal({
       status: "seasonal",

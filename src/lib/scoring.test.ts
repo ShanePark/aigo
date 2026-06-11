@@ -1606,10 +1606,11 @@ describe("scorePlace", () => {
         foodAllowed: "partial",
         distanceKm: 95,
         openingHours: {
-          summary: "체크인 15:00 / 체크아웃 11:00",
-          specialNotes: "숙박 예약 목록에서 입퇴실 시간을 확인함",
-          sourceTitle: "숙박 예약 안내",
-          dataStatus: "listing_supported"
+          lodgingStayWindow: {
+            checkIn: "15:00",
+            checkOut: "11:00",
+            sourceBacked: true
+          }
         }
       },
       { ...baseInput, primaryCategories: ["accommodation"], visitContext: "nearbyNow" }

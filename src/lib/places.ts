@@ -4869,11 +4869,30 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
 }
 
 function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {
+  const nestedWindow = isPlainRecord(openingHours) && isPlainRecord(openingHours.lodgingStayWindow) ? openingHours.lodgingStayWindow : null;
   const checkIn = isPlainRecord(openingHours)
-    ? timeString(openingHours.checkIn ?? openingHours.checkInTime ?? openingHours.checkin ?? openingHours.checkinTime)
+    ? timeString(
+        nestedWindow?.checkIn ??
+          nestedWindow?.checkInTime ??
+          nestedWindow?.checkin ??
+          nestedWindow?.checkinTime ??
+          openingHours.checkIn ??
+          openingHours.checkInTime ??
+          openingHours.checkin ??
+          openingHours.checkinTime
+      )
     : null;
   const checkOut = isPlainRecord(openingHours)
-    ? timeString(openingHours.checkOut ?? openingHours.checkOutTime ?? openingHours.checkout ?? openingHours.checkoutTime)
+    ? timeString(
+        nestedWindow?.checkOut ??
+          nestedWindow?.checkOutTime ??
+          nestedWindow?.checkout ??
+          nestedWindow?.checkoutTime ??
+          openingHours.checkOut ??
+          openingHours.checkOutTime ??
+          openingHours.checkout ??
+          openingHours.checkoutTime
+      )
     : null;
   const text =
     typeof openingHours === "string"
@@ -4893,7 +4912,12 @@ function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string)
   return {
     checkIn: inferredCheckIn,
     checkOut: inferredCheckOut,
-    sourceBacked: isPlainRecord(openingHours) ? hasLodgingWindowSource(openingHours) : false
+    sourceBacked:
+      isPlainRecord(nestedWindow) && typeof nestedWindow.sourceBacked === "boolean"
+        ? nestedWindow.sourceBacked
+        : isPlainRecord(openingHours)
+          ? hasLodgingWindowSource(openingHours) || hasLodgingWindowSource(nestedWindow ?? {})
+          : false
   };
 }
 
