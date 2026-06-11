@@ -29,6 +29,7 @@ import {
   isRouteBreakIntentQuery,
   mergeExternalRefsForUpdateForTest,
   officialNameVariantCompactTextsForTest,
+  placeDetailForTest,
   placeDbRecordForTest,
   normalizeSearchInput,
   normalizePlaceImageHealthQueryForTest,
@@ -209,6 +210,56 @@ describe("place search helpers", () => {
       locality: "Okinawa",
       local_currency: "JPY"
     });
+  });
+
+  it("maps note payload fields to persisted note columns", () => {
+    const createRecord = placeDbRecordForTest(
+      createPlaceSchema.parse({
+        name: "노트 테스트 장소",
+        primaryCategory: "park",
+        lat: 37.1,
+        lng: 127.1,
+        regionSido: "경기",
+        notes: {
+          parent: "유모차 접근은 가능하지만 수유실은 확인되지 않았습니다.",
+          safety: "물가 주변은 보호자 동행이 필요합니다."
+        },
+        sources: [officialSource],
+        actor: "agent"
+      })
+    );
+    const updateRecord = placeDbRecordForTest({
+      parentNotes: "주말에는 주차 대기가 있을 수 있습니다.",
+      safetyNotes: "바닥이 젖으면 미끄러울 수 있습니다.",
+      sources: [officialSource],
+      sourceMode: "append",
+      imageMode: "append",
+      relatedPlaceMode: "append",
+      actor: "agent"
+    });
+
+    expect(createRecord).toMatchObject({
+      parent_notes: "유모차 접근은 가능하지만 수유실은 확인되지 않았습니다.",
+      safety_notes: "물가 주변은 보호자 동행이 필요합니다."
+    });
+    expect(updateRecord).toMatchObject({
+      parent_notes: "주말에는 주차 대기가 있을 수 있습니다.",
+      safety_notes: "바닥이 젖으면 미끄러울 수 있습니다."
+    });
+  });
+
+  it("exposes note fields in both nested and flat place detail shapes", () => {
+    const detail = placeDetailForTest({
+      parent_notes: "보호자 메모",
+      safety_notes: "안전 메모"
+    });
+
+    expect(detail.notes).toEqual({
+      parent: "보호자 메모",
+      safety: "안전 메모"
+    });
+    expect(detail.parentNotes).toBe("보호자 메모");
+    expect(detail.safetyNotes).toBe("안전 메모");
   });
 
   it("persists nested recommended age payload aliases to age columns", () => {

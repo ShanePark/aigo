@@ -3441,6 +3441,14 @@ components:
           $ref: "#/components/schemas/StructuredDataGaps"
         notes:
           $ref: "#/components/schemas/PlaceNotes"
+        safetyNotes:
+          type: string
+          nullable: true
+          description: Backward-compatible flat alias for `notes.safety`.
+        parentNotes:
+          type: string
+          nullable: true
+          description: Backward-compatible flat alias for `notes.parent`.
         openingHours: {}
         openingHoursSummary:
           $ref: "#/components/schemas/OpeningHoursSummary"
