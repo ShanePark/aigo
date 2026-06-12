@@ -1004,9 +1004,12 @@ type OpeningStatus = {
 type OpeningPeriod = {
   days: number[] | null;
   dates: string[] | null;
+  startsOn: string | null;
+  endsOn: string | null;
   opens: string | null;
   closes: string | null;
   closed: boolean;
+  seasonal: boolean;
 };
 
 function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
@@ -1025,12 +1028,20 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
   const todayDate = seoulDateString(now);
   const yesterdayDate = seoulDateString(new Date(now.getTime() - 24 * 60 * 60 * 1000));
   let hasApplicableSchedule = false;
+  let hasKnownSeasonalSchedule = false;
+
+  if (periods.some((period) => period.closed && periodAppliesToDateAndDay(period, todayDate, today))) {
+    return { state: "closed" };
+  }
 
   for (const period of periods) {
     const opens = parseTimeToMinutes(period.opens);
     const closes = parseTimeToMinutes(period.closes);
     const appliesToday = periodAppliesToDateAndDay(period, todayDate, today);
     const appliesYesterday = periodAppliesToDateAndDay(period, yesterdayDate, yesterday);
+    if (period.seasonal) {
+      hasKnownSeasonalSchedule = true;
+    }
     if (appliesToday || appliesYesterday) {
       hasApplicableSchedule = true;
     }
@@ -1050,7 +1061,7 @@ function openingHoursStatus(openingHours: unknown, now: Date): OpeningStatus {
     }
   }
 
-  return hasApplicableSchedule ? { state: "closed" } : { state: "unknown" };
+  return hasApplicableSchedule || hasKnownSeasonalSchedule ? { state: "closed" } : { state: "unknown" };
 }
 
 function explicitOpeningStatus(openingHours: Record<string, unknown>, now: Date): OpeningStatus | null {
@@ -1094,6 +1105,7 @@ function collectOpeningPeriods(openingHours: Record<string, unknown>) {
   const periods: OpeningPeriod[] = [];
   addRawPeriods(periods, openingHours.periods);
   addRawPeriods(periods, openingHours.openingHoursSpecification);
+  addSeasonalPeriods(periods, openingHours);
 
   if (isRecord(openingHours.weekly)) {
     for (const [dayKey, dayValue] of Object.entries(openingHours.weekly)) {
@@ -1106,7 +1118,7 @@ function collectOpeningPeriods(openingHours: Record<string, unknown>) {
       } else if (isRecord(dayValue)) {
         periods.push(periodFromRecord(dayValue, [day]));
       } else if (typeof dayValue === "string" && dayValue.toLowerCase() === "closed") {
-        periods.push({ days: [day], dates: null, opens: null, closes: null, closed: true });
+        periods.push({ days: [day], dates: null, startsOn: null, endsOn: null, opens: null, closes: null, closed: true, seasonal: false });
       }
     }
   }
@@ -1124,7 +1136,9 @@ function addRawPeriods(periods: OpeningPeriod[], raw: unknown) {
 function periodFromRecord(record: Record<string, unknown>, fallbackDays?: number[]): OpeningPeriod {
   const dayValue = record.dayOfWeek ?? record.day ?? record.days;
   const days = parseDays(dayValue) ?? fallbackDays ?? null;
-  const dates = parseDates(record.date ?? record.validFrom ?? record.startDate ?? record.startsOn);
+  const dates = parseDates(record.date);
+  const startsOn = parseDateString(record.validFrom ?? record.startDate ?? record.startsOn ?? record.from);
+  const endsOn = parseDateString(record.validThrough ?? record.endDate ?? record.endsOn ?? record.to);
   const opens = stringValue(record.opens ?? record.open ?? record.opensAt ?? record.start);
   const closes = stringValue(record.closes ?? record.close ?? record.closesAt ?? record.end);
   const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
@@ -1132,10 +1146,114 @@ function periodFromRecord(record: Record<string, unknown>, fallbackDays?: number
   return {
     days,
     dates,
+    startsOn,
+    endsOn,
     opens,
     closes,
-    closed: record.closed === true || status === "closed"
+    closed: record.closed === true || status === "closed",
+    seasonal: false
   };
+}
+
+function addSeasonalPeriods(periods: OpeningPeriod[], openingHours: Record<string, unknown>) {
+  const seasonal = isRecord(openingHours.seasonal) ? openingHours.seasonal : null;
+  if (!seasonal) return;
+
+  const startsOn = parseDateString(seasonal.startDate ?? seasonal.startsOn ?? seasonal.from);
+  const endsOn = parseDateString(seasonal.endDate ?? seasonal.endsOn ?? seasonal.to);
+  const weekly = isRecord(openingHours.weekly) ? openingHours.weekly : {};
+  const regularHours = stringValue(weekly.regularHours ?? openingHours.regularHours ?? seasonal.regularHours);
+  const timeRange = parseTimeRange(regularHours);
+  if (!timeRange || (!startsOn && !endsOn)) return;
+
+  const periodTexts = [
+    stringValue(weekly.trialPeriod),
+    stringValue(weekly.summerVacationPeriod),
+    stringValue(weekly.regularPeriod)
+  ].filter((value): value is string => value !== null);
+  let addedSpecificPeriod = false;
+
+  for (const text of periodTexts) {
+    const parsed = parseKoreanSeasonalPeriod(text);
+    if (!parsed) continue;
+    periods.push({
+      days: parsed.days,
+      dates: null,
+      startsOn: parsed.startsOn,
+      endsOn: parsed.endsOn,
+      opens: timeRange.opens,
+      closes: timeRange.closes,
+      closed: false,
+      seasonal: true
+    });
+    addedSpecificPeriod = true;
+  }
+
+  if (!addedSpecificPeriod) {
+    periods.push({
+      days: null,
+      dates: null,
+      startsOn,
+      endsOn,
+      opens: timeRange.opens,
+      closes: timeRange.closes,
+      closed: false,
+      seasonal: true
+    });
+  }
+
+  for (const rule of closureRuleStrings(openingHours.closureRules)) {
+    const days = closureRuleDays(rule);
+    if (days.length === 0) continue;
+    periods.push({
+      days,
+      dates: null,
+      startsOn,
+      endsOn,
+      opens: null,
+      closes: null,
+      closed: true,
+      seasonal: true
+    });
+  }
+}
+
+function parseTimeRange(value: string | null) {
+  if (!value) return null;
+  const match = /(\d{1,2}:\d{2})\s*(?:-|~|–|—|부터|에서|to)\s*(\d{1,2}:\d{2})/.exec(value);
+  if (!match) return null;
+  return { opens: match[1], closes: match[2] };
+}
+
+function parseKoreanSeasonalPeriod(value: string) {
+  const matches = Array.from(value.matchAll(/\d{4}-\d{2}-\d{2}/g)).map((match) => match[0]);
+  if (matches.length < 2) return null;
+  return {
+    startsOn: matches[0],
+    endsOn: matches[1],
+    days: value.includes("주말") ? [0, 6] : null
+  };
+}
+
+function closureRuleStrings(value: unknown) {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  return typeof value === "string" ? [value] : [];
+}
+
+function closureRuleDays(value: string) {
+  const days = new Set<number>();
+  const normalized = value.toLowerCase();
+  for (const [name, day] of Object.entries(koreanDayNames)) {
+    if (name.length === 1) {
+      if (value.includes(`${name}요일`) || value.includes(`매주 ${name}`)) days.add(day);
+      continue;
+    }
+    if (value.includes(name)) days.add(day);
+  }
+  for (const [name, day] of Object.entries(dayNames)) {
+    if (normalized.includes(name)) days.add(day);
+  }
+  return Array.from(days);
 }
 
 function parseDates(value: unknown): string[] | null {
@@ -1212,8 +1330,15 @@ function parseDay(value: unknown) {
 }
 
 function periodAppliesToDateAndDay(period: OpeningPeriod, date: string, day: number) {
+  if (!periodAppliesToDateRange(period, date)) return false;
   if (period.dates !== null && !period.dates.includes(date)) return false;
   return period.days === null || period.days.includes(day);
+}
+
+function periodAppliesToDateRange(period: OpeningPeriod, date: string) {
+  if (period.startsOn && date < period.startsOn) return false;
+  if (period.endsOn && date > period.endsOn) return false;
+  return true;
 }
 
 function parseTimeToMinutes(value: string | null) {
