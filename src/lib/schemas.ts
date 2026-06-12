@@ -587,35 +587,47 @@ export const retireDuplicatePlaceSchema = z.object({
   changeSummary: z.string().trim().min(10).max(2000)
 });
 
-export const placeImageHealthQuerySchema = z.object({
-  placeIds: z.preprocess(
-    (value) => {
-      if (typeof value !== "string") return value;
-      const ids = value
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean);
-      return ids.length > 0 ? ids : undefined;
-    },
-    z.array(z.string().uuid()).max(200).optional()
-  ),
-  primaryCategory: z.string().trim().min(1).optional(),
-  status: z
-    .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "primary_image_unreachable", "all"])
-    .default("attention"),
-  probeImages: z
-    .preprocess((value) => {
-      if (value === undefined) return undefined;
-      if (typeof value === "boolean") return value;
-      if (typeof value !== "string") return value;
-      if (["1", "true", "yes"].includes(value.toLowerCase())) return true;
-      if (["0", "false", "no"].includes(value.toLowerCase())) return false;
-      return value;
-    }, z.boolean())
-    .default(false),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
-  offset: z.coerce.number().int().min(0).max(5000).default(0)
-}).superRefine((value, context) => {
+const placeIdsQueryParamSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const ids = value
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return ids.length > 0 ? ids : undefined;
+  },
+  z.array(z.string().uuid()).max(200).optional()
+);
+
+export const placeImageHealthQuerySchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+    const input = { ...(value as Record<string, unknown>) };
+    if (input.placeIds === undefined && input.placeId !== undefined) {
+      input.placeIds = input.placeId;
+    }
+    return input;
+  },
+  z.object({
+    placeIds: placeIdsQueryParamSchema,
+    primaryCategory: z.string().trim().min(1).optional(),
+    status: z
+      .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "primary_image_unreachable", "all"])
+      .default("attention"),
+    probeImages: z
+      .preprocess((value) => {
+        if (value === undefined) return undefined;
+        if (typeof value === "boolean") return value;
+        if (typeof value !== "string") return value;
+        if (["1", "true", "yes"].includes(value.toLowerCase())) return true;
+        if (["0", "false", "no"].includes(value.toLowerCase())) return false;
+        return value;
+      }, z.boolean())
+      .default(false),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    offset: z.coerce.number().int().min(0).max(5000).default(0)
+  })
+).superRefine((value, context) => {
   if (value.status === "primary_image_unreachable" && !value.probeImages) {
     context.addIssue({
       code: "custom",

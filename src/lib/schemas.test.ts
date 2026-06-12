@@ -1065,6 +1065,21 @@ describe("place schemas", () => {
     });
   });
 
+  it("accepts a singular image health placeId query alias", () => {
+    const result = placeImageHealthQuerySchema.parse({
+      placeId: "11111111-1111-4111-8111-111111111111",
+      status: "all"
+    });
+
+    expect(result).toEqual({
+      placeIds: ["11111111-1111-4111-8111-111111111111"],
+      status: "all",
+      probeImages: false,
+      limit: 50,
+      offset: 0
+    });
+  });
+
   it("requires scoped place IDs when probing image health URLs", () => {
     expect(
       placeImageHealthQuerySchema.safeParse({

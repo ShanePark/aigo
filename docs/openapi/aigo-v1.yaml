@@ -242,6 +242,13 @@ paths:
           schema:
             type: string
           description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates. Explicitly scoped lookups include `temporarily_closed` records; the unscoped queue remains active-only.
+        - name: placeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Backward-compatible single-place alias for `placeIds`. If both `placeIds` and `placeId` are provided, `placeIds` is used.
         - name: limit
           in: query
           required: false

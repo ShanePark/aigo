@@ -1210,6 +1210,7 @@ function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPl
 }
 
 type PlaceImageHealthHelperInput = Omit<Partial<PlaceImageHealthQueryInput>, "placeIds" | "limit" | "offset"> & {
+  placeId?: string | null;
   placeIds?: PlaceImageHealthQueryInput["placeIds"] | string | null;
   limit?: PlaceImageHealthQueryInput["limit"] | string;
   offset?: PlaceImageHealthQueryInput["offset"] | string;

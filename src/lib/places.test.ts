@@ -1275,6 +1275,18 @@ describe("place search helpers", () => {
       limit: 25,
       offset: 10
     });
+    expect(
+      normalizePlaceImageHealthQueryForTest({
+        status: "all",
+        placeId: singleId
+      })
+    ).toEqual({
+      placeIds: [singleId],
+      status: "all",
+      probeImages: false,
+      limit: 50,
+      offset: 0
+    });
   });
 
   it("marks image health rows when direct primary image probes fail", () => {
