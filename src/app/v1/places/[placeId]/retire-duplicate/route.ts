@@ -4,6 +4,7 @@ import { requireApiKey } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/errors";
 import { readJson } from "@/lib/http";
 import { retireDuplicatePlace } from "@/lib/places";
+import { requireUuidParam } from "@/lib/route-params";
 import { retireDuplicatePlaceSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,8 @@ type RouteContext = {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     requireApiKey(request);
-    const { placeId } = await context.params;
+    const { placeId: rawPlaceId } = await context.params;
+    const placeId = requireUuidParam(rawPlaceId, "placeId");
     const input = retireDuplicatePlaceSchema.parse(await readJson(request));
     return NextResponse.json(await retireDuplicatePlace(placeId, input));
   } catch (error) {
