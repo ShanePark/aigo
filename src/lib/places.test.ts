@@ -134,6 +134,48 @@ describe("place search helpers", () => {
     });
   });
 
+  it("preserves existing external aliases when coordinate provenance is patched", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["시흥배곧한울공원 해수체험장", "배곧 한울공원 해수체험장"],
+        koreanSearchAliases: ["시흥 배곧 아이랑 물놀이", "배곧 아이랑 물놀이장"],
+        subfacilitySweep: {
+          checkedAt: "2026-06-11T10:06:00+09:00"
+        }
+      },
+      {
+        coordinateProvenance: {
+          level: "official_embedded_map",
+          lat: 37.380357,
+          lng: 126.802881,
+          sourceUrl: "https://www.siheung.go.kr/portal/treasureMap/view.do?idx=28&mId=0814010700",
+          checkedAt: "2026-06-11T10:21:00+09:00"
+        },
+        coordinateCorrection: {
+          correctedAt: "2026-06-11T10:21:00+09:00",
+          previousLat: 37.3546511211719,
+          previousLng: 126.702032158511
+        }
+      }
+    );
+
+    expect(merged).toMatchObject({
+      aliases: ["시흥배곧한울공원 해수체험장", "배곧 한울공원 해수체험장"],
+      koreanSearchAliases: ["시흥 배곧 아이랑 물놀이", "배곧 아이랑 물놀이장"],
+      subfacilitySweep: {
+        checkedAt: "2026-06-11T10:06:00+09:00"
+      },
+      coordinateProvenance: {
+        level: "official_embedded_map",
+        lat: 37.380357,
+        lng: 126.802881
+      },
+      coordinateCorrection: {
+        correctedAt: "2026-06-11T10:21:00+09:00"
+      }
+    });
+  });
+
   it("treats externalRefs arrays, scalars, and null as explicit replacements", () => {
     const merged = mergeExternalRefsForUpdateForTest(
       {
