@@ -219,9 +219,16 @@ paths:
           required: false
           schema:
             type: string
-            enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, all]
+            enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             default: attention
           description: Queue selector. `attention` returns everything except healthy rows.
+        - name: probeImages
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When true, scoped `placeIds` lookups re-probe primary image URLs with HEAD followed by ranged GET and can return `primary_image_unreachable`. Requires 25 or fewer `placeIds`; unscoped queue scans do not perform external image probes.
         - name: primaryCategory
           in: query
           required: false
@@ -1687,7 +1694,7 @@ components:
           properties:
             status:
               type: string
-              enum: [no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy]
+              enum: [no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable]
             suggestedAction:
               type: string
               enum: [find_replacement_image, find_first_image, choose_primary_image, review_or_replace_images, audit_pending_images, none]
@@ -1726,6 +1733,39 @@ components:
                 - string
                 - "null"
               format: date-time
+            directProbe:
+              type: object
+              nullable: true
+              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health.
+              required: [checkedAt, ok, status, method, contentType, finalUrl, error]
+              properties:
+                checkedAt:
+                  type: string
+                  format: date-time
+                ok:
+                  type: boolean
+                status:
+                  type:
+                    - integer
+                    - "null"
+                method:
+                  type:
+                    - string
+                    - "null"
+                  enum: [HEAD, GET_RANGE, null]
+                contentType:
+                  type:
+                    - string
+                    - "null"
+                finalUrl:
+                  type:
+                    - string
+                    - "null"
+                  format: uri
+                error:
+                  type:
+                    - string
+                    - "null"
     SearchPlaceItem:
       type: object
       required:

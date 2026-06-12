@@ -601,10 +601,42 @@ export const placeImageHealthQuerySchema = z.object({
   ),
   primaryCategory: z.string().trim().min(1).optional(),
   status: z
-    .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "all"])
+    .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "primary_image_unreachable", "all"])
     .default("attention"),
+  probeImages: z
+    .preprocess((value) => {
+      if (value === undefined) return undefined;
+      if (typeof value === "boolean") return value;
+      if (typeof value !== "string") return value;
+      if (["1", "true", "yes"].includes(value.toLowerCase())) return true;
+      if (["0", "false", "no"].includes(value.toLowerCase())) return false;
+      return value;
+    }, z.boolean())
+    .default(false),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).max(5000).default(0)
+}).superRefine((value, context) => {
+  if (value.status === "primary_image_unreachable" && !value.probeImages) {
+    context.addIssue({
+      code: "custom",
+      path: ["status"],
+      message: "primary_image_unreachable status requires probeImages=true"
+    });
+  }
+  if (value.probeImages && (!value.placeIds || value.placeIds.length === 0)) {
+    context.addIssue({
+      code: "custom",
+      path: ["probeImages"],
+      message: "probeImages requires scoped placeIds"
+    });
+  }
+  if (value.probeImages && value.placeIds && value.placeIds.length > 25) {
+    context.addIssue({
+      code: "custom",
+      path: ["placeIds"],
+      message: "probeImages supports at most 25 scoped placeIds"
+    });
+  }
 });
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;

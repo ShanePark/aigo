@@ -1050,6 +1050,7 @@ describe("place schemas", () => {
       placeIds: "11111111-1111-4111-8111-111111111111, 22222222-2222-4222-8222-222222222222",
       primaryCategory: "family_restaurant",
       status: "no_active_image",
+      probeImages: "true",
       limit: "25",
       offset: "50"
     });
@@ -1058,8 +1059,23 @@ describe("place schemas", () => {
       placeIds: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"],
       primaryCategory: "family_restaurant",
       status: "no_active_image",
+      probeImages: true,
       limit: 25,
       offset: 50
     });
+  });
+
+  it("requires scoped place IDs when probing image health URLs", () => {
+    expect(
+      placeImageHealthQuerySchema.safeParse({
+        probeImages: "true"
+      }).success
+    ).toBe(false);
+    expect(
+      placeImageHealthQuerySchema.safeParse({
+        status: "primary_image_unreachable",
+        placeIds: "11111111-1111-4111-8111-111111111111"
+      }).success
+    ).toBe(false);
   });
 });

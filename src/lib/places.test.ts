@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createPlaceSchema } from "@/lib/schemas";
 import {
@@ -21,6 +21,7 @@ import {
   duplicateExternalRefsForMatchForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
+  applyImageHealthDirectProbeForTest,
   imageHealthPlaceStatusPredicateForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
@@ -34,6 +35,7 @@ import {
   normalizeSearchInput,
   normalizePlaceImageHealthQueryForTest,
   normalizedImagePrimaryForTest,
+  probeImageUrlForHealthForTest,
   playgroundEvidenceScoreCapForTest,
   queryMatchSignal,
   relatedPlacePair,
@@ -1249,11 +1251,13 @@ describe("place search helpers", () => {
       normalizePlaceImageHealthQueryForTest({
         status: "attention",
         placeIds: `${singleId}, ${secondId}`,
-        limit: "100"
+        limit: "100",
+        probeImages: true
       })
     ).toEqual({
       placeIds: [singleId, secondId],
       status: "attention",
+      probeImages: true,
       limit: 100,
       offset: 0
     });
@@ -1267,9 +1271,101 @@ describe("place search helpers", () => {
     ).toEqual({
       placeIds: [singleId],
       status: "healthy",
+      probeImages: false,
       limit: 25,
       offset: 10
     });
+  });
+
+  it("marks image health rows when direct primary image probes fail", () => {
+    const item = {
+      placeId: "11111111-1111-4111-8111-111111111111",
+      name: "테스트 장소",
+      primaryCategory: "toy_library",
+      tags: [],
+      address: null,
+      roadAddress: null,
+      region: {
+        sido: null,
+        sigungu: null,
+        dong: null,
+        countryCode: null,
+        countryName: null,
+        city: null,
+        locality: null,
+        localCurrency: null
+      },
+      dataConfidence: "agent_collected",
+      updatedAt: "2026-06-12T00:00:00.000Z",
+      imageHealth: {
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        activeCount: 1,
+        approvedCount: 1,
+        needsReviewCount: 0,
+        pendingReviewCount: 0,
+        rejectedCount: 0,
+        archivedCount: 0,
+        hasPrimary: true,
+        primaryImageUrl: "https://example.com/missing.jpg",
+        primaryReviewStatus: "approved",
+        latestImageCheckedAt: "2026-06-01T00:00:00.000Z",
+        latestImageUpdatedAt: "2026-06-01T00:00:00.000Z"
+      }
+    };
+
+    expect(
+      applyImageHealthDirectProbeForTest(item, {
+        checkedAt: "2026-06-12T00:00:00.000Z",
+        ok: false,
+        status: 404,
+        method: "GET_RANGE",
+        contentType: "text/html",
+        finalUrl: "https://example.com/missing.jpg",
+        error: null
+      })
+    ).toMatchObject({
+      imageHealth: {
+        status: "primary_image_unreachable",
+        suggestedAction: "find_replacement_image",
+        priorityScore: 80,
+        directProbe: {
+          ok: false,
+          status: 404
+        }
+      }
+    });
+  });
+
+  it("accepts ranged image probes after non-image HEAD responses", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "HEAD") {
+        return new Response("", {
+          status: 404,
+          headers: { "content-type": "text/html" }
+        });
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff]), {
+        status: 206,
+        headers: { "content-type": "image/jpeg" }
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      await expect(probeImageUrlForHealthForTest("https://example.com/place.jpg")).resolves.toMatchObject({
+        ok: true,
+        status: 206,
+        method: "GET_RANGE",
+        contentType: "image/jpeg"
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("includes temporarily closed places in image health only when explicitly scoped", () => {
