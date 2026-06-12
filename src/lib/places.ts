@@ -334,8 +334,6 @@ export async function createPlace(input: CreatePlaceInput) {
 
 export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
   const normalizedInput = normalizeUpdatePlaceInput(input);
-  const patch = toDbRecord(normalizedInput);
-  const columns = Object.keys(patch);
   const imageInputs = normalizeImageInputs(normalizedInput.images, normalizedInput.imageUrls, normalizedInput.sources, {
     assignFallbackPrimary: normalizedInput.imageMode === "replace",
     allowStructuredPrimaryOverwrite: normalizedInput.imageMode === "replace"
@@ -348,6 +346,16 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
     if (existing.length === 0) {
       throw new ApiError(404, "Place not found");
     }
+
+    const patchInput =
+      normalizedInput.externalRefs === undefined
+        ? normalizedInput
+        : {
+            ...normalizedInput,
+            externalRefs: mergeExternalRefsForUpdate(existing[0].external_refs, normalizedInput.externalRefs)
+          };
+    const patch = toDbRecord(patchInput);
+    const columns = Object.keys(patch);
 
     let updated: PlaceRow;
     if (columns.length > 0) {
@@ -2002,6 +2010,33 @@ export function duplicateExternalRefsForMatchForTest(externalRefs: Record<string
   return duplicateExternalRefsForMatch(externalRefs);
 }
 
+function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMergeJsonObject(existing: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existing };
+  for (const [key, value] of Object.entries(patch)) {
+    const previous = merged[key];
+    merged[key] = isPlainJsonObject(previous) && isPlainJsonObject(value) ? deepMergeJsonObject(previous, value) : value;
+  }
+  return merged;
+}
+
+function mergeExternalRefsForUpdate(
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>
+) {
+  return deepMergeJsonObject(isPlainJsonObject(existing) ? existing : {}, patch);
+}
+
+export function mergeExternalRefsForUpdateForTest(
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>
+) {
+  return mergeExternalRefsForUpdate(existing, patch);
+}
+
 function normalizeTags(tags: string[] | undefined) {
   if (tags === undefined) return undefined;
   return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
@@ -2024,6 +2059,83 @@ function toDbRecord(input: Partial<CreatePlaceInput | UpdatePlaceInput>) {
 
 export function placeDbRecordForTest(input: CreatePlaceInput | UpdatePlaceInput) {
   return toDbRecord(normalizePlaceWriteInput(input));
+}
+
+export function placeDetailForTest(overrides: Partial<PlaceRow> = {}) {
+  const now = new Date("2026-01-01T00:00:00.000Z");
+  return mapPlace({
+    id: "place-test-id",
+    name: "테스트 장소",
+    slug: null,
+    primary_category: "park",
+    tags: [],
+    description: null,
+    address: null,
+    road_address: null,
+    region_sido: null,
+    region_sigungu: null,
+    region_dong: null,
+    country_code: "KR",
+    country_name: null,
+    city: null,
+    locality: null,
+    local_currency: "KRW",
+    lat: 37,
+    lng: 127,
+    phone: null,
+    official_url: null,
+    reservation_url: null,
+    kakao_place_url: null,
+    kakao_place_id: null,
+    external_refs: {},
+    play_features: {},
+    taxonomy: emptyPlaceTaxonomy(),
+    pricing: {},
+    review_search_evidence: [],
+    route_support: {},
+    status: "active",
+    data_confidence: "agent_collected",
+    place_score: null,
+    place_score_rationale: null,
+    external_rating_score: null,
+    external_review_count: null,
+    search_evidence_score: null,
+    score_signals: {},
+    score_updated_at: null,
+    min_recommended_age_months: null,
+    max_recommended_age_months: null,
+    indoor_type: "unknown",
+    stroller_friendly: "unknown",
+    parking_available: "unknown",
+    parking_friction_level: "unknown",
+    peak_parking_window: null,
+    parking_wait_note: null,
+    nursing_room: "unknown",
+    diaper_changing_table: "unknown",
+    kids_toilet: "unknown",
+    elevator: "unknown",
+    baby_chair: "unknown",
+    food_allowed: "unknown",
+    reservation_required: "unknown",
+    walk_in_available: "unknown",
+    session_based: "unknown",
+    same_day_availability_known: "unknown",
+    average_stay_minutes: null,
+    parent_effort_level: null,
+    child_engagement_level: null,
+    rainy_day_score: null,
+    hot_day_score: null,
+    cold_day_score: null,
+    safety_notes: null,
+    parent_notes: null,
+    opening_hours: null,
+    version: 1,
+    public_view_count: 0,
+    created_at: now,
+    updated_at: now,
+    last_verified_at: null,
+    ...overrides
+  });
 }
 
 async function insertSources(executor: SqlExecutor, placeId: string, sources: SourceInput[]) {
@@ -4299,6 +4411,8 @@ function mapPlace(row: PlaceRow) {
       safety: row.safety_notes,
       parent: row.parent_notes
     },
+    safetyNotes: row.safety_notes,
+    parentNotes: row.parent_notes,
     openingHours: row.opening_hours,
     version: row.version,
     publicViewCount: Number(row.public_view_count ?? 0),
@@ -4755,11 +4869,30 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
 }
 
 function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {
+  const nestedWindow = isPlainRecord(openingHours) && isPlainRecord(openingHours.lodgingStayWindow) ? openingHours.lodgingStayWindow : null;
   const checkIn = isPlainRecord(openingHours)
-    ? timeString(openingHours.checkIn ?? openingHours.checkInTime ?? openingHours.checkin ?? openingHours.checkinTime)
+    ? timeString(
+        nestedWindow?.checkIn ??
+          nestedWindow?.checkInTime ??
+          nestedWindow?.checkin ??
+          nestedWindow?.checkinTime ??
+          openingHours.checkIn ??
+          openingHours.checkInTime ??
+          openingHours.checkin ??
+          openingHours.checkinTime
+      )
     : null;
   const checkOut = isPlainRecord(openingHours)
-    ? timeString(openingHours.checkOut ?? openingHours.checkOutTime ?? openingHours.checkout ?? openingHours.checkoutTime)
+    ? timeString(
+        nestedWindow?.checkOut ??
+          nestedWindow?.checkOutTime ??
+          nestedWindow?.checkout ??
+          nestedWindow?.checkoutTime ??
+          openingHours.checkOut ??
+          openingHours.checkOutTime ??
+          openingHours.checkout ??
+          openingHours.checkoutTime
+      )
     : null;
   const text =
     typeof openingHours === "string"
@@ -4779,7 +4912,12 @@ function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string)
   return {
     checkIn: inferredCheckIn,
     checkOut: inferredCheckOut,
-    sourceBacked: isPlainRecord(openingHours) ? hasLodgingWindowSource(openingHours) : false
+    sourceBacked:
+      isPlainRecord(nestedWindow) && typeof nestedWindow.sourceBacked === "boolean"
+        ? nestedWindow.sourceBacked
+        : isPlainRecord(openingHours)
+          ? hasLodgingWindowSource(openingHours) || hasLodgingWindowSource(nestedWindow ?? {})
+          : false
   };
 }
 

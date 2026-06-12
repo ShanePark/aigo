@@ -131,7 +131,7 @@ Every create/update must include at least one source and at least one citeable, 
 
 Do not create real data seed/export files. Real place registrations, enrichment, dedupe verification, image-health verification, and count-movement work must target the deployed production AiGo API only (`https://aigo.o-r.kr`). Do not write real place data to localhost; use localhost only for disposable API route implementation tests when explicitly requested.
 
-For agent place-data work, load `AIGO_API_KEY` from the ignored repository `.env` file before calling production APIs. If `.env` does not provide the key, stop and ask the user to add or provide it instead of continuing with research-only work or using localhost/default credentials.
+For agent place-data work, load `AIGO_API_KEY` from the ignored repository `.env` file before calling production APIs and send it only as `Authorization: Bearer <AIGO_API_KEY>`. Do not use `x-api-key`, query-string keys, cookies, public app session headers, or other API-key header names. If `.env` does not provide the key, stop and ask the user to add or provide it instead of continuing with research-only work or using localhost/default credentials. If production returns `401`, first verify the Bearer header shape before concluding that the `.env` key is invalid.
 
 The main agent is responsible for applying mutations. Research subagents should normally stop at structured Markdown findings under `agent-research/`, including possible payload fragments and source evidence, so updates can be consolidated without conflicting writes.
 

@@ -1233,10 +1233,42 @@ function hasOpeningHoursData(openingHours: unknown) {
 
 function lodgingStayWindowSignal(openingHours: unknown) {
   if (!isRecord(openingHours)) return false;
-  if ([openingHours.checkIn, openingHours.checkInTime, openingHours.checkin, openingHours.checkinTime].some(isTimeLikeString)) return true;
-  if ([openingHours.checkOut, openingHours.checkOutTime, openingHours.checkout, openingHours.checkoutTime].some(isTimeLikeString)) return true;
+  const nestedWindow = isRecord(openingHours.lodgingStayWindow) ? openingHours.lodgingStayWindow : null;
+  const checkInValues = [
+    nestedWindow?.checkIn,
+    nestedWindow?.checkInTime,
+    nestedWindow?.checkin,
+    nestedWindow?.checkinTime,
+    openingHours.checkIn,
+    openingHours.checkInTime,
+    openingHours.checkin,
+    openingHours.checkinTime
+  ];
+  const checkOutValues = [
+    nestedWindow?.checkOut,
+    nestedWindow?.checkOutTime,
+    nestedWindow?.checkout,
+    nestedWindow?.checkoutTime,
+    openingHours.checkOut,
+    openingHours.checkOutTime,
+    openingHours.checkout,
+    openingHours.checkoutTime
+  ];
+  if (checkInValues.some(isTimeLikeString)) return true;
+  if (checkOutValues.some(isTimeLikeString)) return true;
 
-  const text = [openingHours.summary, openingHours.description, openingHours.specialNotes, openingHours.note, openingHours.sourceTitle]
+  const text = [
+    nestedWindow?.summary,
+    nestedWindow?.description,
+    nestedWindow?.specialNotes,
+    nestedWindow?.note,
+    nestedWindow?.sourceTitle,
+    openingHours.summary,
+    openingHours.description,
+    openingHours.specialNotes,
+    openingHours.note,
+    openingHours.sourceTitle
+  ]
     .filter((value): value is string => typeof value === "string")
     .join(" ")
     .toLocaleLowerCase("ko-KR");

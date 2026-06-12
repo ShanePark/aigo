@@ -1100,7 +1100,8 @@ components:
         parentNotes:
           type: string
           maxLength: 5000
-        openingHours: {}
+        openingHours:
+          description: Flexible operating-hours metadata. For accommodations, use `openingHours.lodgingStayWindow.checkIn`, `checkOut`, and optional `sourceBacked`; detail/search derive `openingHoursSummary.lodgingStayWindow` from that nested shape.
     CreatePlaceRequest:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
@@ -1126,7 +1127,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
         - type: object
-          description: Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together; when both age bounds are sent, min must be less than or equal to max.
+          description: >
+            Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
+            when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
+            into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
+            replace the addressed key.
           required: [sources]
           dependentRequired:
             lat: [lng]
@@ -3441,7 +3446,16 @@ components:
           $ref: "#/components/schemas/StructuredDataGaps"
         notes:
           $ref: "#/components/schemas/PlaceNotes"
-        openingHours: {}
+        safetyNotes:
+          type: string
+          nullable: true
+          description: Backward-compatible flat alias for `notes.safety`.
+        parentNotes:
+          type: string
+          nullable: true
+          description: Backward-compatible flat alias for `notes.parent`.
+        openingHours:
+          description: Flexible operating-hours metadata as stored. Accommodation records may include `lodgingStayWindow` with `checkIn`, `checkOut`, and `sourceBacked`, which is summarized under `openingHoursSummary.lodgingStayWindow`.
         openingHoursSummary:
           $ref: "#/components/schemas/OpeningHoursSummary"
         version:

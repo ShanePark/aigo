@@ -27,7 +27,9 @@ import {
   isBroadWaterPlayIntentQuery,
   isPlaygroundIntentQuery,
   isRouteBreakIntentQuery,
+  mergeExternalRefsForUpdateForTest,
   officialNameVariantCompactTextsForTest,
+  placeDetailForTest,
   placeDbRecordForTest,
   normalizeSearchInput,
   normalizePlaceImageHealthQueryForTest,
@@ -94,6 +96,109 @@ describe("place search helpers", () => {
   const baseSearchInput = { radiusKm: 80, sort: "recommended" as const, limit: 20, offset: 0 };
   const officialSource = { sourceType: "official_site" as const, url: "https://example.com/place" };
 
+  it("deep-merges externalRefs updates without dropping existing provenance", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["제주오성"],
+        koreanSearchAliases: ["제주 오성"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address",
+          sourceUrl: "https://example.com/source",
+          confidence: "high"
+        },
+        infoLinks: [{ url: "https://example.com/info", label: "안내" }]
+      },
+      {
+        coordinateProvenance: {
+          checkedAt: "2026-06-11T00:00:00.000Z"
+        },
+        parentReviewEvidence: {
+          queries: ["제주오성 아이랑"]
+        }
+      }
+    );
+
+    expect(merged).toEqual({
+      aliases: ["제주오성"],
+      koreanSearchAliases: ["제주 오성"],
+      coordinateProvenance: {
+        level: "public_dataset_exact_address",
+        sourceUrl: "https://example.com/source",
+        confidence: "high",
+        checkedAt: "2026-06-11T00:00:00.000Z"
+      },
+      infoLinks: [{ url: "https://example.com/info", label: "안내" }],
+      parentReviewEvidence: {
+        queries: ["제주오성 아이랑"]
+      }
+    });
+  });
+
+  it("preserves existing external aliases when coordinate provenance is patched", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["시흥배곧한울공원 해수체험장", "배곧 한울공원 해수체험장"],
+        koreanSearchAliases: ["시흥 배곧 아이랑 물놀이", "배곧 아이랑 물놀이장"],
+        subfacilitySweep: {
+          checkedAt: "2026-06-11T10:06:00+09:00"
+        }
+      },
+      {
+        coordinateProvenance: {
+          level: "official_embedded_map",
+          lat: 37.380357,
+          lng: 126.802881,
+          sourceUrl: "https://www.siheung.go.kr/portal/treasureMap/view.do?idx=28&mId=0814010700",
+          checkedAt: "2026-06-11T10:21:00+09:00"
+        },
+        coordinateCorrection: {
+          correctedAt: "2026-06-11T10:21:00+09:00",
+          previousLat: 37.3546511211719,
+          previousLng: 126.702032158511
+        }
+      }
+    );
+
+    expect(merged).toMatchObject({
+      aliases: ["시흥배곧한울공원 해수체험장", "배곧 한울공원 해수체험장"],
+      koreanSearchAliases: ["시흥 배곧 아이랑 물놀이", "배곧 아이랑 물놀이장"],
+      subfacilitySweep: {
+        checkedAt: "2026-06-11T10:06:00+09:00"
+      },
+      coordinateProvenance: {
+        level: "official_embedded_map",
+        lat: 37.380357,
+        lng: 126.802881
+      },
+      coordinateCorrection: {
+        correctedAt: "2026-06-11T10:21:00+09:00"
+      }
+    });
+  });
+
+  it("treats externalRefs arrays, scalars, and null as explicit replacements", () => {
+    const merged = mergeExternalRefsForUpdateForTest(
+      {
+        aliases: ["기존 별칭"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address",
+          sourceUrl: "https://example.com/source"
+        },
+        reviewLinks: [{ url: "https://example.com/review" }]
+      },
+      {
+        aliases: ["새 별칭"],
+        coordinateProvenance: null
+      }
+    );
+
+    expect(merged).toEqual({
+      aliases: ["새 별칭"],
+      coordinateProvenance: null,
+      reviewLinks: [{ url: "https://example.com/review" }]
+    });
+  });
+
   it("maps create and update region and overseas fields to persisted DB columns", () => {
     const createRecord = placeDbRecordForTest({
       name: "한들근린공원 어린이놀이터",
@@ -147,6 +252,56 @@ describe("place search helpers", () => {
       locality: "Okinawa",
       local_currency: "JPY"
     });
+  });
+
+  it("maps note payload fields to persisted note columns", () => {
+    const createRecord = placeDbRecordForTest(
+      createPlaceSchema.parse({
+        name: "노트 테스트 장소",
+        primaryCategory: "park",
+        lat: 37.1,
+        lng: 127.1,
+        regionSido: "경기",
+        notes: {
+          parent: "유모차 접근은 가능하지만 수유실은 확인되지 않았습니다.",
+          safety: "물가 주변은 보호자 동행이 필요합니다."
+        },
+        sources: [officialSource],
+        actor: "agent"
+      })
+    );
+    const updateRecord = placeDbRecordForTest({
+      parentNotes: "주말에는 주차 대기가 있을 수 있습니다.",
+      safetyNotes: "바닥이 젖으면 미끄러울 수 있습니다.",
+      sources: [officialSource],
+      sourceMode: "append",
+      imageMode: "append",
+      relatedPlaceMode: "append",
+      actor: "agent"
+    });
+
+    expect(createRecord).toMatchObject({
+      parent_notes: "유모차 접근은 가능하지만 수유실은 확인되지 않았습니다.",
+      safety_notes: "물가 주변은 보호자 동행이 필요합니다."
+    });
+    expect(updateRecord).toMatchObject({
+      parent_notes: "주말에는 주차 대기가 있을 수 있습니다.",
+      safety_notes: "바닥이 젖으면 미끄러울 수 있습니다."
+    });
+  });
+
+  it("exposes note fields in both nested and flat place detail shapes", () => {
+    const detail = placeDetailForTest({
+      parent_notes: "보호자 메모",
+      safety_notes: "안전 메모"
+    });
+
+    expect(detail.notes).toEqual({
+      parent: "보호자 메모",
+      safety: "안전 메모"
+    });
+    expect(detail.parentNotes).toBe("보호자 메모");
+    expect(detail.safetyNotes).toBe("안전 메모");
   });
 
   it("persists nested recommended age payload aliases to age columns", () => {
@@ -1358,6 +1513,39 @@ describe("place search helpers", () => {
       sourceBacked: true,
       hasStructuredData: true,
       structuredDataGaps: ["reservationRequired", "walkInAvailable", "sessionBased", "sameDayAvailabilityKnown"],
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+  });
+
+  it("reads lodging stay-window metadata from the canonical nested openingHours shape", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    const summary = buildSearchOpeningHoursSummary(dataSignal, buildSearchSourceSummary([]));
+
+    expect(dataSignal).toMatchObject({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true,
+      lodgingStayWindow: {
+        checkIn: "15:00",
+        checkOut: "11:00",
+        sourceBacked: true
+      }
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: [],
       lodgingStayWindow: {
         checkIn: "15:00",
         checkOut: "11:00",
