@@ -26,6 +26,7 @@ import {
   duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicProviderSiblingReviewOnly,
+  duplicatePublicSameSiteSubfacilityReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
@@ -33,6 +34,7 @@ import {
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateTenantParentReviewOnly,
   duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
@@ -234,6 +236,16 @@ type PlaceImageHealthRow = {
   latest_image_updated_at: Date | null;
   health_status: string;
   priority_score: number;
+};
+
+type ImageHealthDirectProbe = {
+  checkedAt: string;
+  ok: boolean;
+  status: number | null;
+  method: "HEAD" | "GET_RANGE" | null;
+  contentType: string | null;
+  finalUrl: string | null;
+  error: string | null;
 };
 
 type ImageMetadataSource = {
@@ -1200,6 +1212,7 @@ function applySearchEvidenceCaps(value: number, scoring: ReturnType<typeof mapPl
 }
 
 type PlaceImageHealthHelperInput = Omit<Partial<PlaceImageHealthQueryInput>, "placeIds" | "limit" | "offset"> & {
+  placeId?: string | null;
   placeIds?: PlaceImageHealthQueryInput["placeIds"] | string | null;
   limit?: PlaceImageHealthQueryInput["limit"] | string;
   offset?: PlaceImageHealthQueryInput["offset"] | string;
@@ -1217,6 +1230,7 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
   const input = normalizePlaceImageHealthQuery(rawInput);
   const params: SqlParam[] = [];
   const scopedPlaceIds = Boolean(input.placeIds && input.placeIds.length > 0);
+  const shouldProbeImages = Boolean(input.probeImages && scopedPlaceIds);
   const where = [imageHealthPlaceStatusPredicate(scopedPlaceIds)];
   const add = (value: unknown) => {
     params.push(value as SqlParam);
@@ -1230,7 +1244,8 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
     where.push(`p.id = any(${add(input.placeIds)}::uuid[])`);
   }
 
-  const healthPredicate = imageHealthPredicate(input.status);
+  const queryStatus = shouldProbeImages && ["attention", "healthy", "primary_image_unreachable"].includes(input.status) ? "all" : input.status;
+  const healthPredicate = imageHealthPredicate(queryStatus);
   const baseParams = [...params];
   const rows = await pg.unsafe<PlaceImageHealthRow[]>(
     `
@@ -1335,16 +1350,23 @@ export async function listPlaceImageHealth(rawInput: PlaceImageHealthQueryInput 
     baseParams
   );
 
+  let items = rows.map(mapPlaceImageHealthRow);
+  if (shouldProbeImages) {
+    items = await probePlaceImageHealthItems(items);
+    items = items.filter((item) => imageHealthItemMatchesStatus(item, input.status));
+  }
+
   return {
-    items: rows.map(mapPlaceImageHealthRow),
+    items,
     meta: {
-      count: rows.length,
-      total: totalRows[0]?.total ?? 0,
+      count: items.length,
+      total: shouldProbeImages ? items.length : (totalRows[0]?.total ?? 0),
       limit: input.limit,
       offset: input.offset,
       status: input.status,
       placeIds: input.placeIds ?? null,
-      primaryCategory: input.primaryCategory ?? null
+      primaryCategory: input.primaryCategory ?? null,
+      probeImages: input.probeImages
     }
   };
 }
@@ -1452,6 +1474,8 @@ async function getRelatedPlaceScoringSummaryMap(placeIds: string[]) {
 
 function imageHealthPredicate(status: PlaceImageHealthQueryInput["status"]) {
   switch (status) {
+    case "primary_image_unreachable":
+      return "true";
     case "no_active_image":
       return "health_status = 'no_active_image'";
     case "rejected_only":
@@ -1471,6 +1495,12 @@ function imageHealthPredicate(status: PlaceImageHealthQueryInput["status"]) {
       return "health_status <> 'healthy'";
   }
 }
+
+type PlaceImageHealthItem = ReturnType<typeof mapPlaceImageHealthRow> & {
+  imageHealth: ReturnType<typeof mapPlaceImageHealthRow>["imageHealth"] & {
+    directProbe?: ImageHealthDirectProbe;
+  };
+};
 
 function mapPlaceImageHealthRow(row: PlaceImageHealthRow) {
   const suggestedAction = imageHealthSuggestedAction(row.health_status);
@@ -1512,9 +1542,116 @@ function mapPlaceImageHealthRow(row: PlaceImageHealthRow) {
   };
 }
 
+async function probePlaceImageHealthItems(items: PlaceImageHealthItem[]) {
+  return Promise.all(
+    items.map(async (item) => {
+      const url = item.imageHealth.primaryImageUrl;
+      if (!url) return item;
+      const probe = await probeImageUrlForHealth(url);
+      return applyImageHealthDirectProbe(item, probe);
+    })
+  );
+}
+
+function applyImageHealthDirectProbe(item: PlaceImageHealthItem, directProbe: ImageHealthDirectProbe): PlaceImageHealthItem {
+  const imageHealth = {
+    ...item.imageHealth,
+    directProbe
+  };
+
+  if (item.imageHealth.primaryImageUrl && !directProbe.ok) {
+    return {
+      ...item,
+      imageHealth: {
+        ...imageHealth,
+        status: "primary_image_unreachable",
+        suggestedAction: "find_replacement_image",
+        priorityScore: Math.max(item.imageHealth.priorityScore, 80)
+      }
+    };
+  }
+
+  return {
+    ...item,
+    imageHealth
+  };
+}
+
+export function applyImageHealthDirectProbeForTest(item: PlaceImageHealthItem, directProbe: ImageHealthDirectProbe) {
+  return applyImageHealthDirectProbe(item, directProbe);
+}
+
+function imageHealthItemMatchesStatus(item: PlaceImageHealthItem, status: PlaceImageHealthQueryInput["status"]) {
+  if (status === "all") return true;
+  if (status === "attention") return item.imageHealth.status !== "healthy";
+  return item.imageHealth.status === status;
+}
+
+function isImageContentType(value: string | null) {
+  return Boolean(value && value.toLowerCase().startsWith("image/"));
+}
+
+function normalizedContentType(headers: Headers) {
+  return headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() || null;
+}
+
+async function fetchImageHealthProbe(url: string, method: ImageHealthDirectProbe["method"], timeoutMs: number) {
+  if (!method) throw new Error("Image probe method is required");
+  const response = await fetch(url, {
+    method: method === "HEAD" ? "HEAD" : "GET",
+    headers: method === "GET_RANGE" ? { range: "bytes=0-63" } : undefined,
+    redirect: "follow",
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+  return {
+    ok: response.ok || response.status === 206,
+    status: response.status,
+    contentType: normalizedContentType(response.headers),
+    finalUrl: response.url
+  };
+}
+
+async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectProbe> {
+  const checkedAt = new Date().toISOString();
+  const timeoutMs = 3_000;
+
+  try {
+    const head = await fetchImageHealthProbe(url, "HEAD", timeoutMs);
+    if (head.ok && isImageContentType(head.contentType)) {
+      return { checkedAt, method: "HEAD", error: null, ...head };
+    }
+
+    const range = await fetchImageHealthProbe(url, "GET_RANGE", timeoutMs);
+    return {
+      checkedAt,
+      method: "GET_RANGE",
+      ok: range.ok && isImageContentType(range.contentType),
+      status: range.status,
+      contentType: range.contentType,
+      finalUrl: range.finalUrl,
+      error: null
+    };
+  } catch (error) {
+    return {
+      checkedAt,
+      ok: false,
+      status: null,
+      method: null,
+      contentType: null,
+      finalUrl: url,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+export function probeImageUrlForHealthForTest(url: string) {
+  return probeImageUrlForHealth(url);
+}
+
 function imageHealthSuggestedAction(status: string) {
   switch (status) {
     case "rejected_only":
+    case "primary_image_unreachable":
       return "find_replacement_image";
     case "no_active_image":
       return "find_first_image";
@@ -1763,7 +1900,9 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         ),
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
+        publicSameSiteSubfacilityReviewOnly: duplicatePublicSameSiteSubfacilityReviewOnly(input.name, input.primaryCategory, row.name, row.primary_category),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
+        tenantParentReviewOnly: duplicateTenantParentReviewOnly(input.name, input.primaryCategory, row.name, row.primary_category),
         publicProviderSiblingReviewOnly: duplicatePublicProviderSiblingReviewOnly(input.name, row.name),
         unrelatedBranchCategoryReviewOnly: duplicateUnrelatedBranchCategoryReviewOnly(input.name, row.name),
         categoryConflictReviewOnly: duplicateCategoryConflictReviewOnly(input.primaryCategory, row.primary_category),

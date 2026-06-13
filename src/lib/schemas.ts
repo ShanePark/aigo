@@ -379,8 +379,70 @@ const placeWriteAliasPreprocessor = (value: unknown) => {
   return input;
 };
 
+const koreanLocationTokens = [
+  "서울특별시",
+  "부산광역시",
+  "대구광역시",
+  "인천광역시",
+  "광주광역시",
+  "대전광역시",
+  "울산광역시",
+  "세종특별자치시",
+  "경기도",
+  "강원특별자치도",
+  "충청북도",
+  "충청남도",
+  "전북특별자치도",
+  "전라남도",
+  "경상북도",
+  "경상남도",
+  "제주특별자치도",
+  "서울",
+  "부산",
+  "대구",
+  "인천",
+  "광주",
+  "대전",
+  "울산",
+  "세종",
+  "경기",
+  "강원",
+  "충북",
+  "충남",
+  "전북",
+  "전남",
+  "경북",
+  "경남",
+  "제주"
+];
+const koreanRegionSidoValues = new Set(koreanLocationTokens.map(normalizeRegionSido));
+
+const createPlacePreprocessor = (value: unknown) => {
+  const preprocessed = placeWriteAliasPreprocessor(value);
+  if (!preprocessed || typeof preprocessed !== "object" || Array.isArray(preprocessed)) {
+    return preprocessed;
+  }
+  const input = preprocessed as Record<string, unknown>;
+  if (input.countryCode !== undefined) {
+    return input;
+  }
+
+  if (hasKoreanLocationSignal(input)) {
+    return { ...input, countryCode: "KR" };
+  }
+  return input;
+};
+
+function hasKoreanLocationSignal(input: Record<string, unknown>) {
+  return [input.regionSido, input.address, input.roadAddress].some((value) => {
+    if (typeof value !== "string") return false;
+    const normalized = normalizeRegionSido(value);
+    return koreanRegionSidoValues.has(normalized) || koreanLocationTokens.some((token) => value.includes(token));
+  });
+}
+
 export const createPlaceSchema = z.preprocess(
-  placeWriteAliasPreprocessor,
+  createPlacePreprocessor,
   z
     .object({
     ...writablePlaceFields,
@@ -587,24 +649,68 @@ export const retireDuplicatePlaceSchema = z.object({
   changeSummary: z.string().trim().min(10).max(2000)
 });
 
-export const placeImageHealthQuerySchema = z.object({
-  placeIds: z.preprocess(
-    (value) => {
-      if (typeof value !== "string") return value;
-      const ids = value
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean);
-      return ids.length > 0 ? ids : undefined;
-    },
-    z.array(z.string().uuid()).max(200).optional()
-  ),
-  primaryCategory: z.string().trim().min(1).optional(),
-  status: z
-    .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "all"])
-    .default("attention"),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
-  offset: z.coerce.number().int().min(0).max(5000).default(0)
+const placeIdsQueryParamSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const ids = value
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return ids.length > 0 ? ids : undefined;
+  },
+  z.array(z.string().uuid()).max(200).optional()
+);
+
+export const placeImageHealthQuerySchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+    const input = { ...(value as Record<string, unknown>) };
+    if (input.placeIds === undefined && input.placeId !== undefined) {
+      input.placeIds = input.placeId;
+    }
+    return input;
+  },
+  z.object({
+    placeIds: placeIdsQueryParamSchema,
+    primaryCategory: z.string().trim().min(1).optional(),
+    status: z
+      .enum(["attention", "no_active_image", "rejected_only", "needs_review", "pending_review", "no_primary", "healthy", "primary_image_unreachable", "all"])
+      .default("attention"),
+    probeImages: z
+      .preprocess((value) => {
+        if (value === undefined) return undefined;
+        if (typeof value === "boolean") return value;
+        if (typeof value !== "string") return value;
+        if (["1", "true", "yes"].includes(value.toLowerCase())) return true;
+        if (["0", "false", "no"].includes(value.toLowerCase())) return false;
+        return value;
+      }, z.boolean())
+      .default(false),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    offset: z.coerce.number().int().min(0).max(5000).default(0)
+  })
+).superRefine((value, context) => {
+  if (value.status === "primary_image_unreachable" && !value.probeImages) {
+    context.addIssue({
+      code: "custom",
+      path: ["status"],
+      message: "primary_image_unreachable status requires probeImages=true"
+    });
+  }
+  if (value.probeImages && (!value.placeIds || value.placeIds.length === 0)) {
+    context.addIssue({
+      code: "custom",
+      path: ["probeImages"],
+      message: "probeImages requires scoped placeIds"
+    });
+  }
+  if (value.probeImages && value.placeIds && value.placeIds.length > 25) {
+    context.addIssue({
+      code: "custom",
+      path: ["placeIds"],
+      message: "probeImages supports at most 25 scoped placeIds"
+    });
+  }
 });
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;

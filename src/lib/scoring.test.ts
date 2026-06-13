@@ -1236,6 +1236,54 @@ describe("scorePlace", () => {
     expect(sessionDay.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
   });
 
+  it("evaluates seasonal water-play schedules from structured metadata", () => {
+    const shared = {
+      primaryCategory: "playground",
+      tags: ["물놀이터"],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 36,
+      maxRecommendedAgeMonths: 156,
+      indoorType: "outdoor",
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 12,
+      openingHours: {
+        weekly: {
+          trialPeriod: "2026-06-13부터 2026-07-26까지 주말 운영",
+          regularHours: "10:00-17:00",
+          summerVacationPeriod: "2026-07-28부터 2026-08-16까지 매일 운영"
+        },
+        seasonal: {
+          startDate: "2026-06-13",
+          endDate: "2026-08-16",
+          sourceBacked: true
+        },
+        closureRules: ["매주 월요일 휴장", "우천 시 운영 중단"]
+      }
+    };
+
+    const beforeSeason = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-12T06:00:00.000Z") });
+    const trialSunday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-14T02:00:00.000Z") });
+    const trialTuesday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-16T02:00:00.000Z") });
+    const vacationTuesday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-07-28T02:00:00.000Z") });
+    const closedMonday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-08-03T02:00:00.000Z") });
+
+    expect(beforeSeason.reasonCodes).toContain("CLOSED_NOW");
+    expect(trialSunday.reasonCodes).toContain("OPEN_NOW");
+    expect(trialTuesday.reasonCodes).toContain("CLOSED_NOW");
+    expect(vacationTuesday.reasonCodes).toContain("OPEN_NOW");
+    expect(closedMonday.reasonCodes).toContain("CLOSED_NOW");
+    for (const result of [beforeSeason, trialSunday, trialTuesday, vacationTuesday, closedMonday]) {
+      expect(result.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    }
+  });
+
   it("keeps Seoul overnight hours open after midnight", () => {
     const shared = {
       primaryCategory: "kids_cafe",

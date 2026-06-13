@@ -219,9 +219,16 @@ paths:
           required: false
           schema:
             type: string
-            enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, all]
+            enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             default: attention
           description: Queue selector. `attention` returns everything except healthy rows.
+        - name: probeImages
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When true, scoped `placeIds` lookups re-probe primary image URLs with HEAD followed by ranged GET and can return `primary_image_unreachable`. Requires 25 or fewer `placeIds`; unscoped queue scans do not perform external image probes.
         - name: primaryCategory
           in: query
           required: false
@@ -235,6 +242,13 @@ paths:
           schema:
             type: string
           description: Comma-separated place UUIDs for narrowing the queue to current search or recommendation candidates. Explicitly scoped lookups include `temporarily_closed` records; the unscoped queue remains active-only.
+        - name: placeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Backward-compatible single-place alias for `placeIds`. If both `placeIds` and `placeId` are provided, `placeIds` is used.
         - name: limit
           in: query
           required: false
@@ -889,7 +903,7 @@ components:
         countryCode:
           type: string
           pattern: "^[A-Z]{2}$"
-          description: ISO 3166-1 alpha-2 country code for overseas or country-scoped places.
+          description: ISO 3166-1 alpha-2 country code for overseas or country-scoped places. Create requests with a Korean region/address default this to `KR` when omitted.
         countryName:
           type: string
           maxLength: 200
@@ -1579,7 +1593,7 @@ components:
             $ref: "#/components/schemas/PlaceImageHealthItem"
         meta:
           type: object
-          required: [count, total, limit, offset, status, placeIds, primaryCategory]
+          required: [count, total, limit, offset, status, placeIds, primaryCategory, probeImages]
           properties:
             count:
               type: integer
@@ -1593,7 +1607,7 @@ components:
               type: integer
             status:
               type: string
-              enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, all]
+              enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             placeIds:
               anyOf:
                 - type: array
@@ -1605,6 +1619,8 @@ components:
               type:
                 - string
                 - "null"
+            probeImages:
+              type: boolean
     PlaceImageHealthItem:
       type: object
       required:
@@ -1687,7 +1703,7 @@ components:
           properties:
             status:
               type: string
-              enum: [no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy]
+              enum: [no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable]
             suggestedAction:
               type: string
               enum: [find_replacement_image, find_first_image, choose_primary_image, review_or_replace_images, audit_pending_images, none]
@@ -1726,6 +1742,39 @@ components:
                 - string
                 - "null"
               format: date-time
+            directProbe:
+              type: object
+              nullable: true
+              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health.
+              required: [checkedAt, ok, status, method, contentType, finalUrl, error]
+              properties:
+                checkedAt:
+                  type: string
+                  format: date-time
+                ok:
+                  type: boolean
+                status:
+                  type:
+                    - integer
+                    - "null"
+                method:
+                  type:
+                    - string
+                    - "null"
+                  enum: [HEAD, GET_RANGE, null]
+                contentType:
+                  type:
+                    - string
+                    - "null"
+                finalUrl:
+                  type:
+                    - string
+                    - "null"
+                  format: uri
+                error:
+                  type:
+                    - string
+                    - "null"
     SearchPlaceItem:
       type: object
       required:
@@ -2691,7 +2740,7 @@ components:
                 enum: [high, medium, low]
               reasonCodes:
                 type: array
-                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
+                description: Duplicate-match explanation codes such as KAKAO_PLACE_ID_MATCH, EXTERNAL_REF_MATCH, ADDRESS_MATCH, REGION_MATCH, ADDRESS_REGION_CONFLICT, GENERIC_BRANCH_NAME, GENERIC_ALIAS_REVIEW_ONLY, BRANCH_SIBLING_REVIEW_ONLY, PUBLIC_SUBFACILITY_REVIEW_ONLY, PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY, PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY, SAME_BUILDING_REVIEW_ONLY, TENANT_PARENT_REVIEW_ONLY, SAME_SIDO_GENERIC_REVIEW_ONLY, UNRELATED_BRANCH_CATEGORY_REVIEW_ONLY, GEO_NEAR, GEO_OUTSIDE_REQUEST_RADIUS, OUTSIDE_RADIUS_REVIEW_ONLY, and NAME_SIMILAR.
                 items:
                   type: string
               suggestedAction:
@@ -2701,7 +2750,7 @@ components:
               reviewBucket:
                 type: string
                 enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
-                description: Operator-facing review bucket. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence.
+                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence.
               relationshipHint:
                 type: string
                 nullable: true

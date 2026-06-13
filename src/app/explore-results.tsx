@@ -225,6 +225,7 @@ export function ExploreResults({
   const [clientError, setClientError] = useState<string | null>(null);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const searchQueryRef = useRef(searchQueryParam(initialParams));
   const [showScrollTop, setShowScrollTop] = useState(false);
   const searchReturnHref = useMemo(() => currentSearchHref(activeParams), [activeParams]);
   const isClientSearchPending = pendingSearchKind !== null;
@@ -233,9 +234,27 @@ export function ExploreResults({
     setResult(initialResult);
     setActiveInput(initialInput);
     setActiveParams(initialParams);
+    searchQueryRef.current = searchQueryParam(initialParams);
     setClientError(null);
     setPendingSearchKind(null);
   }, [initialInput, initialParams, initialResult]);
+
+  useEffect(() => {
+    const input = document.querySelector<HTMLInputElement>('form.search-form input[name="query"]');
+    if (!input) return;
+
+    function updateSearchQuery() {
+      searchQueryRef.current = input?.value ?? "";
+    }
+
+    updateSearchQuery();
+    input.addEventListener("input", updateSearchQuery);
+    input.addEventListener("change", updateSearchQuery);
+    return () => {
+      input.removeEventListener("input", updateSearchQuery);
+      input.removeEventListener("change", updateSearchQuery);
+    };
+  }, []);
 
   const runClientSearch = useCallback(async (input: SearchPlacesInput, nextParams?: SearchParamsRecord, pendingKind: PendingSearchKind = "viewport") => {
     const scrollY = window.scrollY;
@@ -320,7 +339,7 @@ export function ExploreResults({
 
   const handleViewportSearch = useCallback(
     (request: ViewportSearchRequest) => {
-      const nextParams = searchParamsForViewportSearch(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()), request);
+      const nextParams = searchParamsForViewportSearch(searchParamsWithQueryValue(activeParams, searchQueryRef.current), request);
       const nextSearchInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
       const nextInput = {
         ...nextSearchInput,
@@ -345,7 +364,7 @@ export function ExploreResults({
         activeInput,
         activeParams,
         activeSort,
-        formQuery: currentSearchFormQuery(),
+        formQuery: searchQueryRef.current,
         kind: "current",
         location
       });
@@ -361,7 +380,7 @@ export function ExploreResults({
         activeInput,
         activeParams,
         activeSort,
-        formQuery: currentSearchFormQuery(),
+        formQuery: searchQueryRef.current,
         kind: "home",
         location
       });
@@ -384,7 +403,7 @@ export function ExploreResults({
   );
 
   const handleClearLocationScope = useCallback(() => {
-    const nextParams = searchParamsWithoutLocationScope(searchParamsWithQueryValue(activeParams, currentSearchFormQuery()));
+    const nextParams = searchParamsWithoutLocationScope(searchParamsWithQueryValue(activeParams, searchQueryRef.current));
     const nextInput = searchPlacesSchema.parse(buildSearchInput(nextParams));
     void runClientSearch(
       {
@@ -1219,12 +1238,6 @@ function searchParamsRecordToQuery(params: SearchParamsRecord) {
   return query;
 }
 
-function currentSearchFormQuery() {
-  const form = document.querySelector<HTMLFormElement>("form.search-form");
-  const queryInput = form?.elements.namedItem("query");
-  return queryInput instanceof HTMLInputElement ? queryInput.value : undefined;
-}
-
 function currentSearchUrlObject(params: Record<string, string | string[]>): UrlObject {
   return { pathname: "/", query: queryWithout(params, ["offset", "returnTo", "visitContext"]) };
 }
@@ -1248,6 +1261,11 @@ function queryWithout(params: Record<string, string | string[]>, excludedKeys: s
   }
 
   return query;
+}
+
+function searchQueryParam(params: Record<string, string | string[]>) {
+  const value = params.query;
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function textParam(value: string | string[] | undefined) {
