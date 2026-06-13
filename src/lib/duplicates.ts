@@ -13,6 +13,7 @@ export type DuplicateCandidateSignals = {
   publicSubfacilityReviewOnly?: boolean;
   publicProviderSiblingReviewOnly?: boolean;
   sameBuildingReviewOnly?: boolean;
+  tenantParentReviewOnly?: boolean;
   sameSidoGenericReviewOnly?: boolean;
   unrelatedBranchCategoryReviewOnly?: boolean;
   categoryConflictReviewOnly?: boolean;
@@ -103,6 +104,10 @@ export function duplicateReasonCodes(signals: DuplicateCandidateSignals) {
     reasonCodes.push("SAME_BUILDING_REVIEW_ONLY");
   }
 
+  if (signals.tenantParentReviewOnly) {
+    reasonCodes.push("TENANT_PARENT_REVIEW_ONLY");
+  }
+
   if (signals.sameSidoGenericReviewOnly) {
     reasonCodes.push("SAME_SIDO_GENERIC_REVIEW_ONLY");
   }
@@ -156,6 +161,7 @@ export function duplicateConfidence(signals: DuplicateCandidateSignals) {
   }
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return "low";
   if (signals.publicSubfacilityReviewOnly) return "medium";
+  if (signals.tenantParentReviewOnly) return "medium";
   if (signals.sameBuildingReviewOnly) return "medium";
   if (signals.branchSiblingReviewOnly) return "medium";
   if (signals.addressMatch && ((signals.nameSimilarity ?? 0) >= 0.35 || signals.aliasMatch)) return "high";
@@ -179,6 +185,7 @@ export function duplicateSuggestedAction(signals: DuplicateCandidateSignals): Du
 
 export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): DuplicateCandidateRelationshipHint {
   if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return null;
+  if (signals.tenantParentReviewOnly) return "same_building";
   if (signals.sameBuildingReviewOnly) return "same_building";
   if (signals.publicSubfacilityReviewOnly && (signals.addressMatch || signals.sameSigunguMatch)) return "parent_child";
   return null;
@@ -186,7 +193,7 @@ export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): D
 
 export function duplicateReviewBucket(signals: DuplicateCandidateSignals): DuplicateCandidateReviewBucket {
   if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return "identity";
-  if (signals.sameBuildingReviewOnly || signals.publicSubfacilityReviewOnly) return "relationship_context";
+  if (signals.sameBuildingReviewOnly || signals.tenantParentReviewOnly || signals.publicSubfacilityReviewOnly) return "relationship_context";
   if (
     signals.branchSiblingReviewOnly ||
     signals.publicProviderSiblingReviewOnly ||
@@ -263,6 +270,23 @@ export function duplicateSameBuildingReviewOnly(inputName: string, candidateName
   }
 
   return sharedRetailParentBuildingAnchor(input, candidate) !== null;
+}
+
+export function duplicateTenantParentReviewOnly(
+  inputName: string,
+  inputCategory: string | null | undefined,
+  candidateName: string,
+  candidateCategory: string | null | undefined
+) {
+  if (inputCategory !== "toy_store" || candidateCategory !== "shopping_mall") return false;
+  const input = compactDuplicateName(inputName);
+  const candidate = compactDuplicateName(candidateName);
+  if (!input || !candidate || input === candidate) return false;
+  if (candidate.includes(input)) return false;
+
+  const inputHasToyTenant = toyStoreTenantTerms.some((term) => input.includes(term));
+  const candidateHasToyTenant = toyStoreTenantTerms.some((term) => candidate.includes(term));
+  return inputHasToyTenant && !candidateHasToyTenant;
 }
 
 export function duplicatePublicSubfacilityReviewOnly(inputName: string, candidateName: string) {
@@ -400,6 +424,7 @@ function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
 function identityReviewOnly(signals: DuplicateCandidateSignals) {
   return Boolean(
     (signals.sameBuildingReviewOnly ||
+      signals.tenantParentReviewOnly ||
       signals.branchSiblingReviewOnly ||
       signals.lodgingClusterReviewOnly ||
       signals.weakThematicSimilarityReviewOnly ||
@@ -577,6 +602,8 @@ const publicChildSubfacilityTerms = [
 ].map(compactDuplicateText);
 
 const publicChildcareSubfacilityCategories = new Set(["shared_childcare", "toy_library"]);
+
+const toyStoreTenantTerms = ["토이저러스", "토이플러스", "레고스토어", "장난감가게", "완구점", "완구매장"].map(compactDuplicateText);
 
 const broadDestinationCategories = new Set([
   "experience_center",

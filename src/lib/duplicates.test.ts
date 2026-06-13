@@ -17,6 +17,7 @@ import {
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateTenantParentReviewOnly,
   duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
@@ -189,6 +190,26 @@ describe("duplicate helpers", () => {
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
     expect(duplicateRelationshipHint(signals)).toBe("same_building");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "ADDRESS_MATCH", "SAME_BUILDING_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"]));
+  });
+
+  it("keeps toy-store tenant candidates separate from parent shopping mall identity", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.72,
+      tenantParentReviewOnly: true
+    };
+
+    expect(duplicateTenantParentReviewOnly("토이저러스 동부산점", "toy_store", "롯데프리미엄아울렛 동부산점", "shopping_mall")).toBe(true);
+    expect(duplicateTenantParentReviewOnly("토이저러스 동부산점", "toy_store", "토이저러스 동부산점", "shopping_mall")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("same_building");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["TENANT_PARENT_REVIEW_ONLY", "ALIAS_MATCH", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"]));
   });
 
   it("keeps chain branch siblings as manual review instead of blocking or updating", () => {

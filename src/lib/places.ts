@@ -33,6 +33,7 @@ import {
   duplicateSameBuildingReviewOnly,
   duplicateSameSidoGenericReviewOnly,
   duplicateSuggestedAction,
+  duplicateTenantParentReviewOnly,
   duplicateUnrelatedBranchCategoryReviewOnly,
   duplicateWeakThematicSimilarityReviewOnly
 } from "@/lib/duplicates";
@@ -1899,6 +1900,7 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
         genericBranchName: duplicateGenericBranchName(input.name, row.name),
         publicSubfacilityReviewOnly: duplicatePublicSubfacilityReviewOnly(input.name, row.name),
         sameBuildingReviewOnly: duplicateSameBuildingReviewOnly(input.name, row.name),
+        tenantParentReviewOnly: duplicateTenantParentReviewOnly(input.name, input.primaryCategory, row.name, row.primary_category),
         publicProviderSiblingReviewOnly: duplicatePublicProviderSiblingReviewOnly(input.name, row.name),
         unrelatedBranchCategoryReviewOnly: duplicateUnrelatedBranchCategoryReviewOnly(input.name, row.name),
         categoryConflictReviewOnly: duplicateCategoryConflictReviewOnly(input.primaryCategory, row.primary_category),
