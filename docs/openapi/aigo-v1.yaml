@@ -1593,7 +1593,7 @@ components:
             $ref: "#/components/schemas/PlaceImageHealthItem"
         meta:
           type: object
-          required: [count, total, limit, offset, status, placeIds, primaryCategory]
+          required: [count, total, limit, offset, status, placeIds, primaryCategory, probeImages]
           properties:
             count:
               type: integer
@@ -1607,7 +1607,7 @@ components:
               type: integer
             status:
               type: string
-              enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, all]
+              enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             placeIds:
               anyOf:
                 - type: array
@@ -1619,6 +1619,8 @@ components:
               type:
                 - string
                 - "null"
+            probeImages:
+              type: boolean
     PlaceImageHealthItem:
       type: object
       required:
