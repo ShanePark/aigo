@@ -193,7 +193,13 @@ export function duplicateRelationshipHint(signals: DuplicateCandidateSignals): D
 
 export function duplicateReviewBucket(signals: DuplicateCandidateSignals): DuplicateCandidateReviewBucket {
   if (signals.externalRefsMatch || signals.kakaoPlaceIdMatch) return "identity";
-  if (signals.sameBuildingReviewOnly || signals.tenantParentReviewOnly || signals.publicSubfacilityReviewOnly) return "relationship_context";
+  if (
+    signals.sameBuildingReviewOnly ||
+    signals.tenantParentReviewOnly ||
+    (signals.publicSubfacilityReviewOnly && !publicSubfacilityRegionConflictNoise(signals))
+  ) {
+    return "relationship_context";
+  }
   if (
     signals.branchSiblingReviewOnly ||
     signals.publicProviderSiblingReviewOnly ||
@@ -204,6 +210,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
   if (
     signals.unrelatedBranchCategoryReviewOnly ||
     signals.categoryConflictReviewOnly ||
+    publicSubfacilityRegionConflictNoise(signals) ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -404,6 +411,7 @@ function hasStrictLocationMatch(signals: DuplicateCandidateSignals) {
 function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidence: string) {
   if (identityReviewOnly(signals)) return false;
   if (genericPublicFacilityNoiseReviewOnly(signals)) return false;
+  if (publicSubfacilityRegionConflictNoise(signals)) return false;
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
@@ -443,6 +451,10 @@ function genericPublicFacilityNoiseReviewOnly(signals: DuplicateCandidateSignals
       !hasStrongIdentityEvidence(signals) &&
       (signals.addressRegionConflict || signals.publicSubfacilityReviewOnly || duplicateOutsideRadiusReviewOnly(signals))
   );
+}
+
+function publicSubfacilityRegionConflictNoise(signals: DuplicateCandidateSignals) {
+  return Boolean(signals.publicSubfacilityReviewOnly && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals));
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {

@@ -557,6 +557,28 @@ describe("duplicate helpers", () => {
     expect(duplicateRelationshipHint(signals)).toBeNull();
   });
 
+  it("does not hard-hold cross-region public subfacility alias noise", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      publicSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      radiusMeters: null,
+      nameSimilarity: 0.62
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBeNull();
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "REGION_MATCH", "ADDRESS_REGION_CONFLICT", "NAME_SIMILAR"])
+    );
+  });
+
   it("keeps generic activity matches outside the source region as noisy manual review", () => {
     const signals = {
       aliasMatch: true,
