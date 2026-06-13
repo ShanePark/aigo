@@ -337,6 +337,37 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps source-backed park playground candidates as relationship review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicSameSiteSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 120,
+      nameSimilarity: 0.61,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicSameSiteSubfacilityReviewOnly("우산공원 꿈트리놀이터", "playground", "우산 웰빙테마공원", "park")
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_NEAR",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps same-provider toy-library sibling branches from blocking enrichment", () => {
     const signals = {
       aliasMatch: true,

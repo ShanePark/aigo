@@ -328,6 +328,8 @@ export function duplicatePublicSameSiteSubfacilityReviewOnly(
   const candidate = compactDuplicateName(candidateName);
   if (!input || !candidate || input === candidate) return false;
 
+  if (parkPlaygroundSameSiteReviewOnly(input, inputCategory, candidate, candidateCategory)) return true;
+
   const sharedProvider = publicSameSiteSubfacilityProviderTerms.some((term) => input.includes(term) && candidate.includes(term));
   if (!sharedProvider) return false;
 
@@ -548,6 +550,44 @@ function branchTokens(value: string) {
   );
 }
 
+function parkPlaygroundSameSiteReviewOnly(input: string, inputCategory: string, candidate: string, candidateCategory: string) {
+  const categoryPair = new Set([inputCategory, candidateCategory]);
+  if (!categoryPair.has("park") || !categoryPair.has("playground")) return false;
+  if (!input.includes("공원") || !candidate.includes("공원")) return false;
+
+  const inputHasPlayground = publicSameSiteSubfacilityServiceTerms.some((term) => input.includes(term));
+  const candidateHasPlayground = publicSameSiteSubfacilityServiceTerms.some((term) => candidate.includes(term));
+  if (!inputHasPlayground && !candidateHasPlayground) return false;
+
+  const inputAnchors = parkSiteAnchors(input);
+  const candidateAnchors = parkSiteAnchors(candidate);
+  return inputAnchors.some((anchor) => candidateAnchors.includes(anchor));
+}
+
+function parkSiteAnchors(value: string) {
+  const anchors = new Set<string>();
+  const parkIndex = value.indexOf("공원");
+  if (parkIndex > 0) {
+    const beforePark = value.slice(0, parkIndex);
+    let trimmedBeforePark = beforePark;
+    let trimmed = true;
+    while (trimmed) {
+      trimmed = false;
+      for (const suffix of parkGenericSiteAnchors) {
+        if (trimmedBeforePark.endsWith(suffix)) {
+          trimmedBeforePark = trimmedBeforePark.slice(0, -suffix.length);
+          trimmed = true;
+        }
+      }
+    }
+    if (trimmedBeforePark.length >= 2) anchors.add(trimmedBeforePark);
+    for (const suffixLength of [4, 3, 2]) {
+      if (beforePark.length >= suffixLength) anchors.add(beforePark.slice(-suffixLength));
+    }
+  }
+  return Array.from(anchors).filter((anchor) => anchor.length >= 2 && !parkGenericSiteAnchors.has(anchor));
+}
+
 const genericBranchNameTerms = [
   "감자탕",
   "닭갈비",
@@ -669,6 +709,8 @@ const publicSameSiteSubfacilityServiceTerms = [
   "키즈카페",
   "자료실"
 ].map(compactDuplicateText);
+
+const parkGenericSiteAnchors = new Set(["어린이", "근린", "문화", "체육", "시민", "웰빙", "테마"].map(compactDuplicateText));
 
 const toyStoreTenantTerms = ["토이저러스", "토이플러스", "레고스토어", "장난감가게", "완구점", "완구매장"].map(compactDuplicateText);
 
