@@ -256,6 +256,51 @@ describe("place search helpers", () => {
     });
   });
 
+  it("maps top-level logistics and visit fields to persisted DB columns", () => {
+    const updateRecord = placeDbRecordForTest({
+      phone: "063-000-0000",
+      indoorType: "indoor",
+      strollerFriendly: "yes",
+      parkingAvailable: "partial",
+      parkingFrictionLevel: "medium",
+      nursingRoom: "yes",
+      diaperChangingTable: "yes",
+      kidsToilet: "partial",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "partial",
+      minRecommendedAgeMonths: 12,
+      maxRecommendedAgeMonths: 84,
+      averageStayMinutes: 90,
+      parentEffortLevel: 2,
+      childEngagementLevel: 4,
+      sources: [officialSource],
+      sourceMode: "append",
+      imageMode: "append",
+      relatedPlaceMode: "append",
+      actor: "agent"
+    });
+
+    expect(updateRecord).toMatchObject({
+      phone: "063-000-0000",
+      indoor_type: "indoor",
+      stroller_friendly: "yes",
+      parking_available: "partial",
+      parking_friction_level: "medium",
+      nursing_room: "yes",
+      diaper_changing_table: "yes",
+      kids_toilet: "partial",
+      elevator: "yes",
+      baby_chair: "unknown",
+      food_allowed: "partial",
+      min_recommended_age_months: 12,
+      max_recommended_age_months: 84,
+      average_stay_minutes: 90,
+      parent_effort_level: 2,
+      child_engagement_level: 4
+    });
+  });
+
   it("maps note payload fields to persisted note columns", () => {
     const createRecord = placeDbRecordForTest(
       createPlaceSchema.parse({
