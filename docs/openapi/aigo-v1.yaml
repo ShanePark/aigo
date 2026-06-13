@@ -903,7 +903,7 @@ components:
         countryCode:
           type: string
           pattern: "^[A-Z]{2}$"
-          description: ISO 3166-1 alpha-2 country code for overseas or country-scoped places.
+          description: ISO 3166-1 alpha-2 country code for overseas or country-scoped places. Create requests with a Korean region/address default this to `KR` when omitted.
         countryName:
           type: string
           maxLength: 200

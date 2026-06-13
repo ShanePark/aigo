@@ -98,6 +98,37 @@ describe("place schemas", () => {
     expect(invalidSource.success).toBe(false);
   });
 
+  it("defaults Korean create payloads to KR country code", () => {
+    const regionOnly = createPlaceSchema.parse({
+      name: "국내 지역 장소",
+      primaryCategory: "shopping_mall",
+      regionSido: "광주광역시",
+      lat: 35.13,
+      lng: 126.88,
+      sources: [{ sourceType: "official_site", url: "https://example.com/korea-region" }]
+    });
+    const addressOnly = createPlaceSchema.parse({
+      name: "국내 주소 장소",
+      primaryCategory: "indoor_playground",
+      address: "광주광역시 서구 금화로 240",
+      lat: 35.13,
+      lng: 126.88,
+      sources: [{ sourceType: "official_site", url: "https://example.com/korea-address" }]
+    });
+    const overseas = createPlaceSchema.parse({
+      name: "Overseas Place",
+      primaryCategory: "aquarium",
+      regionSido: "Philippines",
+      lat: 10.28,
+      lng: 123.99,
+      sources: [{ sourceType: "official_site", url: "https://example.com/overseas" }]
+    });
+
+    expect(regionOnly.countryCode).toBe("KR");
+    expect(addressOnly.countryCode).toBe("KR");
+    expect(overseas.countryCode).toBeUndefined();
+  });
+
   it("accepts public news as a place source type", () => {
     const result = createPlaceSchema.parse({
       name: "공개 기사 출처 장소",

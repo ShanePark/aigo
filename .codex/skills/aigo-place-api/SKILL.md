@@ -241,6 +241,8 @@ Create requires:
 - `address` or `regionSido`
 - `sources` with at least one source
 
+Domestic Korean creates default `countryCode` to `KR` when the create payload includes a Korean `regionSido`, `address`, or `roadAddress`. Still include `countryCode: "KR"` explicitly in prepared payloads when practical, because it makes research handoffs easier to audit. Overseas creates must provide the correct source-backed `countryCode`.
+
 Create/update accepts contact evidence either as top-level `phone`, `officialUrl`, `reservationUrl`, `kakaoPlaceUrl`, and `kakaoPlaceId`, or as nested `contact.*` aliases. Nested contact aliases are persisted to the same top-level contact fields; if both forms are present, the explicit top-level value wins.
 
 Age-fit writes should use `minRecommendedAgeMonths` and `maxRecommendedAgeMonths`. The API also accepts copied research payloads with `recommendedAgeMonths: { min, max }` and normalizes those values to the canonical top-level fields before persistence.
