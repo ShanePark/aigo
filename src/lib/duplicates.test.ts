@@ -10,6 +10,7 @@ import {
   duplicateLodgingClusterReviewOnly,
   duplicateOutsideRadiusReviewOnly,
   duplicatePublicProviderSiblingReviewOnly,
+  duplicatePublicSameSiteSubfacilityReviewOnly,
   duplicatePublicSubfacilityReviewOnly,
   duplicateReasonCodes,
   duplicateRelationshipHint,
@@ -304,6 +305,35 @@ describe("duplicate helpers", () => {
     expect(duplicateRelationshipHint(signals)).toBe("parent_child");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ADDRESS_MATCH", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
+  it("keeps same-site public subfacilities with distinct categories as relationship review", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicSameSiteSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.74,
+      radiusMeters: 250
+    };
+
+    expect(
+      duplicatePublicSameSiteSubfacilityReviewOnly(
+        "익산시서부권육아종합지원센터 노리뜨락체험관",
+        "experience_center",
+        "익산시서부권육아종합지원센터 꿈뜨락 장난감대여실",
+        "toy_library"
+      )
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
     );
   });
 
