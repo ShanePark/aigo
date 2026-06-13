@@ -1425,6 +1425,41 @@ describe("place search helpers", () => {
     }
   });
 
+  it("falls back to full image GET after HEAD and ranged probes fail", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      const headers = init?.headers as HeadersInit | undefined;
+      const isRange = typeof headers === "object" && !Array.isArray(headers) && "range" in headers;
+      if (method === "HEAD") {
+        throw new Error("fetch failed");
+      }
+      if (method === "GET" && isRange) {
+        throw new Error("The operation was aborted due to timeout");
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff]), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      await expect(probeImageUrlForHealthForTest("https://example.com/place.jpg")).resolves.toMatchObject({
+        ok: true,
+        status: 200,
+        method: "GET",
+        contentType: "image/jpeg",
+        error: null
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls[1]?.[1]?.headers).toEqual({ range: "bytes=0-63" });
+      expect(fetchMock.mock.calls[2]?.[1]?.headers).toBeUndefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("includes temporarily closed places in image health only when explicitly scoped", () => {
     expect(imageHealthPlaceStatusPredicateForTest(false)).toBe("p.status = 'active'");
     expect(imageHealthPlaceStatusPredicateForTest(true)).toBe("p.status in ('active', 'temporarily_closed')");

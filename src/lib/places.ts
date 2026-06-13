@@ -242,7 +242,7 @@ type ImageHealthDirectProbe = {
   checkedAt: string;
   ok: boolean;
   status: number | null;
-  method: "HEAD" | "GET_RANGE" | null;
+  method: "HEAD" | "GET_RANGE" | "GET" | null;
   contentType: string | null;
   finalUrl: string | null;
   error: string | null;
@@ -1595,8 +1595,9 @@ function normalizedContentType(headers: Headers) {
   return headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() || null;
 }
 
-async function fetchImageHealthProbe(url: string, method: ImageHealthDirectProbe["method"], timeoutMs: number) {
-  if (!method) throw new Error("Image probe method is required");
+type ImageHealthProbeMethod = NonNullable<ImageHealthDirectProbe["method"]>;
+
+async function fetchImageHealthProbe(url: string, method: ImageHealthProbeMethod, timeoutMs: number) {
   const response = await fetch(url, {
     method: method === "HEAD" ? "HEAD" : "GET",
     headers: method === "GET_RANGE" ? { range: "bytes=0-63" } : undefined,
@@ -1614,34 +1615,47 @@ async function fetchImageHealthProbe(url: string, method: ImageHealthDirectProbe
 async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectProbe> {
   const checkedAt = new Date().toISOString();
   const timeoutMs = 3_000;
+  const methods: ImageHealthProbeMethod[] = ["HEAD", "GET_RANGE", "GET"];
+  let lastProbe: ImageHealthDirectProbe | null = null;
 
-  try {
-    const head = await fetchImageHealthProbe(url, "HEAD", timeoutMs);
-    if (head.ok && isImageContentType(head.contentType)) {
-      return { checkedAt, method: "HEAD", error: null, ...head };
+  for (const method of methods) {
+    try {
+      const probe = await fetchImageHealthProbe(url, method, timeoutMs);
+      const directProbe = {
+        checkedAt,
+        method,
+        ok: probe.ok && isImageContentType(probe.contentType),
+        status: probe.status,
+        contentType: probe.contentType,
+        finalUrl: probe.finalUrl,
+        error: null
+      };
+      if (directProbe.ok) return directProbe;
+      lastProbe = directProbe;
+    } catch (error) {
+      lastProbe = {
+        checkedAt,
+        ok: false,
+        status: null,
+        method,
+        contentType: null,
+        finalUrl: url,
+        error: error instanceof Error ? error.message : String(error)
+      };
     }
+  }
 
-    const range = await fetchImageHealthProbe(url, "GET_RANGE", timeoutMs);
-    return {
-      checkedAt,
-      method: "GET_RANGE",
-      ok: range.ok && isImageContentType(range.contentType),
-      status: range.status,
-      contentType: range.contentType,
-      finalUrl: range.finalUrl,
-      error: null
-    };
-  } catch (error) {
-    return {
+  return (
+    lastProbe ?? {
       checkedAt,
       ok: false,
       status: null,
       method: null,
       contentType: null,
       finalUrl: url,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+      error: "No image probe methods were attempted"
+    }
+  );
 }
 
 export function probeImageUrlForHealthForTest(url: string) {

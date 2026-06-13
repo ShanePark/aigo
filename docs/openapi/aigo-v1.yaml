@@ -1761,7 +1761,7 @@ components:
                   type:
                     - string
                     - "null"
-                  enum: [HEAD, GET_RANGE, null]
+                  enum: [HEAD, GET_RANGE, GET, null]
                 contentType:
                   type:
                     - string
