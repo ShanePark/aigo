@@ -56,6 +56,20 @@ export function searchParamsWithQueryValue(params: SearchParamsRecord, query: st
   return next;
 }
 
+export function searchParamsForResetPreservingMapLocation(search: string): URLSearchParams {
+  const current = new URLSearchParams(search);
+  const params = new URLSearchParams();
+
+  for (const key of MAP_LOCATION_PARAM_KEYS) {
+    for (const value of current.getAll(key)) {
+      const text = value.trim();
+      if (text.length > 0) params.append(key, text);
+    }
+  }
+
+  return params;
+}
+
 export function searchParamsForCurrentLocation(
   params: SearchParamsRecord,
   location: { lat: number; lng: number },

@@ -5,6 +5,7 @@ import {
   hasMapLocationParams,
   searchParamsForCurrentLocation,
   searchParamsForHomeLocation,
+  searchParamsForResetPreservingMapLocation,
   searchParamsRecordFromURLSearchParams,
   searchParamsForViewportSearch,
   searchParamsWithQueryValue,
@@ -66,6 +67,44 @@ describe("search URL state", () => {
     ).toEqual({
       categoryGroup: "playground",
       nursing: "on",
+      sort: "recommended"
+    });
+  });
+
+  it("removes stale text query values from viewport searches when the form query was cleared", () => {
+    expect(
+      searchParamsForViewportSearch(
+        searchParamsWithQueryValue(
+          {
+            maxLat: "36.360000",
+            maxLng: "127.480000",
+            minLat: "36.300000",
+            minLng: "127.400000",
+            query: "수유실",
+            sort: "recommended"
+          },
+          ""
+        ),
+        {
+          bounds: {
+            minLat: 36.31,
+            minLng: 127.41,
+            maxLat: 36.37,
+            maxLng: 127.49
+          },
+          center: {
+            lat: 36.34,
+            lng: 127.45
+          }
+        }
+      )
+    ).toEqual({
+      lat: "36.340000",
+      lng: "127.450000",
+      maxLat: "36.370000",
+      maxLng: "127.490000",
+      minLat: "36.310000",
+      minLng: "127.410000",
       sort: "recommended"
     });
   });
@@ -237,6 +276,39 @@ describe("search URL state", () => {
       parking: "on",
       query: "모래놀이",
       sort: "recommended"
+    });
+  });
+
+  it("resets search filters while preserving map location params", () => {
+    const params = searchParamsForResetPreservingMapLocation(
+      "?query=%EC%88%98%EC%9C%A0%EC%8B%A4&categoryGroup=shopping&lat=36.330000&lng=127.440000&minLat=36.300000&minLng=127.400000&maxLat=36.360000&maxLng=127.480000&parking=on&nursing=on&page=2&sort=distance"
+    );
+
+    expect(Object.fromEntries(params.entries())).toEqual({
+      lat: "36.330000",
+      lng: "127.440000",
+      minLat: "36.300000",
+      minLng: "127.400000",
+      maxLat: "36.360000",
+      maxLng: "127.480000"
+    });
+  });
+
+  it("keeps current or home radius location when resetting search filters", () => {
+    const nearbyParams = searchParamsForResetPreservingMapLocation("?lat=36.330000&lng=127.440000&nearby=1&radiusKm=20&stroller=on");
+    const homeParams = searchParamsForResetPreservingMapLocation("?lat=36.330000&lng=127.440000&home=1&sort=distance");
+
+    expect(Object.fromEntries(nearbyParams.entries())).toEqual({
+      lat: "36.330000",
+      lng: "127.440000",
+      radiusKm: "20",
+      nearby: "1"
+    });
+
+    expect(Object.fromEntries(homeParams.entries())).toEqual({
+      lat: "36.330000",
+      lng: "127.440000",
+      home: "1"
     });
   });
 
