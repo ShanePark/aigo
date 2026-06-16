@@ -120,6 +120,41 @@ describe("AiGo search helper", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("blocks production read-only calls before fetch when the API key is empty", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "" })
+    ).rejects.toThrow(/AIGO_API_KEY is required before calling the production AiGo API/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks production read-only calls before fetch when the default development key is used", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "change-me" })
+    ).rejects.toThrow(/default development API key cannot be used against the production AiGo API/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("adds credential guidance to production 401 and 403 read-only failures", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "Missing or invalid API key" }), {
+        status: 401,
+        statusText: "Unauthorized",
+        headers: { "content-type": "application/json" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "real-looking-key", retries: 0 })
+    ).rejects.toThrow(/Authorization: Bearer <AIGO_API_KEY>.*do not retry unchanged credentials in a loop/);
+  });
+
   it("warms the search route with a compact one-row request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], meta: { total: 0 } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);

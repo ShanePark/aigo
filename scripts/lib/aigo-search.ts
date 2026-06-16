@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { DEFAULT_DEV_API_KEY } from "@/env";
 import type { SearchPlacesInput, searchPlacesSchema } from "@/lib/schemas";
 import type { z } from "zod";
@@ -207,14 +210,55 @@ function itemId(item: AigoSearchItem) {
 }
 
 function resolveAigoReadOnlyConfig(options: AigoSearchOptions) {
+  const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
+  const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? readEnvFileApiKey() ?? (isProductionAigoBaseUrl(apiBaseUrl) ? "" : DEFAULT_DEV_API_KEY);
+  assertReadOnlyApiKeyReady(apiBaseUrl, apiKey);
+
   return {
-    apiBaseUrl: normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000"),
-    apiKey: options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY
+    apiBaseUrl,
+    apiKey
   };
 }
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function isProductionAigoBaseUrl(apiBaseUrl: string) {
+  try {
+    return new URL(apiBaseUrl).hostname === "aigo.o-r.kr";
+  } catch {
+    return false;
+  }
+}
+
+function assertReadOnlyApiKeyReady(apiBaseUrl: string, apiKey: string) {
+  if (!isProductionAigoBaseUrl(apiBaseUrl)) return;
+  if (!apiKey.trim()) {
+    throw new Error("AIGO_API_KEY is required before calling the production AiGo API. Add it to .env or export it in the shell.");
+  }
+  if (apiKey === DEFAULT_DEV_API_KEY) {
+    throw new Error("The default development API key cannot be used against the production AiGo API.");
+  }
+}
+
+function readEnvFileApiKey() {
+  try {
+    const env = readFileSync(join(process.cwd(), ".env"), "utf8");
+    const match = env.match(/^AIGO_API_KEY=(.*)$/m);
+    if (!match) return null;
+    return unquoteEnvValue(match[1].trim());
+  } catch {
+    return null;
+  }
+}
+
+function unquoteEnvValue(value: string) {
+  const quote = value[0];
+  if ((quote === "\"" || quote === "'") && value.endsWith(quote)) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 type AigoHttpFailure = {
@@ -284,7 +328,10 @@ function formatAigoReadFailure(failure: AigoReadFailure, maxAttempts: number) {
 
   if (failure.kind === "http") {
     const status = `${failure.response.status} ${failure.response.statusText}`.trim();
-    return `AiGo ${route} failed (${timing}, status=${status}): ${failure.text.slice(0, 500)}`;
+    const authHint = [401, 403].includes(failure.response.status)
+      ? " Verify AIGO_API_KEY is loaded and the request uses Authorization: Bearer <AIGO_API_KEY>; do not retry unchanged credentials in a loop."
+      : "";
+    return `AiGo ${route} failed (${timing}, status=${status}): ${failure.text.slice(0, 500)}${authHint}`;
   }
 
   return `AiGo ${route} failed (${timing}, status=no-response): ${formatUnknownError(failure.error)}`;
