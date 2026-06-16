@@ -401,6 +401,40 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps shared-childcare sibling branches as manual review instead of hard hold", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 1700,
+      nameSimilarity: 0.76,
+      radiusMeters: 500
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("김제시 공동육아나눔터 1호점", "김제시 별빛공동육아나눔터")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("완주군 용진공동육아나눔터", "완주군 삼봉공동육아나눔터")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("완주군 삼봉공동육아나눔터", "완주군 삼봉공동육아나눔터")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "GENERIC_ALIAS_REVIEW_ONLY",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps public childcare candidates from merging into nearby broad attractions", () => {
     const signals = {
       aliasMatch: true,

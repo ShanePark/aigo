@@ -347,7 +347,7 @@ export function duplicatePublicProviderSiblingReviewOnly(inputName: string, cand
   const sharedService = publicProviderSiblingServiceTerms.some((term) => input.includes(term) && candidate.includes(term));
   if (!sharedProvider || !sharedService) return false;
 
-  return hasDifferentBranchToken(input, candidate);
+  return hasDifferentBranchToken(input, candidate) || hasDifferentSharedChildcareBranchToken(input, candidate);
 }
 
 export function duplicateGenericAliasReviewOnly(
@@ -532,6 +532,32 @@ function hasDifferentBranchToken(input: string, candidate: string) {
   const candidateTokens = branchTokens(candidate);
   if (inputTokens.length === 0 || candidateTokens.length === 0) return false;
   return !inputTokens.some((token) => candidateTokens.includes(token));
+}
+
+function hasDifferentSharedChildcareBranchToken(input: string, candidate: string) {
+  const inputToken = sharedChildcareBranchToken(input);
+  const candidateToken = sharedChildcareBranchToken(candidate);
+  if (!inputToken || !candidateToken) return false;
+  return inputToken !== candidateToken;
+}
+
+function sharedChildcareBranchToken(value: string) {
+  for (const serviceTerm of sharedChildcareSiblingServiceTerms) {
+    const serviceIndex = value.indexOf(serviceTerm);
+    if (serviceIndex < 0) continue;
+    const beforeService = value.slice(0, serviceIndex);
+    const afterService = value.slice(serviceIndex + serviceTerm.length);
+    const token = normalizeSharedChildcareBranchToken(`${beforeService}${afterService}`);
+    if (token) return token;
+  }
+  return null;
+}
+
+function normalizeSharedChildcareBranchToken(value: string) {
+  return value
+    .replace(/(?:공동육아|나눔터|센터|지점|분소|본점|본관|별관|점)$/g, "")
+    .replace(/(?:제)?(\d+)호점?/g, "$1호")
+    .replace(/[^가-힣a-z0-9]+/gi, "");
 }
 
 function branchTokens(value: string) {
@@ -744,11 +770,14 @@ const publicProviderSiblingServiceTerms = [
   "장난감나라",
   "장난감대여실",
   "나누리장난감도서관",
+  "공동육아나눔터",
   "공동육아방",
   "실내놀이터",
   "어린이자료실",
   "유아자료실"
 ].map(compactDuplicateText);
+
+const sharedChildcareSiblingServiceTerms = ["공동육아나눔터", "공동육아방"].map(compactDuplicateText);
 
 const publicProviderSiblingGenericBranchTokens = [
   "육아종합지원",
