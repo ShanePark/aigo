@@ -997,6 +997,24 @@ describe("place search helpers", () => {
     expect(isBroadWaterPlayIntentQuery("물놀이 유모차")).toBe(false);
   });
 
+  it("keeps mixed local playground searches from requiring every child/water token as text", () => {
+    const normalized = normalizeSearchInput({
+      ...baseSearchInput,
+      query: "세종 놀이터 물놀이터 어린이"
+    });
+    const query = buildSearchQuery(normalized);
+
+    expect(normalized).toMatchObject({
+      query: "세종 놀이터 물놀이터 어린이"
+    });
+    expect(query.sql).toContain("region_sido ilike $1");
+    expect(query.sql).toContain("primary_category = 'playground'");
+    expect(query.sql).toContain(
+      "primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])"
+    );
+    expect(query.params).toEqual(["%세종%", "%놀이터%", "%물놀이터%", "%어린이%"]);
+  });
+
   it("recognizes route-break searches for rest areas and nursing stops", () => {
     expect(isRouteBreakIntentQuery("청남대 가는 길 수유실 휴게소")).toBe(true);
     expect(isRouteBreakIntentQuery("청남대 가는 길 수유실")).toBe(true);
@@ -1038,6 +1056,7 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'playground'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("play_features->>'slide' in ('yes', 'partial')");
     expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("물놀이터")).toContain("primary_category = 'playground'");
     expect(categoryClauseForKeywordTerm("키즈카페")).toContain("commercial_tag");
     expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");

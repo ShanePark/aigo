@@ -4002,6 +4002,7 @@ export function categoryClauseForKeywordTerm(term: string) {
     return `primary_category = any(array[${categories.map((category) => `'${category}'`).join(",")}]::text[])`;
   }
   if (broadPlaygroundIntentTerms.has(term)) return playgroundEvidenceClause();
+  if (broadWaterPlayIntentTerms.has(term)) return playgroundEvidenceClause();
   return null;
 }
 
@@ -4024,6 +4025,7 @@ const categoryKeywordMap: Record<string, string[]> = {
   과학관: ["science_museum"],
   박물관: ["museum"],
   미술관: ["art_museum"],
+  어린이: ["science_museum", "art_museum", "museum", "experience_center", "library", "indoor_playground", "playground", "toy_library"],
   어린이박물관: ["museum", "experience_center"],
   아쿠아리움: ["aquarium"],
   동물원: ["zoo"],
