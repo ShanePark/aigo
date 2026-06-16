@@ -1417,9 +1417,31 @@ describe("place search helpers", () => {
         ok: true,
         status: 206,
         method: "GET_RANGE",
-        contentType: "image/jpeg"
+        contentType: "image/jpeg",
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            status: 404,
+            contentType: "text/html"
+          },
+          {
+            method: "GET_RANGE",
+            ok: true,
+            status: 206,
+            contentType: "image/jpeg"
+          }
+        ]
       });
       expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+        accept: expect.stringContaining("image/"),
+        "user-agent": expect.stringContaining("AiGoImageHealth"),
+        referer: "https://example.com/"
+      });
+      expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({
+        range: "bytes=0-63"
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -1450,11 +1472,31 @@ describe("place search helpers", () => {
         status: 200,
         method: "GET",
         contentType: "image/jpeg",
-        error: null
+        error: null,
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            error: "fetch failed"
+          },
+          {
+            method: "GET_RANGE",
+            ok: false,
+            error: "The operation was aborted due to timeout"
+          },
+          {
+            method: "GET",
+            ok: true,
+            status: 200
+          }
+        ]
       });
       expect(fetchMock).toHaveBeenCalledTimes(3);
-      expect(fetchMock.mock.calls[1]?.[1]?.headers).toEqual({ range: "bytes=0-63" });
-      expect(fetchMock.mock.calls[2]?.[1]?.headers).toBeUndefined();
+      expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({ range: "bytes=0-63" });
+      expect(fetchMock.mock.calls[2]?.[1]?.headers).toMatchObject({
+        accept: expect.stringContaining("image/"),
+        referer: "https://example.com/"
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }

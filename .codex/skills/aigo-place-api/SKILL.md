@@ -290,6 +290,7 @@ Image enrichment updates require:
 
 - `images` with at least one source-backed image when adding or replacing images.
 - For user-requested registration/enrichment work, include at least one source-backed `images` item in the same API mutation. If no usable image is found, hold the candidate in research notes unless the user explicitly approves a no-image exception.
+- For a narrow image metadata correction, do not rebuild or resend a full create-shaped place payload. A minimal `PATCH /v1/places/{placeId}` with `sources`, `images`, optional `imageMode`, `actor`, and `changeSummary` is enough when no other place fields are changing.
 - Do not send `imageUrls` in new agent payloads. It remains a deprecated legacy fallback only when no structured `images` are provided; when `images` are present, legacy `imageUrls` are ignored by the API and should be removed from research payloads before mutation.
 - Use structured `images` when intentionally changing image metadata or review status, and use `imageMode: "replace"` only after a deliberate visual audit.
 - With default `imageMode: "append"`, structured images stay secondary unless the image explicitly has `isPrimary: true`; use that explicit flag only when intentionally replacing the current representative image.
@@ -786,6 +787,41 @@ curl -sS -X PATCH "$AIGO_API_BASE_URL/v1/places/<placeId>" \
         "sourceType": "public_agency",
         "url": "https://example.go.kr/facility",
         "summary": "Public facility guide lists elevator and diaper-changing space.",
+        "checkedAt": "<ISO datetime with timezone>"
+      }
+    ]
+  }'
+```
+
+Narrow image metadata correction:
+
+```bash
+curl -sS -X PATCH "$AIGO_API_BASE_URL/v1/places/<placeId>" \
+  -H "Authorization: Bearer $AIGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceMode": "append",
+    "imageMode": "append",
+    "actor": "codex:aigo-place-api",
+    "changeSummary": "Append corrected source-backed image metadata.",
+    "sources": [
+      {
+        "sourceType": "official_image_source",
+        "url": "https://example.go.kr/place",
+        "summary": "공식 페이지에서 수정할 대표 이미지 출처를 확인했다.",
+        "checkedAt": "<ISO datetime with timezone>"
+      }
+    ],
+    "images": [
+      {
+        "url": "https://example.go.kr/images/place.jpg",
+        "sourceUrl": "https://example.go.kr/place",
+        "sourceType": "official_image_source",
+        "sourceTitle": "공식 대표 이미지",
+        "altText": "장소를 식별할 수 있는 공식 대표 이미지",
+        "description": "부모가 정확한 장소를 알아보는 데 도움이 되는 공식 출처 이미지.",
+        "displayTier": "official",
+        "reviewStatus": "approved",
         "checkedAt": "<ISO datetime with timezone>"
       }
     ]

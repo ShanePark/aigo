@@ -246,6 +246,16 @@ type ImageHealthDirectProbe = {
   contentType: string | null;
   finalUrl: string | null;
   error: string | null;
+  attempts?: ImageHealthProbeAttempt[];
+};
+
+type ImageHealthProbeAttempt = {
+  method: "HEAD" | "GET_RANGE" | "GET";
+  ok: boolean;
+  status: number | null;
+  contentType: string | null;
+  finalUrl: string | null;
+  error: string | null;
 };
 
 type ImageMetadataSource = {
@@ -1597,10 +1607,34 @@ function normalizedContentType(headers: Headers) {
 
 type ImageHealthProbeMethod = NonNullable<ImageHealthDirectProbe["method"]>;
 
+function imageHealthProbeHeaders(url: string, method: ImageHealthProbeMethod): HeadersInit {
+  const headers: Record<string, string> = {
+    accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "user-agent":
+      "Mozilla/5.0 (compatible; AiGoImageHealth/1.0; +https://aigo.o-r.kr) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36"
+  };
+  if (method === "GET_RANGE") {
+    headers.range = "bytes=0-63";
+  }
+  const referer = imageHealthProbeReferer(url);
+  if (referer) {
+    headers.referer = referer;
+  }
+  return headers;
+}
+
+function imageHealthProbeReferer(url: string) {
+  try {
+    return `${new URL(url).origin}/`;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchImageHealthProbe(url: string, method: ImageHealthProbeMethod, timeoutMs: number) {
   const response = await fetch(url, {
     method: method === "HEAD" ? "HEAD" : "GET",
-    headers: method === "GET_RANGE" ? { range: "bytes=0-63" } : undefined,
+    headers: imageHealthProbeHeaders(url, method),
     redirect: "follow",
     signal: AbortSignal.timeout(timeoutMs)
   });
@@ -1617,12 +1651,12 @@ async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectPro
   const timeoutMs = 3_000;
   const methods: ImageHealthProbeMethod[] = ["HEAD", "GET_RANGE", "GET"];
   let lastProbe: ImageHealthDirectProbe | null = null;
+  const attempts: ImageHealthProbeAttempt[] = [];
 
   for (const method of methods) {
     try {
       const probe = await fetchImageHealthProbe(url, method, timeoutMs);
-      const directProbe = {
-        checkedAt,
+      const attempt = {
         method,
         ok: probe.ok && isImageContentType(probe.contentType),
         status: probe.status,
@@ -1630,9 +1664,29 @@ async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectPro
         finalUrl: probe.finalUrl,
         error: null
       };
+      attempts.push(attempt);
+      const directProbe = {
+        checkedAt,
+        method,
+        ok: attempt.ok,
+        status: probe.status,
+        contentType: probe.contentType,
+        finalUrl: probe.finalUrl,
+        error: null,
+        attempts
+      };
       if (directProbe.ok) return directProbe;
       lastProbe = directProbe;
     } catch (error) {
+      const attempt = {
+        method,
+        ok: false,
+        status: null,
+        contentType: null,
+        finalUrl: url,
+        error: error instanceof Error ? error.message : String(error)
+      };
+      attempts.push(attempt);
       lastProbe = {
         checkedAt,
         ok: false,
@@ -1640,7 +1694,8 @@ async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectPro
         method,
         contentType: null,
         finalUrl: url,
-        error: error instanceof Error ? error.message : String(error)
+        error: attempt.error,
+        attempts
       };
     }
   }
@@ -1653,7 +1708,8 @@ async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectPro
       method: null,
       contentType: null,
       finalUrl: url,
-      error: "No image probe methods were attempted"
+      error: "No image probe methods were attempted",
+      attempts
     }
   );
 }

@@ -1145,7 +1145,9 @@ components:
             Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
             when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
             into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
-            replace the addressed key.
+            replace the addressed key. For narrow image metadata corrections, send only `sources`, `images`, optional
+            `imageMode`, `actor`, and `changeSummary`; do not resend the full create-shaped place payload unless the
+            place fields themselves are being corrected.
           required: [sources]
           dependentRequired:
             lat: [lng]
@@ -1745,7 +1747,7 @@ components:
             directProbe:
               type: object
               nullable: true
-              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health.
+              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health. `attempts` preserves method-level diagnostics when HEAD, ranged GET, or full GET behave differently.
               required: [checkedAt, ok, status, method, contentType, finalUrl, error]
               properties:
                 checkedAt:
@@ -1775,6 +1777,34 @@ components:
                   type:
                     - string
                     - "null"
+                attempts:
+                  type: array
+                  items:
+                    type: object
+                    required: [method, ok, status, contentType, finalUrl, error]
+                    properties:
+                      method:
+                        type: string
+                        enum: [HEAD, GET_RANGE, GET]
+                      ok:
+                        type: boolean
+                      status:
+                        type:
+                          - integer
+                          - "null"
+                      contentType:
+                        type:
+                          - string
+                          - "null"
+                      finalUrl:
+                        type:
+                          - string
+                          - "null"
+                        format: uri
+                      error:
+                        type:
+                          - string
+                          - "null"
     SearchPlaceItem:
       type: object
       required:
