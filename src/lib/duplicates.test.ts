@@ -85,6 +85,34 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
   });
 
+  it("keeps outside-radius location-conflict noise as manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 6100,
+      nameSimilarity: 0.62,
+      radiusMeters: 800
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps same-address outside-radius candidates as possible duplicates", () => {
     const signals = {
       aliasMatch: false,

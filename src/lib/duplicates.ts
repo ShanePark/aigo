@@ -220,6 +220,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
     signals.unrelatedBranchCategoryReviewOnly ||
     signals.categoryConflictReviewOnly ||
     publicSubfacilityRegionConflictNoise(signals) ||
+    lowConfidenceLocationConflictNoise(signals) ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -443,6 +444,7 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
   if (genericPublicFacilityNoiseReviewOnly(signals)) return false;
   if (publicSubfacilityRegionConflictNoise(signals)) return false;
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
+  if (lowConfidenceLocationConflictNoise(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -486,6 +488,15 @@ function genericPublicFacilityNoiseReviewOnly(signals: DuplicateCandidateSignals
 
 function publicSubfacilityRegionConflictNoise(signals: DuplicateCandidateSignals) {
   return Boolean(signals.publicSubfacilityReviewOnly && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals));
+}
+
+function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    signals.addressRegionConflict &&
+      duplicateOutsideRadiusReviewOnly(signals) &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.nameSimilarity ?? 0) < 0.85
+  );
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {
