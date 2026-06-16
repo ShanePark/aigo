@@ -120,6 +120,24 @@ describe("update-ready patch extractor", () => {
     ).not.toContain("openingHours");
   });
 
+  it("treats seasonal period maps as structured opening hours", () => {
+    expect(
+      missingUpdateFields(
+        completeDetail({
+          openingHours: {
+            timezone: "Asia/Seoul",
+            sourceBacked: true,
+            seasonal: {
+              summer: { startMonth: 3, endMonth: 10, regularHours: "09:00-18:00" },
+              winter: { startMonth: 11, endMonth: 2, regularHours: "09:00-17:00" }
+            },
+            closureRules: ["월요일 휴원"]
+          }
+        })
+      ).map((field) => field.writableField)
+    ).not.toContain("openingHours");
+  });
+
   it("flags image gaps for missing, primary-less, or unapproved image sets", () => {
     expect(imageGapFromDetail({ images: [] })?.reason).toBe("no_images");
     expect(imageGapFromDetail({ images: [{ url: "https://example.com/a.jpg", reviewStatus: "approved" }] })?.reason).toBe("no_primary_image");

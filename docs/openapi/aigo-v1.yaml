@@ -1121,7 +1121,7 @@ components:
           type: string
           maxLength: 5000
         openingHours:
-          description: Flexible operating-hours metadata. For accommodations, use `openingHours.lodgingStayWindow.checkIn`, `checkOut`, and optional `sourceBacked`; detail/search derive `openingHoursSummary.lodgingStayWindow` from that nested shape.
+          description: Flexible operating-hours metadata. Structured readiness is recognized from explicit open/status fields, periods/openingHoursSpecification, weekly schedules, temporaryClosure, lodgingStayWindow, or source-backed seasonal period maps such as `seasonal.summer = { startMonth, endMonth, regularHours }`. For accommodations, use `openingHours.lodgingStayWindow.checkIn`, `checkOut`, and optional `sourceBacked`; detail/search derive `openingHoursSummary.lodgingStayWindow` from that nested shape.
     CreatePlaceRequest:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"

@@ -1722,6 +1722,53 @@ describe("place search helpers", () => {
     });
   });
 
+  it("treats source-backed seasonal period maps as structured opening-hours evidence", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      timezone: "Asia/Seoul",
+      sourceBacked: true,
+      seasonal: {
+        summer: {
+          startMonth: 3,
+          endMonth: 10,
+          regularHours: "09:00-18:00",
+          lastAdmission: "17:00"
+        },
+        winter: {
+          startMonth: 11,
+          endMonth: 2,
+          regularHours: "09:00-17:00",
+          lastAdmission: "16:00"
+        }
+      },
+      closureRules: ["월요일 휴원", "1월 1일 휴원"]
+    });
+    const summary = buildSearchOpeningHoursSummary(
+      dataSignal,
+      buildSearchSourceSummary([
+        {
+          source_type: "official_site",
+          title: "미동산수목원 이용안내",
+          summary: "공식 이용안내에서 계절별 운영시간과 휴원일을 확인함.",
+          checked_at: "2026-06-17T00:00:00.000Z",
+          created_at: "2026-06-17T00:00:00.000Z"
+        }
+      ])
+    );
+
+    expect(dataSignal).toMatchObject({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "high",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: []
+    });
+  });
+
   it("treats lodging check-in and check-out evidence as stay-window readiness", () => {
     const dataSignal = buildOpeningHoursDataSignal({
       summary: "체크인 15:00 / 체크아웃 11:00",

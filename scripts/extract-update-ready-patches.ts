@@ -418,7 +418,40 @@ function hasStructuredOpeningHoursData(value: unknown) {
   if (Array.isArray(value.periods) && value.periods.length > 0) return true;
   if (Array.isArray(value.openingHoursSpecification) && value.openingHoursSpecification.length > 0) return true;
   if (isRecord(value.weekly) && Object.keys(value.weekly).length > 0) return true;
+  if (hasSeasonalOpeningHoursData(value)) return true;
   return false;
+}
+
+function hasSeasonalOpeningHoursData(value: Record<string, unknown>) {
+  const seasonal = isRecord(value.seasonal) ? value.seasonal : null;
+  if (!seasonal) return false;
+
+  if (hasSeasonalPeriodWithHours(seasonal, value)) return true;
+  return Object.values(seasonal).some((period) => isRecord(period) && hasSeasonalPeriodWithHours(period, value));
+}
+
+function hasSeasonalPeriodWithHours(period: Record<string, unknown>, openingHours: Record<string, unknown>) {
+  const regularHours = trimmedStringValue(period.regularHours ?? openingHours.regularHours);
+  const hasTimeRange = Boolean(regularHours && /\d{1,2}:\d{2}\s*(?:-|~|–|—|부터|에서|to)\s*\d{1,2}:\d{2}/.test(regularHours));
+  const hasOpenClose = Boolean(validTimeValue(period.opens ?? period.open) && validTimeValue(period.closes ?? period.close));
+  if (!hasTimeRange && !hasOpenClose) return false;
+
+  return [period.startDate, period.startsOn, period.from, period.startMonth, period.endDate, period.endsOn, period.to, period.endMonth].some(
+    (field) => field !== null && field !== undefined && String(field).trim().length > 0
+  );
+}
+
+function trimmedStringValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function validTimeValue(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = /^\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(value);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = match[2] ? Number(match[2]) : 0;
+  return Number.isInteger(hour) && Number.isInteger(minute) && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
 }
 
 function isMissingValue(value: unknown): boolean {

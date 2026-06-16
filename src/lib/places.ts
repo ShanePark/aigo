@@ -5106,7 +5106,28 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
   if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
   if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
+  if (hasSeasonalOpeningHoursData(openingHours)) return true;
   return false;
+}
+
+function hasSeasonalOpeningHoursData(openingHours: Record<string, unknown>) {
+  const seasonal = isPlainRecord(openingHours.seasonal) ? openingHours.seasonal : null;
+  if (!seasonal) return false;
+
+  if (hasSeasonalPeriodWithHours(seasonal, openingHours)) return true;
+
+  return Object.values(seasonal).some((value) => isPlainRecord(value) && hasSeasonalPeriodWithHours(value, openingHours));
+}
+
+function hasSeasonalPeriodWithHours(period: Record<string, unknown>, openingHours: Record<string, unknown>) {
+  const regularHours = trimmedString(period.regularHours ?? openingHours.regularHours);
+  const hasTimeRange = Boolean(regularHours && /\d{1,2}:\d{2}\s*(?:-|~|–|—|부터|에서|to)\s*\d{1,2}:\d{2}/.test(regularHours));
+  const hasOpenClose = Boolean(timeString(period.opens ?? period.open) && timeString(period.closes ?? period.close));
+  if (!hasTimeRange && !hasOpenClose) return false;
+
+  return [period.startDate, period.startsOn, period.from, period.startMonth, period.endDate, period.endsOn, period.to, period.endMonth].some(
+    (value) => value !== null && value !== undefined && String(value).trim().length > 0
+  );
 }
 
 function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {
