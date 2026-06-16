@@ -1103,6 +1103,35 @@ export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateIt
   return compactDuplicatePlaceCandidate(item);
 }
 
+export function duplicateResponseMetaForTest(items: DuplicateCandidateItem[]) {
+  return duplicateResponseMeta(items);
+}
+
+function duplicateResponseMeta(items: DuplicateCandidateItem[]) {
+  const confidence: Record<string, number> = {};
+  const suggestedAction: Record<string, number> = {};
+  const reviewBucket: Record<string, number> = {};
+  let lowPriorityNoiseCount = 0;
+  let holdReviewCount = 0;
+
+  for (const item of items) {
+    confidence[item.confidence] = (confidence[item.confidence] ?? 0) + 1;
+    suggestedAction[item.suggestedAction] = (suggestedAction[item.suggestedAction] ?? 0) + 1;
+    reviewBucket[item.reviewBucket] = (reviewBucket[item.reviewBucket] ?? 0) + 1;
+    if (item.reviewBucket === "low_priority_noise") lowPriorityNoiseCount += 1;
+    if (item.suggestedAction === "hold_duplicate_review") holdReviewCount += 1;
+  }
+
+  return {
+    count: items.length,
+    confidence,
+    suggestedAction,
+    reviewBucket,
+    lowPriorityNoiseCount,
+    holdReviewCount
+  };
+}
+
 function searchDiversityRegionKey(
   region:
     | {
@@ -2004,7 +2033,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   items.sort((a, b) => duplicateReviewBucketRank(a.reviewBucket) - duplicateReviewBucketRank(b.reviewBucket));
 
   return {
-    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items
+    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items,
+    meta: duplicateResponseMeta(items)
   };
 }
 

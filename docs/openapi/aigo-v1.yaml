@@ -192,6 +192,12 @@ paths:
     post:
       summary: Find possible duplicate places before create or update
       operationId: findDuplicatePlaces
+      description: >-
+        Returns duplicate candidates as top-level `items` plus optional `meta` counts.
+        Agent scripts should read `items`, not legacy `candidates` or `results` fields.
+        Use `meta.reviewBucket.low_priority_noise`, `meta.holdReviewCount`, and candidate
+        `suggestedAction`/`reviewBucket` to distinguish weak generic-alias context from
+        identity-blocking duplicate evidence.
       requestBody:
         required: true
         content:
@@ -2795,6 +2801,33 @@ components:
               nameSimilarity:
                 type: number
                 nullable: true
+        meta:
+          type: object
+          description: Aggregate duplicate-candidate counts for agent preflight summaries. `items` remains the canonical candidate array.
+          properties:
+            count:
+              type: integer
+            confidence:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by candidate confidence, such as `high`, `medium`, and `low`.
+            suggestedAction:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by automation action, such as `update_existing`, `manual_duplicate_review`, and `hold_duplicate_review`.
+            reviewBucket:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by review bucket, such as `identity`, `relationship_context`, `sibling_branch_review`, and `low_priority_noise`.
+            lowPriorityNoiseCount:
+              type: integer
+              description: Number of candidates bucketed as weak generic-alias or outside-radius noise.
+            holdReviewCount:
+              type: integer
+              description: Number of candidates whose `suggestedAction` is `hold_duplicate_review`.
     DuplicateCompactPlace:
       type: object
       description: Compact duplicate candidate place returned when `DuplicatePlaceRequest.projection` is `compact`.

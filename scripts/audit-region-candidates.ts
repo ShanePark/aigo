@@ -1,6 +1,14 @@
 import { pathToFileURL } from "node:url";
 
-import { checkAigoReadOnlyApiReadiness, exactNameSearchReadOnly, readAigoJsonReadOnly, type AigoSearchItem, type AigoSearchOptions } from "./lib/aigo-search";
+import {
+  checkAigoReadOnlyApiReadiness,
+  exactNameSearchReadOnly,
+  readAigoJsonReadOnly,
+  readDuplicateItems,
+  summarizeDuplicateItems,
+  type AigoSearchItem,
+  type AigoSearchOptions
+} from "./lib/aigo-search";
 
 type RegionCandidateAuditArgs = {
   candidates: string[];
@@ -87,6 +95,7 @@ type DuplicateAuditSummary = {
   confidence: string | null;
   reasonCodes: string[];
   suggestedAction: string | null;
+  reviewBucket: string | null;
   outsideRadiusReviewOnly: boolean | null;
   distanceMeters: number | null;
 };
@@ -334,11 +343,18 @@ export function formatRegionCandidateAuditReport(report: RegionCandidateAuditRep
       lines.push(`    source: ${source}; image: ${image}; latest: ${version}`);
     }
     if (candidate.duplicateCandidates.length > 0) {
+      const duplicateSummary = summarizeDuplicateItems(candidate.duplicateCandidates);
       lines.push("  duplicate candidates:");
+      lines.push(
+        `    summary: total=${duplicateSummary.total}; actions=${formatCountMap(duplicateSummary.bySuggestedAction)}; buckets=${formatCountMap(
+          duplicateSummary.byReviewBucket
+        )}; lowPriorityNoise=${duplicateSummary.lowPriorityNoiseCount}; holdReview=${duplicateSummary.holdReviewCount}`
+      );
       for (const duplicate of candidate.duplicateCandidates) {
         const codes = duplicate.reasonCodes.length > 0 ? ` [${duplicate.reasonCodes.join(", ")}]` : "";
         const action = duplicate.suggestedAction ? ` action=${duplicate.suggestedAction}` : "";
-        lines.push(`    - ${duplicate.name ?? "unknown"} (${duplicate.id ?? "no id"}) ${duplicate.confidence ?? "unknown"}${action}${codes}`);
+        const bucket = duplicate.reviewBucket ? ` bucket=${duplicate.reviewBucket}` : "";
+        lines.push(`    - ${duplicate.name ?? "unknown"} (${duplicate.id ?? "no id"}) ${duplicate.confidence ?? "unknown"}${action}${bucket}${codes}`);
       }
     }
   }
@@ -474,7 +490,7 @@ async function readDuplicateCandidatesReadOnly(candidate: string, args: RegionCa
     body: JSON.stringify(body)
   });
 
-  return arrayField(response, "items").map(toDuplicateAuditSummary);
+  return readDuplicateItems(response).map(toDuplicateAuditSummary);
 }
 
 async function readJsonRoute(
@@ -504,9 +520,16 @@ function toDuplicateAuditSummary(item: Record<string, unknown>): DuplicateAuditS
     confidence: stringField(item, "confidence"),
     reasonCodes: stringArrayField(item, "reasonCodes"),
     suggestedAction: stringField(item, "suggestedAction"),
+    reviewBucket: stringField(item, "reviewBucket"),
     outsideRadiusReviewOnly: booleanField(item, "outsideRadiusReviewOnly"),
     distanceMeters: numberField(item, "distanceMeters")
   };
+}
+
+function formatCountMap(counts: Record<string, number>) {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return "none";
+  return entries.map(([key, count]) => `${key}:${count}`).join(",");
 }
 
 function compactImageHealth(value: Record<string, unknown> | null): ImageHealthSummary | null {

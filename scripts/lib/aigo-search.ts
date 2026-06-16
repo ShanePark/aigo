@@ -15,6 +15,14 @@ export type AigoSearchItem = {
   [key: string]: unknown;
 };
 
+export type AigoDuplicateItem = {
+  confidence?: unknown;
+  suggestedAction?: unknown;
+  reviewBucket?: unknown;
+  reasonCodes?: unknown;
+  [key: string]: unknown;
+};
+
 export type NormalizedAigoSearchResponse<TItem = AigoSearchItem> = {
   items: TItem[];
   meta: Record<string, unknown> | null;
@@ -62,6 +70,50 @@ export function readSearchItems<TItem = AigoSearchItem>(response: unknown): TIte
   }
 
   throw new Error("AiGo search response did not include top-level items array; legacy results array was also absent.");
+}
+
+export function readDuplicateItems<TItem = AigoDuplicateItem>(response: unknown): TItem[] {
+  if (!isRecord(response)) {
+    throw new Error("AiGo duplicate response must be an object with a top-level items array.");
+  }
+
+  if (!("items" in response)) {
+    throw new Error("AiGo duplicate response did not include top-level items array; do not read legacy candidates or results fields.");
+  }
+
+  if (!Array.isArray(response.items)) {
+    throw new Error("AiGo duplicate response included top-level items, but it was not an array.");
+  }
+
+  return response.items as TItem[];
+}
+
+export function summarizeDuplicateItems(items: readonly AigoDuplicateItem[]) {
+  const byConfidence: Record<string, number> = {};
+  const bySuggestedAction: Record<string, number> = {};
+  const byReviewBucket: Record<string, number> = {};
+  let lowPriorityNoiseCount = 0;
+  let holdReviewCount = 0;
+
+  for (const item of items) {
+    const confidence = stringValue(item.confidence) ?? "unknown";
+    const suggestedAction = stringValue(item.suggestedAction) ?? "unknown";
+    const reviewBucket = stringValue(item.reviewBucket) ?? "unknown";
+    byConfidence[confidence] = (byConfidence[confidence] ?? 0) + 1;
+    bySuggestedAction[suggestedAction] = (bySuggestedAction[suggestedAction] ?? 0) + 1;
+    byReviewBucket[reviewBucket] = (byReviewBucket[reviewBucket] ?? 0) + 1;
+    if (reviewBucket === "low_priority_noise") lowPriorityNoiseCount += 1;
+    if (suggestedAction === "hold_duplicate_review") holdReviewCount += 1;
+  }
+
+  return {
+    total: items.length,
+    byConfidence,
+    bySuggestedAction,
+    byReviewBucket,
+    lowPriorityNoiseCount,
+    holdReviewCount
+  };
 }
 
 export function normalizeSearchResponse<TItem = AigoSearchItem>(response: unknown): NormalizedAigoSearchResponse<TItem> {
@@ -202,6 +254,10 @@ export async function exactNameSearchReadOnly<TItem = AigoSearchItem>(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 function itemId(item: AigoSearchItem) {

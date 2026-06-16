@@ -6,8 +6,10 @@ import {
   isTransientAigoRouteResponse,
   normalizeSearchResponse,
   readAigoJsonReadOnly,
+  readDuplicateItems,
   readSearchItems,
   searchPlacesReadOnly,
+  summarizeDuplicateItems,
   warmSearchRouteReadOnly
 } from "./aigo-search";
 
@@ -42,6 +44,29 @@ describe("AiGo search helper", () => {
 
   it("throws when items is present but not an array", () => {
     expect(() => readSearchItems({ items: null, results: [] })).toThrow(/items.*not an array/);
+  });
+
+  it("reads duplicate items without accepting legacy candidates or results", () => {
+    expect(readDuplicateItems({ items: [{ confidence: "low" }] })).toEqual([{ confidence: "low" }]);
+    expect(() => readDuplicateItems({ candidates: [{ confidence: "low" }] })).toThrow(/top-level items array/);
+    expect(() => readDuplicateItems({ results: [{ confidence: "low" }] })).toThrow(/top-level items array/);
+  });
+
+  it("summarizes duplicate confidence, action, and review buckets", () => {
+    const summary = summarizeDuplicateItems([
+      { confidence: "low", suggestedAction: "manual_duplicate_review", reviewBucket: "low_priority_noise" },
+      { confidence: "high", suggestedAction: "update_existing", reviewBucket: "identity" },
+      { confidence: "low", suggestedAction: "hold_duplicate_review", reviewBucket: "sibling_branch_review" }
+    ]);
+
+    expect(summary).toEqual({
+      total: 3,
+      byConfidence: { low: 2, high: 1 },
+      bySuggestedAction: { manual_duplicate_review: 1, update_existing: 1, hold_duplicate_review: 1 },
+      byReviewBucket: { low_priority_noise: 1, identity: 1, sibling_branch_review: 1 },
+      lowPriorityNoiseCount: 1,
+      holdReviewCount: 1
+    });
   });
 
   it("retries transient Next.js 404 HTML before reading search items", async () => {

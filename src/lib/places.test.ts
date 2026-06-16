@@ -19,6 +19,7 @@ import {
   categoryClauseForKeywordTerm,
   compactDuplicatePlaceCandidateForTest,
   duplicateExternalRefsForMatchForTest,
+  duplicateResponseMetaForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
   applyImageHealthDirectProbeForTest,
@@ -2375,6 +2376,35 @@ describe("place search helpers", () => {
     expect(compact.place).not.toHaveProperty("images");
     expect(compact.place).not.toHaveProperty("sources");
     expect(compact.place).not.toHaveProperty("versions");
+  });
+
+  it("summarizes duplicate response confidence, actions, and noise buckets", () => {
+    const meta = duplicateResponseMetaForTest([
+      {
+        confidence: "low",
+        suggestedAction: "manual_duplicate_review",
+        reviewBucket: "low_priority_noise"
+      },
+      {
+        confidence: "high",
+        suggestedAction: "update_existing",
+        reviewBucket: "identity"
+      },
+      {
+        confidence: "low",
+        suggestedAction: "hold_duplicate_review",
+        reviewBucket: "sibling_branch_review"
+      }
+    ] as unknown as Parameters<typeof duplicateResponseMetaForTest>[0]);
+
+    expect(meta).toEqual({
+      count: 3,
+      confidence: { low: 2, high: 1 },
+      suggestedAction: { manual_duplicate_review: 1, update_existing: 1, hold_duplicate_review: 1 },
+      reviewBucket: { low_priority_noise: 1, identity: 1, sibling_branch_review: 1 },
+      lowPriorityNoiseCount: 1,
+      holdReviewCount: 1
+    });
   });
 
   it("groups ranked search items into a practical course plan", () => {
