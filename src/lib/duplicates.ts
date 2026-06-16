@@ -494,8 +494,7 @@ function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) 
   return Boolean(
     signals.addressRegionConflict &&
       duplicateOutsideRadiusReviewOnly(signals) &&
-      !hasStrongIdentityEvidence(signals) &&
-      (signals.nameSimilarity ?? 0) < 0.85
+      !hasStrongIdentityEvidence(signals)
   );
 }
 
