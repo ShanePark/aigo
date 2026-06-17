@@ -2786,7 +2786,7 @@ components:
               reviewBucket:
                 type: string
                 enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
-                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius candidates with address/region conflict and no strict identity evidence should be non-blocking `low_priority_noise`.
+                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius candidates with no strict identity evidence should be non-blocking `low_priority_noise`.
               relationshipHint:
                 type: string
                 nullable: true

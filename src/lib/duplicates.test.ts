@@ -66,9 +66,11 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toContain("GEO_OUTSIDE_REQUEST_RADIUS");
     expect(duplicateReasonCodes(signals)).toContain("OUTSIDE_RADIUS_REVIEW_ONLY");
     expect(duplicateReasonCodes(signals)).not.toContain("GEO_NEAR");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
   });
 
-  it("downgrades outside-radius alias and region matches to review-only", () => {
+  it("downgrades outside-radius alias and region matches to low-priority review", () => {
     const signals = {
       aliasMatch: true,
       regionMatch: true,
@@ -81,7 +83,8 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
-    expect(duplicateSuggestedAction(signals)).toBe("hold_duplicate_review");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
   });
 

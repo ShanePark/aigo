@@ -221,6 +221,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
     signals.categoryConflictReviewOnly ||
     publicSubfacilityRegionConflictNoise(signals) ||
     lowConfidenceLocationConflictNoise(signals) ||
+    lowConfidenceOutsideRadiusNoise(signals, duplicateConfidence(signals)) ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -445,6 +446,7 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
   if (publicSubfacilityRegionConflictNoise(signals)) return false;
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
   if (lowConfidenceLocationConflictNoise(signals)) return false;
+  if (lowConfidenceOutsideRadiusNoise(signals, confidence)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -496,6 +498,10 @@ function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) 
       duplicateOutsideRadiusReviewOnly(signals) &&
       !hasStrongIdentityEvidence(signals)
   );
+}
+
+function lowConfidenceOutsideRadiusNoise(signals: DuplicateCandidateSignals, confidence: string) {
+  return Boolean(confidence === "low" && duplicateOutsideRadiusReviewOnly(signals) && !hasStrongIdentityEvidence(signals));
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {
