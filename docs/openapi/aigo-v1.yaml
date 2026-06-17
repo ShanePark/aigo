@@ -192,6 +192,12 @@ paths:
     post:
       summary: Find possible duplicate places before create or update
       operationId: findDuplicatePlaces
+      description: >-
+        Returns duplicate candidates as top-level `items` plus optional `meta` counts.
+        Agent scripts should read `items`, not legacy `candidates` or `results` fields.
+        Use `meta.reviewBucket.low_priority_noise`, `meta.holdReviewCount`, and candidate
+        `suggestedAction`/`reviewBucket` to distinguish weak generic-alias context from
+        identity-blocking duplicate evidence.
       requestBody:
         required: true
         content:
@@ -1115,7 +1121,7 @@ components:
           type: string
           maxLength: 5000
         openingHours:
-          description: Flexible operating-hours metadata. For accommodations, use `openingHours.lodgingStayWindow.checkIn`, `checkOut`, and optional `sourceBacked`; detail/search derive `openingHoursSummary.lodgingStayWindow` from that nested shape.
+          description: Flexible operating-hours metadata. Structured readiness is recognized from explicit open/status fields, periods/openingHoursSpecification, weekly schedules, temporaryClosure, lodgingStayWindow, or source-backed seasonal period maps such as `seasonal.summer = { startMonth, endMonth, regularHours }`. For accommodations, use `openingHours.lodgingStayWindow.checkIn`, `checkOut`, and optional `sourceBacked`; detail/search derive `openingHoursSummary.lodgingStayWindow` from that nested shape.
     CreatePlaceRequest:
       allOf:
         - $ref: "#/components/schemas/PlaceWritableFields"
@@ -1145,7 +1151,9 @@ components:
             Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
             when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
             into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
-            replace the addressed key.
+            replace the addressed key. For narrow image metadata corrections, send only `sources`, `images`, optional
+            `imageMode`, `actor`, and `changeSummary`; do not resend the full create-shaped place payload unless the
+            place fields themselves are being corrected.
           required: [sources]
           dependentRequired:
             lat: [lng]
@@ -1745,7 +1753,7 @@ components:
             directProbe:
               type: object
               nullable: true
-              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health.
+              description: Present only when `probeImages=true`; reports the direct primary-image URL check used to detect stale or broken image health. `attempts` preserves method-level diagnostics when HEAD, ranged GET, or full GET behave differently.
               required: [checkedAt, ok, status, method, contentType, finalUrl, error]
               properties:
                 checkedAt:
@@ -1761,7 +1769,7 @@ components:
                   type:
                     - string
                     - "null"
-                  enum: [HEAD, GET_RANGE, null]
+                  enum: [HEAD, GET_RANGE, GET, null]
                 contentType:
                   type:
                     - string
@@ -1775,6 +1783,34 @@ components:
                   type:
                     - string
                     - "null"
+                attempts:
+                  type: array
+                  items:
+                    type: object
+                    required: [method, ok, status, contentType, finalUrl, error]
+                    properties:
+                      method:
+                        type: string
+                        enum: [HEAD, GET_RANGE, GET]
+                      ok:
+                        type: boolean
+                      status:
+                        type:
+                          - integer
+                          - "null"
+                      contentType:
+                        type:
+                          - string
+                          - "null"
+                      finalUrl:
+                        type:
+                          - string
+                          - "null"
+                        format: uri
+                      error:
+                        type:
+                          - string
+                          - "null"
     SearchPlaceItem:
       type: object
       required:
@@ -2750,7 +2786,7 @@ components:
               reviewBucket:
                 type: string
                 enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
-                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence.
+                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius candidates with address/region conflict and no strict identity evidence should be non-blocking `low_priority_noise`.
               relationshipHint:
                 type: string
                 nullable: true
@@ -2765,6 +2801,33 @@ components:
               nameSimilarity:
                 type: number
                 nullable: true
+        meta:
+          type: object
+          description: Aggregate duplicate-candidate counts for agent preflight summaries. `items` remains the canonical candidate array.
+          properties:
+            count:
+              type: integer
+            confidence:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by candidate confidence, such as `high`, `medium`, and `low`.
+            suggestedAction:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by automation action, such as `update_existing`, `manual_duplicate_review`, and `hold_duplicate_review`.
+            reviewBucket:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Counts by review bucket, such as `identity`, `relationship_context`, `sibling_branch_review`, and `low_priority_noise`.
+            lowPriorityNoiseCount:
+              type: integer
+              description: Number of candidates bucketed as weak generic-alias or outside-radius noise.
+            holdReviewCount:
+              type: integer
+              description: Number of candidates whose `suggestedAction` is `hold_duplicate_review`.
     DuplicateCompactPlace:
       type: object
       description: Compact duplicate candidate place returned when `DuplicatePlaceRequest.projection` is `compact`.

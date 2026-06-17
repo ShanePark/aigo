@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { DEFAULT_DEV_API_KEY } from "@/env";
 import type { SearchPlacesInput, searchPlacesSchema } from "@/lib/schemas";
 import type { z } from "zod";
@@ -9,6 +12,14 @@ export type AigoSearchItem = {
   placeId?: unknown;
   name?: unknown;
   primaryCategory?: unknown;
+  [key: string]: unknown;
+};
+
+export type AigoDuplicateItem = {
+  confidence?: unknown;
+  suggestedAction?: unknown;
+  reviewBucket?: unknown;
+  reasonCodes?: unknown;
   [key: string]: unknown;
 };
 
@@ -59,6 +70,50 @@ export function readSearchItems<TItem = AigoSearchItem>(response: unknown): TIte
   }
 
   throw new Error("AiGo search response did not include top-level items array; legacy results array was also absent.");
+}
+
+export function readDuplicateItems<TItem = AigoDuplicateItem>(response: unknown): TItem[] {
+  if (!isRecord(response)) {
+    throw new Error("AiGo duplicate response must be an object with a top-level items array.");
+  }
+
+  if (!("items" in response)) {
+    throw new Error("AiGo duplicate response did not include top-level items array; do not read legacy candidates or results fields.");
+  }
+
+  if (!Array.isArray(response.items)) {
+    throw new Error("AiGo duplicate response included top-level items, but it was not an array.");
+  }
+
+  return response.items as TItem[];
+}
+
+export function summarizeDuplicateItems(items: readonly AigoDuplicateItem[]) {
+  const byConfidence: Record<string, number> = {};
+  const bySuggestedAction: Record<string, number> = {};
+  const byReviewBucket: Record<string, number> = {};
+  let lowPriorityNoiseCount = 0;
+  let holdReviewCount = 0;
+
+  for (const item of items) {
+    const confidence = stringValue(item.confidence) ?? "unknown";
+    const suggestedAction = stringValue(item.suggestedAction) ?? "unknown";
+    const reviewBucket = stringValue(item.reviewBucket) ?? "unknown";
+    byConfidence[confidence] = (byConfidence[confidence] ?? 0) + 1;
+    bySuggestedAction[suggestedAction] = (bySuggestedAction[suggestedAction] ?? 0) + 1;
+    byReviewBucket[reviewBucket] = (byReviewBucket[reviewBucket] ?? 0) + 1;
+    if (reviewBucket === "low_priority_noise") lowPriorityNoiseCount += 1;
+    if (suggestedAction === "hold_duplicate_review") holdReviewCount += 1;
+  }
+
+  return {
+    total: items.length,
+    byConfidence,
+    bySuggestedAction,
+    byReviewBucket,
+    lowPriorityNoiseCount,
+    holdReviewCount
+  };
 }
 
 export function normalizeSearchResponse<TItem = AigoSearchItem>(response: unknown): NormalizedAigoSearchResponse<TItem> {
@@ -201,20 +256,65 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
 function itemId(item: AigoSearchItem) {
   const id = item.id ?? item.placeId;
   return typeof id === "string" ? id : null;
 }
 
 function resolveAigoReadOnlyConfig(options: AigoSearchOptions) {
+  const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000");
+  const apiKey = options.apiKey ?? process.env.AIGO_API_KEY ?? readEnvFileApiKey() ?? (isProductionAigoBaseUrl(apiBaseUrl) ? "" : DEFAULT_DEV_API_KEY);
+  assertReadOnlyApiKeyReady(apiBaseUrl, apiKey);
+
   return {
-    apiBaseUrl: normalizeBaseUrl(options.apiBaseUrl ?? process.env.AIGO_API_BASE_URL ?? "http://localhost:3000"),
-    apiKey: options.apiKey ?? process.env.AIGO_API_KEY ?? DEFAULT_DEV_API_KEY
+    apiBaseUrl,
+    apiKey
   };
 }
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function isProductionAigoBaseUrl(apiBaseUrl: string) {
+  try {
+    return new URL(apiBaseUrl).hostname === "aigo.o-r.kr";
+  } catch {
+    return false;
+  }
+}
+
+function assertReadOnlyApiKeyReady(apiBaseUrl: string, apiKey: string) {
+  if (!isProductionAigoBaseUrl(apiBaseUrl)) return;
+  if (!apiKey.trim()) {
+    throw new Error("AIGO_API_KEY is required before calling the production AiGo API. Add it to .env or export it in the shell.");
+  }
+  if (apiKey === DEFAULT_DEV_API_KEY) {
+    throw new Error("The default development API key cannot be used against the production AiGo API.");
+  }
+}
+
+function readEnvFileApiKey() {
+  try {
+    const env = readFileSync(join(process.cwd(), ".env"), "utf8");
+    const match = env.match(/^AIGO_API_KEY=(.*)$/m);
+    if (!match) return null;
+    return unquoteEnvValue(match[1].trim());
+  } catch {
+    return null;
+  }
+}
+
+function unquoteEnvValue(value: string) {
+  const quote = value[0];
+  if ((quote === "\"" || quote === "'") && value.endsWith(quote)) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 type AigoHttpFailure = {
@@ -284,7 +384,10 @@ function formatAigoReadFailure(failure: AigoReadFailure, maxAttempts: number) {
 
   if (failure.kind === "http") {
     const status = `${failure.response.status} ${failure.response.statusText}`.trim();
-    return `AiGo ${route} failed (${timing}, status=${status}): ${failure.text.slice(0, 500)}`;
+    const authHint = [401, 403].includes(failure.response.status)
+      ? " Verify AIGO_API_KEY is loaded and the request uses Authorization: Bearer <AIGO_API_KEY>; do not retry unchanged credentials in a loop."
+      : "";
+    return `AiGo ${route} failed (${timing}, status=${status}): ${failure.text.slice(0, 500)}${authHint}`;
   }
 
   return `AiGo ${route} failed (${timing}, status=no-response): ${formatUnknownError(failure.error)}`;

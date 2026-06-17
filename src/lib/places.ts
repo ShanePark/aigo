@@ -242,7 +242,17 @@ type ImageHealthDirectProbe = {
   checkedAt: string;
   ok: boolean;
   status: number | null;
-  method: "HEAD" | "GET_RANGE" | null;
+  method: "HEAD" | "GET_RANGE" | "GET" | null;
+  contentType: string | null;
+  finalUrl: string | null;
+  error: string | null;
+  attempts?: ImageHealthProbeAttempt[];
+};
+
+type ImageHealthProbeAttempt = {
+  method: "HEAD" | "GET_RANGE" | "GET";
+  ok: boolean;
+  status: number | null;
   contentType: string | null;
   finalUrl: string | null;
   error: string | null;
@@ -1093,6 +1103,35 @@ export function compactDuplicatePlaceCandidateForTest(item: DuplicateCandidateIt
   return compactDuplicatePlaceCandidate(item);
 }
 
+export function duplicateResponseMetaForTest(items: DuplicateCandidateItem[]) {
+  return duplicateResponseMeta(items);
+}
+
+function duplicateResponseMeta(items: DuplicateCandidateItem[]) {
+  const confidence: Record<string, number> = {};
+  const suggestedAction: Record<string, number> = {};
+  const reviewBucket: Record<string, number> = {};
+  let lowPriorityNoiseCount = 0;
+  let holdReviewCount = 0;
+
+  for (const item of items) {
+    confidence[item.confidence] = (confidence[item.confidence] ?? 0) + 1;
+    suggestedAction[item.suggestedAction] = (suggestedAction[item.suggestedAction] ?? 0) + 1;
+    reviewBucket[item.reviewBucket] = (reviewBucket[item.reviewBucket] ?? 0) + 1;
+    if (item.reviewBucket === "low_priority_noise") lowPriorityNoiseCount += 1;
+    if (item.suggestedAction === "hold_duplicate_review") holdReviewCount += 1;
+  }
+
+  return {
+    count: items.length,
+    confidence,
+    suggestedAction,
+    reviewBucket,
+    lowPriorityNoiseCount,
+    holdReviewCount
+  };
+}
+
 function searchDiversityRegionKey(
   region:
     | {
@@ -1595,11 +1634,36 @@ function normalizedContentType(headers: Headers) {
   return headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() || null;
 }
 
-async function fetchImageHealthProbe(url: string, method: ImageHealthDirectProbe["method"], timeoutMs: number) {
-  if (!method) throw new Error("Image probe method is required");
+type ImageHealthProbeMethod = NonNullable<ImageHealthDirectProbe["method"]>;
+
+function imageHealthProbeHeaders(url: string, method: ImageHealthProbeMethod): HeadersInit {
+  const headers: Record<string, string> = {
+    accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "user-agent":
+      "Mozilla/5.0 (compatible; AiGoImageHealth/1.0; +https://aigo.o-r.kr) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36"
+  };
+  if (method === "GET_RANGE") {
+    headers.range = "bytes=0-63";
+  }
+  const referer = imageHealthProbeReferer(url);
+  if (referer) {
+    headers.referer = referer;
+  }
+  return headers;
+}
+
+function imageHealthProbeReferer(url: string) {
+  try {
+    return `${new URL(url).origin}/`;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchImageHealthProbe(url: string, method: ImageHealthProbeMethod, timeoutMs: number) {
   const response = await fetch(url, {
     method: method === "HEAD" ? "HEAD" : "GET",
-    headers: method === "GET_RANGE" ? { range: "bytes=0-63" } : undefined,
+    headers: imageHealthProbeHeaders(url, method),
     redirect: "follow",
     signal: AbortSignal.timeout(timeoutMs)
   });
@@ -1614,34 +1678,69 @@ async function fetchImageHealthProbe(url: string, method: ImageHealthDirectProbe
 async function probeImageUrlForHealth(url: string): Promise<ImageHealthDirectProbe> {
   const checkedAt = new Date().toISOString();
   const timeoutMs = 3_000;
+  const methods: ImageHealthProbeMethod[] = ["HEAD", "GET_RANGE", "GET"];
+  let lastProbe: ImageHealthDirectProbe | null = null;
+  const attempts: ImageHealthProbeAttempt[] = [];
 
-  try {
-    const head = await fetchImageHealthProbe(url, "HEAD", timeoutMs);
-    if (head.ok && isImageContentType(head.contentType)) {
-      return { checkedAt, method: "HEAD", error: null, ...head };
+  for (const method of methods) {
+    try {
+      const probe = await fetchImageHealthProbe(url, method, timeoutMs);
+      const attempt = {
+        method,
+        ok: probe.ok && isImageContentType(probe.contentType),
+        status: probe.status,
+        contentType: probe.contentType,
+        finalUrl: probe.finalUrl,
+        error: null
+      };
+      attempts.push(attempt);
+      const directProbe = {
+        checkedAt,
+        method,
+        ok: attempt.ok,
+        status: probe.status,
+        contentType: probe.contentType,
+        finalUrl: probe.finalUrl,
+        error: null,
+        attempts
+      };
+      if (directProbe.ok) return directProbe;
+      lastProbe = directProbe;
+    } catch (error) {
+      const attempt = {
+        method,
+        ok: false,
+        status: null,
+        contentType: null,
+        finalUrl: url,
+        error: error instanceof Error ? error.message : String(error)
+      };
+      attempts.push(attempt);
+      lastProbe = {
+        checkedAt,
+        ok: false,
+        status: null,
+        method,
+        contentType: null,
+        finalUrl: url,
+        error: attempt.error,
+        attempts
+      };
     }
+  }
 
-    const range = await fetchImageHealthProbe(url, "GET_RANGE", timeoutMs);
-    return {
-      checkedAt,
-      method: "GET_RANGE",
-      ok: range.ok && isImageContentType(range.contentType),
-      status: range.status,
-      contentType: range.contentType,
-      finalUrl: range.finalUrl,
-      error: null
-    };
-  } catch (error) {
-    return {
+  return (
+    lastProbe ?? {
       checkedAt,
       ok: false,
       status: null,
       method: null,
       contentType: null,
       finalUrl: url,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+      error: "No image probe methods were attempted",
+      attempts
+    }
+  );
 }
 
 export function probeImageUrlForHealthForTest(url: string) {
@@ -1934,7 +2033,8 @@ export async function findDuplicatePlaces(input: DuplicatePlaceInput) {
   items.sort((a, b) => duplicateReviewBucketRank(a.reviewBucket) - duplicateReviewBucketRank(b.reviewBucket));
 
   return {
-    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items
+    items: input.projection === "compact" ? items.map(compactDuplicatePlaceCandidate) : items,
+    meta: duplicateResponseMeta(items)
   };
 }
 
@@ -3932,6 +4032,7 @@ export function categoryClauseForKeywordTerm(term: string) {
     return `primary_category = any(array[${categories.map((category) => `'${category}'`).join(",")}]::text[])`;
   }
   if (broadPlaygroundIntentTerms.has(term)) return playgroundEvidenceClause();
+  if (broadWaterPlayIntentTerms.has(term)) return playgroundEvidenceClause();
   return null;
 }
 
@@ -3954,6 +4055,7 @@ const categoryKeywordMap: Record<string, string[]> = {
   과학관: ["science_museum"],
   박물관: ["museum"],
   미술관: ["art_museum"],
+  어린이: ["science_museum", "art_museum", "museum", "experience_center", "library", "indoor_playground", "playground", "toy_library"],
   어린이박물관: ["museum", "experience_center"],
   아쿠아리움: ["aquarium"],
   동물원: ["zoo"],
@@ -5004,7 +5106,28 @@ function hasStructuredOpeningHoursData(openingHours: Record<string, unknown>) {
   if (Array.isArray(openingHours.periods) && openingHours.periods.length > 0) return true;
   if (Array.isArray(openingHours.openingHoursSpecification) && openingHours.openingHoursSpecification.length > 0) return true;
   if (isPlainRecord(openingHours.weekly) && Object.keys(openingHours.weekly).length > 0) return true;
+  if (hasSeasonalOpeningHoursData(openingHours)) return true;
   return false;
+}
+
+function hasSeasonalOpeningHoursData(openingHours: Record<string, unknown>) {
+  const seasonal = isPlainRecord(openingHours.seasonal) ? openingHours.seasonal : null;
+  if (!seasonal) return false;
+
+  if (hasSeasonalPeriodWithHours(seasonal, openingHours)) return true;
+
+  return Object.values(seasonal).some((value) => isPlainRecord(value) && hasSeasonalPeriodWithHours(value, openingHours));
+}
+
+function hasSeasonalPeriodWithHours(period: Record<string, unknown>, openingHours: Record<string, unknown>) {
+  const regularHours = trimmedString(period.regularHours ?? openingHours.regularHours);
+  const hasTimeRange = Boolean(regularHours && /\d{1,2}:\d{2}\s*(?:-|~|–|—|부터|에서|to)\s*\d{1,2}:\d{2}/.test(regularHours));
+  const hasOpenClose = Boolean(timeString(period.opens ?? period.open) && timeString(period.closes ?? period.close));
+  if (!hasTimeRange && !hasOpenClose) return false;
+
+  return [period.startDate, period.startsOn, period.from, period.startMonth, period.endDate, period.endsOn, period.to, period.endMonth].some(
+    (value) => value !== null && value !== undefined && String(value).trim().length > 0
+  );
 }
 
 function lodgingStayWindowSignal(openingHours: Record<string, unknown> | string) {

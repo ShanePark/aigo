@@ -6,8 +6,10 @@ import {
   isTransientAigoRouteResponse,
   normalizeSearchResponse,
   readAigoJsonReadOnly,
+  readDuplicateItems,
   readSearchItems,
   searchPlacesReadOnly,
+  summarizeDuplicateItems,
   warmSearchRouteReadOnly
 } from "./aigo-search";
 
@@ -42,6 +44,29 @@ describe("AiGo search helper", () => {
 
   it("throws when items is present but not an array", () => {
     expect(() => readSearchItems({ items: null, results: [] })).toThrow(/items.*not an array/);
+  });
+
+  it("reads duplicate items without accepting legacy candidates or results", () => {
+    expect(readDuplicateItems({ items: [{ confidence: "low" }] })).toEqual([{ confidence: "low" }]);
+    expect(() => readDuplicateItems({ candidates: [{ confidence: "low" }] })).toThrow(/top-level items array/);
+    expect(() => readDuplicateItems({ results: [{ confidence: "low" }] })).toThrow(/top-level items array/);
+  });
+
+  it("summarizes duplicate confidence, action, and review buckets", () => {
+    const summary = summarizeDuplicateItems([
+      { confidence: "low", suggestedAction: "manual_duplicate_review", reviewBucket: "low_priority_noise" },
+      { confidence: "high", suggestedAction: "update_existing", reviewBucket: "identity" },
+      { confidence: "low", suggestedAction: "hold_duplicate_review", reviewBucket: "sibling_branch_review" }
+    ]);
+
+    expect(summary).toEqual({
+      total: 3,
+      byConfidence: { low: 2, high: 1 },
+      bySuggestedAction: { manual_duplicate_review: 1, update_existing: 1, hold_duplicate_review: 1 },
+      byReviewBucket: { low_priority_noise: 1, identity: 1, sibling_branch_review: 1 },
+      lowPriorityNoiseCount: 1,
+      holdReviewCount: 1
+    });
   });
 
   it("retries transient Next.js 404 HTML before reading search items", async () => {
@@ -118,6 +143,41 @@ describe("AiGo search helper", () => {
       searchPlacesReadOnly({ projection: "compact", limit: 1 }, { retries: 1, retryDelayMs: 0, timeoutMs: 5 })
     ).rejects.toThrow(/AiGo POST \/v1\/places\/search failed \(attempt=2\/2, timeoutMs=5, durationMs=\d+, status=no-response\): TimeoutError/);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks production read-only calls before fetch when the API key is empty", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "" })
+    ).rejects.toThrow(/AIGO_API_KEY is required before calling the production AiGo API/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks production read-only calls before fetch when the default development key is used", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "change-me" })
+    ).rejects.toThrow(/default development API key cannot be used against the production AiGo API/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("adds credential guidance to production 401 and 403 read-only failures", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "Missing or invalid API key" }), {
+        status: 401,
+        statusText: "Unauthorized",
+        headers: { "content-type": "application/json" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      searchPlacesReadOnly({ projection: "compact", limit: 1 }, { apiBaseUrl: "https://aigo.o-r.kr", apiKey: "real-looking-key", retries: 0 })
+    ).rejects.toThrow(/Authorization: Bearer <AIGO_API_KEY>.*do not retry unchanged credentials in a loop/);
   });
 
   it("warms the search route with a compact one-row request", async () => {

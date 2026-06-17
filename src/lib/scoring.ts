@@ -1108,6 +1108,8 @@ function collectOpeningPeriods(openingHours: Record<string, unknown>) {
   addSeasonalPeriods(periods, openingHours);
 
   if (isRecord(openingHours.weekly)) {
+    addRawPeriods(periods, openingHours.weekly.regularHours);
+
     for (const [dayKey, dayValue] of Object.entries(openingHours.weekly)) {
       const day = parseDay(dayKey);
       if (day === null) continue;

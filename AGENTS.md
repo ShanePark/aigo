@@ -166,6 +166,8 @@ Actual DB image updates must go through the normal AiGo API update flow, with at
 
 Use subagents aggressively and frequently. When a task can be decomposed into independent research, implementation, review, testing, or verification work, delegate those pieces to subagents early so useful context and changes can be produced in parallel.
 
+Subagents should use the same model as the main agent by default. Only choose a different model when the user or a higher-priority instruction explicitly requests it.
+
 Prefer subagents for:
 
 - Exploring separate areas of the codebase.

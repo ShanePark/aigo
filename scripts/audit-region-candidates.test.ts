@@ -50,6 +50,7 @@ function duplicate(overrides: Partial<DuplicateAuditSummaryInput> = {}): Duplica
     confidence: "high",
     reasonCodes: ["ALIAS_MATCH", "REGION_MATCH"],
     suggestedAction: "update_existing",
+    reviewBucket: "identity",
     outsideRadiusReviewOnly: false,
     distanceMeters: null,
     ...overrides
@@ -154,6 +155,7 @@ describe("region candidate audit helper", () => {
           confidence: "low",
           reasonCodes: ["ALIAS_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY"],
           suggestedAction: "hold_duplicate_review",
+          reviewBucket: "low_priority_noise",
           outsideRadiusReviewOnly: true,
           distanceMeters: 12000
         })
@@ -198,7 +200,9 @@ describe("region candidate audit helper", () => {
     expect(formatted).toContain("source: 2026-05-01T00:00:00.000Z fresh");
     expect(formatted).toContain("image: healthy");
     expect(formatted).toContain("duplicate candidates:");
+    expect(formatted).toContain("summary: total=1; actions=update_existing:1; buckets=identity:1");
     expect(formatted).toContain("action=update_existing");
+    expect(formatted).toContain("bucket=identity");
     expect(formatted).toContain("ALIAS_MATCH");
   });
 });

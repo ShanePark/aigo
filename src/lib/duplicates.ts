@@ -220,6 +220,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
     signals.unrelatedBranchCategoryReviewOnly ||
     signals.categoryConflictReviewOnly ||
     publicSubfacilityRegionConflictNoise(signals) ||
+    lowConfidenceLocationConflictNoise(signals) ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -328,6 +329,8 @@ export function duplicatePublicSameSiteSubfacilityReviewOnly(
   const candidate = compactDuplicateName(candidateName);
   if (!input || !candidate || input === candidate) return false;
 
+  if (parkPlaygroundSameSiteReviewOnly(input, inputCategory, candidate, candidateCategory)) return true;
+
   const sharedProvider = publicSameSiteSubfacilityProviderTerms.some((term) => input.includes(term) && candidate.includes(term));
   if (!sharedProvider) return false;
 
@@ -345,7 +348,7 @@ export function duplicatePublicProviderSiblingReviewOnly(inputName: string, cand
   const sharedService = publicProviderSiblingServiceTerms.some((term) => input.includes(term) && candidate.includes(term));
   if (!sharedProvider || !sharedService) return false;
 
-  return hasDifferentBranchToken(input, candidate);
+  return hasDifferentBranchToken(input, candidate) || hasDifferentSharedChildcareBranchToken(input, candidate);
 }
 
 export function duplicateGenericAliasReviewOnly(
@@ -441,6 +444,7 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
   if (genericPublicFacilityNoiseReviewOnly(signals)) return false;
   if (publicSubfacilityRegionConflictNoise(signals)) return false;
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
+  if (lowConfidenceLocationConflictNoise(signals)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -484,6 +488,14 @@ function genericPublicFacilityNoiseReviewOnly(signals: DuplicateCandidateSignals
 
 function publicSubfacilityRegionConflictNoise(signals: DuplicateCandidateSignals) {
   return Boolean(signals.publicSubfacilityReviewOnly && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals));
+}
+
+function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    signals.addressRegionConflict &&
+      duplicateOutsideRadiusReviewOnly(signals) &&
+      !hasStrongIdentityEvidence(signals)
+  );
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {
@@ -532,6 +544,32 @@ function hasDifferentBranchToken(input: string, candidate: string) {
   return !inputTokens.some((token) => candidateTokens.includes(token));
 }
 
+function hasDifferentSharedChildcareBranchToken(input: string, candidate: string) {
+  const inputToken = sharedChildcareBranchToken(input);
+  const candidateToken = sharedChildcareBranchToken(candidate);
+  if (!inputToken || !candidateToken) return false;
+  return inputToken !== candidateToken;
+}
+
+function sharedChildcareBranchToken(value: string) {
+  for (const serviceTerm of sharedChildcareSiblingServiceTerms) {
+    const serviceIndex = value.indexOf(serviceTerm);
+    if (serviceIndex < 0) continue;
+    const beforeService = value.slice(0, serviceIndex);
+    const afterService = value.slice(serviceIndex + serviceTerm.length);
+    const token = normalizeSharedChildcareBranchToken(`${beforeService}${afterService}`);
+    if (token) return token;
+  }
+  return null;
+}
+
+function normalizeSharedChildcareBranchToken(value: string) {
+  return value
+    .replace(/(?:공동육아|나눔터|센터|지점|분소|본점|본관|별관|점)$/g, "")
+    .replace(/(?:제)?(\d+)호점?/g, "$1호")
+    .replace(/[^가-힣a-z0-9]+/gi, "");
+}
+
 function branchTokens(value: string) {
   const tokens = new Set<string>();
 
@@ -546,6 +584,44 @@ function branchTokens(value: string) {
   return Array.from(tokens).filter(
     (token) => !publicProviderSiblingGenericBranchTokens.some((generic) => token.includes(generic) || generic.includes(token))
   );
+}
+
+function parkPlaygroundSameSiteReviewOnly(input: string, inputCategory: string, candidate: string, candidateCategory: string) {
+  const categoryPair = new Set([inputCategory, candidateCategory]);
+  if (!categoryPair.has("park") || !categoryPair.has("playground")) return false;
+  if (!input.includes("공원") || !candidate.includes("공원")) return false;
+
+  const inputHasPlayground = publicSameSiteSubfacilityServiceTerms.some((term) => input.includes(term));
+  const candidateHasPlayground = publicSameSiteSubfacilityServiceTerms.some((term) => candidate.includes(term));
+  if (!inputHasPlayground && !candidateHasPlayground) return false;
+
+  const inputAnchors = parkSiteAnchors(input);
+  const candidateAnchors = parkSiteAnchors(candidate);
+  return inputAnchors.some((anchor) => candidateAnchors.includes(anchor));
+}
+
+function parkSiteAnchors(value: string) {
+  const anchors = new Set<string>();
+  const parkIndex = value.indexOf("공원");
+  if (parkIndex > 0) {
+    const beforePark = value.slice(0, parkIndex);
+    let trimmedBeforePark = beforePark;
+    let trimmed = true;
+    while (trimmed) {
+      trimmed = false;
+      for (const suffix of parkGenericSiteAnchors) {
+        if (trimmedBeforePark.endsWith(suffix)) {
+          trimmedBeforePark = trimmedBeforePark.slice(0, -suffix.length);
+          trimmed = true;
+        }
+      }
+    }
+    if (trimmedBeforePark.length >= 2) anchors.add(trimmedBeforePark);
+    for (const suffixLength of [4, 3, 2]) {
+      if (beforePark.length >= suffixLength) anchors.add(beforePark.slice(-suffixLength));
+    }
+  }
+  return Array.from(anchors).filter((anchor) => anchor.length >= 2 && !parkGenericSiteAnchors.has(anchor));
 }
 
 const genericBranchNameTerms = [
@@ -670,6 +746,8 @@ const publicSameSiteSubfacilityServiceTerms = [
   "자료실"
 ].map(compactDuplicateText);
 
+const parkGenericSiteAnchors = new Set(["어린이", "근린", "문화", "체육", "시민", "웰빙", "테마"].map(compactDuplicateText));
+
 const toyStoreTenantTerms = ["토이저러스", "토이플러스", "레고스토어", "장난감가게", "완구점", "완구매장"].map(compactDuplicateText);
 
 const broadDestinationCategories = new Set([
@@ -702,11 +780,14 @@ const publicProviderSiblingServiceTerms = [
   "장난감나라",
   "장난감대여실",
   "나누리장난감도서관",
+  "공동육아나눔터",
   "공동육아방",
   "실내놀이터",
   "어린이자료실",
   "유아자료실"
 ].map(compactDuplicateText);
+
+const sharedChildcareSiblingServiceTerms = ["공동육아나눔터", "공동육아방"].map(compactDuplicateText);
 
 const publicProviderSiblingGenericBranchTokens = [
   "육아종합지원",

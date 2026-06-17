@@ -85,6 +85,62 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
   });
 
+  it("keeps outside-radius location-conflict noise as manual review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 6100,
+      nameSimilarity: 0.62,
+      radiusMeters: 800
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("keeps high-similarity outside-radius address conflicts non-blocking", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      addressRegionConflict: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 3824,
+      nameSimilarity: 0.9,
+      radiusMeters: 50
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "REGION_MATCH",
+        "ADDRESS_REGION_CONFLICT",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps same-address outside-radius candidates as possible duplicates", () => {
     const signals = {
       aliasMatch: false,
@@ -337,6 +393,37 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps source-backed park playground candidates as relationship review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicSameSiteSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 120,
+      nameSimilarity: 0.61,
+      radiusMeters: 500
+    };
+
+    expect(
+      duplicatePublicSameSiteSubfacilityReviewOnly("우산공원 꿈트리놀이터", "playground", "우산 웰빙테마공원", "park")
+    ).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_NEAR",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps same-provider toy-library sibling branches from blocking enrichment", () => {
     const signals = {
       aliasMatch: true,
@@ -363,6 +450,40 @@ describe("duplicate helpers", () => {
         "ALIAS_MATCH",
         "REGION_MATCH",
         "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("keeps shared-childcare sibling branches as manual review instead of hard hold", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      genericAliasReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 1700,
+      nameSimilarity: 0.76,
+      radiusMeters: 500
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("김제시 공동육아나눔터 1호점", "김제시 별빛공동육아나눔터")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("완주군 용진공동육아나눔터", "완주군 삼봉공동육아나눔터")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("완주군 삼봉공동육아나눔터", "완주군 삼봉공동육아나눔터")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "GENERIC_ALIAS_REVIEW_ONLY",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
         "GEO_OUTSIDE_REQUEST_RADIUS",
         "OUTSIDE_RADIUS_REVIEW_ONLY",
         "NAME_SIMILAR"

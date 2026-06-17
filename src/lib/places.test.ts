@@ -19,6 +19,7 @@ import {
   categoryClauseForKeywordTerm,
   compactDuplicatePlaceCandidateForTest,
   duplicateExternalRefsForMatchForTest,
+  duplicateResponseMetaForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
   applyImageHealthDirectProbeForTest,
@@ -997,6 +998,24 @@ describe("place search helpers", () => {
     expect(isBroadWaterPlayIntentQuery("물놀이 유모차")).toBe(false);
   });
 
+  it("keeps mixed local playground searches from requiring every child/water token as text", () => {
+    const normalized = normalizeSearchInput({
+      ...baseSearchInput,
+      query: "세종 놀이터 물놀이터 어린이"
+    });
+    const query = buildSearchQuery(normalized);
+
+    expect(normalized).toMatchObject({
+      query: "세종 놀이터 물놀이터 어린이"
+    });
+    expect(query.sql).toContain("region_sido ilike $1");
+    expect(query.sql).toContain("primary_category = 'playground'");
+    expect(query.sql).toContain(
+      "primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])"
+    );
+    expect(query.params).toEqual(["%세종%", "%놀이터%", "%물놀이터%", "%어린이%"]);
+  });
+
   it("recognizes route-break searches for rest areas and nursing stops", () => {
     expect(isRouteBreakIntentQuery("청남대 가는 길 수유실 휴게소")).toBe(true);
     expect(isRouteBreakIntentQuery("청남대 가는 길 수유실")).toBe(true);
@@ -1038,6 +1057,7 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("primary_category = 'playground'");
     expect(categoryClauseForKeywordTerm("놀이터")).toContain("play_features->>'slide' in ('yes', 'partial')");
     expect(categoryClauseForKeywordTerm("놀이터")).not.toContain("primary_category = any(array['kids_cafe','family_cafe']::text[])");
+    expect(categoryClauseForKeywordTerm("물놀이터")).toContain("primary_category = 'playground'");
     expect(categoryClauseForKeywordTerm("키즈카페")).toContain("commercial_tag");
     expect(categoryClauseForKeywordTerm("실내놀이터")).toBe("primary_category = 'indoor_playground'");
     expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");
@@ -1417,9 +1437,86 @@ describe("place search helpers", () => {
         ok: true,
         status: 206,
         method: "GET_RANGE",
-        contentType: "image/jpeg"
+        contentType: "image/jpeg",
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            status: 404,
+            contentType: "text/html"
+          },
+          {
+            method: "GET_RANGE",
+            ok: true,
+            status: 206,
+            contentType: "image/jpeg"
+          }
+        ]
       });
       expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+        accept: expect.stringContaining("image/"),
+        "user-agent": expect.stringContaining("AiGoImageHealth"),
+        referer: "https://example.com/"
+      });
+      expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({
+        range: "bytes=0-63"
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("falls back to full image GET after HEAD and ranged probes fail", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      const headers = init?.headers as HeadersInit | undefined;
+      const isRange = typeof headers === "object" && !Array.isArray(headers) && "range" in headers;
+      if (method === "HEAD") {
+        throw new Error("fetch failed");
+      }
+      if (method === "GET" && isRange) {
+        throw new Error("The operation was aborted due to timeout");
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff]), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      await expect(probeImageUrlForHealthForTest("https://example.com/place.jpg")).resolves.toMatchObject({
+        ok: true,
+        status: 200,
+        method: "GET",
+        contentType: "image/jpeg",
+        error: null,
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            error: "fetch failed"
+          },
+          {
+            method: "GET_RANGE",
+            ok: false,
+            error: "The operation was aborted due to timeout"
+          },
+          {
+            method: "GET",
+            ok: true,
+            status: 200
+          }
+        ]
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({ range: "bytes=0-63" });
+      expect(fetchMock.mock.calls[2]?.[1]?.headers).toMatchObject({
+        accept: expect.stringContaining("image/"),
+        referer: "https://example.com/"
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -1622,6 +1719,53 @@ describe("place search helpers", () => {
         startsOn: "2026-01-01",
         endsOn: "2026-12-31"
       }
+    });
+  });
+
+  it("treats source-backed seasonal period maps as structured opening-hours evidence", () => {
+    const dataSignal = buildOpeningHoursDataSignal({
+      timezone: "Asia/Seoul",
+      sourceBacked: true,
+      seasonal: {
+        summer: {
+          startMonth: 3,
+          endMonth: 10,
+          regularHours: "09:00-18:00",
+          lastAdmission: "17:00"
+        },
+        winter: {
+          startMonth: 11,
+          endMonth: 2,
+          regularHours: "09:00-17:00",
+          lastAdmission: "16:00"
+        }
+      },
+      closureRules: ["월요일 휴원", "1월 1일 휴원"]
+    });
+    const summary = buildSearchOpeningHoursSummary(
+      dataSignal,
+      buildSearchSourceSummary([
+        {
+          source_type: "official_site",
+          title: "미동산수목원 이용안내",
+          summary: "공식 이용안내에서 계절별 운영시간과 휴원일을 확인함.",
+          checked_at: "2026-06-17T00:00:00.000Z",
+          created_at: "2026-06-17T00:00:00.000Z"
+        }
+      ])
+    );
+
+    expect(dataSignal).toMatchObject({
+      dataStatus: "structured",
+      hasData: true,
+      hasStructuredData: true
+    });
+    expect(summary).toMatchObject({
+      dataStatus: "structured",
+      confidenceLevel: "high",
+      sourceBacked: true,
+      hasStructuredData: true,
+      structuredDataGaps: []
     });
   });
 
@@ -2279,6 +2423,35 @@ describe("place search helpers", () => {
     expect(compact.place).not.toHaveProperty("images");
     expect(compact.place).not.toHaveProperty("sources");
     expect(compact.place).not.toHaveProperty("versions");
+  });
+
+  it("summarizes duplicate response confidence, actions, and noise buckets", () => {
+    const meta = duplicateResponseMetaForTest([
+      {
+        confidence: "low",
+        suggestedAction: "manual_duplicate_review",
+        reviewBucket: "low_priority_noise"
+      },
+      {
+        confidence: "high",
+        suggestedAction: "update_existing",
+        reviewBucket: "identity"
+      },
+      {
+        confidence: "low",
+        suggestedAction: "hold_duplicate_review",
+        reviewBucket: "sibling_branch_review"
+      }
+    ] as unknown as Parameters<typeof duplicateResponseMetaForTest>[0]);
+
+    expect(meta).toEqual({
+      count: 3,
+      confidence: { low: 2, high: 1 },
+      suggestedAction: { manual_duplicate_review: 1, update_existing: 1, hold_duplicate_review: 1 },
+      reviewBucket: { low_priority_noise: 1, identity: 1, sibling_branch_review: 1 },
+      lowPriorityNoiseCount: 1,
+      holdReviewCount: 1
+    });
   });
 
   it("groups ranked search items into a practical course plan", () => {

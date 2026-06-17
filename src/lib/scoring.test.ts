@@ -1196,6 +1196,46 @@ describe("scorePlace", () => {
     expect(result.reasonCodes).not.toContain("CLOSED_NOW");
   });
 
+  it("evaluates weekly regularHours arrays as structured opening-hours evidence", () => {
+    const shared = {
+      primaryCategory: "public_child_facility",
+      tags: ["공동육아나눔터"],
+      dataConfidence: "official_verified",
+      minRecommendedAgeMonths: 0,
+      maxRecommendedAgeMonths: 84,
+      indoorType: "indoor",
+      parkingAvailable: "unknown",
+      strollerFriendly: "unknown",
+      nursingRoom: "partial",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "unknown",
+      babyChair: "unknown",
+      foodAllowed: "unknown",
+      distanceKm: 10,
+      openingHours: {
+        weekly: {
+          timezone: "Asia/Seoul",
+          regularHours: [
+            {
+              days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+              open: "09:00",
+              close: "18:00"
+            }
+          ]
+        }
+      }
+    };
+
+    const weekday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-17T04:00:00.000Z") });
+    const saturday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-20T04:00:00.000Z") });
+
+    expect(weekday.reasonCodes).toContain("OPEN_NOW");
+    expect(weekday.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    expect(saturday.reasonCodes).toContain("CLOSED_NOW");
+    expect(saturday.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+  });
+
   it("applies dated opening-hours specification only on the matching Seoul date", () => {
     const shared = {
       primaryCategory: "museum",
