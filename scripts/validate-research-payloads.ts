@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-import { createPlaceSchema, type CreatePlaceInput } from "@/lib/schemas";
+import { createPlaceSchema, updatePlaceSchema, type CreatePlaceInput, type UpdatePlaceInput } from "@/lib/schemas";
 
 type LintSeverity = "error" | "warning";
 
@@ -25,6 +25,9 @@ type PayloadEntry = {
   index: number;
   payload: unknown;
 };
+
+type ValidationMode = "create" | "patch";
+type WorkflowPayload = CreatePlaceInput | UpdatePlaceInput;
 
 const registrationDataConfidence = new Set(["agent_collected", "official_verified", "user_reported"]);
 const acceptedCoordinateLevels = new Set(["official_embedded_map", "public_dataset_exact_address", "public_address_coordinate", "parent_building_coordinate"]);
@@ -100,7 +103,7 @@ const closedSignalPattern = /(?:종료|폐점|영업\s*종료|장기\s*휴관|�
 const personalizedPublicTextPattern =
   /(?:첫째|둘째|셋째|큰아이|20\d{2}년생|우리\s*(?:아이|애|가족)|사용자(?:의)?|쌍둥이\s*(?:영아|아기|동반)|쌍둥이(?:를|와|랑))/i;
 const urlPattern = /^https?:\/\//i;
-const publicTextFields: Array<[string, (payload: CreatePlaceInput) => unknown]> = [
+const publicTextFields: Array<[string, (payload: WorkflowPayload) => unknown]> = [
   ["description", (payload) => payload.description],
   ["parentNotes", (payload) => payload.parentNotes],
   ["safetyNotes", (payload) => payload.safetyNotes],
@@ -143,7 +146,7 @@ async function main() {
   try {
     const args = parseArgs(process.argv.slice(2));
     const entries = await loadResearchPayloadEntries(args.paths);
-    const results = entries.map((entry) => validateResearchPayload(entry.payload, { source: entry.source, index: entry.index }));
+    const results = entries.map((entry) => validateResearchPayload(entry.payload, { source: entry.source, index: entry.index, mode: args.mode }));
 
     if (args.json) {
       console.log(JSON.stringify(results, null, 2));
@@ -161,18 +164,29 @@ async function main() {
 }
 
 export function parseArgs(argv: string[]) {
-  const args = { json: false, paths: [] as string[] };
+  const args = { json: false, mode: "create" as ValidationMode, paths: [] as string[] };
 
   for (const arg of argv) {
     if (arg === "--json") {
       args.json = true;
       continue;
     }
+    if (arg === "--mode=create" || arg === "--create") {
+      args.mode = "create";
+      continue;
+    }
+    if (arg === "--mode=patch" || arg === "--patch") {
+      args.mode = "patch";
+      continue;
+    }
+    if (arg.startsWith("--mode=")) {
+      throw new Error("--mode must be either create or patch");
+    }
     args.paths.push(arg);
   }
 
   if (args.paths.length === 0) {
-    throw new Error("Usage: pnpm tsx scripts/validate-research-payloads.ts [--json] <payload.json|research.md> [...]");
+    throw new Error("Usage: pnpm tsx scripts/validate-research-payloads.ts [--json] [--mode=create|patch] <payload.json|research.md> [...]");
   }
 
   return args;
@@ -199,9 +213,10 @@ export function extractResearchPayloads(text: string, source: string): unknown[]
   return parsePayloadDocument(text, source);
 }
 
-export function validateResearchPayload(payload: unknown, context: { source?: string; index?: number } = {}): ResearchPayloadLintResult {
+export function validateResearchPayload(payload: unknown, context: { source?: string; index?: number; mode?: ValidationMode } = {}): ResearchPayloadLintResult {
   const issues: ResearchPayloadLintIssue[] = [];
-  const parsed = createPlaceSchema.safeParse(payload);
+  const mode = context.mode ?? "create";
+  const parsed = (mode === "patch" ? updatePlaceSchema : createPlaceSchema).safeParse(payload);
   const name = payloadName(payload);
 
   if (!parsed.success) {
@@ -218,8 +233,8 @@ export function validateResearchPayload(payload: unknown, context: { source?: st
   }
 
   collectRawPayloadShapeIssues(payload, issues);
-  collectWorkflowIssues(parsed.data, issues);
-  return lintResult(context, parsed.data.name, issues);
+  collectWorkflowIssues(parsed.data, issues, mode);
+  return lintResult(context, mode === "create" ? (parsed.data as CreatePlaceInput).name : name, issues);
 }
 
 export function formatResearchPayloadLintResults(results: ResearchPayloadLintResult[]) {
@@ -239,12 +254,16 @@ export function formatResearchPayloadLintResults(results: ResearchPayloadLintRes
   return lines.join("\n");
 }
 
-function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
-  if (payload.status !== "active") {
+function collectWorkflowIssues(payload: WorkflowPayload, issues: ResearchPayloadLintIssue[], mode: ValidationMode) {
+  if (mode === "create" && payload.status !== "active") {
     issues.push(error("status", "workflow_status", 'research create payloads must explicitly use status "active"'));
   }
 
-  if (!payload.dataConfidence || !registrationDataConfidence.has(payload.dataConfidence)) {
+  if (mode === "patch" && payload.status !== undefined && payload.status !== "active") {
+    issues.push(error("status", "workflow_status", 'research patch payloads must not set status away from "active"'));
+  }
+
+  if (mode === "create" && (!payload.dataConfidence || !registrationDataConfidence.has(payload.dataConfidence))) {
     issues.push(
       error(
         "dataConfidence",
@@ -254,9 +273,19 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
     );
   }
 
-  if (!payload.images || payload.images.length === 0) {
+  if (mode === "patch" && payload.dataConfidence !== undefined && !registrationDataConfidence.has(payload.dataConfidence)) {
+    issues.push(
+      error(
+        "dataConfidence",
+        "workflow_data_confidence",
+        'research patch payloads must use dataConfidence "agent_collected", "official_verified", or "user_reported" when changing confidence'
+      )
+    );
+  }
+
+  if (mode === "create" && (!payload.images || payload.images.length === 0)) {
     issues.push(error("images", "workflow_images_required", "research create payloads must include at least one structured images item"));
-  } else {
+  } else if (payload.images) {
     payload.images.forEach((image, index) => {
       const path = `images.${index}`;
       if (image.reviewStatus !== "approved") {
@@ -286,13 +315,15 @@ function collectWorkflowIssues(payload: CreatePlaceInput, issues: ResearchPayloa
     }
   }
 
-  collectCoordinateProvenanceIssues(payload, issues);
+  collectCoordinateProvenanceIssues(payload, issues, mode);
   collectOperationalStatusSignalIssues(payload, issues);
   collectPersonalizedPublicTextIssues(payload, issues);
   collectKoreanPublicTextIssues(payload, issues);
-  collectParentReviewEvidenceIssues(payload, issues);
-  collectPrivateKidsCafeSourceRoleIssues(payload, issues);
-  collectRichPublicDestinationSweepIssues(payload, issues);
+  if (mode === "create") {
+    collectParentReviewEvidenceIssues(payload as CreatePlaceInput, issues);
+    collectPrivateKidsCafeSourceRoleIssues(payload as CreatePlaceInput, issues);
+    collectRichPublicDestinationSweepIssues(payload as CreatePlaceInput, issues);
+  }
 }
 
 function collectRawPayloadShapeIssues(payload: unknown, issues: ResearchPayloadLintIssue[]) {
@@ -320,7 +351,7 @@ function collectRawPayloadShapeIssues(payload: unknown, issues: ResearchPayloadL
   }
 }
 
-function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+function collectOperationalStatusSignalIssues(payload: WorkflowPayload, issues: ResearchPayloadLintIssue[]) {
   payload.sources.forEach((source, index) => {
     if (!operationalSourceTypes.has(source.sourceType)) return;
 
@@ -337,7 +368,7 @@ function collectOperationalStatusSignalIssues(payload: CreatePlaceInput, issues:
   });
 }
 
-function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+function collectPersonalizedPublicTextIssues(payload: WorkflowPayload, issues: ResearchPayloadLintIssue[]) {
   for (const [path, readValue] of publicTextFields) {
     const value = readValue(payload);
     if (typeof value !== "string" || !personalizedPublicTextPattern.test(value)) continue;
@@ -351,7 +382,7 @@ function collectPersonalizedPublicTextIssues(payload: CreatePlaceInput, issues: 
   }
 }
 
-function collectKoreanPublicTextIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+function collectKoreanPublicTextIssues(payload: WorkflowPayload, issues: ResearchPayloadLintIssue[]) {
   for (const [path, readValue] of publicTextFields) {
     const value = readValue(payload);
     if (typeof value !== "string" || !looksEnglishDominantPublicText(value)) continue;
@@ -567,7 +598,9 @@ function hasMeaningfulPricing(value: unknown) {
   return ["summary", "basisDate", "checkedAt", "sourceUrl", "notes"].some((key) => hasNonEmptyEvidenceValue(value[key]));
 }
 
-function collectCoordinateProvenanceIssues(payload: CreatePlaceInput, issues: ResearchPayloadLintIssue[]) {
+function collectCoordinateProvenanceIssues(payload: WorkflowPayload, issues: ResearchPayloadLintIssue[], mode: ValidationMode) {
+  if (mode === "patch" && payload.lat === undefined && payload.lng === undefined && !recordValue(payload.externalRefs, "coordinateProvenance")) return;
+
   const provenance = recordValue(payload.externalRefs, "coordinateProvenance");
   const level = stringValue(provenance, "level");
 
