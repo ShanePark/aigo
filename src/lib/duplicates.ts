@@ -583,13 +583,19 @@ function branchTokens(value: string) {
     const providerIndex = value.indexOf(provider);
     if (providerIndex < 0) continue;
     const tail = value.slice(providerIndex + provider.length);
-    const branchMatch = tail.match(/^([가-힣A-Za-z0-9]{2,8})점/);
-    if (branchMatch?.[1]) tokens.add(compactDuplicateText(branchMatch[1]));
+    const branchMatch = tail.match(/^([가-힣A-Za-z0-9]{2,12}?)(?:점|$)/);
+    const token = branchMatch?.[1] ? normalizePublicProviderBranchToken(compactDuplicateText(branchMatch[1])) : null;
+    if (token) tokens.add(token);
   }
 
   return Array.from(tokens).filter(
     (token) => !publicProviderSiblingGenericBranchTokens.some((generic) => token.includes(generic) || generic.includes(token))
   );
+}
+
+function normalizePublicProviderBranchToken(value: string) {
+  const dongMatch = value.match(/(?:[가-힣]+구)?([가-힣]+[0-9]+동)$/);
+  return dongMatch?.[1] ?? value;
 }
 
 function parkPlaygroundSameSiteReviewOnly(input: string, inputCategory: string, candidate: string, candidateCategory: string) {
@@ -773,6 +779,7 @@ const broadDestinationCategories = new Set([
 ]);
 
 const publicProviderSiblingProviderTerms = [
+  "서울형키즈카페",
   "육아종합지원센터",
   "가족센터",
   "도서관",
@@ -782,6 +789,8 @@ const publicProviderSiblingProviderTerms = [
 ].map(compactDuplicateText);
 
 const publicProviderSiblingServiceTerms = [
+  "서울형키즈카페",
+  "키즈카페",
   "장난감도서관",
   "장난감나라",
   "장난감대여실",

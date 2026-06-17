@@ -494,6 +494,29 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps 서울형 키즈카페 branch-token mismatches out of identity review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.82,
+      radiusMeters: null
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 구로구 오류1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 오류1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 개봉1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY", "REGION_MATCH", "NAME_SIMILAR"])
+    );
+  });
+
   it("keeps public childcare candidates from merging into nearby broad attractions", () => {
     const signals = {
       aliasMatch: true,
