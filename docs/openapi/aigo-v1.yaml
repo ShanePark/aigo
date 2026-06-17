@@ -227,7 +227,7 @@ paths:
             type: string
             enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             default: attention
-          description: Queue selector. `attention` returns everything except healthy rows.
+          description: Queue selector. `attention` returns everything except healthy rows for unscoped queue scans. When `placeIds` or `placeId` is provided and `status` is omitted, the API defaults to `all` so a scoped verification can distinguish a healthy row from a missing row.
         - name: probeImages
           in: query
           required: false
@@ -3315,16 +3315,23 @@ components:
               format: date-time
     PlaceVersionSummary:
       type: object
-      required: [id, versionNumber, action, actor, sources, createdAt]
+      required: [id, versionNumber, version, action, changeType, actor, sources, createdAt]
       properties:
         id:
           type: string
           format: uuid
         versionNumber:
           type: integer
+        version:
+          type: integer
+          description: Backward-compatible alias for `versionNumber`.
         action:
           type: string
           enum: [create, update]
+        changeType:
+          type: string
+          enum: [create, update]
+          description: Backward-compatible alias for `action`.
         actor:
           type: string
         changeSummary:

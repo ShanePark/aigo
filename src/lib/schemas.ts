@@ -668,6 +668,9 @@ export const placeImageHealthQuerySchema = z.preprocess(
     if (input.placeIds === undefined && input.placeId !== undefined) {
       input.placeIds = input.placeId;
     }
+    if (input.status === undefined && input.placeIds !== undefined) {
+      input.status = "all";
+    }
     return input;
   },
   z.object({

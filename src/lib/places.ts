@@ -5492,7 +5492,9 @@ function mapVersionSummary(row: VersionRow) {
   return {
     id: row.id,
     versionNumber: row.version_number,
+    version: row.version_number,
     action: row.action,
+    changeType: row.action,
     actor: row.actor,
     changeSummary: row.change_summary,
     sources: Array.isArray(row.sources) ? row.sources : [],

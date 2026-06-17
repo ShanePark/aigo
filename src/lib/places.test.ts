@@ -1527,6 +1527,21 @@ describe("place search helpers", () => {
     expect(imageHealthPlaceStatusPredicateForTest(true)).toBe("p.status in ('active', 'temporarily_closed')");
   });
 
+  it("defaults scoped image health verification to all statuses", () => {
+    expect(
+      normalizePlaceImageHealthQueryForTest({
+        placeIds: "11111111-1111-4111-8111-111111111111"
+      })
+    ).toMatchObject({
+      placeIds: ["11111111-1111-4111-8111-111111111111"],
+      status: "all"
+    });
+
+    expect(normalizePlaceImageHealthQueryForTest({})).toMatchObject({
+      status: "attention"
+    });
+  });
+
   it("summarizes source freshness and provenance for search results", () => {
     const now = new Date("2026-05-22T07:00:00.000Z");
 

@@ -9,6 +9,24 @@ import { recordVisitEventLater } from "@/lib/visit-events";
 
 export const dynamic = "force-dynamic";
 
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: "Method not allowed",
+      details: {
+        allowedMethods: ["POST"],
+        message: "Use POST /v1/places/search with a JSON search payload."
+      }
+    },
+    {
+      status: 405,
+      headers: {
+        Allow: "POST"
+      }
+    }
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     requireApiKey(request);
