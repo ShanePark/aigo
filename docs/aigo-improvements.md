@@ -19,4 +19,4 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 
 한 번에 하나의 `[대기]` 항목만 고르고, 먼저 확실한 개선 사항인지, 현재도 필요한지, 제안된 방식이 문제를 만들 가능성은 없는지 리뷰한다. 진행 가치가 충분하다고 판단될 때만 `[개선 중]`으로 바꾸고, 구현과 검증이 끝나면 해당 항목을 삭제한 뒤 관련 파일만 커밋한다. 각 항목은 가능한 한 작은 독립 커밋 단위로 유지한다. 구현 중 새로 필요한 후속 작업, 설계 분기, 테스트 보강, UI 정리, 문서 갱신이 발견되면 현재 항목에 억지로 끼워 넣지 말고 이 문서에 새 `[대기]` 항목으로 다시 등록해 재귀적으로 이어간다.
 
-- [대기] `agent-research/seoul-kidscafe-fresh-seven-preflight-20260618-1841.json`과 `agent-research/seoul-kidscafe-fresh-seven-existing-duplicate-sprint-20260618-1841.md`에서 `서울형 키즈카페 구로4동점`, `신도림동점`, `고덕2동점`, `암사1동점`, `방배2동점`, `답십리1동점`이 이미 active same-site rows를 2개씩 가진 것으로 확인됐다. 각 pair의 canonical/retire 대상을 정하고, duplicate record의 설명/운영정보/이미지/출처 중 canonical에 보강할 내용이 있는지 비교한 뒤 production API로 duplicate-retirement/canonicalization을 진행한다.
+- [대기] 서울형 키즈카페 duplicate-retirement 검증 중 `화곡4동점`, `신길4동점`, `면목4동점`, `신정4동점`, `불광2동점`, `사당2동점` 등 추가 branch-sibling 후보에서 active same-branch rows가 다시 보였다. 다음 heartbeat에서 각 지점의 exact-name search와 detail/version을 먼저 재확인하고, canonical/retire 쌍이 실제 동일 지점으로 확정되는 경우에만 `plan-active-duplicate-retire`와 `/retire-duplicate`로 별도 정리한다.
