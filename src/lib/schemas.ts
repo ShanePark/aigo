@@ -281,6 +281,8 @@ const writablePlaceFields = {
       kakaoPlaceId: z.string().trim().optional()
     })
     .optional(),
+  aliases: z.array(nonEmptyString).max(30).optional(),
+  koreanSearchAliases: z.array(nonEmptyString).max(30).optional(),
   externalRefs: z.record(z.string(), z.unknown()).optional(),
   playFeatures: playFeaturesSchema.optional(),
   taxonomy: taxonomySchema.optional(),
@@ -336,6 +338,18 @@ const placeWriteAliasPreprocessor = (value: unknown) => {
   }
 
   const input = { ...(value as Record<string, unknown>) };
+  const mergeExternalAliasArray = (targetKey: "aliases" | "koreanSearchAliases", sourceValue: unknown) => {
+    const aliases = normalizeStringArray(sourceValue);
+    if (aliases.length === 0) return;
+
+    const externalRefs =
+      input.externalRefs && typeof input.externalRefs === "object" && !Array.isArray(input.externalRefs)
+        ? { ...(input.externalRefs as Record<string, unknown>) }
+        : {};
+    const existingAliases = normalizeStringArray(externalRefs[targetKey]);
+    externalRefs[targetKey] = Array.from(new Set([...existingAliases, ...aliases]));
+    input.externalRefs = externalRefs;
+  };
   const setAliasIfPresent = (targetKey: string, sourceValue: unknown) => {
     if (input[targetKey] !== undefined || sourceValue === undefined || sourceValue === null) {
       return;
@@ -375,9 +389,20 @@ const placeWriteAliasPreprocessor = (value: unknown) => {
     setAliasIfPresent("parentNotes", noteFields.parentNotes ?? noteFields.parent);
     setAliasIfPresent("safetyNotes", noteFields.safetyNotes ?? noteFields.safety);
   }
+  mergeExternalAliasArray("aliases", input.aliases);
+  mergeExternalAliasArray("koreanSearchAliases", input.koreanSearchAliases);
 
   return input;
 };
+
+function normalizeStringArray(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+}
 
 const koreanLocationTokens = [
   "서울특별시",
