@@ -517,6 +517,38 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps 아이사랑꿈터 numbered sibling branches from blocking create preflight", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 4209,
+      nameSimilarity: 0.86,
+      radiusMeters: 500
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 서구 2호점", "아이사랑꿈터 서구 11호점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 계양구 2호점", "아이사랑꿈터 계양구 1호점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 계양구 2호점", "아이사랑꿈터 계양구 2호점")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps public childcare candidates from merging into nearby broad attractions", () => {
     const signals = {
       aliasMatch: true,

@@ -785,7 +785,8 @@ const publicProviderSiblingProviderTerms = [
   "도서관",
   "어린이도서관",
   "공동육아나눔터",
-  "아이사랑놀이터"
+  "아이사랑놀이터",
+  "아이사랑꿈터"
 ].map(compactDuplicateText);
 
 const publicProviderSiblingServiceTerms = [
@@ -797,6 +798,7 @@ const publicProviderSiblingServiceTerms = [
   "나누리장난감도서관",
   "공동육아나눔터",
   "공동육아방",
+  "아이사랑꿈터",
   "실내놀이터",
   "어린이자료실",
   "유아자료실"
@@ -812,6 +814,7 @@ const publicProviderSiblingGenericBranchTokens = [
   "어린이도서",
   "공동육아",
   "아이사랑",
+  "아이사랑꿈터",
   "실내놀이터",
   "자료실"
 ].map(compactDuplicateText);

@@ -18,3 +18,6 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 ## Backlog
 
 한 번에 하나의 `[대기]` 항목만 고르고, 먼저 확실한 개선 사항인지, 현재도 필요한지, 제안된 방식이 문제를 만들 가능성은 없는지 리뷰한다. 진행 가치가 충분하다고 판단될 때만 `[개선 중]`으로 바꾸고, 구현과 검증이 끝나면 해당 항목을 삭제한 뒤 관련 파일만 커밋한다. 각 항목은 가능한 한 작은 독립 커밋 단위로 유지한다. 구현 중 새로 필요한 후속 작업, 설계 분기, 테스트 보강, UI 정리, 문서 갱신이 발견되면 현재 항목에 억지로 끼워 넣지 말고 이 문서에 새 `[대기]` 항목으로 다시 등록해 재귀적으로 이어간다.
+
+- [대기] `agent-research/incheon-isarang-gyeyang-michuhol-seven-preflight-20260618-1811.json`에서 `아이사랑꿈터 계양구 2호점` 같은 create-preflight 후보가 근처 장난감도서관/쇼핑몰/키즈카페를 high `update_existing` 또는 low `hold_duplicate_review`로 받았다. `primaryCategory: "shared_childcare"`가 있는 payload 기준으로도 주변 broad category 후보가 계속 blocking되는지 재확인하고, 같은 주소/건물/고신뢰 alias match는 유지하되 다른 시설 유형의 nearby alias noise는 `categoryConflictReviewOnly`나 low-priority review로 낮출 수 있는지 검토한다.
+- [대기] `agent-research/seoul-kidscafe-fresh-seven-preflight-20260618-1841.json`과 `agent-research/seoul-kidscafe-fresh-seven-existing-duplicate-sprint-20260618-1841.md`에서 `서울형 키즈카페 구로4동점`, `신도림동점`, `고덕2동점`, `암사1동점`, `방배2동점`, `답십리1동점`이 이미 active same-site rows를 2개씩 가진 것으로 확인됐다. 각 pair의 canonical/retire 대상을 정하고, duplicate record의 설명/운영정보/이미지/출처 중 canonical에 보강할 내용이 있는지 비교한 뒤 production API로 duplicate-retirement/canonicalization을 진행한다.
