@@ -19,6 +19,7 @@ import {
   categoryClauseForKeywordTerm,
   compactDuplicatePlaceCandidateForTest,
   duplicateExternalRefsForMatchForTest,
+  dedupeSourcesForInsertForTest,
   duplicateResponseMetaForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
@@ -200,6 +201,47 @@ describe("place search helpers", () => {
       coordinateProvenance: null,
       reviewLinks: [{ url: "https://example.com/review" }]
     });
+  });
+
+  it("skips source rows that already exist for the place", () => {
+    const sources = dedupeSourcesForInsertForTest(
+      [
+        {
+          sourceType: "official_site",
+          title: "여주도서관",
+          url: "https://example.com/library",
+          externalId: null,
+          summary: "공식 페이지에서 어린이자료실 정보를 확인했다."
+        }
+      ],
+      [
+        {
+          sourceType: "official_site",
+          title: " 여주도서관 ",
+          url: "https://example.com/library",
+          summary: "공식 페이지에서 어린이자료실 정보를 확인했다.",
+          checkedAt: "2026-06-18T22:02:00.000+09:00"
+        },
+        {
+          sourceType: "public_agency",
+          url: "https://example.com/new-source",
+          summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+        },
+        {
+          sourceType: "public_agency",
+          url: "https://example.com/new-source",
+          summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+        }
+      ]
+    );
+
+    expect(sources).toEqual([
+      {
+        sourceType: "public_agency",
+        url: "https://example.com/new-source",
+        summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+      }
+    ]);
   });
 
   it("maps create and update region and overseas fields to persisted DB columns", () => {

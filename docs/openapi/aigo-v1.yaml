@@ -1163,7 +1163,9 @@ components:
             Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
             when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
             into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
-            replace the addressed key. For narrow image metadata corrections, send only `sources`, `images`, optional
+            replace the addressed key. With the default append source mode, source rows that already exist for the place
+            with the same source type, title, URL, external id, and summary are skipped so readback sources can be reused
+            for audit evidence without duplicating the public source list. For narrow image metadata corrections, send only `sources`, `images`, optional
             `imageMode`, `actor`, and `changeSummary`; do not resend the full create-shaped place payload unless the
             place fields themselves are being corrected.
           required: [sources]

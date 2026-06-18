@@ -295,6 +295,7 @@ Update requires:
 
 - `sources` with at least one source
 - Optional changed writable fields, structured `images`, or `relatedPlaces`. Source-only audit updates are valid when the source list, version history, or change summary is the intended update.
+- With default `sourceMode: "append"`, the API skips source rows that already exist for the place with the same source type, title, URL, external id, and summary. For small source-backed patches such as alias corrections, agents may reuse existing detail sources as audit evidence without creating duplicate public source rows; add a new source only when it contributes new provenance.
 
 Image enrichment updates require:
 

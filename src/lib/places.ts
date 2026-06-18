@@ -2384,8 +2384,27 @@ export function placeDetailForTest(overrides: Partial<PlaceRow> = {}) {
   });
 }
 
+type SourceDedupInput = {
+  sourceType: string;
+  title?: string | null;
+  url?: string | null;
+  externalId?: string | null;
+  summary?: string | null;
+};
+
 async function insertSources(executor: SqlExecutor, placeId: string, sources: SourceInput[]) {
-  for (const source of sources) {
+  const existingSources = await executor<SourceDedupInput[]>`
+    select
+      source_type as "sourceType",
+      title,
+      url,
+      external_id as "externalId",
+      summary
+    from place_sources
+    where place_id = ${placeId}
+  `;
+
+  for (const source of dedupeSourcesForInsert(existingSources, sources)) {
     await executor`
       insert into place_sources (place_id, source_type, title, url, external_id, summary, checked_at)
       values (
@@ -2399,6 +2418,38 @@ async function insertSources(executor: SqlExecutor, placeId: string, sources: So
       )
     `;
   }
+}
+
+function dedupeSourcesForInsert(existingSources: SourceDedupInput[], sources: SourceInput[]) {
+  const seen = new Set(existingSources.map(sourceDedupKey));
+  const deduped: SourceInput[] = [];
+
+  for (const source of sources) {
+    const key = sourceDedupKey(source);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(source);
+  }
+
+  return deduped;
+}
+
+function sourceDedupKey(source: SourceDedupInput) {
+  return JSON.stringify([
+    source.sourceType,
+    normalizeNullableSourceText(source.title),
+    normalizeNullableSourceText(source.url),
+    normalizeNullableSourceText(source.externalId),
+    normalizeNullableSourceText(source.summary)
+  ]);
+}
+
+function normalizeNullableSourceText(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+export function dedupeSourcesForInsertForTest(existingSources: SourceDedupInput[], sources: SourceInput[]) {
+  return dedupeSourcesForInsert(existingSources, sources);
 }
 
 type ImageSourceLinkRow = {
