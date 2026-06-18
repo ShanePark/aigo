@@ -12,6 +12,7 @@ function place(overrides: Partial<PlaceAuditSummaryInput> = {}): PlaceAuditSumma
     primaryCategory: "shopping_mall",
     address: "경기 부천시 옥길로 1",
     roadAddress: "경기 부천시 옥길로 1",
+    reasonCodes: ["QUERY_NAME_EXACT"],
     updatedAt: "2026-05-01T00:00:00.000Z",
     sourceFreshness: {
       sourceCount: 2,
@@ -142,6 +143,26 @@ describe("region candidate audit helper", () => {
 
     expect(audit.status).toBe("duplicate_review");
     expect(audit.suggestedAction).toBe("manual_duplicate_review");
+  });
+
+  it("does not treat broad exact-name search recall as registered", () => {
+    const audit = buildCandidateAudit({
+      query: "파주시 아이사랑놀이터 문산관",
+      region: "파주시",
+      exactSearchCount: 2,
+      exactMatches: [],
+      relatedExactMatches: [
+        place({
+          name: "안양시 아이사랑놀이터 만안점",
+          reasonCodes: ["QUERY_NAME_MATCH", "QUERY_TAG_MATCH"]
+        })
+      ],
+      duplicateCandidates: []
+    });
+
+    expect(audit.status).toBe("missing");
+    expect(audit.suggestedAction).toBe("create_candidate");
+    expect(audit.relatedExactMatches).toHaveLength(1);
   });
 
   it("holds review-only duplicate candidates for manual review instead of creation", () => {
