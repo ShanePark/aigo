@@ -571,6 +571,29 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps public childcare candidates from merging into nearby related facility categories", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      categoryConflictReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 364,
+      radiusMeters: 500,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "toy_library")).toBe(true);
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "kids_cafe")).toBe(true);
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "indoor_playground")).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "CATEGORY_CONFLICT_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
   it("lets strict identity evidence override public provider sibling cautions", () => {
     const signals = {
       aliasMatch: true,
