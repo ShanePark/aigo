@@ -18,5 +18,3 @@ Only mark unrelated items as `[개선 중]` at the same time when they are inten
 ## Backlog
 
 한 번에 하나의 `[대기]` 항목만 고르고, 먼저 확실한 개선 사항인지, 현재도 필요한지, 제안된 방식이 문제를 만들 가능성은 없는지 리뷰한다. 진행 가치가 충분하다고 판단될 때만 `[개선 중]`으로 바꾸고, 구현과 검증이 끝나면 해당 항목을 삭제한 뒤 관련 파일만 커밋한다. 각 항목은 가능한 한 작은 독립 커밋 단위로 유지한다. 구현 중 새로 필요한 후속 작업, 설계 분기, 테스트 보강, UI 정리, 문서 갱신이 발견되면 현재 항목에 억지로 끼워 넣지 말고 이 문서에 새 `[대기]` 항목으로 다시 등록해 재귀적으로 이어간다.
-
-- [대기] 서울형 키즈카페 duplicate-retirement 검증 중 `강동구 상일2동점`(`54b68ee2-07f5-445c-a6f2-ffd9a9c8e7c3`)과 `동작구 신대방2동점`(`3b2950ec-c102-43aa-8723-0d4bb2a0ef6f`)이 branch-sibling 후보로 다시 보였다. 다음 heartbeat에서 exact-name search와 duplicate/detail/version을 먼저 재확인하고, 같은 지점 active duplicate pair가 실제로 존재할 때만 canonical/retire 대상을 정해 `/retire-duplicate`로 정리한다.
