@@ -1598,7 +1598,7 @@ function applyImageHealthDirectProbe(item: PlaceImageHealthItem, directProbe: Im
     directProbe
   };
 
-  if (item.imageHealth.primaryImageUrl && !directProbe.ok) {
+  if (item.imageHealth.primaryImageUrl && !directProbe.ok && !isImageHealthProbeInconclusive(directProbe)) {
     return {
       ...item,
       imageHealth: {
@@ -1614,6 +1614,13 @@ function applyImageHealthDirectProbe(item: PlaceImageHealthItem, directProbe: Im
     ...item,
     imageHealth
   };
+}
+
+function isImageHealthProbeInconclusive(directProbe: ImageHealthDirectProbe) {
+  if (directProbe.ok) return false;
+  const attempts = directProbe.attempts ?? [];
+  if (attempts.length === 0) return directProbe.status === null;
+  return attempts.every((attempt) => attempt.status === null && Boolean(attempt.error));
 }
 
 export function applyImageHealthDirectProbeForTest(item: PlaceImageHealthItem, directProbe: ImageHealthDirectProbe) {

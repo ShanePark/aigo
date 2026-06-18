@@ -1415,6 +1415,99 @@ describe("place search helpers", () => {
     });
   });
 
+  it("keeps existing image health when direct primary image probes are network-inconclusive", () => {
+    const item = {
+      placeId: "11111111-1111-4111-8111-111111111111",
+      name: "테스트 장소",
+      primaryCategory: "toy_library",
+      tags: [],
+      address: null,
+      roadAddress: null,
+      region: {
+        sido: null,
+        sigungu: null,
+        dong: null,
+        countryCode: null,
+        countryName: null,
+        city: null,
+        locality: null,
+        localCurrency: null
+      },
+      dataConfidence: "agent_collected",
+      updatedAt: "2026-06-12T00:00:00.000Z",
+      imageHealth: {
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        activeCount: 1,
+        approvedCount: 1,
+        needsReviewCount: 0,
+        pendingReviewCount: 0,
+        rejectedCount: 0,
+        archivedCount: 0,
+        hasPrimary: true,
+        primaryImageUrl: "https://example.com/flaky.jpg",
+        primaryReviewStatus: "approved",
+        latestImageCheckedAt: "2026-06-01T00:00:00.000Z",
+        latestImageUpdatedAt: "2026-06-01T00:00:00.000Z"
+      }
+    };
+
+    expect(
+      applyImageHealthDirectProbeForTest(item, {
+        checkedAt: "2026-06-12T00:00:00.000Z",
+        ok: false,
+        status: null,
+        method: "GET",
+        contentType: null,
+        finalUrl: "https://example.com/flaky.jpg",
+        error: "fetch failed",
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          },
+          {
+            method: "GET_RANGE",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          },
+          {
+            method: "GET",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          }
+        ]
+      })
+    ).toMatchObject({
+      imageHealth: {
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        directProbe: {
+          ok: false,
+          status: null,
+          error: "fetch failed",
+          attempts: [
+            { method: "HEAD", status: null, error: "fetch failed" },
+            { method: "GET_RANGE", status: null, error: "fetch failed" },
+            { method: "GET", status: null, error: "fetch failed" }
+          ]
+        }
+      }
+    });
+  });
+
   it("accepts ranged image probes after non-image HEAD responses", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
