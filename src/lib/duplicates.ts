@@ -458,6 +458,14 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
 }
 
 function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
+  if (
+    (signals.publicSubfacilityReviewOnly || signals.publicSameSiteSubfacilityReviewOnly) &&
+    !signals.externalRefsMatch &&
+    !signals.kakaoPlaceIdMatch
+  ) {
+    return Boolean(signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85);
+  }
+
   return Boolean(
     signals.externalRefsMatch ||
       signals.kakaoPlaceIdMatch ||

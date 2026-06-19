@@ -684,6 +684,27 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps same-site public subfacilities from becoming identity matches on broad aliases", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicSameSiteSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.68,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
   it("treats traffic safety experience aliases as generic public activity review signals", () => {
     expect(duplicateWeakThematicSimilarityReviewOnly("광주광역시교통문화연수원 어린이 교통안전체험", "어린이 안전체험관")).toBe(true);
     expect(
