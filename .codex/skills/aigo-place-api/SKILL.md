@@ -515,6 +515,7 @@ AiGo has two score layers:
 - Use optional `diversity.maxPerRegion` and `diversity.maxPerCategory` when a planning answer needs a mix of regions or categories instead of a single concentrated ranked list.
 - Use `coursePlan: true` when a ranked list should also be grouped into practical course roles; each role candidate includes `imageHealth` so missing, pending, or review-needed images remain visible. Treat the returned roles as a starting scaffold and still inspect sources, opening-hours confidence, and parent notes before presenting a final itinerary.
 - Broad public-child-facility Korean queries such as `공공 어린이 체험 박물관 과학관` should expand to public categories instead of requiring every literal token to match one row.
+- Broad destination queries that combine a region, parent wording, and category language such as `대전 아이랑 동물원 놀이공원` should preserve child intent while expanding softly across `zoo`, `aquarium`, `park`, `experience_center`, `animals_aquarium`, and `hands_on_experience` signals. Use exact-name search for deterministic identity checks, but use normal search smoke tests for these broader parent/category recall cases.
 - Exact compact name matches should receive a stronger query boost than partial name or tag-only matches so a full place-name query ranks the intended record above similarly named alternatives.
 - When a user or agent needs a deterministic exact-place lookup, use search `matchMode: "exactName"` rather than relying on ranking alone.
 

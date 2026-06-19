@@ -1158,6 +1158,7 @@ describe("place search helpers", () => {
     expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
     expect(isBroadParentIntentQuery("영아 실내 공공시설")).toBe(true);
     expect(isBroadParentIntentQuery("공동육아나눔터 영유아 실내")).toBe(true);
+    expect(isBroadParentIntentQuery("대전 아이랑 동물원 놀이공원")).toBe(true);
     expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
   });
 
@@ -1193,6 +1194,7 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");
     expect(categoryClauseForKeywordTerm("아쿠아리움")).toBe("primary_category = 'aquarium'");
     expect(categoryClauseForKeywordTerm("동물원")).toBe("primary_category = 'zoo'");
+    expect(categoryClauseForKeywordTerm("놀이공원")).toBe("primary_category = any(array['zoo','aquarium','park','experience_center']::text[])");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
     expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");
@@ -3025,6 +3027,25 @@ describe("place search helpers", () => {
     });
     expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "전국 아이랑 과학관 어린이박물관" })).sql).toContain(
       "primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])"
+    );
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).toMatchObject({
+      query: "대전 아이랑 동물원 놀이공원",
+      taxonomy: {
+        mode: "soft",
+        familyFitGates: ["child_primary"],
+        activityTypes: ["animals_aquarium", "hands_on_experience"]
+      }
+    });
+    expect(searchQueryNormalizationMetaForTest({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).toMatchObject({
+      removedTerms: [],
+      preservedTaxonomyFacets: {
+        familyFitGates: ["child_primary"],
+        activityTypes: ["animals_aquarium", "hands_on_experience"]
+      },
+      hasPreservedIntent: true
+    });
+    expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).sql).toContain(
+      "primary_category = any(array['zoo','aquarium','park','experience_center']::text[])"
     );
     expect(normalizeSearchInput({ ...baseSearchInput, query: "워터파크 물놀이 아이랑" })).toMatchObject({
       query: "워터파크 물놀이",

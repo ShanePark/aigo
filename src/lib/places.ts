@@ -3450,6 +3450,8 @@ const alternativeKeywordTerms = new Set([
   "수족관",
   "동물원",
   "사파리",
+  "놀이공원",
+  "테마파크",
   "과학관",
   "체험",
   "체험관",
@@ -3503,6 +3505,12 @@ const broadParentIntentTerms = new Set([
   "과학관",
   "박물관",
   "어린이박물관",
+  "아쿠아리움",
+  "수족관",
+  "동물원",
+  "사파리",
+  "놀이공원",
+  "테마파크",
   "도서관",
   "장난감도서관",
   "장난감",
@@ -3564,6 +3572,12 @@ const broadParentCoreTerms = new Set([
   "과학관",
   "박물관",
   "어린이박물관",
+  "아쿠아리움",
+  "수족관",
+  "동물원",
+  "사파리",
+  "놀이공원",
+  "테마파크",
   "도서관",
   "장난감도서관",
   "장난감",
@@ -3890,6 +3904,20 @@ const broadShoppingExpansionTerms = [
   "레고스토어"
 ];
 
+const broadAttractionExpansionTerms = [
+  "동물원",
+  "수족관",
+  "아쿠아리움",
+  "사파리",
+  "놀이공원",
+  "테마파크",
+  "어트랙션",
+  "체험",
+  "체험관",
+  "animals_aquarium",
+  "hands_on_experience"
+];
+
 const mealPlayMealTerms = new Set([
   "밥",
   "밥먹고",
@@ -3960,8 +3988,12 @@ export function isBroadParentIntentQuery(query: string) {
   const terms = query
     .trim()
     .split(/\s+/)
-    .filter((term) => Boolean(term) && !isQueryStopTerm(term));
-  const hasDiscoveryPair = terms.includes("어린이박물관") || terms.includes("워터파크");
+    .filter((term) => Boolean(term) && !isQueryStopTerm(term) && !isLocationAnchorTerm(term));
+  const hasDiscoveryPair =
+    terms.includes("어린이박물관") ||
+    terms.includes("워터파크") ||
+    (terms.some((term) => ["동물원", "수족관", "아쿠아리움", "사파리"].includes(term)) &&
+      terms.some((term) => ["놀이공원", "테마파크", "체험", "체험관"].includes(term)));
   return (
     (terms.length >= 3 || hasDiscoveryPair) &&
     terms.every((term) => broadParentIntentTerms.has(term)) &&
@@ -4152,7 +4184,11 @@ const categoryKeywordMap: Record<string, string[]> = {
   어린이: ["science_museum", "art_museum", "museum", "experience_center", "library", "indoor_playground", "playground", "toy_library"],
   어린이박물관: ["museum", "experience_center"],
   아쿠아리움: ["aquarium"],
+  수족관: ["aquarium"],
   동물원: ["zoo"],
+  사파리: ["zoo"],
+  놀이공원: ["zoo", "aquarium", "park", "experience_center"],
+  테마파크: ["zoo", "aquarium", "park", "experience_center"],
   워터파크: ["park", "playground", "experience_center"],
   체험관: ["experience_center"],
   수목원: ["park"],
@@ -4318,6 +4354,18 @@ function broadParentIntentClause(terms: string[], add: (value: unknown) => strin
   ) {
     clauses.push("primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])");
     addTextExpansionClauses(clauses, broadPublicExpansionTerms, add);
+  }
+
+  if (
+    termSet.has("동물원") ||
+    termSet.has("수족관") ||
+    termSet.has("아쿠아리움") ||
+    termSet.has("사파리") ||
+    termSet.has("놀이공원") ||
+    termSet.has("테마파크")
+  ) {
+    clauses.push("primary_category = any(array['zoo','aquarium','park','experience_center']::text[])");
+    addTextExpansionClauses(clauses, broadAttractionExpansionTerms, add);
   }
 
   if (termSet.has("쇼핑몰") || termSet.has("백화점") || termSet.has("아울렛")) {
