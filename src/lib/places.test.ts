@@ -206,14 +206,14 @@ describe("place search helpers", () => {
 
   it("appends top-level PATCH aliases to existing external reference aliases", () => {
     const parsed = updatePlaceSchema.parse({
-      aliases: ["제주시 어린이교통공원", "제주 어린이 교통공원"],
-      koreanSearchAliases: ["제주어린이교통공원"],
+      aliases: ["대전 시민천문대", "대전광역시 시민천문대", "Daejeon Observatory"],
+      koreanSearchAliases: ["대전시민천문대"],
       sources: [officialSource]
     });
     const externalRefs = mergePlaceUpdateExternalRefsForTest(
       {
-        aliases: ["제주어린이교통공원"],
-        koreanSearchAliases: ["어린이교통공원 제주"],
+        aliases: ["대전시민천문대"],
+        koreanSearchAliases: ["시민천문대 대전"],
         coordinateProvenance: {
           level: "public_dataset_exact_address"
         }
@@ -226,13 +226,31 @@ describe("place search helpers", () => {
     });
 
     expect(externalRefs).toEqual({
-      aliases: ["제주어린이교통공원", "제주시 어린이교통공원", "제주 어린이 교통공원"],
-      koreanSearchAliases: ["어린이교통공원 제주", "제주어린이교통공원"],
+      aliases: [
+        "대전시민천문대",
+        "대전 시민천문대",
+        "대전광역시 시민천문대",
+        "Daejeon Observatory"
+      ],
+      koreanSearchAliases: ["시민천문대 대전", "대전시민천문대"],
       coordinateProvenance: {
         level: "public_dataset_exact_address"
       }
     });
     expect(updateRecord.external_refs).toEqual(externalRefs);
+    expect(
+      queryMatchSignal(
+        {
+          name: "대전시민천문대",
+          tags: [],
+          description: null,
+          address: null,
+          roadAddress: null,
+          externalRefs
+        },
+        "Daejeon Observatory"
+      ).reasonCodes
+    ).toContain("QUERY_NAME_EXACT");
   });
 
   it("skips source rows that already exist for the place", () => {
