@@ -211,8 +211,11 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
   }
   if (
     signals.branchSiblingReviewOnly ||
-    signals.publicProviderSiblingReviewOnly ||
-    (signals.genericAliasReviewOnly && !hasStrongIdentityEvidence(signals) && (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
+    (signals.publicProviderSiblingReviewOnly && !outsideRadiusGenericPublicNoise(signals)) ||
+    (signals.genericAliasReviewOnly &&
+      !outsideRadiusGenericPublicNoise(signals) &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
   ) {
     return "sibling_branch_review";
   }
@@ -220,6 +223,7 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
     signals.unrelatedBranchCategoryReviewOnly ||
     signals.categoryConflictReviewOnly ||
     publicSubfacilityRegionConflictNoise(signals) ||
+    outsideRadiusGenericPublicNoise(signals) ||
     lowConfidenceLocationConflictNoise(signals) ||
     lowConfidenceOutsideRadiusNoise(signals, duplicateConfidence(signals)) ||
     signals.weakThematicSimilarityReviewOnly ||
@@ -502,6 +506,15 @@ function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) 
 
 function lowConfidenceOutsideRadiusNoise(signals: DuplicateCandidateSignals, confidence: string) {
   return Boolean(confidence === "low" && duplicateOutsideRadiusReviewOnly(signals) && !hasStrongIdentityEvidence(signals));
+}
+
+function outsideRadiusGenericPublicNoise(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    duplicateOutsideRadiusReviewOnly(signals) &&
+      !signals.sameSigunguMatch &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.genericAliasReviewOnly || signals.publicProviderSiblingReviewOnly)
+  );
 }
 
 function duplicateSidoFromLocation(...values: Array<string | null | undefined>) {

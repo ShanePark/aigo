@@ -549,6 +549,35 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("downgrades outside-radius public provider siblings outside the source district", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: false,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 48000,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps public childcare candidates from merging into nearby broad attractions", () => {
     const signals = {
       aliasMatch: true,
@@ -869,7 +898,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
-    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",

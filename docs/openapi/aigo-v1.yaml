@@ -197,7 +197,9 @@ paths:
         Agent scripts should read `items`, not legacy `candidates` or `results` fields.
         Use `meta.reviewBucket.low_priority_noise`, `meta.holdReviewCount`, and candidate
         `suggestedAction`/`reviewBucket` to distinguish weak generic-alias context from
-        identity-blocking duplicate evidence.
+        identity-blocking duplicate evidence. Outside-radius generic public-facility or
+        same-provider sibling matches without strict identity evidence are non-blocking
+        low-priority noise.
       requestBody:
         required: true
         content:
@@ -2801,7 +2803,7 @@ components:
               reviewBucket:
                 type: string
                 enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
-                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius candidates with no strict identity evidence should be non-blocking `low_priority_noise`.
+                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius generic public-facility or same-provider sibling candidates with no strict identity evidence, including no same district, should be non-blocking `low_priority_noise`.
               relationshipHint:
                 type: string
                 nullable: true
