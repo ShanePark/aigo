@@ -374,7 +374,7 @@ export async function updatePlace(placeId: string, input: UpdatePlaceInput) {
         ? normalizedInput
         : {
             ...normalizedInput,
-            externalRefs: mergeExternalRefsForUpdate(existing[0].external_refs, normalizedInput.externalRefs)
+            externalRefs: mergePlaceUpdateExternalRefs(existing[0].external_refs, normalizedInput)
           };
     const patch = toDbRecord(patchInput);
     const columns = Object.keys(patch);
@@ -2281,6 +2281,42 @@ export function mergeExternalRefsForUpdateForTest(
   patch: Record<string, unknown>
 ) {
   return mergeExternalRefsForUpdate(existing, patch);
+}
+
+function mergePlaceUpdateExternalRefs(
+  existing: Record<string, unknown> | null | undefined,
+  input: UpdatePlaceInput
+) {
+  const patch = input.externalRefs;
+  if (patch === undefined) return undefined;
+
+  const merged = mergeExternalRefsForUpdate(existing, patch);
+  mergeTopLevelPlaceAliases(merged, existing, patch, "aliases", input.aliases);
+  mergeTopLevelPlaceAliases(merged, existing, patch, "koreanSearchAliases", input.koreanSearchAliases);
+  return merged;
+}
+
+function mergeTopLevelPlaceAliases(
+  merged: Record<string, unknown>,
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>,
+  key: "aliases" | "koreanSearchAliases",
+  topLevelAliases: string[] | undefined
+) {
+  if (topLevelAliases === undefined) return;
+
+  const values = [
+    ...stringArrayFromExternalRefs(isPlainJsonObject(existing) ? existing[key] : undefined),
+    ...stringArrayFromExternalRefs(patch[key])
+  ];
+  merged[key] = Array.from(new Set(values));
+}
+
+export function mergePlaceUpdateExternalRefsForTest(
+  existing: Record<string, unknown> | null | undefined,
+  input: UpdatePlaceInput
+) {
+  return mergePlaceUpdateExternalRefs(existing, input);
 }
 
 function normalizeTags(tags: string[] | undefined) {

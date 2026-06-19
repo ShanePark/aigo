@@ -967,13 +967,13 @@ components:
         aliases:
           type: array
           maxItems: 30
-          description: Write alias for common place names, legacy public labels, or parent-search variants. Values are persisted under `externalRefs.aliases` and used by exact-name, keyword, and duplicate recovery.
+          description: Write alias for common place names, legacy public labels, or parent-search variants. Values are persisted under `externalRefs.aliases` and used by exact-name, keyword, and duplicate recovery. On update, top-level aliases are added to existing stored aliases instead of replacing the array.
           items:
             type: string
         koreanSearchAliases:
           type: array
           maxItems: 30
-          description: Write alias for Korean parent-facing search phrases or older Korean labels. Values are persisted under `externalRefs.koreanSearchAliases` and used by exact-name, keyword, and duplicate recovery.
+          description: Write alias for Korean parent-facing search phrases or older Korean labels. Values are persisted under `externalRefs.koreanSearchAliases` and used by exact-name, keyword, and duplicate recovery. On update, top-level aliases are added to existing stored aliases instead of replacing the array.
           items:
             type: string
         externalRefs:
@@ -1163,7 +1163,8 @@ components:
             Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
             when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
             into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
-            replace the addressed key. With the default append source mode, source rows that already exist for the place
+            replace the addressed key. Top-level `aliases` and `koreanSearchAliases` are the exception: on update they are
+            added to the existing stored alias arrays before persistence. With the default append source mode, source rows that already exist for the place
             with the same source type, title, URL, external id, and summary are skipped so readback sources can be reused
             for audit evidence without duplicating the public source list. For narrow image metadata corrections, send only `sources`, `images`, optional
             `imageMode`, `actor`, and `changeSummary`; do not resend the full create-shaped place payload unless the

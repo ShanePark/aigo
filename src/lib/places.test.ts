@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPlaceSchema } from "@/lib/schemas";
+import { createPlaceSchema, updatePlaceSchema } from "@/lib/schemas";
 import {
   applySearchDiversity,
   assertDeleteConfirmationMatches,
@@ -25,6 +25,7 @@ import {
   imageConflictPolicyForTest,
   applyImageHealthDirectProbeForTest,
   imageHealthPlaceStatusPredicateForTest,
+  mergePlaceUpdateExternalRefsForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -201,6 +202,37 @@ describe("place search helpers", () => {
       coordinateProvenance: null,
       reviewLinks: [{ url: "https://example.com/review" }]
     });
+  });
+
+  it("appends top-level PATCH aliases to existing external reference aliases", () => {
+    const parsed = updatePlaceSchema.parse({
+      aliases: ["제주시 어린이교통공원", "제주 어린이 교통공원"],
+      koreanSearchAliases: ["제주어린이교통공원"],
+      sources: [officialSource]
+    });
+    const externalRefs = mergePlaceUpdateExternalRefsForTest(
+      {
+        aliases: ["제주어린이교통공원"],
+        koreanSearchAliases: ["어린이교통공원 제주"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address"
+        }
+      },
+      parsed
+    );
+    const updateRecord = placeDbRecordForTest({
+      ...parsed,
+      externalRefs
+    });
+
+    expect(externalRefs).toEqual({
+      aliases: ["제주어린이교통공원", "제주시 어린이교통공원", "제주 어린이 교통공원"],
+      koreanSearchAliases: ["어린이교통공원 제주", "제주어린이교통공원"],
+      coordinateProvenance: {
+        level: "public_dataset_exact_address"
+      }
+    });
+    expect(updateRecord.external_refs).toEqual(externalRefs);
   });
 
   it("skips source rows that already exist for the place", () => {
