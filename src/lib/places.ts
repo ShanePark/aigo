@@ -4712,6 +4712,13 @@ function mapPlace(row: PlaceRow) {
       scoreSignals: row.score_signals ?? {},
       scoreUpdatedAt: row.score_updated_at ? toIso(row.score_updated_at) : null
     },
+    placeScore: row.place_score,
+    placeScoreRationale: row.place_score_rationale,
+    externalRatingScore: row.external_rating_score,
+    externalReviewCount: row.external_review_count,
+    searchEvidenceScore: row.search_evidence_score,
+    scoreSignals: row.score_signals ?? {},
+    scoreUpdatedAt: row.score_updated_at ? toIso(row.score_updated_at) : null,
     recommendedAgeMonths: {
       min: row.min_recommended_age_months,
       max: row.max_recommended_age_months

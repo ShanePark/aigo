@@ -3442,6 +3442,13 @@ components:
         - status
         - dataConfidence
         - scoring
+        - placeScore
+        - placeScoreRationale
+        - externalRatingScore
+        - externalReviewCount
+        - searchEvidenceScore
+        - scoreSignals
+        - scoreUpdatedAt
         - recommendedAgeMonths
         - facilities
         - visit
@@ -3572,6 +3579,42 @@ components:
           type: string
         scoring:
           $ref: "#/components/schemas/PlaceScoring"
+        placeScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.placeScore`.
+        placeScoreRationale:
+          type: string
+          nullable: true
+          description: Flat alias for `scoring.placeScoreRationale`.
+        externalRatingScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.externalRatingScore`.
+        externalReviewCount:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Flat alias for `scoring.externalReviewCount`.
+        searchEvidenceScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.searchEvidenceScore`.
+        scoreSignals:
+          type: object
+          description: Flat alias for `scoring.scoreSignals`.
+          additionalProperties: true
+        scoreUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Flat alias for `scoring.scoreUpdatedAt`.
         recommendedAgeMonths:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         facilities:

@@ -444,6 +444,44 @@ describe("place search helpers", () => {
     expect(detail.safetyNotes).toBe("안전 메모");
   });
 
+  it("exposes scoring fields in both nested and flat place detail shapes", () => {
+    const detail = placeDetailForTest({
+      place_score: 8.2,
+      place_score_rationale: "공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.",
+      external_rating_score: 8.6,
+      external_review_count: 1204,
+      search_evidence_score: 8.1,
+      score_signals: {
+        facilityScale: "large",
+        officialSourceFreshness: "recent"
+      },
+      score_updated_at: new Date("2026-06-19T05:50:00.000Z")
+    });
+
+    expect(detail.scoring).toEqual({
+      placeScore: 8.2,
+      placeScoreRationale: "공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.",
+      externalRatingScore: 8.6,
+      externalReviewCount: 1204,
+      searchEvidenceScore: 8.1,
+      scoreSignals: {
+        facilityScale: "large",
+        officialSourceFreshness: "recent"
+      },
+      scoreUpdatedAt: "2026-06-19T05:50:00.000Z"
+    });
+    expect(detail.placeScore).toBe(8.2);
+    expect(detail.placeScoreRationale).toBe("공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.");
+    expect(detail.externalRatingScore).toBe(8.6);
+    expect(detail.externalReviewCount).toBe(1204);
+    expect(detail.searchEvidenceScore).toBe(8.1);
+    expect(detail.scoreSignals).toEqual({
+      facilityScale: "large",
+      officialSourceFreshness: "recent"
+    });
+    expect(detail.scoreUpdatedAt).toBe("2026-06-19T05:50:00.000Z");
+  });
+
   it("persists nested recommended age payload aliases to age columns", () => {
     const payload = createPlaceSchema.parse({
       name: "연령대 숙소",

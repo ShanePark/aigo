@@ -159,6 +159,7 @@ When a candidate is useful only as a short add-on or fallback, encode that hones
    - Call `GET /v1/places/{placeId}`.
    - Call `GET /v1/places/{placeId}/versions` and confirm a new version exists with the expected source list. A 404 means the parent place id is invalid; an empty version list should only be treated as "no versions yet" after the place itself exists.
    - After creating or patching `parentNotes` or `safetyNotes`, verify detail responses expose both the backward-compatible flat fields (`parentNotes`, `safetyNotes`) and the nested aliases (`notes.parent`, `notes.safety`) with the same values.
+   - After creating or patching scoring fields, verify detail responses expose both the flat write fields (`placeScore`, `placeScoreRationale`, `externalRatingScore`, `externalReviewCount`, `searchEvidenceScore`, `scoreSignals`, `scoreUpdatedAt`) and nested `scoring.*` with the same values.
    - For soft deletes, confirm `GET /v1/places/{placeId}` returns the place with `status: "closed"`, exact-name search no longer returns it, and `GET /v1/places/{placeId}/versions` includes the delete audit `changeSummary`.
    - For duplicate retirements, confirm `GET /v1/places/{placeId}` returns `status: "merged"` with `externalRefs.duplicateRetirement.canonicalPlaceId`, exact-name search and duplicate checks no longer return the retired id, and versions include the merge audit `changeSummary`.
    - For image work, optionally call `GET /v1/places/image-health?status=attention`.
