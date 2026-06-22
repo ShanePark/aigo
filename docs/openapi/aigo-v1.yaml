@@ -197,7 +197,9 @@ paths:
         Agent scripts should read `items`, not legacy `candidates` or `results` fields.
         Use `meta.reviewBucket.low_priority_noise`, `meta.holdReviewCount`, and candidate
         `suggestedAction`/`reviewBucket` to distinguish weak generic-alias context from
-        identity-blocking duplicate evidence.
+        identity-blocking duplicate evidence. Outside-radius generic public-facility or
+        same-provider sibling matches without strict identity evidence are non-blocking
+        low-priority noise.
       requestBody:
         required: true
         content:
@@ -227,7 +229,7 @@ paths:
             type: string
             enum: [attention, no_active_image, rejected_only, needs_review, pending_review, no_primary, healthy, primary_image_unreachable, all]
             default: attention
-          description: Queue selector. `attention` returns everything except healthy rows.
+          description: Queue selector. `attention` returns everything except healthy rows for unscoped queue scans. When `placeIds` or `placeId` is provided and `status` is omitted, the API defaults to `all` so a scoped verification can distinguish a healthy row from a missing row.
         - name: probeImages
           in: query
           required: false
@@ -964,9 +966,21 @@ components:
               format: uri
             kakaoPlaceId:
               type: string
+        aliases:
+          type: array
+          maxItems: 30
+          description: Write alias for common place names, legacy public labels, or parent-search variants. Values are persisted under `externalRefs.aliases` and used by exact-name, keyword, and duplicate recovery. On update, top-level aliases are added to existing stored aliases instead of replacing the array.
+          items:
+            type: string
+        koreanSearchAliases:
+          type: array
+          maxItems: 30
+          description: Write alias for Korean parent-facing search phrases or older Korean labels. Values are persisted under `externalRefs.koreanSearchAliases` and used by exact-name, keyword, and duplicate recovery. On update, top-level aliases are added to existing stored aliases instead of replacing the array.
+          items:
+            type: string
         externalRefs:
           type: object
-          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here.
+          description: Optional external reference object used for JSON containment duplicate matching against stored `externalRefs`. Agents may store public parent-inspection links such as `infoLinks` and `reviewLinks` here. Top-level `aliases` and `koreanSearchAliases` write inputs are normalized into this object.
           additionalProperties: true
         playFeatures:
           $ref: "#/components/schemas/PlayFeatures"
@@ -1151,7 +1165,10 @@ components:
             Update requires source provenance. If one coordinate is changed, both `lat` and `lng` must be sent together;
             when both age bounds are sent, min must be less than or equal to max. `externalRefs` updates are deep-merged
             into the existing JSON object: omitted keys are preserved, nested objects merge recursively, and arrays/scalars/null
-            replace the addressed key. For narrow image metadata corrections, send only `sources`, `images`, optional
+            replace the addressed key. Top-level `aliases` and `koreanSearchAliases` are the exception: on update they are
+            added to the existing stored alias arrays before persistence. With the default append source mode, source rows that already exist for the place
+            with the same source type, title, URL, external id, and summary are skipped so readback sources can be reused
+            for audit evidence without duplicating the public source list. For narrow image metadata corrections, send only `sources`, `images`, optional
             `imageMode`, `actor`, and `changeSummary`; do not resend the full create-shaped place payload unless the
             place fields themselves are being corrected.
           required: [sources]
@@ -2786,7 +2803,7 @@ components:
               reviewBucket:
                 type: string
                 enum: [identity, relationship_context, sibling_branch_review, low_priority_noise]
-                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius candidates with address/region conflict and no strict identity evidence should be non-blocking `low_priority_noise`.
+                description: Operator-facing review bucket. Use `relationship_context` for same-address or same-district subfacility/parent-child leads. Use `sibling_branch_review` and `low_priority_noise` to deprioritize generic alias, branch sibling, address-region-conflicting public subfacility, same-province, unrelated category, or outside-radius candidates that are useful context but weak identity evidence. Outside-radius generic public-facility or same-provider sibling candidates with no strict identity evidence, including no same district, should be non-blocking `low_priority_noise`.
               relationshipHint:
                 type: string
                 nullable: true
@@ -3315,16 +3332,23 @@ components:
               format: date-time
     PlaceVersionSummary:
       type: object
-      required: [id, versionNumber, action, actor, sources, createdAt]
+      required: [id, versionNumber, version, action, changeType, actor, sources, createdAt]
       properties:
         id:
           type: string
           format: uuid
         versionNumber:
           type: integer
+        version:
+          type: integer
+          description: Backward-compatible alias for `versionNumber`.
         action:
           type: string
           enum: [create, update]
+        changeType:
+          type: string
+          enum: [create, update]
+          description: Backward-compatible alias for `action`.
         actor:
           type: string
         changeSummary:
@@ -3418,6 +3442,13 @@ components:
         - status
         - dataConfidence
         - scoring
+        - placeScore
+        - placeScoreRationale
+        - externalRatingScore
+        - externalReviewCount
+        - searchEvidenceScore
+        - scoreSignals
+        - scoreUpdatedAt
         - recommendedAgeMonths
         - facilities
         - visit
@@ -3548,6 +3579,42 @@ components:
           type: string
         scoring:
           $ref: "#/components/schemas/PlaceScoring"
+        placeScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.placeScore`.
+        placeScoreRationale:
+          type: string
+          nullable: true
+          description: Flat alias for `scoring.placeScoreRationale`.
+        externalRatingScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.externalRatingScore`.
+        externalReviewCount:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Flat alias for `scoring.externalReviewCount`.
+        searchEvidenceScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Flat alias for `scoring.searchEvidenceScore`.
+        scoreSignals:
+          type: object
+          description: Flat alias for `scoring.scoreSignals`.
+          additionalProperties: true
+        scoreUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Flat alias for `scoring.scoreUpdatedAt`.
         recommendedAgeMonths:
           $ref: "#/components/schemas/RecommendedAgeMonths"
         facilities:

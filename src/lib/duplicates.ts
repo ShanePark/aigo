@@ -211,8 +211,11 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
   }
   if (
     signals.branchSiblingReviewOnly ||
-    signals.publicProviderSiblingReviewOnly ||
-    (signals.genericAliasReviewOnly && !hasStrongIdentityEvidence(signals) && (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
+    (signals.publicProviderSiblingReviewOnly && !outsideRadiusGenericPublicNoise(signals)) ||
+    (signals.genericAliasReviewOnly &&
+      !outsideRadiusGenericPublicNoise(signals) &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.addressRegionConflict || duplicateOutsideRadiusReviewOnly(signals)))
   ) {
     return "sibling_branch_review";
   }
@@ -220,7 +223,9 @@ export function duplicateReviewBucket(signals: DuplicateCandidateSignals): Dupli
     signals.unrelatedBranchCategoryReviewOnly ||
     signals.categoryConflictReviewOnly ||
     publicSubfacilityRegionConflictNoise(signals) ||
+    outsideRadiusGenericPublicNoise(signals) ||
     lowConfidenceLocationConflictNoise(signals) ||
+    lowConfidenceOutsideRadiusNoise(signals, duplicateConfidence(signals)) ||
     signals.weakThematicSimilarityReviewOnly ||
     signals.sameSidoGenericReviewOnly ||
     (signals.genericBranchName && !hasStrictLocationMatch(signals))
@@ -445,6 +450,7 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
   if (publicSubfacilityRegionConflictNoise(signals)) return false;
   if (signals.publicProviderSiblingReviewOnly && !hasStrongIdentityEvidence(signals)) return false;
   if (lowConfidenceLocationConflictNoise(signals)) return false;
+  if (lowConfidenceOutsideRadiusNoise(signals, confidence)) return false;
   if (duplicateOutsideRadiusReviewOnly(signals)) return true;
   if (signals.sameSidoGenericReviewOnly && !hasStrongIdentityEvidence(signals)) return true;
   if (signals.genericBranchName && signals.addressRegionConflict && !hasStrongIdentityEvidence(signals)) return true;
@@ -452,6 +458,14 @@ function shouldHoldDuplicateReview(signals: DuplicateCandidateSignals, confidenc
 }
 
 function hasStrongIdentityEvidence(signals: DuplicateCandidateSignals) {
+  if (
+    (signals.publicSubfacilityReviewOnly || signals.publicSameSiteSubfacilityReviewOnly) &&
+    !signals.externalRefsMatch &&
+    !signals.kakaoPlaceIdMatch
+  ) {
+    return Boolean(signals.distanceMeters !== null && signals.distanceMeters <= 150 && (signals.nameSimilarity ?? 0) >= 0.85);
+  }
+
   return Boolean(
     signals.externalRefsMatch ||
       signals.kakaoPlaceIdMatch ||
@@ -495,6 +509,19 @@ function lowConfidenceLocationConflictNoise(signals: DuplicateCandidateSignals) 
     signals.addressRegionConflict &&
       duplicateOutsideRadiusReviewOnly(signals) &&
       !hasStrongIdentityEvidence(signals)
+  );
+}
+
+function lowConfidenceOutsideRadiusNoise(signals: DuplicateCandidateSignals, confidence: string) {
+  return Boolean(confidence === "low" && duplicateOutsideRadiusReviewOnly(signals) && !hasStrongIdentityEvidence(signals));
+}
+
+function outsideRadiusGenericPublicNoise(signals: DuplicateCandidateSignals) {
+  return Boolean(
+    duplicateOutsideRadiusReviewOnly(signals) &&
+      !signals.sameSigunguMatch &&
+      !hasStrongIdentityEvidence(signals) &&
+      (signals.genericAliasReviewOnly || signals.publicProviderSiblingReviewOnly)
   );
 }
 
@@ -577,13 +604,19 @@ function branchTokens(value: string) {
     const providerIndex = value.indexOf(provider);
     if (providerIndex < 0) continue;
     const tail = value.slice(providerIndex + provider.length);
-    const branchMatch = tail.match(/^([가-힣A-Za-z0-9]{2,8})점/);
-    if (branchMatch?.[1]) tokens.add(compactDuplicateText(branchMatch[1]));
+    const branchMatch = tail.match(/^([가-힣A-Za-z0-9]{2,12}?)(?:점|$)/);
+    const token = branchMatch?.[1] ? normalizePublicProviderBranchToken(compactDuplicateText(branchMatch[1])) : null;
+    if (token) tokens.add(token);
   }
 
   return Array.from(tokens).filter(
     (token) => !publicProviderSiblingGenericBranchTokens.some((generic) => token.includes(generic) || generic.includes(token))
   );
+}
+
+function normalizePublicProviderBranchToken(value: string) {
+  const dongMatch = value.match(/(?:[가-힣]+구)?([가-힣]+[0-9]+동)$/);
+  return dongMatch?.[1] ?? value;
 }
 
 function parkPlaygroundSameSiteReviewOnly(input: string, inputCategory: string, candidate: string, candidateCategory: string) {
@@ -756,6 +789,9 @@ const broadDestinationCategories = new Set([
   "science_museum",
   "aquarium",
   "zoo",
+  "kids_cafe",
+  "indoor_playground",
+  "toy_library",
   "park",
   "playground",
   "shopping_mall",
@@ -767,21 +803,26 @@ const broadDestinationCategories = new Set([
 ]);
 
 const publicProviderSiblingProviderTerms = [
+  "서울형키즈카페",
   "육아종합지원센터",
   "가족센터",
   "도서관",
   "어린이도서관",
   "공동육아나눔터",
-  "아이사랑놀이터"
+  "아이사랑놀이터",
+  "아이사랑꿈터"
 ].map(compactDuplicateText);
 
 const publicProviderSiblingServiceTerms = [
+  "서울형키즈카페",
+  "키즈카페",
   "장난감도서관",
   "장난감나라",
   "장난감대여실",
   "나누리장난감도서관",
   "공동육아나눔터",
   "공동육아방",
+  "아이사랑꿈터",
   "실내놀이터",
   "어린이자료실",
   "유아자료실"
@@ -797,6 +838,7 @@ const publicProviderSiblingGenericBranchTokens = [
   "어린이도서",
   "공동육아",
   "아이사랑",
+  "아이사랑꿈터",
   "실내놀이터",
   "자료실"
 ].map(compactDuplicateText);

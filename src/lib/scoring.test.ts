@@ -1324,6 +1324,55 @@ describe("scorePlace", () => {
     }
   });
 
+  it("evaluates seasonal month-range maps as structured opening-hours schedules", () => {
+    const shared = {
+      primaryCategory: "museum",
+      tags: ["곤충", "생태"],
+      dataConfidence: "agent_collected",
+      minRecommendedAgeMonths: 24,
+      maxRecommendedAgeMonths: 156,
+      indoorType: "mixed",
+      parkingAvailable: "yes",
+      strollerFriendly: "partial",
+      nursingRoom: "unknown",
+      diaperChangingTable: "unknown",
+      kidsToilet: "unknown",
+      elevator: "yes",
+      babyChair: "unknown",
+      foodAllowed: "partial",
+      distanceKm: 68,
+      openingHours: {
+        timezone: "Asia/Seoul",
+        seasonal: {
+          summer: {
+            startMonth: 3,
+            endMonth: 10,
+            regularHours: "09:00-18:00",
+            lastAdmission: "17:00"
+          },
+          winter: {
+            startMonth: 11,
+            endMonth: 2,
+            regularHours: "09:00-17:00",
+            lastAdmission: "16:00"
+          }
+        },
+        closureRules: ["매주 월요일 휴관"]
+      }
+    };
+
+    const summerOpen = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-19T02:00:00.000Z") });
+    const summerClosedMonday = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-06-22T02:00:00.000Z") });
+    const winterOpen = scorePlace(shared, { ...baseInput, visitContext: "nearbyNow" }, { now: new Date("2026-01-15T02:00:00.000Z") });
+
+    expect(summerOpen.reasonCodes).toContain("OPEN_NOW");
+    expect(summerClosedMonday.reasonCodes).toContain("CLOSED_NOW");
+    expect(winterOpen.reasonCodes).toContain("OPEN_NOW");
+    for (const result of [summerOpen, summerClosedMonday, winterOpen]) {
+      expect(result.reasonCodes).not.toContain("OPENING_HOURS_UNKNOWN");
+    }
+  });
+
   it("keeps Seoul overnight hours open after midnight", () => {
     const shared = {
       primaryCategory: "kids_cafe",

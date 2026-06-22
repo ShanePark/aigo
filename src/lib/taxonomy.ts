@@ -300,6 +300,8 @@ export function inferTaxonomySearchFacets(query: string) {
   if (/실내|실내놀이|실내놀이터/.test(compact)) facets.activityTypes.push("indoor_play");
   if (/과학관|과학/.test(compact)) facets.activityTypes.push("science_exhibit");
   if (/어린이박물관|박물관/.test(compact)) facets.activityTypes.push("culture_exhibit");
+  if (/동물원|수족관|아쿠아리움|사파리/.test(compact)) facets.activityTypes.push("animals_aquarium");
+  if (/놀이공원|테마파크|체험관|체험/.test(compact)) facets.activityTypes.push("hands_on_experience");
   if (/모래놀이|모래놀이터/.test(compact)) facets.activityTypes.push("sand_play");
   if (/물놀이|물놀이터|바닥분수|워터파크/.test(compact)) facets.activityTypes.push("water_play");
   if (/쌍둥이|쌍둥이유모차/.test(compact)) {

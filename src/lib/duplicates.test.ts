@@ -66,9 +66,11 @@ describe("duplicate helpers", () => {
     expect(duplicateReasonCodes(signals)).toContain("GEO_OUTSIDE_REQUEST_RADIUS");
     expect(duplicateReasonCodes(signals)).toContain("OUTSIDE_RADIUS_REVIEW_ONLY");
     expect(duplicateReasonCodes(signals)).not.toContain("GEO_NEAR");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
   });
 
-  it("downgrades outside-radius alias and region matches to review-only", () => {
+  it("downgrades outside-radius alias and region matches to low-priority review", () => {
     const signals = {
       aliasMatch: true,
       regionMatch: true,
@@ -81,7 +83,8 @@ describe("duplicate helpers", () => {
 
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
-    expect(duplicateSuggestedAction(signals)).toBe("hold_duplicate_review");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "GEO_OUTSIDE_REQUEST_RADIUS", "OUTSIDE_RADIUS_REVIEW_ONLY", "NAME_SIMILAR"]));
   });
 
@@ -491,6 +494,90 @@ describe("duplicate helpers", () => {
     );
   });
 
+  it("keeps 서울형 키즈카페 branch-token mismatches out of identity review", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: null,
+      nameSimilarity: 0.82,
+      radiusMeters: null
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 구로구 오류1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 오류1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("서울형 키즈카페 개봉1동점", "서울형 키즈카페 구로구 개봉1동점")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY", "REGION_MATCH", "NAME_SIMILAR"])
+    );
+  });
+
+  it("keeps 아이사랑꿈터 numbered sibling branches from blocking create preflight", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: true,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 4209,
+      nameSimilarity: 0.86,
+      radiusMeters: 500
+    };
+
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 서구 2호점", "아이사랑꿈터 서구 11호점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 계양구 2호점", "아이사랑꿈터 계양구 1호점")).toBe(true);
+    expect(duplicatePublicProviderSiblingReviewOnly("아이사랑꿈터 계양구 2호점", "아이사랑꿈터 계양구 2호점")).toBe(false);
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
+  it("downgrades outside-radius public provider siblings outside the source district", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      sameSigunguMatch: false,
+      publicProviderSiblingReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 48000,
+      nameSimilarity: 0.72,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("low");
+    expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining([
+        "ALIAS_MATCH",
+        "PUBLIC_PROVIDER_SIBLING_REVIEW_ONLY",
+        "REGION_MATCH",
+        "GEO_OUTSIDE_REQUEST_RADIUS",
+        "OUTSIDE_RADIUS_REVIEW_ONLY",
+        "NAME_SIMILAR"
+      ])
+    );
+  });
+
   it("keeps public childcare candidates from merging into nearby broad attractions", () => {
     const signals = {
       aliasMatch: true,
@@ -510,6 +597,29 @@ describe("duplicate helpers", () => {
     expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "CATEGORY_CONFLICT_REVIEW_ONLY", "NAME_SIMILAR"])
+    );
+  });
+
+  it("keeps public childcare candidates from merging into nearby related facility categories", () => {
+    const signals = {
+      aliasMatch: true,
+      regionMatch: true,
+      categoryConflictReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 364,
+      radiusMeters: 500,
+      nameSimilarity: 0.72
+    };
+
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "toy_library")).toBe(true);
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "kids_cafe")).toBe(true);
+    expect(duplicateCategoryConflictReviewOnly("shared_childcare", "indoor_playground")).toBe(true);
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "REGION_MATCH", "CATEGORY_CONFLICT_REVIEW_ONLY", "GEO_NEAR", "NAME_SIMILAR"])
     );
   });
 
@@ -571,6 +681,27 @@ describe("duplicate helpers", () => {
     expect(duplicateRelationshipHint(signals)).toBe("parent_child");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining(["ALIAS_MATCH", "GENERIC_ALIAS_REVIEW_ONLY", "PUBLIC_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
+    );
+  });
+
+  it("keeps same-site public subfacilities from becoming identity matches on broad aliases", () => {
+    const signals = {
+      aliasMatch: true,
+      addressMatch: true,
+      publicSameSiteSubfacilityReviewOnly: true,
+      externalRefsMatch: false,
+      kakaoPlaceIdMatch: false,
+      distanceMeters: 0,
+      nameSimilarity: 0.68,
+      radiusMeters: 500
+    };
+
+    expect(duplicateConfidence(signals)).toBe("medium");
+    expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
+    expect(duplicateRelationshipHint(signals)).toBe("parent_child");
+    expect(duplicateReviewBucket(signals)).toBe("relationship_context");
+    expect(duplicateReasonCodes(signals)).toEqual(
+      expect.arrayContaining(["ALIAS_MATCH", "PUBLIC_SAME_SITE_SUBFACILITY_REVIEW_ONLY", "ADDRESS_MATCH", "GEO_NEAR", "NAME_SIMILAR"])
     );
   });
 
@@ -788,7 +919,7 @@ describe("duplicate helpers", () => {
     expect(duplicateConfidence(signals)).toBe("low");
     expect(duplicateOutsideRadiusReviewOnly(signals)).toBe(true);
     expect(duplicateSuggestedAction(signals)).toBe("manual_duplicate_review");
-    expect(duplicateReviewBucket(signals)).toBe("sibling_branch_review");
+    expect(duplicateReviewBucket(signals)).toBe("low_priority_noise");
     expect(duplicateReasonCodes(signals)).toEqual(
       expect.arrayContaining([
         "ALIAS_MATCH",

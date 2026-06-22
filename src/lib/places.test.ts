@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPlaceSchema } from "@/lib/schemas";
+import { createPlaceSchema, updatePlaceSchema } from "@/lib/schemas";
 import {
   applySearchDiversity,
   assertDeleteConfirmationMatches,
@@ -19,11 +19,13 @@ import {
   categoryClauseForKeywordTerm,
   compactDuplicatePlaceCandidateForTest,
   duplicateExternalRefsForMatchForTest,
+  dedupeSourcesForInsertForTest,
   duplicateResponseMetaForTest,
   compactSearchPlaceItem,
   imageConflictPolicyForTest,
   applyImageHealthDirectProbeForTest,
   imageHealthPlaceStatusPredicateForTest,
+  mergePlaceUpdateExternalRefsForTest,
   isBroadNatureIntentQuery,
   isBroadParentIntentQuery,
   isBroadWaterPlayIntentQuery,
@@ -202,6 +204,96 @@ describe("place search helpers", () => {
     });
   });
 
+  it("appends top-level PATCH aliases to existing external reference aliases", () => {
+    const parsed = updatePlaceSchema.parse({
+      aliases: ["대전 시민천문대", "대전광역시 시민천문대", "Daejeon Observatory"],
+      koreanSearchAliases: ["대전시민천문대"],
+      sources: [officialSource]
+    });
+    const externalRefs = mergePlaceUpdateExternalRefsForTest(
+      {
+        aliases: ["대전시민천문대"],
+        koreanSearchAliases: ["시민천문대 대전"],
+        coordinateProvenance: {
+          level: "public_dataset_exact_address"
+        }
+      },
+      parsed
+    );
+    const updateRecord = placeDbRecordForTest({
+      ...parsed,
+      externalRefs
+    });
+
+    expect(externalRefs).toEqual({
+      aliases: [
+        "대전시민천문대",
+        "대전 시민천문대",
+        "대전광역시 시민천문대",
+        "Daejeon Observatory"
+      ],
+      koreanSearchAliases: ["시민천문대 대전", "대전시민천문대"],
+      coordinateProvenance: {
+        level: "public_dataset_exact_address"
+      }
+    });
+    expect(updateRecord.external_refs).toEqual(externalRefs);
+    expect(
+      queryMatchSignal(
+        {
+          name: "대전시민천문대",
+          tags: [],
+          description: null,
+          address: null,
+          roadAddress: null,
+          externalRefs
+        },
+        "Daejeon Observatory"
+      ).reasonCodes
+    ).toContain("QUERY_NAME_EXACT");
+  });
+
+  it("skips source rows that already exist for the place", () => {
+    const sources = dedupeSourcesForInsertForTest(
+      [
+        {
+          sourceType: "official_site",
+          title: "여주도서관",
+          url: "https://example.com/library",
+          externalId: null,
+          summary: "공식 페이지에서 어린이자료실 정보를 확인했다."
+        }
+      ],
+      [
+        {
+          sourceType: "official_site",
+          title: " 여주도서관 ",
+          url: "https://example.com/library",
+          summary: "공식 페이지에서 어린이자료실 정보를 확인했다.",
+          checkedAt: "2026-06-18T22:02:00.000+09:00"
+        },
+        {
+          sourceType: "public_agency",
+          url: "https://example.com/new-source",
+          summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+        },
+        {
+          sourceType: "public_agency",
+          url: "https://example.com/new-source",
+          summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+        }
+      ]
+    );
+
+    expect(sources).toEqual([
+      {
+        sourceType: "public_agency",
+        url: "https://example.com/new-source",
+        summary: "새 공공기관 페이지에서 별칭 근거를 확인했다."
+      }
+    ]);
+  });
+
   it("maps create and update region and overseas fields to persisted DB columns", () => {
     const createRecord = placeDbRecordForTest({
       name: "한들근린공원 어린이놀이터",
@@ -350,6 +442,44 @@ describe("place search helpers", () => {
     });
     expect(detail.parentNotes).toBe("보호자 메모");
     expect(detail.safetyNotes).toBe("안전 메모");
+  });
+
+  it("exposes scoring fields in both nested and flat place detail shapes", () => {
+    const detail = placeDetailForTest({
+      place_score: 8.2,
+      place_score_rationale: "공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.",
+      external_rating_score: 8.6,
+      external_review_count: 1204,
+      search_evidence_score: 8.1,
+      score_signals: {
+        facilityScale: "large",
+        officialSourceFreshness: "recent"
+      },
+      score_updated_at: new Date("2026-06-19T05:50:00.000Z")
+    });
+
+    expect(detail.scoring).toEqual({
+      placeScore: 8.2,
+      placeScoreRationale: "공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.",
+      externalRatingScore: 8.6,
+      externalReviewCount: 1204,
+      searchEvidenceScore: 8.1,
+      scoreSignals: {
+        facilityScale: "large",
+        officialSourceFreshness: "recent"
+      },
+      scoreUpdatedAt: "2026-06-19T05:50:00.000Z"
+    });
+    expect(detail.placeScore).toBe(8.2);
+    expect(detail.placeScoreRationale).toBe("공식 체험 콘텐츠와 가족 편의 근거가 좋아 높은 점수.");
+    expect(detail.externalRatingScore).toBe(8.6);
+    expect(detail.externalReviewCount).toBe(1204);
+    expect(detail.searchEvidenceScore).toBe(8.1);
+    expect(detail.scoreSignals).toEqual({
+      facilityScale: "large",
+      officialSourceFreshness: "recent"
+    });
+    expect(detail.scoreUpdatedAt).toBe("2026-06-19T05:50:00.000Z");
   });
 
   it("persists nested recommended age payload aliases to age columns", () => {
@@ -1028,6 +1158,7 @@ describe("place search helpers", () => {
     expect(isBroadParentIntentQuery("공공시설 반나절 과학관 도서관 어린이")).toBe(true);
     expect(isBroadParentIntentQuery("영아 실내 공공시설")).toBe(true);
     expect(isBroadParentIntentQuery("공동육아나눔터 영유아 실내")).toBe(true);
+    expect(isBroadParentIntentQuery("대전 아이랑 동물원 놀이공원")).toBe(true);
     expect(isBroadParentIntentQuery("계룡산 유모차 주차")).toBe(false);
   });
 
@@ -1063,6 +1194,7 @@ describe("place search helpers", () => {
     expect(categoryClauseForKeywordTerm("미술관")).toBe("primary_category = 'art_museum'");
     expect(categoryClauseForKeywordTerm("아쿠아리움")).toBe("primary_category = 'aquarium'");
     expect(categoryClauseForKeywordTerm("동물원")).toBe("primary_category = 'zoo'");
+    expect(categoryClauseForKeywordTerm("놀이공원")).toBe("primary_category = any(array['zoo','aquarium','park','experience_center']::text[])");
     expect(categoryClauseForKeywordTerm("공동육아나눔터")).toBe("primary_category = 'toy_library'");
     expect(categoryClauseForKeywordTerm("장난감")).toBe("primary_category = any(array['toy_store','toy_library']::text[])");
     expect(categoryClauseForKeywordTerm("완구점")).toBe("primary_category = 'toy_store'");
@@ -1415,6 +1547,99 @@ describe("place search helpers", () => {
     });
   });
 
+  it("keeps existing image health when direct primary image probes are network-inconclusive", () => {
+    const item = {
+      placeId: "11111111-1111-4111-8111-111111111111",
+      name: "테스트 장소",
+      primaryCategory: "toy_library",
+      tags: [],
+      address: null,
+      roadAddress: null,
+      region: {
+        sido: null,
+        sigungu: null,
+        dong: null,
+        countryCode: null,
+        countryName: null,
+        city: null,
+        locality: null,
+        localCurrency: null
+      },
+      dataConfidence: "agent_collected",
+      updatedAt: "2026-06-12T00:00:00.000Z",
+      imageHealth: {
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        activeCount: 1,
+        approvedCount: 1,
+        needsReviewCount: 0,
+        pendingReviewCount: 0,
+        rejectedCount: 0,
+        archivedCount: 0,
+        hasPrimary: true,
+        primaryImageUrl: "https://example.com/flaky.jpg",
+        primaryReviewStatus: "approved",
+        latestImageCheckedAt: "2026-06-01T00:00:00.000Z",
+        latestImageUpdatedAt: "2026-06-01T00:00:00.000Z"
+      }
+    };
+
+    expect(
+      applyImageHealthDirectProbeForTest(item, {
+        checkedAt: "2026-06-12T00:00:00.000Z",
+        ok: false,
+        status: null,
+        method: "GET",
+        contentType: null,
+        finalUrl: "https://example.com/flaky.jpg",
+        error: "fetch failed",
+        attempts: [
+          {
+            method: "HEAD",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          },
+          {
+            method: "GET_RANGE",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          },
+          {
+            method: "GET",
+            ok: false,
+            status: null,
+            contentType: null,
+            finalUrl: "https://example.com/flaky.jpg",
+            error: "fetch failed"
+          }
+        ]
+      })
+    ).toMatchObject({
+      imageHealth: {
+        status: "healthy",
+        suggestedAction: "none",
+        priorityScore: 0,
+        directProbe: {
+          ok: false,
+          status: null,
+          error: "fetch failed",
+          attempts: [
+            { method: "HEAD", status: null, error: "fetch failed" },
+            { method: "GET_RANGE", status: null, error: "fetch failed" },
+            { method: "GET", status: null, error: "fetch failed" }
+          ]
+        }
+      }
+    });
+  });
+
   it("accepts ranged image probes after non-image HEAD responses", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
@@ -1525,6 +1750,21 @@ describe("place search helpers", () => {
   it("includes temporarily closed places in image health only when explicitly scoped", () => {
     expect(imageHealthPlaceStatusPredicateForTest(false)).toBe("p.status = 'active'");
     expect(imageHealthPlaceStatusPredicateForTest(true)).toBe("p.status in ('active', 'temporarily_closed')");
+  });
+
+  it("defaults scoped image health verification to all statuses", () => {
+    expect(
+      normalizePlaceImageHealthQueryForTest({
+        placeIds: "11111111-1111-4111-8111-111111111111"
+      })
+    ).toMatchObject({
+      placeIds: ["11111111-1111-4111-8111-111111111111"],
+      status: "all"
+    });
+
+    expect(normalizePlaceImageHealthQueryForTest({})).toMatchObject({
+      status: "attention"
+    });
   });
 
   it("summarizes source freshness and provenance for search results", () => {
@@ -2787,6 +3027,25 @@ describe("place search helpers", () => {
     });
     expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "전국 아이랑 과학관 어린이박물관" })).sql).toContain(
       "primary_category = any(array['science_museum','art_museum','museum','experience_center','library','indoor_playground','playground','toy_library']::text[])"
+    );
+    expect(normalizeSearchInput({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).toMatchObject({
+      query: "대전 아이랑 동물원 놀이공원",
+      taxonomy: {
+        mode: "soft",
+        familyFitGates: ["child_primary"],
+        activityTypes: ["animals_aquarium", "hands_on_experience"]
+      }
+    });
+    expect(searchQueryNormalizationMetaForTest({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).toMatchObject({
+      removedTerms: [],
+      preservedTaxonomyFacets: {
+        familyFitGates: ["child_primary"],
+        activityTypes: ["animals_aquarium", "hands_on_experience"]
+      },
+      hasPreservedIntent: true
+    });
+    expect(buildSearchQuery(normalizeSearchInput({ ...baseSearchInput, query: "대전 아이랑 동물원 놀이공원" })).sql).toContain(
+      "primary_category = any(array['zoo','aquarium','park','experience_center']::text[])"
     );
     expect(normalizeSearchInput({ ...baseSearchInput, query: "워터파크 물놀이 아이랑" })).toMatchObject({
       query: "워터파크 물놀이",

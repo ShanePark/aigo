@@ -15,6 +15,62 @@ describe("research payload workflow lint", () => {
     expect(result.issues).toEqual([]);
   });
 
+  it("accepts a minimal partial patch payload in patch mode", () => {
+    const result = validateResearchPayload(
+      {
+        nursingRoom: "yes",
+        parkingAvailable: "yes",
+        parentNotes: "공공 수유시설 정보와 시설관리공단 안내를 근거로 수유실과 주차 가능 여부를 보강합니다.",
+        sources: [
+          {
+            sourceType: "public_agency",
+            title: "수유정보 알리미",
+            url: "https://example.com/nursing-room",
+            summary: "공공 수유시설 정보에서 가족수유실 위치와 운영 상태를 확인했습니다.",
+            checkedAt: "2026-06-17T09:15:00+09:00"
+          }
+        ],
+        sourceMode: "append",
+        actor: "codex-aigo-place-api",
+        changeSummary: "수유실과 주차 가능 여부 보강"
+      },
+      { mode: "patch" }
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it("still rejects risky patch workflow fields", () => {
+    const result = validateResearchPayload(
+      {
+        status: "needs_review",
+        dataConfidence: "needs_check",
+        parentNotes: "This is a source-backed family fallback with infant logistics confirmed by official page.",
+        sources: [
+          {
+            sourceType: "official_site",
+            title: "공식 안내",
+            url: "https://example.com/place",
+            summary: "공식 사이트에서 운영 정보를 확인했습니다.",
+            checkedAt: "2026-06-17T09:15:00+09:00"
+          }
+        ],
+        sourceMode: "append"
+      },
+      { mode: "patch" }
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "workflow_status", path: "status" }),
+        expect.objectContaining({ code: "workflow_data_confidence", path: "dataConfidence" }),
+        expect.objectContaining({ code: "workflow_public_text_korean", path: "parentNotes" })
+      ])
+    );
+  });
+
   it("rejects pending image review status before registration", () => {
     const result = validateResearchPayload({
       ...validPayload(),
@@ -556,7 +612,13 @@ describe("research payload workflow lint", () => {
   it("parses CLI arguments", () => {
     expect(parseArgs(["--json", "a.json", "b.md"])).toEqual({
       json: true,
+      mode: "create",
       paths: ["a.json", "b.md"]
+    });
+    expect(parseArgs(["--mode=patch", "payload.json"])).toEqual({
+      json: false,
+      mode: "patch",
+      paths: ["payload.json"]
     });
   });
 });

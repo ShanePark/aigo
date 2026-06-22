@@ -129,6 +129,36 @@ describe("place schemas", () => {
     expect(overseas.countryCode).toBeUndefined();
   });
 
+  it("normalizes place write aliases into external reference aliases", () => {
+    const create = createPlaceSchema.parse({
+      name: "양평물빛정원도서관 어린이자료실",
+      primaryCategory: "library",
+      regionSido: "경기",
+      lat: 37.49,
+      lng: 127.49,
+      aliases: ["양평도서관 어린이자료실", "양평군립중앙도서관 어린이자료실"],
+      koreanSearchAliases: ["양평 어린이자료실"],
+      externalRefs: {
+        aliases: ["물빛정원도서관 어린이실"]
+      },
+      sources: [{ sourceType: "official_site", url: "https://example.com/library" }]
+    });
+    const update = updatePlaceSchema.parse({
+      aliases: ["양평도서관 어린이자료실"],
+      koreanSearchAliases: ["양평군립중앙도서관 어린이자료실"],
+      sources: [{ sourceType: "official_site", url: "https://example.com/library-alias" }]
+    });
+
+    expect(create.externalRefs?.aliases).toEqual([
+      "물빛정원도서관 어린이실",
+      "양평도서관 어린이자료실",
+      "양평군립중앙도서관 어린이자료실"
+    ]);
+    expect(create.externalRefs?.koreanSearchAliases).toEqual(["양평 어린이자료실"]);
+    expect(update.externalRefs?.aliases).toEqual(["양평도서관 어린이자료실"]);
+    expect(update.externalRefs?.koreanSearchAliases).toEqual(["양평군립중앙도서관 어린이자료실"]);
+  });
+
   it("accepts public news as a place source type", () => {
     const result = createPlaceSchema.parse({
       name: "공개 기사 출처 장소",

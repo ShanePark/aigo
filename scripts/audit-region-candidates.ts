@@ -44,6 +44,7 @@ type CandidateAudit = {
   suggestedAction: SuggestedAction;
   exactSearchCount: number;
   exactMatches: PlaceAuditSummary[];
+  relatedExactMatches: PlaceAuditSummary[];
   duplicateCandidates: DuplicateAuditSummary[];
   errors: string[];
 };
@@ -54,6 +55,7 @@ type PlaceAuditSummary = {
   primaryCategory: string | null;
   address: string | null;
   roadAddress: string | null;
+  reasonCodes: string[];
   updatedAt: string | null;
   sourceFreshness: SourceFreshnessSummary;
   latestVersion: VersionAuditSummary | null;
@@ -248,6 +250,7 @@ export function buildCandidateAudit(input: {
   region?: string | null;
   exactSearchCount: number;
   exactMatches: PlaceAuditSummary[];
+  relatedExactMatches?: PlaceAuditSummary[];
   duplicateCandidates: DuplicateAuditSummary[];
   errors?: string[];
 }): CandidateAudit {
@@ -277,6 +280,7 @@ export function buildCandidateAudit(input: {
     suggestedAction,
     exactSearchCount: input.exactSearchCount,
     exactMatches: input.exactMatches,
+    relatedExactMatches: input.relatedExactMatches ?? [],
     duplicateCandidates: input.duplicateCandidates,
     errors
   };
@@ -342,6 +346,13 @@ export function formatRegionCandidateAuditReport(report: RegionCandidateAuditRep
       lines.push(`  exact: ${place.name} (${place.id}) ${place.primaryCategory ?? "unknown"} ${place.roadAddress ?? place.address ?? "address unknown"}`);
       lines.push(`    source: ${source}; image: ${image}; latest: ${version}`);
     }
+    if (candidate.relatedExactMatches.length > 0) {
+      lines.push(`  related exact-name search items: ${candidate.relatedExactMatches.length}`);
+      for (const place of candidate.relatedExactMatches) {
+        const codes = place.reasonCodes.length > 0 ? ` [${place.reasonCodes.join(", ")}]` : "";
+        lines.push(`    - ${place.name} (${place.id}) ${place.primaryCategory ?? "unknown"} ${place.roadAddress ?? place.address ?? "address unknown"}${codes}`);
+      }
+    }
     if (candidate.duplicateCandidates.length > 0) {
       const duplicateSummary = summarizeDuplicateItems(candidate.duplicateCandidates);
       lines.push("  duplicate candidates:");
@@ -366,6 +377,7 @@ async function auditCandidate(candidate: string, args: RegionCandidateAuditArgs,
   const errors: string[] = [];
   let exactSearchCount = 0;
   let exactMatches: PlaceAuditSummary[] = [];
+  let relatedExactMatches: PlaceAuditSummary[] = [];
 
   try {
     const search = await exactNameSearchReadOnly<AigoSearchItem>(candidate, { ...options, limit: args.limit });
@@ -388,19 +400,23 @@ async function auditCandidate(candidate: string, args: RegionCandidateAuditArgs,
         }
       })
     );
-    exactMatches = places.filter((place): place is PlaceAuditSummary => place !== null);
+    const foundPlaces = places.filter((place): place is PlaceAuditSummary => place !== null);
+    exactMatches = foundPlaces.filter(isStrictExactNameMatch);
+    relatedExactMatches = foundPlaces.filter((place) => !isStrictExactNameMatch(place));
   } catch (error) {
     errors.push(`${candidate}: exact-name search failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  const exactAndRelatedMatches = [...exactMatches, ...relatedExactMatches];
   const imageHealth = await readImageHealthByPlaceId(
-    exactMatches.map((place) => place.id),
+    exactAndRelatedMatches.map((place) => place.id),
     args
   ).catch((error) => {
     errors.push(`${candidate}: image-health read failed: ${error instanceof Error ? error.message : String(error)}`);
     return new Map<string, ImageHealthSummary>();
   });
   exactMatches = exactMatches.map((place) => ({ ...place, imageHealth: imageHealth.get(place.id) ?? place.imageHealth }));
+  relatedExactMatches = relatedExactMatches.map((place) => ({ ...place, imageHealth: imageHealth.get(place.id) ?? place.imageHealth }));
 
   const duplicateCandidates = await readDuplicateCandidatesReadOnly(candidate, args).catch((error) => {
     errors.push(`${candidate}: duplicate check failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -412,6 +428,7 @@ async function auditCandidate(candidate: string, args: RegionCandidateAuditArgs,
     region: displayRegion(args),
     exactSearchCount,
     exactMatches,
+    relatedExactMatches,
     duplicateCandidates,
     errors
   });
@@ -434,11 +451,16 @@ function toPlaceAuditSummary(
     primaryCategory: stringField(detail, "primaryCategory") ?? stringField(item, "primaryCategory"),
     address: stringField(detail, "address") ?? stringField(item, "address"),
     roadAddress: stringField(detail, "roadAddress") ?? stringField(item, "roadAddress"),
+    reasonCodes: stringArrayField(item, "reasonCodes"),
     updatedAt: stringField(detail, "updatedAt") ?? stringField(item, "updatedAt"),
     sourceFreshness: sourceFreshnessFromDetail(detail, now, staleAfterDays),
     latestVersion: latestVersionSummary(versionsResponse, detail),
     imageHealth: compactImageHealth(recordField(item, "imageHealth"))
   };
+}
+
+function isStrictExactNameMatch(place: PlaceAuditSummary) {
+  return place.reasonCodes.includes("QUERY_NAME_EXACT");
 }
 
 async function readPlaceDetailReadOnly(placeId: string, args: Pick<RegionCandidateAuditArgs, "apiBaseUrl" | "apiKey" | "timeoutMs">): Promise<PlaceDetail> {

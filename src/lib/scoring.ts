@@ -1006,6 +1006,8 @@ type OpeningPeriod = {
   dates: string[] | null;
   startsOn: string | null;
   endsOn: string | null;
+  startMonth: number | null;
+  endMonth: number | null;
   opens: string | null;
   closes: string | null;
   closed: boolean;
@@ -1120,7 +1122,18 @@ function collectOpeningPeriods(openingHours: Record<string, unknown>) {
       } else if (isRecord(dayValue)) {
         periods.push(periodFromRecord(dayValue, [day]));
       } else if (typeof dayValue === "string" && dayValue.toLowerCase() === "closed") {
-        periods.push({ days: [day], dates: null, startsOn: null, endsOn: null, opens: null, closes: null, closed: true, seasonal: false });
+        periods.push({
+          days: [day],
+          dates: null,
+          startsOn: null,
+          endsOn: null,
+          startMonth: null,
+          endMonth: null,
+          opens: null,
+          closes: null,
+          closed: true,
+          seasonal: false
+        });
       }
     }
   }
@@ -1141,6 +1154,8 @@ function periodFromRecord(record: Record<string, unknown>, fallbackDays?: number
   const dates = parseDates(record.date);
   const startsOn = parseDateString(record.validFrom ?? record.startDate ?? record.startsOn ?? record.from);
   const endsOn = parseDateString(record.validThrough ?? record.endDate ?? record.endsOn ?? record.to);
+  const startMonth = parseMonthNumber(record.startMonth ?? record.startsMonth ?? record.fromMonth);
+  const endMonth = parseMonthNumber(record.endMonth ?? record.endsMonth ?? record.toMonth);
   const opens = stringValue(record.opens ?? record.open ?? record.opensAt ?? record.start);
   const closes = stringValue(record.closes ?? record.close ?? record.closesAt ?? record.end);
   const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
@@ -1150,6 +1165,8 @@ function periodFromRecord(record: Record<string, unknown>, fallbackDays?: number
     dates,
     startsOn,
     endsOn,
+    startMonth,
+    endMonth,
     opens,
     closes,
     closed: record.closed === true || status === "closed",
@@ -1161,12 +1178,21 @@ function addSeasonalPeriods(periods: OpeningPeriod[], openingHours: Record<strin
   const seasonal = isRecord(openingHours.seasonal) ? openingHours.seasonal : null;
   if (!seasonal) return;
 
+  addSeasonalPeriod(periods, openingHours, seasonal);
+  for (const value of Object.values(seasonal)) {
+    if (isRecord(value)) addSeasonalPeriod(periods, openingHours, value);
+  }
+}
+
+function addSeasonalPeriod(periods: OpeningPeriod[], openingHours: Record<string, unknown>, seasonal: Record<string, unknown>) {
   const startsOn = parseDateString(seasonal.startDate ?? seasonal.startsOn ?? seasonal.from);
   const endsOn = parseDateString(seasonal.endDate ?? seasonal.endsOn ?? seasonal.to);
+  const startMonth = parseMonthNumber(seasonal.startMonth ?? seasonal.startsMonth ?? seasonal.fromMonth);
+  const endMonth = parseMonthNumber(seasonal.endMonth ?? seasonal.endsMonth ?? seasonal.toMonth);
   const weekly = isRecord(openingHours.weekly) ? openingHours.weekly : {};
   const regularHours = stringValue(weekly.regularHours ?? openingHours.regularHours ?? seasonal.regularHours);
   const timeRange = parseTimeRange(regularHours);
-  if (!timeRange || (!startsOn && !endsOn)) return;
+  if (!timeRange || (!startsOn && !endsOn && startMonth === null && endMonth === null)) return;
 
   const periodTexts = [
     stringValue(weekly.trialPeriod),
@@ -1183,6 +1209,8 @@ function addSeasonalPeriods(periods: OpeningPeriod[], openingHours: Record<strin
       dates: null,
       startsOn: parsed.startsOn,
       endsOn: parsed.endsOn,
+      startMonth: null,
+      endMonth: null,
       opens: timeRange.opens,
       closes: timeRange.closes,
       closed: false,
@@ -1197,6 +1225,8 @@ function addSeasonalPeriods(periods: OpeningPeriod[], openingHours: Record<strin
       dates: null,
       startsOn,
       endsOn,
+      startMonth,
+      endMonth,
       opens: timeRange.opens,
       closes: timeRange.closes,
       closed: false,
@@ -1212,6 +1242,8 @@ function addSeasonalPeriods(periods: OpeningPeriod[], openingHours: Record<strin
       dates: null,
       startsOn,
       endsOn,
+      startMonth,
+      endMonth,
       opens: null,
       closes: null,
       closed: true,
@@ -1272,6 +1304,18 @@ function parseDateString(value: unknown) {
   const trimmed = value.trim();
   const match = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
   return match ? match[1] : null;
+}
+
+function parseMonthNumber(value: unknown) {
+  if (typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 12) return value;
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  const numeric = Number(normalized);
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 12) return numeric;
+  const match = /^(\d{1,2})\s*월/.exec(normalized);
+  if (!match) return null;
+  const month = Number(match[1]);
+  return Number.isInteger(month) && month >= 1 && month <= 12 ? month : null;
 }
 
 function parseDays(value: unknown): number[] | null {
@@ -1340,7 +1384,21 @@ function periodAppliesToDateAndDay(period: OpeningPeriod, date: string, day: num
 function periodAppliesToDateRange(period: OpeningPeriod, date: string) {
   if (period.startsOn && date < period.startsOn) return false;
   if (period.endsOn && date > period.endsOn) return false;
+  if (!periodAppliesToMonthRange(period, date)) return false;
   return true;
+}
+
+function periodAppliesToMonthRange(period: OpeningPeriod, date: string) {
+  if (period.startMonth === null && period.endMonth === null) return true;
+
+  const month = Number(date.slice(5, 7));
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  if (period.startMonth !== null && period.endMonth !== null) {
+    if (period.startMonth <= period.endMonth) return month >= period.startMonth && month <= period.endMonth;
+    return month >= period.startMonth || month <= period.endMonth;
+  }
+  if (period.startMonth !== null) return month >= period.startMonth;
+  return period.endMonth === null || month <= period.endMonth;
 }
 
 function parseTimeToMinutes(value: string | null) {
