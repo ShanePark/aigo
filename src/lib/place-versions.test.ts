@@ -60,7 +60,9 @@ describe("place version listing", () => {
         {
           id: "22222222-2222-4222-8222-222222222222",
           versionNumber: 2,
+          version: 2,
           action: "update",
+          changeType: "update",
           actor: "agent",
           changeSummary: "Updated family logistics",
           sources: [],
@@ -102,7 +104,9 @@ describe("place version listing", () => {
         {
           id: "33333333-3333-4333-8333-333333333333",
           versionNumber: 3,
+          version: 3,
           action: "update",
+          changeType: "update",
           actor: "agent",
           changeSummary: "Append official source",
           sources: [source],
