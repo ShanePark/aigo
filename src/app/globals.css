@@ -9211,8 +9211,8 @@ dd {
   }
 
   .map-canvas {
-    height: min(52vh, 380px);
-    min-height: 300px;
+    height: min(calc(100vw - 48px), 520px);
+    min-height: min(420px, calc(100vw - 48px));
   }
 
   .detail-media-grid {
@@ -10172,8 +10172,8 @@ dd {
   }
 
   .map-canvas {
-    height: min(21vh, 174px);
-    min-height: 160px;
+    height: min(calc(100vw - 28px), 460px);
+    min-height: min(360px, calc(100vw - 28px));
   }
 
   .map-overlay-strip {
