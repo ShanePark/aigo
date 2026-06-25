@@ -453,7 +453,7 @@ export function ExploreResults({
           <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
             <div className="results">
               {result.items.map((place, index) => (
-                <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} key={place.placeId} />
+                <ResultCard index={result.meta.offset + index + 1} place={place} returnHref={searchReturnHref} total={result.meta.total} key={place.placeId} />
               ))}
               {result.items.length === 0 ? (
                 <SearchEmptyState activeCategoryGroup={activeCategoryGroup} categoryGroups={categoryGroups} params={activeParams} />
@@ -515,7 +515,7 @@ export function ResultsListPanel({
         <PlaceSaveControlsProvider placeIds={result.items.map((place) => place.placeId)}>
           <div className="results">
             {result.items.map((place, index) => (
-              <ResultCard index={result.meta.offset + index + 1} metricKeys={metricKeys} place={place} returnHref={returnHref} key={place.placeId} />
+              <ResultCard index={result.meta.offset + index + 1} metricKeys={metricKeys} place={place} returnHref={returnHref} total={result.meta.total} key={place.placeId} />
             ))}
             {result.items.length === 0 ? emptyState : null}
           </div>
@@ -643,12 +643,14 @@ export function ResultCard({
   index,
   metricKeys,
   place,
-  returnHref
+  returnHref,
+  total
 }: {
   index: number;
   metricKeys?: ResultCardMetricKey[];
   place: SearchItem;
   returnHref: string;
+  total: number;
 }) {
   const keywords = resultKeywordChips(place);
   const primaryImage = place.primaryImage;
@@ -671,6 +673,7 @@ export function ResultCard({
       name={place.name}
       placeId={place.placeId}
       rank={index}
+      rankTotal={total}
       savePlaceId={place.placeId}
       showImageCategory
       summary={summary}
