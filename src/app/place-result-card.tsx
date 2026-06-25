@@ -39,6 +39,7 @@ type PlaceResultCardProps = {
   name: string;
   placeId?: string;
   rank?: number;
+  rankTotal?: number;
   savePlaceId?: string;
   showImageCategory?: boolean;
   summary: string;
@@ -67,6 +68,7 @@ export function PlaceResultCard({
   name,
   placeId,
   rank,
+  rankTotal,
   savePlaceId,
   showImageCategory = false,
   summary,
@@ -74,6 +76,9 @@ export function PlaceResultCard({
 }: PlaceResultCardProps) {
   const classes = ["result-card", className].filter(Boolean).join(" ");
   const hasImageMeta = typeof rank === "number" || showImageCategory;
+  const shouldShowRankTotal = typeof rankTotal === "number" && rankTotal > 0 && rankTotal <= 999;
+  const rankText = typeof rank === "number" ? (shouldShowRankTotal ? `${rank}/${rankTotal}` : String(rank)) : null;
+  const rankAriaLabel = typeof rank === "number" ? (typeof rankTotal === "number" && rankTotal > 0 ? `${rankTotal}개 중 ${rank}번째 결과` : `${rank}번째 결과`) : undefined;
 
   return (
     <article className={classes} data-map-place-card={placeId ? "true" : undefined} data-map-place-id={placeId} data-map-place-lat={mapLat} data-map-place-lng={mapLng} id={id}>
@@ -83,8 +88,8 @@ export function PlaceResultCard({
           {hasImageMeta ? (
             <span className="result-image-meta">
               {typeof rank === "number" ? (
-                <span className="rank-badge" aria-label={`${rank}번째 결과`}>
-                  {rank}
+                <span className="rank-badge" aria-label={rankAriaLabel}>
+                  {rankText}
                 </span>
               ) : null}
               {showImageCategory ? <PlaceCategoryBadge category={category} className="category-pill result-image-category" name={name} tags={tags} /> : null}

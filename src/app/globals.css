@@ -9211,8 +9211,8 @@ dd {
   }
 
   .map-canvas {
-    height: min(52vh, 380px);
-    min-height: 300px;
+    height: min(calc(100vw - 48px), 520px);
+    min-height: min(420px, calc(100vw - 48px));
   }
 
   .detail-media-grid {
@@ -9324,11 +9324,28 @@ dd {
   }
 
   .page {
-    padding: 6px 14px 8px;
+    padding: 6px 8px 8px;
   }
 
   .search-shell {
     margin-bottom: 6px;
+  }
+
+  .page:has(> .search-shell + .explore-layout) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 56px);
+    overflow: hidden;
+  }
+
+  .page:has(> .search-shell + .explore-layout) .search-shell {
+    flex: 0 0 auto;
+  }
+
+  .page:has(> .search-shell + .explore-layout) .explore-layout {
+    flex: 1 1 auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
   }
 
   .search-form {
@@ -9340,27 +9357,38 @@ dd {
   .search-bar {
     grid-column: 1;
     grid-row: 1;
-    grid-template-columns: minmax(0, 1fr) 38px;
+    grid-template-columns: minmax(0, 1fr) 36px;
     padding: 3px;
   }
 
   .search-query-capsule {
-    grid-template-columns: minmax(0, 1fr) 38px;
+    grid-template-columns: minmax(0, 1fr) 36px;
   }
 
   .search-form input,
   .search-form select {
-    min-height: 38px;
+    min-height: 36px;
     padding: 5px 8px;
+  }
+
+  .query-field input {
+    font-size: 15px;
+    font-weight: 600;
+    padding-inline: 13px 7px;
+  }
+
+  .query-field input::placeholder {
+    color: color-mix(in srgb, var(--muted) 82%, var(--text));
+    font-weight: 600;
   }
 
   .search-query-capsule .primary-button,
   .search-bar .reset-search-button {
-    min-height: 38px;
+    min-height: 36px;
   }
 
   .search-bar .reset-search-button {
-    width: 38px;
+    width: 36px;
   }
 
   .detail-grid {
@@ -10150,8 +10178,8 @@ dd {
   }
 
   .results-panel {
-    height: clamp(370px, 46dvh, 410px);
-    max-height: clamp(370px, 46dvh, 410px);
+    height: 100%;
+    max-height: 100%;
     overflow: hidden;
     position: relative;
     top: auto;
@@ -10172,8 +10200,8 @@ dd {
   }
 
   .map-canvas {
-    height: min(21vh, 174px);
-    min-height: 160px;
+    height: min(calc(100vw - 16px), 470px);
+    min-height: min(372px, calc(100vw - 16px));
   }
 
   .map-overlay-strip {
@@ -10276,6 +10304,10 @@ dd {
     grid-template-columns: auto minmax(0, 1fr);
     gap: 5px;
     padding: 4px 8px;
+  }
+
+  .result-footer:not(:has(.pagination)) {
+    display: none;
   }
 
   .result-footer .limit-control {
